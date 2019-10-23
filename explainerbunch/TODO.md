@@ -10,6 +10,15 @@ Layout:
 - Add percentile of scores to contributions tab
 - Add quantiles to precision plot - TBD
 - remove -999 from pdpplot
+- Regression tab:
+    - https://medium.com/microsoftazure/how-to-better-evaluate-the-goodness-of-fit-of-regressions-990dbf1c0091
+    - predicted vs actual (should be on 45 deg line)
+    - residuals vs prediction plot (heteroskedastic?)
+    - residuals vs feature
+    - residuals histogram
+    - QQ plot
+    - MAE, RMSE, RAE, RSE, R2
+
 
 Methods:
 - store layout settings and use for callbacks - TBD

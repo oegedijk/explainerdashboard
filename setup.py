@@ -6,6 +6,9 @@ setup(
     description='package to ease and speed up machine learning model explainability',
     license='MIT',
     packages=find_packages(),
+    package_data={
+        'dashboard': ['*.css', '*.min.js'],
+    },
     install_requires=['dash', 'dash-daq', 'dash-bootstrap-components',
                     'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 'shap'],
     author='Oege Dijk',

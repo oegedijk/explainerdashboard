@@ -61,8 +61,8 @@ class ExplainerDashboard:
             tabs.append(dcc.Tab(children=shadow_trees_tab(self.explainer), 
                             label='Individual Trees', 
                             id='trees_tab'))
-
-        self.app = dash.Dash(__name__.split('.')[0], static_folder='assets')
+        print(__name__)
+        self.app = dash.Dash(__name__)
 
         self.app.config['suppress_callback_exceptions']=True
         self.app.css.config.serve_locally = True
