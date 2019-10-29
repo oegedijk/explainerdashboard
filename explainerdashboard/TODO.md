@@ -5,6 +5,8 @@ Layout:
 - add option to drop na's from interaction plot
 - add option to drop na's from color coding dependence plot (or make them grey?)
 - Add percentile of scores to contributions tab
+- make background graphs white
+- add violin plot to categorical plots
 
 - Regression tab:
     - https://medium.com/microsoftazure/how-to-better-evaluate-the-goodness-of-fit-of-regressions-990dbf1c0091

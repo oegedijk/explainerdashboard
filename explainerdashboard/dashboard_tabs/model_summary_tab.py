@@ -5,13 +5,14 @@ import dash_core_components as dcc
 import dash_daq as daq
 import dash_bootstrap_components as dbc
 import dash_html_components as html
-import dash_table
 
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 
-def model_summary_tab(explainer, bin_size=0.1, quantiles=10, cutoff=0.5, n_features=15):
+def model_summary_tab(explainer, bin_size=0.1, quantiles=10, 
+                        cutoff=0.5, n_features=15, **kwargs):
+    # hide cats toggle if not cats defined:
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
     dbc.Row([

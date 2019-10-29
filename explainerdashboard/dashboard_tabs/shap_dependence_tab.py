@@ -11,7 +11,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 
-def shap_dependence_tab(explainer, n_features=10):
+def shap_dependence_tab(explainer, n_features=10, **kwargs):
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
     dbc.Row([

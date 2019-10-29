@@ -12,7 +12,7 @@ from dash.exceptions import PreventUpdate
 
 import numpy as np
 
-def contributions_tab(explainer, n_features=15):
+def contributions_tab(explainer, n_features=15, **kwargs):
     return dbc.Container([
     dbc.Row([
         dbc.Col([

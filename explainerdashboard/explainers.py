@@ -247,8 +247,7 @@ class BaseExplainerBunch(ABC):
                 self.shap_base_value, self.shap_values, 
                 self.shap_interaction_values, self.mean_abs_shap)
         if self.cats is not None:
-            _ = (   ,
-                    self.mean_abs_shap_cats, self.X_cats, 
+            _ = (self.mean_abs_shap_cats, self.X_cats, 
                     self.shap_values_cats)
         if include_interactions:
             _ = self.shap_interaction_values
@@ -487,7 +486,7 @@ class BaseExplainerBunch(ABC):
 class TreeModelBunch(BaseExplainerBunch):
     @property
     def shap_explainer(self):
-        if not hasattr(self, '._shap_explainer'):
+        if not hasattr(self, '_shap_explainer'):
             print("Generating shap TreeExplainer...")
             if str(type(self.model))[-15:-2]=='XGBClassifier':
                 warnings.warn("Warning: shap values for XGBoost models get calcaulated"

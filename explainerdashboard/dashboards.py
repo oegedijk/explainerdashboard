@@ -22,6 +22,7 @@ from .dashboard_tabs.shadow_trees_tab import *
 pio.templates.default = "none" 
 
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
+# then extended to deal with multiple inheritance
 def delegates(to=None, keep=False):
     "Decorator: replace `**kwargs` in signature with params from `to`"
     def _f(f):
@@ -50,13 +51,16 @@ class ExplainerDashboard:
     def __init__(self, explainer, title='Model Explainer', *,    
                     contributions=True,
                     shap_dependence=True,
-                    shap_interaction=True):
+                    shap_interaction=True,
+                    **kwargs):
         self.explainer=explainer
         self.title = title
 
         self.contributions = contributions
         self.shap_dependence = shap_dependence
         self.shap_interaction = shap_interaction
+
+        self.kwargs=kwargs
 
         # calculate properties before starting dashboard:
         if shap_dependence or contributions:
@@ -82,17 +86,20 @@ class ExplainerDashboard:
 
     def insert_tab_layouts(self, tabs):
         if self.contributions:
-            tabs.append(dcc.Tab(children=contributions_tab(self.explainer), 
-                            label='Individual Contributions', 
-                            id='contributions_tab'))
+            tabs.append(dcc.Tab(
+                    children=contributions_tab(self.explainer, **self.kwargs), 
+                    label='Individual Contributions', 
+                    id='contributions_tab'))
         if self.shap_dependence:
-            tabs.append(dcc.Tab(children=shap_dependence_tab(self.explainer), 
-                            label='Dependence Plots', 
-                            id='dependence_tab'))
+            tabs.append(dcc.Tab(
+                    children=shap_dependence_tab(self.explainer, **self.kwargs), 
+                    label='Dependence Plots', 
+                    id='dependence_tab'))
         if self.shap_interaction:
-            tabs.append(dcc.Tab(children=shap_interactions_tab(self.explainer), 
-                            label='Interactions graphs', 
-                            id='interactions_tab'))
+            tabs.append(dcc.Tab(
+                    hildren=shap_interactions_tab(self.explainer, **self.kwargs), 
+                    label='Interactions graphs', 
+                    id='interactions_tab'))
         
     def register_callbacks(self):
         if self.contributions: 
@@ -123,9 +130,10 @@ class RandomForestDashboard(ExplainerDashboard):
     def insert_tab_layouts(self, tabs):
         super().insert_tab_layouts(tabs)
         if self.shadow_trees:
-            tabs.append(dcc.Tab(children=shadow_trees_tab(self.explainer), 
-                            label='Individual Trees', 
-                            id='trees_tab'))
+            tabs.append(dcc.Tab(
+                children=shadow_trees_tab(self.explainer, **self.kwargs), 
+                label='Individual Trees', 
+                id='trees_tab'))
         
     def register_callbacks(self):
         super().register_callbacks()
@@ -151,9 +159,10 @@ class ClassifierDashboard(ExplainerDashboard):
 
     def insert_tab_layouts(self, tabs):
         if self.classifier_summary:
-            tabs.append(dcc.Tab(children=model_summary_tab(self.explainer),
-                            label='Model Overview', 
-                            id='model_tab'))
+            tabs.append(dcc.Tab(
+                    children=model_summary_tab(self.explainer, **self.kwargs),
+                    label='Model Overview', 
+                    id='model_tab'))
         super().insert_tab_layouts(tabs)
         
     def register_callbacks(self):

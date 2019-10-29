@@ -10,7 +10,7 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-def shadow_trees_tab(explainer):
+def shadow_trees_tab(explainer, **kwargs):
     return dbc.Container([
      dbc.Row([
         dbc.Col([

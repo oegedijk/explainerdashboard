@@ -6,8 +6,9 @@ setup(
     description='package to ease and speed up machine learning model explainability',
     license='MIT',
     packages=find_packages(),
+    package_dir={'explainerdashboard':'explainerdashboard'}, # the one line where all the magic happens
     package_data={
-        'assets': ['*.css', '*.min.js'],
+        'explainerdashboard': ['assets/*'],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
