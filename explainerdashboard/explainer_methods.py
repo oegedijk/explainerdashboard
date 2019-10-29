@@ -220,11 +220,17 @@ def mean_absolute_shap_values(columns, shap_values, cats=None):
     return shap_df
 
 
-def get_precision_df(pred_probas, y_true, bin_size):
+def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None):
     """
     returns a pd.DataFrame with the predicted probabilities and 
     the observed frequency per bin_size. 
     """
+    if bin_size is None and quantiles is None:
+        bin_size=0.1
+        
+    assert ((bin_size is not None and quantiles is None)
+            or (bin_size is None and quantiles is not None)), \
+        "either only pass bin_size or only pass quantiles!"
     
     if len(pred_probas.shape)==2:
         # in case the full binary classifier pred_proba is passed, 
@@ -234,22 +240,38 @@ def get_precision_df(pred_probas, y_true, bin_size):
     predictions_df = pd.DataFrame({'pred_proba': pred_probas,'target': y_true})
 
     # define a placeholder df:
-    precision_df = pd.DataFrame(columns = ['pred_proba', 'avg_target', 'count'])
+    precision_df = pd.DataFrame(columns = ['p_min', 'p_max', 'p_avg', 'bin_width', 'precision', 'count'])
 
-    thresholds = np.arange(0, 1.0, bin_size).tolist()
+    if bin_size:
+        thresholds = np.arange(0.0, 1.0, bin_size).tolist()
+    elif quantiles:
+        thresholds = np.quantile(pred_probas, np.arange(0, 1.0, 1.0/quantiles)).tolist()
+        
     # loop through prediction intervals, and compute
     for bin_min, bin_max in zip(thresholds, thresholds[1:] + [1.0]):
-        avg_target = predictions_df[(predictions_df.pred_proba> bin_min) & 
-                                  (predictions_df.pred_proba<= bin_max)].target.mean()
-        bin_count = predictions_df[(predictions_df.pred_proba> bin_min) & 
-                                    (predictions_df.pred_proba<= bin_max)].target.count()
-        new_row = pd.DataFrame(
-            {
-                'pred_proba' : [(bin_min+bin_max)/2],
-                'avg_target' : [avg_target],
-                'count' : [bin_count]
-            })
-        precision_df = pd.concat([precision_df, new_row])
+        if bin_min != bin_max:
+            if bin_min==0.0:
+                precision = predictions_df[(predictions_df.pred_proba>= bin_min) & 
+                                      (predictions_df.pred_proba<= bin_max)].target.mean()
+                bin_count = predictions_df[(predictions_df.pred_proba>= bin_min) & 
+                                        (predictions_df.pred_proba<= bin_max)].target.count()
+            else:
+                precision = predictions_df[(predictions_df.pred_proba> bin_min) & 
+                                      (predictions_df.pred_proba<= bin_max)].target.mean()
+                bin_count = predictions_df[(predictions_df.pred_proba> bin_min) & 
+                                        (predictions_df.pred_proba<= bin_max)].target.count()
+
+            bin_width = bin_max-bin_min
+            new_row = pd.DataFrame(
+                {
+                    'p_min' : [bin_min],
+                    'p_max' : [bin_max],
+                    'p_avg' : [bin_min+(bin_max-bin_min)/2.0],
+                    'bin_width' : [bin_max-bin_min],
+                    'precision' : [precision],
+                    'count' : [bin_count]
+                })
+            precision_df = pd.concat([precision_df, new_row])
     return precision_df
             
 

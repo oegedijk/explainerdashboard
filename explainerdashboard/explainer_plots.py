@@ -4,7 +4,8 @@ import plotly.graph_objs as go
 from pandas.api.types import is_numeric_dtype, is_string_dtype
 from plotly.subplots import make_subplots
 from sklearn.metrics import (classification_report, confusion_matrix,
-                             precision_recall_curve, roc_curve)
+                             precision_recall_curve, roc_curve, 
+                             roc_auc_score, average_precision_score)
 
 
 def plotly_contribution_plot(contrib_df, target="target", 
@@ -37,10 +38,10 @@ def plotly_contribution_plot(contrib_df, target="target",
             color='rgba(1,1,1, 0.0)',
         )
     )
-    if 'raw_value' in contrib_df.columns:
+    if 'value' in contrib_df.columns:
         hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{np.round(100*contrib,2)}" 
                   for col, value, contrib in zip(
-                      contrib_df.col, contrib_df.raw_value, contrib_df.contribution)]
+                      contrib_df.col, contrib_df.value, contrib_df.contribution)]
     else:
         hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{np.round(100*contrib,2)}"  
                   for col, contrib in zip(contrib_df.col, contrib_df.contribution)]
@@ -95,11 +96,10 @@ def plotly_contribution_plot(contrib_df, target="target",
     fig.update_yaxes(title_text='Prediction %')
     return fig
 
-
 def plotly_precision_plot(precision_df, 
-                                    count_label='counts', 
-                                    pos_label = 'positive', 
-                                    cutoff=0.5):
+                            count_label='counts', 
+                            pos_label='positive', 
+                            cutoff=0.5):
     """
     returns a plotly figure with bar plots for counts of observations for a 
     certain pred_proba bin,
@@ -110,15 +110,15 @@ def plotly_precision_plot(precision_df,
     """
 
     precision_df = precision_df.copy()
-    precision_df.columns = ['pred_proba', 'avg_target', 'count']
     trace1 = go.Bar(
-        x=precision_df['pred_proba'].values.tolist(),
+        x=precision_df['p_avg'].values.tolist(),
         y=precision_df['count'].values.tolist(),
+        width=0.9*precision_df['bin_width'].values,
         name=count_label
     )
     trace2 = go.Scatter(
-        x=precision_df['pred_proba'].values.tolist(),
-        y=precision_df['avg_target'].values.tolist(),
+        x=precision_df['p_avg'].values.tolist(),
+        y=precision_df['precision'].values.tolist(),
         name='percentage ' + pos_label,
         yaxis='y2'
     )
@@ -155,7 +155,6 @@ def plotly_precision_plot(precision_df,
                     y0=0,
                     y1=1.0,
                  )]
-   
         
     fig = go.Figure(data=data, layout=layout)
     if cutoff is not None:
@@ -545,6 +544,7 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
 
 def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
     fpr, tpr, thresholds = roc_curve(true_y, pred_probas)
+    roc_auc = roc_auc_score(true_y, pred_probas)
     trace0 = go.Scatter(x=fpr, y=tpr,
                     mode='lines',
                     name='ROC AUC CURVE',
@@ -607,6 +607,10 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
                        go.layout.Annotation(x=0.6, y=0.25, 
                             text=f"F1-score: {np.round(rep['1']['f1-score'], 3)}",
                             showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.6, y=0.20, 
+                            text=f"roc-auc-score: {np.round(roc_auc, 3)}",
+                            showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
                                             
@@ -616,6 +620,7 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
 
 def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     precision, recall, thresholds = precision_recall_curve(true_y, pred_probas)
+    pr_auc_score = average_precision_score(true_y, pred_probas)
     trace0 = go.Scatter(x=precision, y=recall,
                     mode='lines',
                     name='PR AUC CURVE',
@@ -652,24 +657,28 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
                     true_y, np.where(pred_probas > cutoff, 1,0), 
                     output_dict=True)
         
-        annotations = [go.layout.Annotation(x=0.6, y=0.45, 
+        annotations = [go.layout.Annotation(x=0.15, y=0.45, 
                             text=f"Cutoff: {np.round(cutoff,3)}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.4, 
+                       go.layout.Annotation(x=0.15, y=0.4, 
                             text=f"Accuracy: {np.round(report['accuracy'],3)}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.35, 
+                       go.layout.Annotation(x=0.15, y=0.35, 
                             text=f"Precision: {np.round(report['1']['precision'], 3)}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.30, 
+                       go.layout.Annotation(x=0.15, y=0.30, 
                             text=f"Recall: {np.round(report['1']['recall'], 3)}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.25, 
+                       go.layout.Annotation(x=0.15, y=0.25, 
                             text=f"F1-score: {np.round(report['1']['f1-score'], 3)}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.15, y=0.20, 
+                            text=f"pr-auc-score: {np.round(pr_auc_score, 3)}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)

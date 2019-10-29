@@ -19,7 +19,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'explainerbunch'
+project = 'explainerdashboard'
 copyright = '2019, Oege Dijk'
 author = 'Oege Dijk'
 
@@ -102,7 +102,7 @@ html_static_path = ['nstatic']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'explainerbunchdoc'
+htmlhelp_basename = 'explainerdashboarddoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -129,7 +129,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'explainerbunch.tex', 'explainerbunch Documentation',
+    (master_doc, 'explainerdashboard.tex', 'explainerdashboard Documentation',
      'Oege Dijk', 'manual'),
 ]
 
@@ -139,7 +139,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'explainerbunch', 'explainerbunch Documentation',
+    (master_doc, 'explainerdashboard', 'explainerdashboard Documentation',
      [author], 1)
 ]
 
@@ -150,8 +150,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'explainerbunch', 'explainerbunch Documentation',
-     author, 'explainerbunch', 'One line description of project.',
+    (master_doc, 'explainerdashboard', 'explainerdashboard Documentation',
+     author, 'explainerdashboard', 'One line description of project.',
      'Miscellaneous'),
 ]
 

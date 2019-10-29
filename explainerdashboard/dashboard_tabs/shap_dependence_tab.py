@@ -11,7 +11,8 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 
-def shap_dependence_tab(self):
+def shap_dependence_tab(explainer, n_features=10):
+    cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
     dbc.Row([
         dbc.Col([
@@ -24,14 +25,14 @@ def shap_dependence_tab(self):
                     html.Label('no of columns:'),
                     dcc.Dropdown(id='dependence-scatter-depth',
                         options = [{'label': str(i+1), 'value':i+1} 
-                                        for i in range(len(self.columns))],
-                        value=min(10, len(self.columns))),
+                                        for i in range(len(explainer.columns))],
+                        value=min(n_features, len(explainer.columns))),
                 ], style = dict(width='28%', display='inline-block')),
                 html.Div([
                     daq.ToggleSwitch(
                         id='dependence-group-categoricals',
                         label='Group Categoricals'),
-                ], style = dict(width='18%', display='inline-block')),
+                ], style = dict(width='18%', display=cats_display)),
             ], style = {'width':'100%'}), 
             dcc.Loading(id="loading-dependence-shap-scatter", 
                     children=[dcc.Graph(id='dependence-shap-scatter-graph')])
@@ -42,17 +43,17 @@ def shap_dependence_tab(self):
                     html.Label('Plot dependence for column:'),
                     dcc.Dropdown(id='dependence-col', 
                         options=[{'label': col, 'value':col} 
-                                    for col in self.mean_abs_shap_df()\
+                                    for col in explainer.mean_abs_shap_df()\
                                                                 .Feature.tolist()],
-                        value=self.mean_abs_shap_df().Feature[0]),
+                        value=explainer.mean_abs_shap_df().Feature[0]),
                 ], style = dict(width='40%', display='inline-block')),
                 html.Div([
                     html.Label('Color observation by column:'),
                     dcc.Dropdown(id='dependence-color-col', 
                         options=[{'label': col, 'value':col} 
-                                    for col in self.mean_abs_shap_df()\
+                                    for col in explainer.mean_abs_shap_df()\
                                                                 .Feature.tolist()],
-                        value=self.mean_abs_shap_df().Feature.tolist()[0])
+                        value=explainer.mean_abs_shap_df().Feature.tolist()[0])
                 ], style = dict(width='40%', display='inline-block')),
                 html.Div([
                     html.Label('Highlight:'),
@@ -67,7 +68,7 @@ def shap_dependence_tab(self):
     ] ,  fluid=True)
 
 
-def shap_dependence_tab_register_callbacks(self, app):
+def shap_dependence_tab_register_callbacks(explainer, app):
     @app.callback(
         [Output('dependence-shap-scatter-graph', 'figure'),
         Output('dependence-col', 'options'),
@@ -78,14 +79,14 @@ def shap_dependence_tab_register_callbacks(self, app):
         ctx = dash.callback_context
         if ctx.triggered:
             if depth is None: depth = 10
-            plot = self.plot_shap_summary(topx=depth, cats=cats)
+            plot = explainer.plot_shap_summary(topx=depth, cats=cats)
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
 
             if trigger=='dependence-scatter-depth':
                 return (plot, dash.no_update, dash.no_update)
             else:
                 col_options = [{'label': col, 'value':col} 
-                            for col in self.mean_abs_shap_df(cats=cats)\
+                            for col in explainer.mean_abs_shap_df(cats=cats)\
                                                         .Feature.tolist()]
                 depth_options = [{'label': str(i+1), 'value':i+1} 
                             for i in range(len(col_options))]
@@ -111,7 +112,7 @@ def shap_dependence_tab_register_callbacks(self, app):
         [Input('dependence-col', 'value')],
         [State('dependence-group-categoricals', 'value')])
     def set_color_col_dropdown(col, cats):
-        sorted_interact_cols = self.shap_top_interactions(col, cats=cats)
+        sorted_interact_cols = explainer.shap_top_interactions(col, cats=cats)
         options = [{'label': col, 'value':col} 
                                     for col in sorted_interact_cols]
         value =   sorted_interact_cols[1]                                
@@ -126,6 +127,6 @@ def shap_dependence_tab_register_callbacks(self, app):
          State('dependence-group-categoricals', 'value')])
     def update_dependence_graph(color_col, idx, col, cats):
         if color_col is not None:
-            return self.plot_shap_dependence(
+            return explainer.plot_shap_dependence(
                         col, color_col, highlight_idx=idx, cats=cats)
         raise PreventUpdate

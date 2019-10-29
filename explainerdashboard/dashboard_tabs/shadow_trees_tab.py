@@ -10,7 +10,7 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-def shadow_trees_tab(self):
+def shadow_trees_tab(explainer):
     return dbc.Container([
      dbc.Row([
         dbc.Col([
@@ -34,19 +34,19 @@ def shadow_trees_tab(self):
     ],  fluid=True)
 
 
-def shadow_trees_tab_register_callbacks(self, app):
+def shadow_trees_tab_register_callbacks(explainer, app):
 
     @app.callback(
         Output('tree-index-store', 'data'),
         [Input('tree-input-index', 'value')]
     )
     def update_bsn_div(input_index):
-        if (self.idxs is None 
+        if (explainer.idxs is None 
             and str(input_index).isdigit() 
-            and int(input_index) <= len(self)):
+            and int(input_index) <= len(explainer)):
             return int(input_index)
-        elif (self.idxs is not None
-             and str(input_index) in self.idxs):
+        elif (explainer.idxs is not None
+             and str(input_index) in explainer.idxs):
              return str(input_index)
         raise PreventUpdate
 
@@ -56,7 +56,7 @@ def shadow_trees_tab_register_callbacks(self, app):
     )
     def update_output_div(idx):
         if idx is not None:
-            return self.plot_trees(idx)
+            return explainer.plot_trees(idx)
         raise PreventUpdate
 
     @app.callback(
@@ -70,7 +70,7 @@ def shadow_trees_tab_register_callbacks(self, app):
         if clickData is not None and idx is not None:
             model = int(clickData['points'][0]['text'][6:]) if clickData is not None else 0
             (baseval, prediction, 
-                    shadowtree_df) = self.shadowtree_df_summary(model, idx)
+                    shadowtree_df) = explainer.shadowtree_df_summary(model, idx)
             columns=[{'id': c, 'name': c} for c in  shadowtree_df.columns.tolist()]
             baseval_str = f"Tree no {model}, Starting prediction   : {baseval}, final prediction : {prediction}"
             return (baseval_str, columns, shadowtree_df.to_dict('records'))

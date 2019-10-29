@@ -87,33 +87,24 @@ class BaseExplainerBunch(ABC):
         return idx
 
     def __contains__(self, index):
-        try:
-            idx = self.get_int_idx(index)
-        except:
-            return False
-        if idx in self.X.index: 
+        if self.get_int_idx(index) is not None:
             return True
         return False
     
     def get_int_idx(self, index):
         """
         Always returns an int index.
-        If idx is already int, simply return directly
-        if idx is str, lookup corresponding int index and return
-        if str not in self.idxs assert fails
-        """
-        assert isinstance(index, int) or isinstance(index, str), \
-            "pass either an int or a str index"
-        
+        If index is already int, simply return directly
+        if index is str, lookup corresponding int index and return
+        if index not found, return None
+        """        
         if isinstance(index, int):
-            return index
+            if index >= 0 and index < len(self):
+                return index
         elif isinstance(index, str):
-            assert self.idxs is not None, \
-                """no index column passed to constructor. 
-                Can only index with ints, not with strings""" 
-            assert index in self.idxs, \
-                f"Unknown index {index}"
-            return self.idxs.index(index)
+            if self.idxs is not None and index in self.idxs:
+                return self.idxs.index(index)
+        return None
     
     @property
     def preds(self):
@@ -256,13 +247,13 @@ class BaseExplainerBunch(ABC):
                 self.shap_base_value, self.shap_values, 
                 self.shap_interaction_values, self.mean_abs_shap)
         if self.cats is not None:
-            _ = (self.permutation_importances_cats,
+            _ = (   ,
                     self.mean_abs_shap_cats, self.X_cats, 
                     self.shap_values_cats)
         if include_interactions:
             _ = self.shap_interaction_values
             if self.cats is not None:
-                _ = self.self.shap_interaction_values_cats
+                _ = self.shap_interaction_values_cats
     
     def mean_abs_shap_df(self, topx=None, cutoff=None, cats=False):
         shap_df = self.mean_abs_shap_cats if cats else self.mean_abs_shap
@@ -324,10 +315,6 @@ class BaseExplainerBunch(ABC):
             return self.permutation_importances_df(topx, cutoff, cats)
         elif type=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats)
-    
-    def precision_df(self, bin_size=0.05):
-        assert self.pred_probas is not None
-        return get_precision_df(self.pred_probas, self.y.values, bin_size)
         
     def contrib_df(self, idx, cats=True, topx=None, cutoff=None):
         """
@@ -346,7 +333,8 @@ class BaseExplainerBunch(ABC):
         idx=self.get_int_idx(idx) # if passed str convert to int index
         return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff))
 
-    def get_pdp_result(self, feature_name, idx=None, sample=1000, num_grid_points=20):
+    def get_pdp_result(self, col, index=None, drop_na=True, 
+                        sample=1000, num_grid_points=20):
         """
         Returns a pdpbox result for feature feature_name.
 
@@ -356,20 +344,37 @@ class BaseExplainerBunch(ABC):
                         of quantiles
 
         """ 
-        assert feature_name in self.X.columns or feature_name in self.cats, \
-            f"{feature_name} not in columns of dataset"
+        assert col in self.X.columns or col in self.cats, \
+            f"{col} not in columns of dataset"
 
-        features = get_feature_dict(self.X.columns, self.cats)[feature_name]
-        if idx:
-            sampleX = pd.concat([self.X[self.X.index==idx], 
-                             self.X[self.X.index!=idx].sample(min(sample, len(self.X)-1))], 
-                            ignore_index=True, axis=0)
+        features = get_feature_dict(self.X.columns, self.cats)[col]
+
+        if index is not None:
+            idx = self.get_int_idx(index)
+            if len(features)==1 and drop_na: # regular col, not onehotencoded
+                sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
+                sampleX = pd.concat([
+                    self.X[self.X.index==idx], 
+                    self.X[(self.X.index!=idx) & (self.X[features[0]] != self.na_fill)]\
+                            .sample(sample_size)], 
+                    ignore_index=True, axis=0)
+            else:
+                sample_size = min(sample, len(self.X)-1)
+                sampleX = pd.concat([
+                    self.X[self.X.index==idx], 
+                    self.X[(self.X.index!=idx)].sample(sample_size)], 
+                    ignore_index=True, axis=0)
         else:
-            sampleX = self.X[self.X.index!=idx].sample(min(sample, len(self.X)))
+            if len(features)==1 and drop_na: # regular col, not onehotencoded
+                sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
+                sampleX = self.X[(self.X[features[0]] != self.na_fill)]\
+                                .sample(sample_size)
+            else:
+                sampleX = self.X.sample(min(sample, len(self.X)))
+
         # if only a single value (i.e. not onehot encoded, take that value 
         # instead of list):
         if len(features)==1: features=features[0]
-            
         pdp_result = pdp.pdp_isolate(
                 model=self.model, dataset=sampleX, 
                 model_features=self.X.columns, 
@@ -455,21 +460,31 @@ class BaseExplainerBunch(ABC):
                 self.shap_interaction_values_by_col(col, cats), 
                 interact_col, col, highlight_idx=highlight_idx)
 
-    def plot_pdp(self, idx, col, sample=1000, num_grid_lines=100, num_grid_points=20):
-        idx=self.get_int_idx(idx)
-        pdp_result = self.get_pdp_result(col, idx, sample=sample, num_grid_points=num_grid_points)
-        feature_val, pred = self.get_col_value_plus_prediction(idx, col)
-        return plotly_pdp(pdp_result, 
-                          display_index=0, # the idx to be displayed is always set to the first row by self.pdp()!
-                          index_feature_value=feature_val, index_prediction=pred, 
-                          feature_name=col, 
-                          num_grid_lines=min(num_grid_lines, sample, len(self.X)))
-    
+    def plot_pdp(self, col, index=None, drop_na=True, sample=1000, num_grid_lines=100, num_grid_points=20):
+        pdp_result = self.get_pdp_result(col, index, 
+                            drop_na=True, sample=sample, 
+                            num_grid_points=num_grid_points)
+        
+        if index is not None:
+            try:
+                col_value, pred = self.get_col_value_plus_prediction(index, col)
+                return plotly_pdp(pdp_result, 
+                                display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
+                                index_feature_value=col_value, index_prediction=pred, 
+                                feature_name=col, 
+                                num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+            except:
+                return plotly_pdp(pdp_result, feature_name=col, 
+                        num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+        else:
+            return plotly_pdp(pdp_result, feature_name=col, 
+                        num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+
     def is_classifier(self):
         return False
 
 
-class TreeExplainerBunch(BaseExplainerBunch):
+class TreeModelBunch(BaseExplainerBunch):
     @property
     def shap_explainer(self):
         if not hasattr(self, '._shap_explainer'):
@@ -487,7 +502,7 @@ class TreeExplainerBunch(BaseExplainerBunch):
         return self._shap_explainer
 
 
-class BinaryClassifierExplainerBunch(BaseExplainerBunch):
+class ClassifierBunch(BaseExplainerBunch):
     def __init__(self, model,  X, y=None, metric=roc_auc_score, 
                     cats=None, idxs=None, permutation_cv=None, na_fill=-999, 
                     labels=['0', '1']):
@@ -550,11 +565,20 @@ class BinaryClassifierExplainerBunch(BaseExplainerBunch):
             return self.idxs[idx]
         return idx
 
-    def plot_precision(self, bin_size=0.10, cutoff=0.5):
+    def precision_df(self, bin_size=None, quantiles=None):
+        assert self.pred_probas is not None
+        if bin_size is None and quantiles is None:
+            bin_size=0.1 # defaults to bin_size=0.1
+        return get_precision_df(self.pred_probas, self.y.values, bin_size, quantiles)
+
+    def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5):
         """plots predicted probability on the x-axis
         binned by bin_size, and observed precision (fraction of actual positive
         cases) on the y-axis"""
-        precision_df = self.precision_df(bin_size=bin_size)
+
+        if bin_size is None and quantiles is None:
+            bin_size=0.1 # defaults to bin_size=0.1
+        precision_df = self.precision_df(bin_size=bin_size, quantiles=quantiles)
         return plotly_precision_plot(precision_df, cutoff=cutoff)
 
     def plot_confusion_matrix(self, cutoff=0.5, normalized=False):
@@ -583,7 +607,7 @@ class BinaryClassifierExplainerBunch(BaseExplainerBunch):
         super().calculate_properties(include_interactions)
 
 
-class ShadowTrees:
+class RandomForestBunch(TreeModelBunch):
     """
     Shadow Trees are generated by the method ShadowDecTree() in de dtreeviz 
     package, that make it easy to navigate the nodes of an individual sklearn
@@ -625,14 +649,14 @@ class ShadowTrees:
 
     def calculate_properties(self, include_interactions=True):
         _ = (self.shadow_trees)
+        super().calculate_properties(include_interactions)
 
-class TreeModelBinaryClassifierExplainerBunch(
-            BinaryClassifierExplainerBunch, TreeExplainerBunch):
-    pass
+class TreeModelClassifierBunch(ClassifierBunch, TreeModelBunch):
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
 
 
-class RandomForestBinaryClassifierExplainerBunch(BinaryClassifierExplainerBunch, 
-                        TreeExplainerBunch, ShadowTrees):
+class RandomForestClassifierBunch(ClassifierBunch, RandomForestBunch):
     def calculate_properties(self, include_interactions=True):
         super().calculate_properties(include_interactions)
 
