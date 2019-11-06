@@ -9,8 +9,8 @@ from sklearn.metrics import (classification_report, confusion_matrix,
 
 
 def plotly_contribution_plot(contrib_df, target="target", 
-                         classification=True, higher_is_better=False,
-                         include_base_value=True):
+                         classification=False, higher_is_better=False,
+                         include_base_value=True, round=2):
     """
     Takes in a DataFrame contrib_df with columns
     'col' -- name of columns
@@ -21,17 +21,25 @@ def plotly_contribution_plot(contrib_df, target="target",
     Outputs a bar chart displaying the contribution of each individual
     column to the final prediction. 
     """ 
+    contrib_df = contrib_df.copy()
+    multiplier = 100 if classification else 1
+    contrib_df['base'] = np.round(multiplier * contrib_df['base'], round)
+    contrib_df['cumulative'] = np.round(multiplier * contrib_df['cumulative'], round)
+    contrib_df['contribution'] = np.round(multiplier * contrib_df['contribution'], round)
+
+
     if not include_base_value:
         contrib_df = contrib_df[contrib_df.col != 'base_value']
         
     longest_feature_name = contrib_df['col'].str.len().max()
 
     # prediction is the sum of all contributions:
-    prediction = np.round(100*contrib_df['cumulative'].values[-1],1)
+    prediction = contrib_df['cumulative'].values[-1]
+
     # Base of each bar
     trace0 = go.Bar(
-        x=contrib_df['col'].values.tolist(),
-        y=np.round(100*contrib_df['base'].values, 2).tolist(),
+        x=contrib_df['col'].values,
+        y=contrib_df['base'].values,
         hoverinfo='skip',
         name="",
         marker=dict(
@@ -39,11 +47,11 @@ def plotly_contribution_plot(contrib_df, target="target",
         )
     )
     if 'value' in contrib_df.columns:
-        hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{np.round(100*contrib,2)}" 
+        hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib}" 
                   for col, value, contrib in zip(
                       contrib_df.col, contrib_df.value, contrib_df.contribution)]
     else:
-        hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{np.round(100*contrib,2)}"  
+        hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib}"  
                   for col, contrib in zip(contrib_df.col, contrib_df.contribution)]
 
     fill_colour_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
@@ -54,7 +62,7 @@ def plotly_contribution_plot(contrib_df, target="target",
     # top of each bar (base + contribution)
     trace1 = go.Bar(
         x=contrib_df['col'].values.tolist(),
-        y=np.round(100*contrib_df['contribution'].values, 2).tolist(),
+        y=contrib_df['contribution'].values,
         text=hover_text,
         name="contribution",
         hoverinfo="text",
@@ -93,7 +101,10 @@ def plotly_contribution_plot(contrib_df, target="target",
                                 t=50,
                                 pad=4
                             ))
-    fig.update_yaxes(title_text='Prediction %')
+    if classification:
+        fig.update_yaxes(title_text='Prediction %')
+    else:
+        fig.update_yaxes(title_text='Prediction')
     return fig
 
 def plotly_precision_plot(precision_df, 
@@ -165,11 +176,11 @@ def plotly_precision_plot(precision_df,
 
 
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
-                            highlight_idx=None, shap_round=3):
+                            highlight_idx=None, na_fill=-999, round=2):
     """
     Returns a partial dependence plot based on shap values.
 
-    Observations are colored according to the values in column color_col_name
+    Observations are colored according to the values in column interact_col_name
     """
     assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
     assert interact_col_name is None or interact_col_name in X.columns.tolist(),\
@@ -184,18 +195,18 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
     
     if interact_col_name is not None:
-        text = [f'{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                    for col_val, col_col_val, shap_val in zip(x, X[interact_col_name], np.round(y, shap_round))]
+        text = np.array([f'{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
+                    for col_val, col_col_val, shap_val in zip(x, X[interact_col_name], np.round(y, round))])
     else:
-        text = [f'{col_name}={col_val}<br>SHAP={shap_val}' 
-                    for col_val, shap_val in zip(x, np.round(y, shap_round))]
+        text = np.array([f'{col_name}={col_val}<br>SHAP={shap_val}' 
+                    for col_val, shap_val in zip(x, np.round(y, round))])  
         
     data = []
     
     if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
         for onehot_col in X[interact_col_name].unique().tolist():
                 data.append(go.Scatter(
-                                x=X[X[interact_col_name]==onehot_col][col_name],
+                                x=X[X[interact_col_name]==onehot_col][col_name].replace({-999:np.nan}),
                                 y=shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)],
                                 mode='markers',
                                 marker=dict(
@@ -212,19 +223,46 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                                         for col_val, col_col_val, shap_val in zip(
                                             X[X[interact_col_name]==onehot_col][col_name], 
                                             X[X[interact_col_name]==onehot_col][interact_col_name], 
-                                            np.round(shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)], shap_round))]
+                                            np.round(shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)], round))],
                                 ))
                 
+    elif interact_col_name is not None and is_numeric_dtype(X[interact_col_name]):
+        data.append(go.Scatter(
+                        x=x[X[interact_col_name]!=na_fill],
+                        y=y[X[interact_col_name]!=na_fill], 
+                        mode='markers',
+                        text=text[X[interact_col_name]!=na_fill],
+                        hoverinfo="text",
+                        marker=dict(size=7, 
+                                    opacity=0.6,
+                                    color=X[interact_col_name][X[interact_col_name]!=na_fill],
+                                    colorscale='Bluered',
+                                    colorbar=dict(
+                                        title=interact_col_name
+                                        ),
+                        showscale=True),
+                ))
+        data.append(go.Scatter(
+                        x=x[X[interact_col_name]==na_fill],
+                        y=y[X[interact_col_name]==na_fill], 
+                        mode='markers',
+                        text=text[X[interact_col_name]==na_fill],
+                        hoverinfo="text",
+                        marker=dict(size=7, 
+                                    opacity=0.35,
+                                    color='grey'),
+                ))
     else:
         data.append(go.Scatter(
-                    x=x, 
-                    y=y, 
-                    mode='markers',
-                    text=text,
-                    hoverinfo="text",
-                    marker=dict(size=7, opacity=0.6)
+                        x=x, 
+                        y=y, 
+                        mode='markers',
+                        text=text,
+                        hoverinfo="text",
+                        marker=dict(size=7, 
+                                    opacity=0.6)  ,                    
                 ))
-        
+
     layout = go.Layout(
             title=f'dependence plot for {col_name}',
             paper_bgcolor='rgba(245, 246, 249, 1)',
@@ -237,21 +275,10 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         
     fig = go.Figure(data, layout)
     
-    if interact_col_name is not None and is_numeric_dtype(X[interact_col_name]):
-        colors = X[interact_col_name]
-        fig.update_traces(marker=dict(
-                color = colors,
-                colorscale='Bluered',
-                colorbar=dict(
-                    title=interact_col_name
-                ),
-                showscale=True))
-    
     if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
         fig.update_layout(showlegend=True)
                                                       
     if isinstance(highlight_idx, int) and highlight_idx > 0 and highlight_idx < len(x):
-        print(type(x), len(x))
         fig.add_trace(go.Scatter(
                 x=[x[highlight_idx]], 
                 y=[y[highlight_idx]], 
@@ -268,6 +295,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                 name = f"index {highlight_idx}",
                 text=f"index {highlight_idx}",
                 hoverinfo="text"))
+    fig.update_traces(selector=dict(mode='markers'))
     return fig
 
 
@@ -426,16 +454,16 @@ def plotly_importances_plot(importance_df):
     return fig
 
 
-def plotly_tree_predictions(model, observation):
+def plotly_tree_predictions(model, observation, round=2):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
     """
-    if hasattr(model.estimators_[0], 'classes_'): #if classifier
+    if model.estimators_[0].classes_ is not None: #if classifier
          preds_df = pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
                 'prediction' : [
-                        np.round(100*m.predict_proba(observation)[0, 1], 2) 
+                        np.round(100*m.predict_proba(observation)[0, 1], round) 
                                     for m in model.estimators_]
             })\
             .sort_values('prediction')\
@@ -443,14 +471,15 @@ def plotly_tree_predictions(model, observation):
     else:
         preds_df = pd.DataFrame({
             'model' : range(len(model.estimators_)), 
-            'prediction' : [m.predict(observation)[0] 
+            'prediction' : [np.round(m.predict(observation)[0] , round)
                                 for m in model.estimators_]})\
             .sort_values('prediction')\
             .reset_index(drop=True)
         
     trace0 = go.Bar(x=preds_df.index, 
                     y=preds_df.prediction, 
-                    text=[f'model {m}' for m in preds_df.model.values.tolist()],
+                    text=[f"tree no {t}:<br> prediction={p}<br> click for detailed info"
+                             for (t, p) in zip(preds_df.model.values, preds_df.prediction.values)],
                     hoverinfo="text")
     
     layout = go.Layout(

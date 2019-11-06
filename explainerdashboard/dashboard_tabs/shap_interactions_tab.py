@@ -68,7 +68,7 @@ def shap_interactions_tab(explainer, n_features=10, **kwargs):
     ],  fluid=True)
 
 
-def shap_interactions_tab_register_callbacks(explainer, app):
+def shap_interactions_tab_register_callbacks(explainer, app, **kwargs):
     @app.callback(
         [Output('interaction-shap-scatter-graph', 'figure'),
         Output('interaction-interact-col', 'options'),

@@ -9,11 +9,22 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 
 def get_feature_dict(all_cols, cats=None):
-    """ 
-    feature_dict is a dictionary with all the columns belonging to 
-    each onehotencoded feature:
-    e.g. {'Gender' : ['Gender_Male', 'Gender_Female']}
+    """   
+    This helper function makes it easy to loop though columns in a dataframe
+    and group onehot encoded columns together.
+    
+    :param all_cols: all columns of a dataframe
+    :type all_cols: list    
+    :param cats: categorical columns that have been onehotencoded, defaults to None
+    :type cats: list, optional
+    :return: returns a dict with as key all original (not one hot encoded) columns
+        and as items a list of columns associated with that column.
+
+        e.g. {'Age': ['Age'],
+              'Gender' : ['Gender_Male', 'Gender_Female']}
+    :rtype: dict
     """
+
     
     feature_dict = {}
     
@@ -59,6 +70,20 @@ def retrieve_onehot_value(X, encoded_col):
     return pd.Series(feature_value).map(mapping)
 
 
+def merge_categorical_columns(X, cats=None):
+    """ 
+    Returns a new feature Dataframe X_cats where the onehotencoded 
+    categorical features have been merged back with the old value retrieved
+    from the encodings. 
+    """ 
+    feature_dict = get_feature_dict(X.columns, cats)
+    X_cats = X.copy()
+    for col_name, col_list in feature_dict.items():
+        if len(col_list) > 1:
+            X_cats[col_name]=retrieve_onehot_value(X, col_name)
+            X_cats.drop(col_list, axis=1, inplace=True)
+    return X_cats
+
 def merge_categorical_shap_values(X, shap_values, cats=None):
     """ 
     Returns a new feature Dataframe X_cats and new shap values np.array
@@ -66,19 +91,12 @@ def merge_categorical_shap_values(X, shap_values, cats=None):
     added up.
     """ 
     feature_dict = get_feature_dict(X.columns, cats)
-    
     shap_df = pd.DataFrame(shap_values, columns=X.columns)
-    X_cats = X.copy()
-    
     for col_name, col_list in feature_dict.items():
         if len(col_list) > 1:
             shap_df[col_name]=shap_df[col_list].sum(axis=1)
             shap_df.drop(col_list, axis=1, inplace=True)
-            
-            X_cats[col_name]=retrieve_onehot_value(X, col_name)
-            X_cats.drop(col_list, axis=1, inplace=True)
-    
-    return X_cats, shap_df.values
+    return shap_df.values
 
 
 def merge_categorical_shap_interaction_values(
@@ -336,7 +354,7 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
     return contrib_df
 
 
-def get_contrib_summary_df(contrib_df):
+def get_contrib_summary_df(contrib_df, classification=False, round=2):
     """ 
     returns a DataFrame that summarizes a contrib_df as a pair of 
     Reasons+Effect. 
@@ -346,10 +364,11 @@ def get_contrib_summary_df(contrib_df):
     for idx, row in contrib_df.iterrows():
         if row['col'] != 'base_value':
             contrib_summary_df = contrib_summary_df.append(
-                    pd.DataFrame({
-                        'Reason': [f"{row['col']} = {row['value']}"],
-                        'Effect': [f"{'+' if row['contribution'] >= 0 else ''}{np.round(100*row['contribution'], 1)}%"]
-                    }))     
+                pd.DataFrame({
+                    'Reason': [f"{row['col']} = {row['value']}"],
+                    'Effect': [f"{'+' if row['contribution'] >= 0 else ''}"\
+                        + f"{np.round(100*row['contribution'], round)+'%' if classification else np.round(row['contribution'], round)}"]
+                }))     
     return contrib_summary_df.reset_index(drop=True)
 
 
@@ -405,15 +424,15 @@ def get_shadow_trees(rf_model, X, y):
     return shadow_trees
 
 
-def get_shadowtree_df(shadow_tree, observation):
+def get_shadowtree_df(shadow_tree, observation, pos_label=1):
     pred, nodes = shadow_tree.predict(observation)
     
     shadowtree_df = pd.DataFrame(columns=['node_id', 'average', 'feature', 
                                      'value', 'split', 'direction', 
-                                     'left', 'right'])
+                                     'left', 'right', 'diff'])
     if shadow_tree.isclassifier()[0]:
         def node_pred_proba(node):
-            return node.class_counts()[1]/ (node.class_counts()[0] + node.class_counts()[1])
+            return node.class_counts()[pos_label]/ sum(node.class_counts())
         for node in nodes:
             if not node.isleaf():
                 shadowtree_df = shadowtree_df.append({
@@ -431,33 +450,53 @@ def get_shadowtree_df(shadow_tree, observation):
                 }, ignore_index=True)
         
     else:
+        #def node_mean(node):
+        #    return np.mean(shadow_tree.y_train[node.samples()])
+        def node_mean(node):
+            return shadow_tree.tree_model.tree_.value[node.id].item()
         for node in nodes:
             if not node.isleaf():
                 shadowtree_df = shadowtree_df.append({
                     'node_id' : node.id,
-                    'average' : np.mean(shadow_tree.y_train[node.samples()]),
+                    'average' : node_mean(node),
                     'feature' : node.feature_name(),
                     'value' : observation[node.feature_name()], 
                     'split' : node.split(), 
                     'direction' : 'left' if observation[node.feature_name()] < node.split() else 'right',
-                    'left' : np.mean(shadow_tree.y_train[node.left.samples()]),
-                    'right' : np.mean(shadow_tree.y_train[node.right.samples()]),
-                }, ignore_index=True)
-            
+                    'left' : node_mean(node.left),
+                    'right' : node_mean(node.right),
+                    'diff' : node_mean(node.left) - node_mean(node) \
+                                if observation[node.feature_name()] < node.split() \
+                                else node_mean(node.right) - node_mean(node)
+                }, ignore_index=True)        
     return shadowtree_df
 
 
-def shadowtree_df_summary(shadow_df):
-    base_value = np.round(100*shadow_df.iloc[[0]]['average'].item(), 2)
-    prediction = np.round(100*(shadow_df.iloc[[-1]]['average'].item() + shadow_df.iloc[[-1]]['diff'].item()), 2)
+def shadowtree_df_summary(shadow_df, classifier=False, round=2):
+    if classifier:
+        base_value = np.round(100*shadow_df.iloc[[0]]['average'].item(), round)
+        prediction = np.round(100*(shadow_df.iloc[[-1]]['average'].item() + shadow_df.iloc[[-1]]['diff'].item()), round)
+    else:
+        base_value = np.round(shadow_df.iloc[[0]]['average'].item(), round)
+        prediction = np.round(shadow_df.iloc[[-1]]['average'].item() + shadow_df.iloc[[-1]]['diff'].item(), round)
+
     
     shadow_summary_df = pd.DataFrame(columns=['value', 'condition', 'change', 'prediction'])
     
     for index, row in shadow_df.iterrows():
-        shadow_summary_df = shadow_summary_df.append({
-                        'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
-                        'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
-                        'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(100*row['diff'], 2)) +'%',
-                        'prediction' : str(np.round(100*(row['average']+row['diff']),2)) + '%'
-                    }, ignore_index=True)
+        if classifier:
+            shadow_summary_df = shadow_summary_df.append({
+                            'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
+                            'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
+                            'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(100*row['diff'], round)) +'%',
+                            'prediction' : str(np.round(100*(row['average']+row['diff']), round)) + '%'
+                        }, ignore_index=True)
+        else:
+            shadow_summary_df = shadow_summary_df.append({
+                            'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
+                            'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
+                            'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
+                            'prediction' : str(np.round((row['average']+row['diff']), round)) 
+                        }, ignore_index=True)
+
     return base_value, prediction, shadow_summary_df

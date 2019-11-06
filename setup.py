@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.0.3',
+    version='0.0.4',
     description='package to ease and speed up machine learning model explainability',
     license='MIT',
     packages=find_packages(),

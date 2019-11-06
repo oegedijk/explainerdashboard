@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = ['ExplainerDashboard', 
-            'RandomForestDashboard', 
-            'ClassifierDashboard',
-            'RandomForestClassifierDashboard']
+            'RandomForestDashboard']
 
 import inspect 
 import dash
@@ -48,7 +46,8 @@ def delegates(to=None, keep=False):
 
 
 class ExplainerDashboard:
-    def __init__(self, explainer, title='Model Explainer', *,    
+    def __init__(self, explainer, title='Model Explainer', *,  
+                    model_summary=True,  
                     contributions=True,
                     shap_dependence=True,
                     shap_interaction=True,
@@ -56,6 +55,7 @@ class ExplainerDashboard:
         self.explainer=explainer
         self.title = title
 
+        self.model_summary = model_summary
         self.contributions = contributions
         self.shap_dependence = shap_dependence
         self.shap_interaction = shap_interaction
@@ -63,10 +63,21 @@ class ExplainerDashboard:
         self.kwargs=kwargs
 
         # calculate properties before starting dashboard:
-        if shap_dependence or contributions:
+        
+        if shap_dependence or contributions or model_summary:
             _ = explainer.shap_values, explainer.preds 
+            if explainer.cats is not None:
+                _ = explainer.shap_values_cats
+            if explainer.is_classifier:
+                _ = explainer.pred_probas
+        if model_summary:
+            _ = explainer.permutation_importances
+            if explainer.cats is not None:
+                _ = explainer.permutation_importances_cats
         if shap_interaction:
             _ = explainer.shap_interaction_values
+            if explainer.cats is not None:
+                _ = explainer.shap_interaction_values_cats
 
         self.app = dash.Dash(__name__)
         self.app.config['suppress_callback_exceptions']=True
@@ -85,6 +96,11 @@ class ExplainerDashboard:
         self.register_callbacks()
 
     def insert_tab_layouts(self, tabs):
+        if self.model_summary:
+            tabs.append(dcc.Tab(
+                    children=model_summary_tab(self.explainer, **self.kwargs),
+                    label='Model Overview', 
+                    id='model_tab'))
         if self.contributions:
             tabs.append(dcc.Tab(
                     children=contributions_tab(self.explainer, **self.kwargs), 
@@ -97,17 +113,19 @@ class ExplainerDashboard:
                     id='dependence_tab'))
         if self.shap_interaction:
             tabs.append(dcc.Tab(
-                    hildren=shap_interactions_tab(self.explainer, **self.kwargs), 
+                    children=shap_interactions_tab(self.explainer, **self.kwargs), 
                     label='Interactions graphs', 
                     id='interactions_tab'))
         
     def register_callbacks(self):
+        if self.model_summary: 
+            model_summary_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         if self.contributions: 
-            contributions_tab_register_callbacks(self.explainer, self.app)
+            contributions_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         if self.shap_dependence: 
-            shap_dependence_tab_register_callbacks(self.explainer, self.app)
+            shap_dependence_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         if self.shap_interaction: 
-            shap_interactions_tab_register_callbacks(self.explainer, self.app)
+            shap_interactions_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         
     def run(self, port=8050):
         print(f"Running {self.title} on http://localhost:{port}")
@@ -138,47 +156,7 @@ class RandomForestDashboard(ExplainerDashboard):
     def register_callbacks(self):
         super().register_callbacks()
         if self.shadow_trees: 
-            shadow_trees_tab_register_callbacks(self.explainer, self.app)
+            shadow_trees_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
 
-
-@delegates()
-class ClassifierDashboard(ExplainerDashboard):
-    """
-    Adds a Model Overview tab to ExplainerDashboard with different plots
-    for classifier performance (confusion matrix, roc_auc plot, etc)
-    """
-    def __init__(self, explainer, title='Model Explainer',  
-                    classifier_summary=True, **kwargs):
-        self.classifier_summary = classifier_summary
-        if classifier_summary:
-            _ = explainer.pred_probas, explainer.permutation_importances
-            if explainer.cats is not None:
-                _ = explainer.permutation_importances_cats
-
-        super().__init__(explainer, title, **kwargs)
-
-    def insert_tab_layouts(self, tabs):
-        if self.classifier_summary:
-            tabs.append(dcc.Tab(
-                    children=model_summary_tab(self.explainer, **self.kwargs),
-                    label='Model Overview', 
-                    id='model_tab'))
-        super().insert_tab_layouts(tabs)
-        
-    def register_callbacks(self):
-        if self.classifier_summary: 
-            model_summary_tab_register_callbacks(self.explainer, self.app)
-        super().register_callbacks()
-
-
-
-@delegates()
-class RandomForestClassifierDashboard(ClassifierDashboard, 
-                        RandomForestDashboard):
-    """
-    Adds both a Classifier Model Overview tab and a Shadow Trees tab.
-    """
-    def __init__(self, explainer, title='Model Explainer',  **kwargs):
-        super().__init__(explainer, title, **kwargs)
 
 

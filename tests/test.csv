@@ -1,4 +1,4 @@
-Survived,Fare,No_of_relatives_on_board,Age,PassengerClass,No_of_siblings_plus_spouses_on_board,No_of_parents_plus_children_on_board,Sex_female,Sex_male,Sex_nan,Deck_A,Deck_B,Deck_C,Deck_D,Deck_E,Deck_F,Deck_G,Deck_T,Deck_Unkown,Embarked_Cherbourg,Embarked_Queenstown,Embarked_Southamption,Embarked_Unknown,Name
+Survived,Fare,Familysize,Age,Pclass,SibSp,Parch,Sex_female,Sex_male,Sex_nan,Cabin_A,Cabin_B,Cabin_C,Cabin_D,Cabin_E,Cabin_F,Cabin_G,Cabin_T,Cabin_nan,Embarked_C,Embarked_Q,Embarked_S,Embarked_nan,Name
 1,71.2833,1,38.0,1,1,0,1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,"Cumings, Mrs. John Bradley (Florence Briggs Thayer)"
 1,53.1,1,35.0,1,1,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,"Futrelle, Mrs. Jacques Heath (Lily May Peel)"
 0,21.075,4,2.0,3,3,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,"Palsson, Master. Gosta Leonard"

@@ -10,7 +10,7 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-def shadow_trees_tab(explainer, **kwargs):
+def shadow_trees_tab(explainer, round=2, **kwargs):
     return dbc.Container([
      dbc.Row([
         dbc.Col([
@@ -28,13 +28,14 @@ def shadow_trees_tab(explainer, **kwargs):
             dcc.Markdown(id='tree-basevalue'),
             dash_table.DataTable(
                 id='tree-predictions-table',
+                style_cell={'fontSize':20, 'font-family':'sans-serif'},
             ),
         ], width={"size": 6, "offset": 3})
     ]), 
     ],  fluid=True)
 
 
-def shadow_trees_tab_register_callbacks(explainer, app):
+def shadow_trees_tab_register_callbacks(explainer, app, round=2, **kwargs):
 
     @app.callback(
         Output('tree-index-store', 'data'),
@@ -56,7 +57,7 @@ def shadow_trees_tab_register_callbacks(explainer, app):
     )
     def update_output_div(idx):
         if idx is not None:
-            return explainer.plot_trees(idx)
+            return explainer.plot_trees(idx, round=round)
         raise PreventUpdate
 
     @app.callback(
@@ -68,9 +69,9 @@ def shadow_trees_tab_register_callbacks(explainer, app):
         [State('tree-predictions-table', 'columns')])
     def display_click_data(clickData, idx, old_columns):
         if clickData is not None and idx is not None:
-            model = int(clickData['points'][0]['text'][6:]) if clickData is not None else 0
+            model = int(clickData['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickData is not None else 0
             (baseval, prediction, 
-                    shadowtree_df) = explainer.shadowtree_df_summary(model, idx)
+                    shadowtree_df) = explainer.shadowtree_df_summary(model, idx, round=round)
             columns=[{'id': c, 'name': c} for c in  shadowtree_df.columns.tolist()]
             baseval_str = f"Tree no {model}, Starting prediction   : {baseval}, final prediction : {prediction}"
             return (baseval_str, columns, shadowtree_df.to_dict('records'))

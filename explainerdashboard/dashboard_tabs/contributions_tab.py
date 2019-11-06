@@ -12,37 +12,49 @@ from dash.exceptions import PreventUpdate
 
 import numpy as np
 
-def contributions_tab(explainer, n_features=15, **kwargs):
+def contributions_tab(explainer, n_features=15, round=2, **kwargs):
+
+    if explainer.is_classifier:
+        index_choice_div = html.Div([
+                html.Div([
+                    dcc.RangeSlider(
+                        id='prediction-range-slider',
+                        min=0.0, max=1.0, step=0.01,
+                        value=[0.5, 1.0],  allowCross=False,
+                        marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3', 
+                                0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7', 
+                                0.8:'0.8', 0.9:'0.9', 1.0:'1.0'})
+                ], style={'margin': 20}),
+                html.Div([
+                    dcc.RadioItems(
+                        id='include-labels',
+                        options=[
+                            {'label': explainer.pos_label_str, 'value': 'pos'},
+                            {'label': 'Not ' + explainer.pos_label_str, 'value': 'neg'},
+                            {'label': 'Both/either', 'value': 'any'},
+                        ],
+                        value='any',
+                        labelStyle={'display': 'inline-block'}
+                    )
+                ], style={'margin': 20}),
+                html.Div([
+                    html.Button('random index', id='index-button'),
+                ], style={'margin': 30})
+            ])
+    else:
+        index_choice_div = html.Div([
+                html.Div([
+                    html.Button('random index', id='index-button'),
+                ], style={'margin': 30})
+            ])
+
     return dbc.Container([
     dbc.Row([
         dbc.Col([
             dbc.Label('Fill specific index'),
             dbc.Input(id='input-index', placeholder="Fill in index here...",
                         debounce=True),
-            html.Div([
-                dcc.RangeSlider(
-                    id='prediction-range-slider',
-                    min=0.0, max=1.0, step=0.01,
-                    value=[0.5, 1.0],  allowCross=False,
-                    marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3', 
-                            0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7', 
-                            0.8:'0.8', 0.9:'0.9', 1.0:'1.0'})
-            ], style={'margin': 20}),
-            html.Div([
-                dcc.RadioItems(
-                    id='include-labels',
-                    options=[
-                        {'label': explainer.labels[1], 'value': 'pos'},
-                        {'label': explainer.labels[0], 'value': 'neg'},
-                        {'label': 'Both/either', 'value': 'any'},
-                    ],
-                    value='any',
-                    labelStyle={'display': 'inline-block'}
-                )
-            ], style={'margin': 20}),
-            html.Div([
-                html.Button('random index', id='index-button'),
-            ], style={'margin': 30})
+            index_choice_div
         ], width=4),
         dbc.Col([
              dcc.Loading(id="loading-model-prediction", 
@@ -107,24 +119,38 @@ def contributions_tab(explainer, n_features=15, **kwargs):
     ], fluid=True)
 
 
-def contributions_tab_register_callbacks(explainer, app):
-    @app.callback(
-        Output('input-index', 'value'),
-        [Input('index-button', 'n_clicks')],
-        [State('prediction-range-slider', 'value'),
-        State('include-labels', 'value')]
-    )
-    def update_input_index(n_clicks, slider_range, include):
-        y = None
-        if include=='neg': y = 0 
-        elif include=='pos': y = 1
-        return_str = True if explainer.idxs is not None else False
-        idx = explainer.random_index(
-                y_values=y, pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
-                return_str=return_str)
-        if idx is not None:
-            return idx
-        raise PreventUpdate
+def contributions_tab_register_callbacks(explainer, app, round=2, **kwargs):
+
+    if explainer.is_classifier:
+        @app.callback(
+            Output('input-index', 'value'),
+            [Input('index-button', 'n_clicks')],
+            [State('prediction-range-slider', 'value'),
+            State('include-labels', 'value')]
+        )
+        def update_input_index(n_clicks, slider_range, include):
+            y = None
+            if include=='neg': y = 0 
+            elif include=='pos': y = 1
+            return_str = True if explainer.idxs is not None else False
+            idx = explainer.random_index(
+                    y_values=y, pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
+                    return_str=return_str)
+            if idx is not None:
+                return idx
+            raise PreventUpdate
+    else:
+        @app.callback(
+            Output('input-index', 'value'),
+            [Input('index-button', 'n_clicks')]
+        )
+        def update_input_index(n_clicks):
+            y = None
+            return_str = True if explainer.idxs is not None else False
+            idx = explainer.random_index(return_str=return_str)
+            if idx is not None:
+                return idx
+            raise PreventUpdate
 
     @app.callback(
         Output('index-store', 'data'),
@@ -155,12 +181,18 @@ def contributions_tab_register_callbacks(explainer, app):
     )
     def update_output_div(idx, topx):
         int_idx = explainer.get_int_idx(idx)
-        model_prediction = f"##### Index: {idx}\n"\
-                            + f"## Prediction: {np.round(100*explainer.pred_probas[int_idx],2)}% {explainer.labels[1]}\n"
-        if isinstance(explainer.y[0], int) or isinstance(explainer.y[0], np.int64):
-            model_prediction += f"## Actual Outcome: {explainer.labels[explainer.y[int_idx]]}"
-        plot = explainer.plot_shap_contributions(idx, topx=topx)
-        summary_table = explainer.contrib_summary_df(idx, topx=topx).to_dict('records')
+        if explainer.is_classifier:
+            model_prediction = f"##### Index: {idx}\n"\
+                                + f"## Prediction: {np.round(100*explainer.pred_probas[int_idx],round)}% {explainer.pos_label_str}\n"
+            if isinstance(explainer.y[0], int) or isinstance(explainer.y[0], np.int64):
+                model_prediction += f"## Actual Outcome: {explainer.labels[explainer.y[int_idx]]}"
+        else:
+            model_prediction = f"##### Index: {idx}\n"\
+                                + f"## Prediction: {np.round(explainer.preds[int_idx], round)}\n"
+            model_prediction += f"## Actual Outcome: {np.round(explainer.y[int_idx], round)}"
+
+        plot = explainer.plot_shap_contributions(idx, topx=topx, round=round)
+        summary_table = explainer.contrib_summary_df(idx, topx=topx, round=round).to_dict('records')
         return (model_prediction, plot, summary_table)
 
     @app.callback(

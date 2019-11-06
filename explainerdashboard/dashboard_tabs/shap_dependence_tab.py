@@ -68,7 +68,7 @@ def shap_dependence_tab(explainer, n_features=10, **kwargs):
     ] ,  fluid=True)
 
 
-def shap_dependence_tab_register_callbacks(explainer, app):
+def shap_dependence_tab_register_callbacks(explainer, app, **kwargs):
     @app.callback(
         [Output('dependence-shap-scatter-graph', 'figure'),
         Output('dependence-col', 'options'),
