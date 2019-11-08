@@ -2,7 +2,7 @@ dash
 dash-daq
 dash-bootstrap-components
 dtreeviz
-numpy==1.15.4
+numpy
 pandas
 PDPbox
 scikit-learn

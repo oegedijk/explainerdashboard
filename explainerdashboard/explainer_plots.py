@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
 from pandas.api.types import is_numeric_dtype, is_string_dtype
+
+import plotly.graph_objs as go
 from plotly.subplots import make_subplots
+
 from sklearn.metrics import (classification_report, confusion_matrix,
                              precision_recall_curve, roc_curve, 
                              roc_auc_score, average_precision_score)

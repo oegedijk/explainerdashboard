@@ -51,7 +51,7 @@ extensions = [
     'sphinx.ext.autodoc',
 ]
 
-autodoc_mock_imports = ['dash', 'dash-daq', 'dash-bootstrap-components',
+autodoc_mock_imports = ['np', 'dash', 'dash-daq', 'dash-bootstrap-components',
                     'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
                     'shap', 'sklearn', 'plotly']
 
