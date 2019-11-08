@@ -12,6 +12,14 @@ from dash.exceptions import PreventUpdate
 
 
 def shap_interactions_tab(explainer, n_features=10, **kwargs):
+    """return layout for shap interactions tab.
+    
+    :param explainer: ExplainerBunch
+    :type explainer: ExplainerBunch 
+    :param n_features: default number of features to display, defaults to 10
+    :type n_features: int, optional
+    :rtype: dbc.Container
+    """
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
     dbc.Row([

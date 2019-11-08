@@ -11,3 +11,7 @@ trees in random forests, etc.
 You can then quickly start an ExplainerDashboard to start a webapp with an
 interactive dashboard to interrogate your model, show the interpretability to 
 management, or explain specific predictions.
+
+## Deployed example:
+
+titanicexplainer.herokuapp.com

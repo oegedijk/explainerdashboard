@@ -14,10 +14,16 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('./../../explainerdashboard/'))
-sys.path.insert(0, os.path.abspath('./../../explainerdashboard/dashboard_tabs/'))
-print(os.path.abspath('./../../explainerdashboard/'))
+print('conf.py, adding to path: ', os.path.abspath('../../explainerdashboard/'))
+sys.path.insert(0, os.path.abspath('../../explainerdashboard'))
+print('conf.py, adding to path: ', os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../'))
+
+#sys.path.insert(0, os.path.abspath('../explainerdashboard/dashboard_tabs/'))
+#sys.path.insert(0, os.path.join(os.path.dirname(__name__), '../explainerdashboard/'))
+#print('conf.py, adding to path: ',  os.path.join(os.path.dirname(__name__), '../explainerdashboard/'))
+#sys.path.append(os.path.join(os.path.dirname(__name__), '../explainerdashboard/'))
+
 
 # -- Project information -----------------------------------------------------
 
@@ -28,7 +34,7 @@ author = 'Oege Dijk'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.0.2'
+release = '0.0.5'
 
 
 # -- General configuration ---------------------------------------------------
@@ -43,6 +49,11 @@ release = '0.0.2'
 extensions = [
     'sphinx.ext.autodoc',
 ]
+
+autodoc_default_options = {
+    'member-order': 'bysource',
+    'special-members': '__init__',
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['ntemplates']
@@ -77,7 +88,9 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
+#html_theme = "nature"
+html_theme = "bizstyle"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

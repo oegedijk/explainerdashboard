@@ -10,27 +10,10 @@ from .explainer_plots import *
 class BaseExplainerBunch(ABC):
     """Abstract Base Class. Defines the basic functionality of an ExplainerBunch
     But does not yet have a defined shap_explainer.
-
-    :param model: a model with a scikit-learn compatible .fit and .predict method
-    :type model: [type]
-    :param X: a pd.DataFrame with your model features
-    :type X: pd.DataFrame
-    :param y: Dependent variable of your model, defaults to None
-    :type y: pd.Series, optional
-    :param metric: is a scikit-learn compatible metric function (or string), defaults to r2_score
-    :type metric: metric function, optional
-    :param cats: list of variables that have been onehotencoded. Allows to group categorical variables together in plots, defaults to None
-    :type cats: list, optional
-    :param idxs: list of row identifiers. Can be names, id's, etc. Get converted to str, defaults to None
-    :type idxs: list, optional
-    :param permutation_cv: If given permutation importances get calculated using cross validation, defaults to None
-    :type permutation_cv: int, optional
-    :param na_fill: The filler used for missing values, defaults to -999
-    :type na_fill: int, optional 
     """
     def __init__(self, model,  X, y=None, metric=r2_score, 
                     cats=None, idxs=None, permutation_cv=None, na_fill=-999):
-        """
+        """init
         
         :param model: a model with a scikit-learn compatible .fit and .predict method
         :type model: [type]
@@ -111,15 +94,6 @@ class BaseExplainerBunch(ABC):
 
     def __len__(self):
         return len(self.X)
-
-    def __getitem__(self, index):
-        idx = self.get_int_idx(index)
-        if self.pred_probas is not None:
-            return (self.X.iloc[idx], self.y[idx], 
-                    self.pred_probas[idx], self.shap_values[idx])
-        else:
-            return (self.X.iloc[idx], self.y[idx], 
-                    self.preds[idx], self.shap_values[idx])
 
     def random_index(self, y_values=None, return_str=False):
         """
@@ -219,7 +193,7 @@ class BaseExplainerBunch(ABC):
                             needs_proba=self.is_classifier)
             else:
                 self._perm_imps_cats = cv_permutation_importances(
-                            self.model, self.X, self.y, self.metric, seld.cats,
+                            self.model, self.X, self.y, self.metric, self.cats,
                             cv=self.permutation_cv, 
                             needs_proba=self.is_classifier)
         return self._perm_imps_cats
@@ -289,7 +263,7 @@ class BaseExplainerBunch(ABC):
             self._shap_interaction_values_cats = \
                 merge_categorical_shap_interaction_values(
                     self.X, self.X_cats, self.shap_interaction_values)
-        return self._shap_interaction_values_Cats
+        return self._shap_interaction_values_cats
 
     @property
     def mean_abs_shap(self):
@@ -342,6 +316,7 @@ class BaseExplainerBunch(ABC):
         :type cats: bool, optional
         :return:shap_df
         :rtype pd.DataFrame
+
         """
         shap_df = self.mean_abs_shap_cats if cats else self.mean_abs_shap
         
@@ -360,6 +335,7 @@ class BaseExplainerBunch(ABC):
         :type cats: bool, optional
         :return: top_interactions
         :rtype: list
+        
         """
         if cats:
             if hasattr(self, '_shap_interaction_values'):
@@ -426,7 +402,7 @@ class BaseExplainerBunch(ABC):
         return importance_df[importance_df.Importance > cutoff].head(topx)
 
     def importances_df(self, type="permutation", topx=None, cutoff=None, cats=False):
-        """wrapper function for mean_abs_shap_df() and perumation_importance_df()"""
+        """wrapper function for mean_abs_shap_df() and permutation_importance_df()"""
         if type=='permutation':
             return self.permutation_importances_df(topx, cutoff, cats)
         elif type=='shap':
@@ -662,13 +638,9 @@ class BaseExplainerBunch(ABC):
             - on the x axis the possible values of the feature `col` 
             - on the y axis the associated individual shap values
 
-        color_col: if color_col provided then shap values colored (blue-red) according to
-        feature color_col
-
-        highlight_idx: individual observation to be highlighed in the plot. 
-
-        cats: if True then onehotencoded categorical variables get all
-                displayed on the x axis
+        :param color_col: if color_col provided then shap values colored (blue-red) according to feature color_col
+        :param highlight_idx: individual observation to be highlighed in the plot. 
+        :param cats: group categorical variables
         """
         if cats:
             return plotly_dependence_plot(self.X_cats, self.shap_values_cats, 
@@ -681,12 +653,46 @@ class BaseExplainerBunch(ABC):
                                             highlight_idx=highlight_idx,
                                             na_fill=self.na_fill)
 
-    def plot_shap_interaction_dependence(self, col, interact_col, highlight_idx=None, cats=False):
+    def plot_shap_interaction_dependence(self, col, interact_col, 
+                                            highlight_idx=None, cats=False):
+        """plots a dependence plot for shap interaction effects
+        
+        :param col: feature for which to find interaction values
+        :type col: str
+        :param interact_col: feature for which interaction value are displayed
+        :type interact_col: str
+        :param highlight_idx: idx that will be highlighted, defaults to None
+        :type highlight_idx: int, optional
+        :param cats: group categorical features, defaults to False
+        :type cats: bool, optional
+        :return: Plotly Fig
+        :rtype: plotly.Fig
+        """
         return plotly_dependence_plot(self.X_cats if cats else self.X, 
                 self.shap_interaction_values_by_col(col, cats), 
                 interact_col, col, highlight_idx=highlight_idx)
 
-    def plot_pdp(self, col, index=None, drop_na=True, sample=1000, num_grid_lines=100, num_grid_points=20):
+    def plot_pdp(self, col, index=None, drop_na=True, sample=100, 
+                    num_grid_lines=100, num_grid_points=10):
+        """returns plotly fig for a partial dependence plot showing ice lines
+        for num_grid_lines rows, average pdp based on sample of sample.
+        If index is given, display pdp for this specific index.
+        
+        :param col: feature to display pdp graph for        
+        :type col: str
+        :param index: index to highlight in pdp graph, defaults to None
+        :type index: int or str, optional
+        :param drop_na: if true drop samples with value equal to na_fill, defaults to True
+        :type drop_na: bool, optional
+        :param sample: sample size on which the average pdp will be calculated, defaults to 100
+        :type sample: int, optional
+        :param num_grid_lines: number of ice lines to display, defaults to 100
+        :type num_grid_lines: int, optional
+        :param num_grid_points: number of points on the x axis to calculate the pdp for, defaults to 10
+        :type num_grid_points: int, optional
+        :return: fig
+        :rtype: plotly.Fig
+        """
         pdp_result = self.get_pdp_result(col, index, 
                             drop_na=drop_na, sample=sample, 
                             num_grid_points=num_grid_points)
@@ -771,7 +777,7 @@ class ClassifierBunch(BaseExplainerBunch):
         elif isinstance(label, str) and label in self.labels:
             self._pos_label = self.labels.index(label)
         else:
-            raise ValueError(f'{label}' not in labels)
+            raise ValueError(f"'{label}' not in labels")
 
     @property
     def pos_label_str(self):
@@ -837,7 +843,7 @@ class ClassifierBunch(BaseExplainerBunch):
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...")
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(self.X)
-            if not isinstance(self._shap_interaction_values, list) and self.n_labels==2:
+            if not isinstance(self._shap_interaction_values, list) and len(self.labels)==2:
                 self._shap_interaction_values = [1-self._shap_interaction_values, 
                                                     self._shap_interaction_values]
             self._shap_interaction_values = [
@@ -1007,7 +1013,7 @@ class RandomForestBunch(TreeModelBunch):
         super().calculate_properties(include_interactions)
 
 class TreeModelClassifierBunch(TreeModelBunch, ClassifierBunch):
-    """"TreeModelClassifierBunch inherits from both TreeModelBunch and 
+    """TreeModelClassifierBunch inherits from both TreeModelBunch and 
     ClassifierBunch.
     """
     def calculate_properties(self, include_interactions=True):
@@ -1015,7 +1021,7 @@ class TreeModelClassifierBunch(TreeModelBunch, ClassifierBunch):
 
 
 class RandomForestClassifierBunch(RandomForestBunch, ClassifierBunch):
-        """"RandomForestClassifierBunch inherits from both RandomForestBunch and 
+    """RandomForestClassifierBunch inherits from both RandomForestBunch and 
     ClassifierBunch.
     """
     def calculate_properties(self, include_interactions=True):

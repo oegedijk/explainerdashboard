@@ -28,8 +28,8 @@ class RandomForestClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.AssertTrue(explainer.shap_values.shape == (len(explainer), len(explainer.columns)))
-        
+        self.assertTrue(self.explainer.shap_values.shape == (len(self.explainer), len(self.explainer.columns)))
+
 
 if __name__ == '__main__':
     unittest.main()

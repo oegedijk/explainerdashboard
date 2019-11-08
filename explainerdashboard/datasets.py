@@ -4,8 +4,8 @@ import pandas as pd
 from pathlib import Path
 
 
-d_train = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/ 'train.csv')
-d_test = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/'test.csv')
+d_train = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/ 'titanic_train.csv')
+d_test = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/'titanic_test.csv')
 
 def titanic_survive():
     X_train = d_train.drop(['Survived', 'Name'], axis=1)

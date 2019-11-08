@@ -46,12 +46,29 @@ def delegates(to=None, keep=False):
 
 
 class ExplainerDashboard:
+    """Constructs a dashboard out of an ExplainerBunch object. You can indicate
+    which tabs to include, and pass kwargs to individual tabs.
+    """
     def __init__(self, explainer, title='Model Explainer', *,  
                     model_summary=True,  
                     contributions=True,
                     shap_dependence=True,
-                    shap_interaction=True,
+                    shap_interaction=False,
                     **kwargs):
+        """Constructs an ExplainerDashboard.
+        
+        :param explainer: an ExplainerBunch object
+        :param title: Title of the dashboard, defaults to 'Model Explainer'
+        :type title: str, optional
+        :param model_summary: display model_summary tab or not, defaults to True
+        :type model_summary: bool, optional
+        :param contributions: display individual contributions tab or not, defaults to True
+        :type contributions: bool, optional
+        :param shap_dependence: display shap dependence tab or not, defaults to True
+        :type shap_dependence: bool, optional
+        :param shap_interaction: display tab interaction tab or not. Note: shap interaction values can take a long time to compute, so therefore this tab defaults to False, defaults to False
+        :type shap_interaction: bool, optional
+        """
         self.explainer=explainer
         self.title = title
 
@@ -96,6 +113,12 @@ class ExplainerDashboard:
         self.register_callbacks()
 
     def insert_tab_layouts(self, tabs):
+        """Inserts the layouts for the appropriate tabs. These can be extended
+        in inherited ExplainerDashboard classes to easily add new tabs.
+        
+        :param tabs: a list of tab lauout that will be appended to
+        :type tabs: list
+        """
         if self.model_summary:
             tabs.append(dcc.Tab(
                     children=model_summary_tab(self.explainer, **self.kwargs),
@@ -118,6 +141,9 @@ class ExplainerDashboard:
                     id='interactions_tab'))
         
     def register_callbacks(self):
+        """Registers the appropriate callbacks for the different tabs to the
+        Dash app. Can be easily extended by inheriting classes to add more tabs.
+        """
         if self.model_summary: 
             model_summary_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         if self.contributions: 
@@ -128,6 +154,11 @@ class ExplainerDashboard:
             shap_interactions_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         
     def run(self, port=8050):
+        """Starts the dashboard using the built-in Flask server on localhost:port
+        
+        :param port: the port to run the dashboard on, defaults to 8050
+        :type port: int, optional
+        """
         print(f"Running {self.title} on http://localhost:{port}")
         self.app.run_server(port=port)
 
@@ -140,6 +171,13 @@ class RandomForestDashboard(ExplainerDashboard):
     """
     def __init__(self, explainer, title='Model Explainer', *, 
                    shadow_trees=True, **kwargs):
+        """The RandomForestDashboard comes with an additional potential tab
+        called shadow_trees where individual DecisionTrees within the RandomForest
+        can be viewed. 
+        
+        :param shadow_trees: [description], defaults to True
+        :type shadow_trees: bool, optional
+        """
         self.shadow_trees = shadow_trees
         if shadow_trees:
             _ = self.shadow_trees 

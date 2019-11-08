@@ -4,7 +4,7 @@ import pandas as pd
 import shap
 from dtreeviz.trees import ShadowDecTree
 
-from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.metrics import r2_score, roc_auc_score, make_scorer
 from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 
@@ -279,7 +279,6 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None):
                 bin_count = predictions_df[(predictions_df.pred_proba> bin_min) & 
                                         (predictions_df.pred_proba<= bin_max)].target.count()
 
-            bin_width = bin_max-bin_min
             new_row = pd.DataFrame(
                 {
                     'p_min' : [bin_min],
@@ -361,7 +360,7 @@ def get_contrib_summary_df(contrib_df, classification=False, round=2):
     """ 
     contrib_summary_df = pd.DataFrame(columns=['Reason', 'Effect'])
 
-    for idx, row in contrib_df.iterrows():
+    for _, row in contrib_df.iterrows():
         if row['col'] != 'base_value':
             contrib_summary_df = contrib_summary_df.append(
                 pd.DataFrame({
@@ -425,7 +424,7 @@ def get_shadow_trees(rf_model, X, y):
 
 
 def get_shadowtree_df(shadow_tree, observation, pos_label=1):
-    pred, nodes = shadow_tree.predict(observation)
+    _, nodes = shadow_tree.predict(observation)
     
     shadowtree_df = pd.DataFrame(columns=['node_id', 'average', 'feature', 
                                      'value', 'split', 'direction', 
@@ -483,7 +482,7 @@ def shadowtree_df_summary(shadow_df, classifier=False, round=2):
     
     shadow_summary_df = pd.DataFrame(columns=['value', 'condition', 'change', 'prediction'])
     
-    for index, row in shadow_df.iterrows():
+    for _, row in shadow_df.iterrows():
         if classifier:
             shadow_summary_df = shadow_summary_df.append({
                             'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),

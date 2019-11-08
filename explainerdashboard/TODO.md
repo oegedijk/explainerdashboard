@@ -10,6 +10,7 @@ Layout:
 - add random index to tree plot
 - rename shadow_trees to just trees
 - automatic load model_summary (shap 1.4 bug?)
+- add loading wrapper to all plots
 
 - Regression tab:
     - https://medium.com/microsoftazure/how-to-better-evaluate-the-goodness-of-fit-of-regressions-990dbf1c0091

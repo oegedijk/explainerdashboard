@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.0.4',
+    version='0.0.5',
     description='package to ease and speed up machine learning model explainability',
     license='MIT',
     packages=find_packages(),
     package_dir={'explainerdashboard':'explainerdashboard'}, # the one line where all the magic happens
     package_data={
-        'explainerdashboard': ['assets/*'],
+        'explainerdashboard': ['assets/*', 'datasets/*'],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

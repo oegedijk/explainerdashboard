@@ -13,6 +13,16 @@ from dash.exceptions import PreventUpdate
 import numpy as np
 
 def contributions_tab(explainer, n_features=15, round=2, **kwargs):
+    """returns layout for individual contributions tabs
+    
+    :param explainer: ExplainerBunch to build layout for
+    :type explainer: ExplainerBunch
+    :param n_features: Default number of features to display in contributions graph, defaults to 15
+    :type n_features: int, optional
+    :param round: Precision of floats to display, defaults to 2
+    :type round: int, optional
+    :rtype: [dbc.Container
+    """
 
     if explainer.is_classifier:
         index_choice_div = html.Div([

@@ -11,6 +11,16 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 def shadow_trees_tab(explainer, round=2, **kwargs):
+    """return layout for shadow trees tab that display distributions of individual
+    prediction of DecisionTrees that make up RandomForest, and when clicked
+    displays individual path through tree.
+    
+    :param explainer: RandomForestBunch Object (so should have shadow_trees attribute!)
+    :type explainer: RandomForestBunch
+    :param round: precision to round floats, defaults to 2
+    :type round: int, optional
+    :rtype: dbc.Container
+    """
     return dbc.Container([
      dbc.Row([
         dbc.Col([

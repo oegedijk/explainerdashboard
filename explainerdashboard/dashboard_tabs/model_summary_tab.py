@@ -12,6 +12,20 @@ from dash.exceptions import PreventUpdate
 
 def model_summary_tab(explainer, bin_size=0.1, quantiles=10, 
                         cutoff=0.5, n_features=15, **kwargs):
+    """returns layout for model summary tab
+    
+    :param explainer: ExplainerBunch object for which to build layout for
+    :type explainer: ExplainerBUnch
+    :param bin_size: default bin_size for precision_plot (classifier only), defaults to 0.1
+    :type bin_size: float, optional
+    :param quantiles: default number of quantiles for precision_plot (classifier only), defaults to 10
+    :type quantiles: int, optional
+    :param cutoff: cutoff used for confusion_matrix, roc_auc and pr_auc plots (classifier only), defaults to 0.5
+    :type cutoff: float, optional
+    :param n_features: default number of features to display, defaults to 15
+    :type n_features: int, optional
+    :rtype: dbc.Container
+    """
     # hide cats toggle if not cats defined:
     cats_display = 'none' if explainer.cats is None else 'inline-block'
 
