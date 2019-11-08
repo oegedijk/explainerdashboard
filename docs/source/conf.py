@@ -52,7 +52,8 @@ extensions = [
 ]
 
 autodoc_mock_imports = ['dash', 'dash-daq', 'dash-bootstrap-components',
-                    'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 'shap']
+                    'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
+                    'shap', 'sklearn', 'plotly']
 
 autodoc_default_options = {
     'member-order': 'bysource',
