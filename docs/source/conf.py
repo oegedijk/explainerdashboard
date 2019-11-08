@@ -32,12 +32,13 @@ copyright = '2019, Oege Dijk'
 author = 'Oege Dijk'
 
 # The short X.Y version
-version = ''
+version = '0.1.0'
 # The full version, including alpha/beta/rc tags
-release = '0.0.5'
+release = '0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
+master_doc = 'index'
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
