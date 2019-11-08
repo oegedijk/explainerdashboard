@@ -2,8 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.0.6',
+    version='0.0.6.1',
     description='package to ease and speed up machine learning model explainability',
+    long_description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of a machine learning model.',
     license='MIT',
     packages=find_packages(),
     package_dir={'explainerdashboard':'explainerdashboard'}, # the one line where all the magic happens
