@@ -51,7 +51,8 @@ extensions = [
     'sphinx.ext.autodoc',
 ]
 
-autodoc_mock_imports = ['_tkinter']
+autodoc_mock_imports = ['dash', 'dash-daq', 'dash-bootstrap-components',
+                    'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 'shap']
 
 autodoc_default_options = {
     'member-order': 'bysource',
