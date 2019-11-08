@@ -24,5 +24,9 @@ setup(
     author='Oege Dijk',
     author_email='oegedijk@gmail.com',
     keywords=['machine learning', 'explainability', 'shap', 'feature importances', 'dash'],
-    url='https://github.com/oegedijk/explainerdashboard'
+    url='https://github.com/oegedijk/explainerdashboard',
+    project_urls={
+        "Github page": "https://github.com/oegedijk/explainerdashboard/",
+        "Documentation": "https://explainerdashboard.readthedocs.io/",oWorld/",
+    },
 )
