@@ -50,6 +50,8 @@ extensions = [
     'sphinx.ext.autodoc',
 ]
 
+autodoc_mock_imports = ['_tkinter']
+
 autodoc_default_options = {
     'member-order': 'bysource',
     'special-members': '__init__',
