@@ -87,11 +87,11 @@ You then start the dashboard on a particular port with `db.run(port=8050)`.
 
 If you wish to use e.g. unicorn to deploy the dashboard you should add `server = db.app` to your code to expose the Flask server. It may take some time to calculate all the properties of the ExplainerBunch (especiialy shap interaction values) as these get calculated lazily. However you can save the ExplainerBunch to disk with e.g. joblib and then load the ExplainerBunch with pre-calculated properties whenever you wish to start the dashboard. 
 
-See [dashboard_examples.ipynb](dashboardexamples.ipynb)
+See [dashboard_examples.ipynb](dashboard_examples.ipynb)
 
 
 ## Deployed example:
 
-You can find an example dashboard at [titanicexplainer.herokuapp.com](titanicexplainer.herokuapp.com)
+You can find an example dashboard at [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com)
 
 (source code at [https://github.com/oegedijk/explainingtitanic](https://github.com/oegedijk/explainingtitanic))
