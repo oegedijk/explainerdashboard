@@ -61,7 +61,7 @@ You can then easily inspect the model using various plot function, such as e.g.:
 - `explainer.plot_pdp('PassengerClass', index=0)`
 - `explainer.plot_shap_dependence('Age')`, etc.
 
-See the [explainer_examples.ipynb](explainer_examples.ipynb) and [documentation](https://explainerdashboard.readthedocs.io/en/latest/)for more details.
+See the [explainer_examples.ipynb](explainer_examples.ipynb) and [documentation](https://explainerdashboard.readthedocs.io/en/latest/) for more details.
 
 ### Starting an ExplainerDashboard
 Once you have constructed an ExplainerBunch object, you can then pass this along to an
