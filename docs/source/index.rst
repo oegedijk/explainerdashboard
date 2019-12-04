@@ -53,6 +53,7 @@ The result can be viewed on `this dashboard deployed to heroku <titanicexplainer
    :maxdepth: 3
 
    explainers
+   plots
    dashboards
    explainer_methods
    explainer_plots

@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/anaconda/bin/python",
+    "python.pythonPath": "C:\\ProgramData\\Anaconda3\\envs\\ww_env\\python.exe",
     "python.testing.unittestArgs": [
         "-v",
         "-s",
@@ -9,5 +9,8 @@
     ],
     "python.testing.pytestEnabled": false,
     "python.testing.nosetestsEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.testing.unittestEnabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
 }

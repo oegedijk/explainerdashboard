@@ -3,46 +3,23 @@
 __all__ = ['ExplainerDashboard', 
             'RandomForestDashboard']
 
-import inspect 
+
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+
 import plotly.io as pio
 
+from .dashboard_tabs.dashboard_methods import *
 from .dashboard_tabs.model_summary_tab import *
 from .dashboard_tabs.contributions_tab import *
 from .dashboard_tabs.shap_dependence_tab import *
 from .dashboard_tabs.shap_interactions_tab import *
 from .dashboard_tabs.shadow_trees_tab import *
-
-pio.templates.default = "none" 
-
-# Stolen from https://www.fast.ai/2019/08/06/delegation/
-# then extended to deal with multiple inheritance
-def delegates(to=None, keep=False):
-    "Decorator: replace `**kwargs` in signature with params from `to`"
-    def _f(f):
-        from_f = f.__init__ if to is None else f
-        sig = inspect.signature(from_f)
-        sigd = dict(sig.parameters)
-        k = sigd.pop('kwargs')
-        if to is None:
-            for base_cls in f.__bases__:
-                to_f = base_cls.__init__
-                s2 = {k:v for k,v in inspect.signature(to_f).parameters.items()
-                    if v.default != inspect.Parameter.empty and k not in sigd}
-                sigd.update(s2)
-        else:
-            to_f = to
-            s2 = {k:v for k,v in inspect.signature(to_f).parameters.items()
-                if v.default != inspect.Parameter.empty and k not in sigd}
-            sigd.update(s2)
-        if keep: sigd['kwargs'] = k
-        from_f.__signature__ = sig.replace(parameters=sigd.values())
-        return f
-    return _f
 
 
 class ExplainerDashboard:
@@ -54,6 +31,7 @@ class ExplainerDashboard:
                     contributions=True,
                     shap_dependence=True,
                     shap_interaction=False,
+                    plotly_template="none",
                     **kwargs):
         """Constructs an ExplainerDashboard.
         
@@ -71,12 +49,11 @@ class ExplainerDashboard:
         """
         self.explainer=explainer
         self.title = title
-
         self.model_summary = model_summary
         self.contributions = contributions
         self.shap_dependence = shap_dependence
         self.shap_interaction = shap_interaction
-
+        self.plotly_template = plotly_template
         self.kwargs=kwargs
 
         # calculate properties before starting dashboard:
@@ -101,15 +78,24 @@ class ExplainerDashboard:
         self.app.css.config.serve_locally = True
         self.app.scripts.config.serve_locally = True
         self.app.title = title
+        
+        pio.templates.default = self.plotly_template
+
+        tab_bools = [model_summary, contributions, shap_dependence, shap_interaction]
+        tab_names = ['model_tab', 'contributions_tab', 'dependence_tab', 'interactions_tab']
+        try:
+            first_tab = tab_names[tab_bools.index(True)]
+        except:
+            first_tab = None
+
 
         self.tabs = []
         self.insert_tab_layouts(self.tabs)
-
         self.app.layout = dbc.Container([
-            dbc.Row([html.H1(title)]),
-            dcc.Tabs(self.tabs, id="tabs")
+            title_and_label_selector(self.explainer, self.title, 
+                    include_label_store=True),
+            dcc.Tabs(self.tabs, id="tabs", value=first_tab),
         ],  fluid=True)
-
         self.register_callbacks()
 
     def insert_tab_layouts(self, tabs):
@@ -144,6 +130,8 @@ class ExplainerDashboard:
         """Registers the appropriate callbacks for the different tabs to the
         Dash app. Can be easily extended by inheriting classes to add more tabs.
         """
+        label_selector_register_callback(self.explainer, self.app)
+
         if self.model_summary: 
             model_summary_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         if self.contributions: 
@@ -153,14 +141,15 @@ class ExplainerDashboard:
         if self.shap_interaction: 
             shap_interactions_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
         
-    def run(self, port=8050):
+    def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
         
         :param port: the port to run the dashboard on, defaults to 8050
         :type port: int, optional
         """
         print(f"Running {self.title} on http://localhost:{port}")
-        self.app.run_server(port=port)
+        pio.templates.default = self.plotly_template
+        self.app.run_server(port=port, **kwargs)
 
 
 @delegates()

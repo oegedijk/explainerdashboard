@@ -2,15 +2,12 @@
 # TO BE DONE:
 
 Layout:
-- add option to drop na's from interaction plot
 - Add percentile of scores to contributions tab
-- make background graphs white
 - add violin plot to categorical plots
 - jitter categorical plots
 - add random index to tree plot
-- rename shadow_trees to just trees
 - automatic load model_summary (shap 1.4 bug?)
-- add loading wrapper to all plots
+- highlight idx in dependendence plot
 
 - Regression tab:
     - https://medium.com/microsoftazure/how-to-better-evaluate-the-goodness-of-fit-of-regressions-990dbf1c0091

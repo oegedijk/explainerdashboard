@@ -89,8 +89,7 @@ def plotly_contribution_plot(contrib_df, target="target",
     layout = go.Layout(
         title=title,
         barmode='stack',
-        paper_bgcolor='rgba(245, 246, 249, 1)',
-        plot_bgcolor='rgba(245, 246, 249, 1)',
+        plot_bgcolor = '#fff',
         showlegend=False
     )
 
@@ -109,10 +108,9 @@ def plotly_contribution_plot(contrib_df, target="target",
         fig.update_yaxes(title_text='Prediction')
     return fig
 
-def plotly_precision_plot(precision_df, 
-                            count_label='counts', 
-                            pos_label='positive', 
-                            cutoff=0.5):
+
+
+def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None):
     """
     returns a plotly figure with bar plots for counts of observations for a 
     certain pred_proba bin,
@@ -121,28 +119,62 @@ def plotly_precision_plot(precision_df,
     precision_df generated from get_precision_df(predictions_df)
     predictions_df generated from get_predictions_df(rf_model, X, y)
     """
+    label = labels[pos_label] if labels is not None and pos_label is not None else 'positive'
 
     precision_df = precision_df.copy()
     trace1 = go.Bar(
         x=precision_df['p_avg'].values.tolist(),
         y=precision_df['count'].values.tolist(),
         width=0.9*precision_df['bin_width'].values,
-        name=count_label
+        name='counts'
     )
-    trace2 = go.Scatter(
-        x=precision_df['p_avg'].values.tolist(),
-        y=precision_df['precision'].values.tolist(),
-        name='percentage ' + pos_label,
-        yaxis='y2'
-    )
-    data = [trace1, trace2]
+    
+    data = [trace1]
+    
+    if 'precision_0' in precision_df.columns.tolist():
+        # if a pred_proba with probability for every class gets passed
+        # to get_precision_df, it generates a precision for every class
+        # in every bin as well.
+        precision_cols = [col for col in precision_df.columns.tolist() 
+                                if col.startswith('precision_')]
+        if labels is None: labels = ['class ' + str(i) for i in range(len(precision_cols))]
+        if pos_label is not None:
+            # add the positive class first with thick line
+            trace = go.Scatter(
+                x=precision_df['p_avg'].values.tolist(),
+                y=precision_df['precision_'+str(pos_label)].values.tolist(),
+                name=labels[pos_label] + '(positive class)',
+                line = dict(width=4),
+                yaxis='y2')
+            data.append(trace)
+
+        for i, precision_col in enumerate(precision_cols):
+            # add the rest of the classes with thin lines
+            if pos_label is None or i != pos_label:
+                trace = go.Scatter(
+                    x=precision_df['p_avg'].values.tolist(),
+                    y=precision_df[precision_col].values.tolist(),
+                    name=labels[i],
+                    line = dict(width=2),
+                    yaxis='y2')
+                data.append(trace)
+    else: 
+        
+        trace2 = go.Scatter(
+            x=precision_df['p_avg'].values.tolist(),
+            y=precision_df['precision'].values.tolist(),
+            name='percentage ' + label,
+            yaxis='y2'
+        )
+        data = [trace1, trace2]
+        
     layout = go.Layout(
-        title='percentage ' + pos_label + ' vs predicted probability',
+        title=f'percentage {label} vs predicted probability',
         yaxis=dict(
-            title=count_label
+            title='counts'
         ),
         yaxis2=dict(
-            title='percentage ' + pos_label,
+            title='percentage',
             titlefont=dict(
                 color='rgb(148, 103, 189)'
             ),
@@ -155,7 +187,8 @@ def plotly_precision_plot(precision_df,
         ),
         xaxis=dict(
             title='predicted probability'
-        )
+        ),
+        plot_bgcolor = '#fff',
     )
     
     if cutoff is not None:
@@ -177,15 +210,163 @@ def plotly_precision_plot(precision_df,
     return fig
 
 
+def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
+    """
+    returns a lift plot for values generated with get_lift_curve_df(pred_proba, y)
+    """
+    
+    if percentage:
+        model_text=[f"model selected {np.round(pos, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
+                    + f"precision={np.round(precision, 2)}% positives in sample<br>" \
+                    + f"lift={np.round(pos/exp, 2)}" 
+                  for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage, 
+                                                      lift_curve_df.cumulative_percentage_pos,
+                                                      lift_curve_df.random_cumulative_percentage_pos, 
+                                                      lift_curve_df.precision)]
+        
+        random_text=[f"random selected {np.round(exp, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
+                     + f"precision={np.round(precision, 2)}% positives in sample"
+                  for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage,
+                                                      lift_curve_df.cumulative_percentage_pos, 
+                                                      lift_curve_df.random_cumulative_percentage_pos, 
+                                                      lift_curve_df.random_precision)]
+    else:
+        model_text=[f"model selected {pos} positives out of {i}<br>" \
+                    + f"precision={np.round(precision, 2)}<br>" \
+                    + f"lift={np.round(pos/exp, 2)}" 
+                  for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
+                                                      lift_curve_df.positives,
+                                                      lift_curve_df.random_pos, 
+                                                      lift_curve_df.precision)]
+        random_text=[f"random selected {np.round(exp).astype(int)} positives out of {i}<br>" \
+                     + f"precision={np.round(precision, 2)}"
+                  for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
+                                                      lift_curve_df.positives, 
+                                                      lift_curve_df.random_pos, 
+                                                      lift_curve_df.random_precision)]
+        
+    
+    trace0 = go.Scatter(
+        x=lift_curve_df['index_percentage'].values if percentage else lift_curve_df['index'],
+        y=np.round(lift_curve_df.cumulative_percentage_pos.values, round) if percentage \
+                    else np.round(lift_curve_df.positives.values, round),
+        name='model',
+        text=model_text,
+        hoverinfo="text",
+    )
+
+    trace1 = go.Scatter(
+        x=lift_curve_df['index_percentage'].values if percentage else lift_curve_df['index'],
+        y=np.round(lift_curve_df.random_cumulative_percentage_pos.values, round) if percentage \
+                    else np.round(lift_curve_df.random_pos.values, round),
+        name='random',
+        text=random_text,
+        hoverinfo="text",
+    )
+
+    data = [trace0, trace1]
+
+    fig = go.Figure(data)
+
+    fig.update_layout(title=dict(text='Lift curve', 
+                                 x=0.5, 
+                                 font=dict(size=18)),
+                        xaxis_title= 'Percentage sampled' if percentage else 'Number sampled',
+                        yaxis_title='Percentage of positive' if percentage else 'Number of positives',
+                        xaxis=dict(spikemode="across"),
+                        hovermode="x",
+                        plot_bgcolor = '#fff')
+    
+    if cutoff is not None:
+        cutoff_idx = (np.abs(lift_curve_df.pred_proba - cutoff)).argmin()
+        cutoff_x = lift_curve_df['index_percentage'].iloc[cutoff_idx] if percentage else lift_curve_df['index'].iloc[cutoff_idx] 
+        fig.update_layout(shapes = [dict(
+                                        type='line',
+                                        xref='x',
+                                        yref='y',
+                                        x0=cutoff_x,
+                                        x1=cutoff_x,
+                                        y0=0,
+                                        y1=100.0 if percentage else lift_curve_df.positives.max(),
+                                     )],
+                         annotations=[
+                                    go.layout.Annotation(
+                                        x=cutoff_x, 
+                                        y=5, 
+                                        yref='y',
+                                        text=f"cutoff={cutoff}")
+                         ])
+    return fig
+
+
+def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
+
+    if labels is None:
+        labels = ['category ' + str(i) for i in range(lift_curve_df.y.max()+1)]
+    fig = go.Figure()
+    text = [f"percentage sampled = top {round(idx_perc,2)}%"
+                for idx_perc in lift_curve_df['index_percentage'].values]
+    fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                   y=np.zeros(len(lift_curve_df)),
+                                   showlegend=False,
+                                   text=text,
+                                   hoverinfo="text")) 
+
+    text = [f"percentage {labels[pos_label]}={round(perc, 2)}%" 
+                for perc in lift_curve_df['precision_' +str(pos_label)].values]
+    fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                   y=lift_curve_df['precision_' +str(pos_label)].values, 
+                                   fill='tozeroy', 
+                                   name=labels[pos_label]+"(positive label)",
+                                   text=text,
+                                   hoverinfo="text")) 
+
+    cumulative_y = lift_curve_df['precision_' +str(pos_label)].values
+    for y_label in range(pos_label, lift_curve_df.y.max()+1):
+        
+        if y_label != pos_label:
+            cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
+            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+                for perc in lift_curve_df['precision_' +str(y_label)].values]
+            fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                         y=cumulative_y, 
+                                         fill='tonexty', 
+                                         name=labels[y_label],
+                                         text=text,
+                                         hoverinfo="text")) 
+
+    for y_label in range(0, pos_label): 
+        if y_label != pos_label:
+            cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
+            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+                for perc in lift_curve_df['precision_' +str(y_label)].values]
+            fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                         y=cumulative_y, 
+                                         fill='tonexty', 
+                                         name=labels[y_label],
+                                         text=text,
+                                         hoverinfo="text")) 
+    fig.update_layout(title=dict(text='Cumulative percentage per category when sampling top X%', 
+                                 x=0.5, 
+                                 font=dict(size=18)),
+                     yaxis=dict(title='Cumulative precision per category'),
+                     xaxis=dict(title='Top X% model scores', spikemode="across"),
+                     hovermode="x",
+                     plot_bgcolor = '#fff')
+    fig.update_xaxes(nticks=10)
+
+    return fig
+
+
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
-                            highlight_idx=None, na_fill=-999, round=2):
+                            highlight_idx=None, interaction=False, na_fill=-999, round=2):
     """
     Returns a partial dependence plot based on shap values.
 
     Observations are colored according to the values in column interact_col_name
     """
     assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
-    assert interact_col_name is None or interact_col_name in X.columns.tolist(),\
+    assert (interact_col_name is None and not interaction) or interact_col_name in X.columns.tolist(),\
             f'{interact_col_name} not in X.columns'
     
     x = X[col_name].replace({-999:np.nan})
@@ -264,11 +445,15 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         marker=dict(size=7, 
                                     opacity=0.6)  ,                    
                 ))
+    if interaction:
+        title = f'Interaction plot for {col_name} and {interact_col_name}'
+    else:
+        title = f'Dependence plot for {col_name}'
 
     layout = go.Layout(
-            title=f'dependence plot for {col_name}',
-            paper_bgcolor='rgba(245, 246, 249, 1)',
-            plot_bgcolor='rgba(245, 246, 249, 1)',
+            title=title,
+            paper_bgcolor='#fff',
+            plot_bgcolor = '#fff',
             showlegend=False,
             hovermode='closest',
             xaxis=dict(title=col_name),
@@ -297,7 +482,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                 name = f"index {highlight_idx}",
                 text=f"index {highlight_idx}",
                 hoverinfo="text"))
-    fig.update_traces(selector=dict(mode='markers'))
+    fig.update_traces(selector = dict(mode='markers'))
     return fig
 
 
@@ -356,7 +541,8 @@ def plotly_pdp(pdp_result,
                 )
             )
 
-    layout = go.Layout(title = f'pdp plot for {feature_name}')
+    layout = go.Layout(title = f'pdp plot for {feature_name}',
+                        plot_bgcolor = '#fff',)
 
     fig = go.Figure(data=data, layout=layout)
 
@@ -438,8 +624,7 @@ def plotly_importances_plot(importance_df):
     data = [trace0]
     layout = go.Layout(
         title=importance_name,
-        paper_bgcolor='rgba(245, 246, 249, 1)',
-        plot_bgcolor='rgba(245, 246, 249, 1)',
+        plot_bgcolor = '#fff',
         showlegend=False
     )
     fig = go.Figure(data=data, layout=layout)
@@ -456,16 +641,18 @@ def plotly_importances_plot(importance_df):
     return fig
 
 
-def plotly_tree_predictions(model, observation, round=2):
+def plotly_tree_predictions(model, observation, round=2, pos_label=1):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
     """
+    #print('plotly call', pos_label)
+    #print('plotly call', observation)
     if model.estimators_[0].classes_ is not None: #if classifier
-         preds_df = pd.DataFrame({
+        preds_df = pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
                 'prediction' : [
-                        np.round(100*m.predict_proba(observation)[0, 1], round) 
+                        np.round(100*m.predict_proba(observation)[0, pos_label], round) 
                                     for m in model.estimators_]
             })\
             .sort_values('prediction')\
@@ -485,7 +672,8 @@ def plotly_tree_predictions(model, observation, round=2):
                     hoverinfo="text")
     
     layout = go.Layout(
-                title='individual predictions trees'
+                title='individual predictions trees',
+                plot_bgcolor = '#fff',
             )
     fig = go.Figure(data = [trace0], layout=layout)
     shapes = [dict(
@@ -539,7 +727,8 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
             width=450,
             height=450,
             xaxis=dict(side='top'),
-            yaxis=dict(autorange="reversed",side='left')
+            yaxis=dict(autorange="reversed",side='left'),
+            plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
     
@@ -589,7 +778,9 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
                        height=450,
                        xaxis= dict(title='False Positive Rate', range=[0,1]),
                        yaxis = dict(title='True Positive Rate', range=[0,1], 
-                                    scaleanchor='y', scaleratio=1))
+                                    scaleanchor='y', scaleratio=1),
+                       hovermode='closest',
+                       plot_bgcolor = '#fff',)
     fig = go.Figure(data, layout)
     shapes = [dict(
                             type='line',
@@ -667,7 +858,9 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
                        height=450,
                        xaxis= dict(title='Precision', range=[0,1]),
                        yaxis = dict(title='Recall', range=[0,1], 
-                       scaleanchor='y', scaleratio=1))
+                       scaleanchor='y', scaleratio=1),
+                       hovermode='closest',
+                       plot_bgcolor = '#fff',)
     fig = go.Figure(data, layout)
     shapes = [] 
     
@@ -791,5 +984,6 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns):
                                 t=50,
                                 pad=4
                             ),
-                      hovermode='closest')
+                      hovermode='closest',
+                      plot_bgcolor = '#fff',)
     return fig
