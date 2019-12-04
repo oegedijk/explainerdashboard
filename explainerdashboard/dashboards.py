@@ -110,7 +110,7 @@ class ExplainerDashboard:
         if self.shap_dependence:
             self.tabs.append(ShapDependenceTab(self.explainer, **self.kwargs))
         if self.shap_interaction:
-            self.tabs.append(ShapInteractionTab(self.explainer, **self.kwargs))
+            self.tabs.append(ShapInteractionsTab(self.explainer, **self.kwargs))
         if self.shadow_trees:
             assert hasattr(self.explainer, 'shadow_trees')
             self.tabs.append(ShadowTreesTab(self.explainer, **self.kwargs))
