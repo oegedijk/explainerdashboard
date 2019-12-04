@@ -1,4 +1,4 @@
-__all__ = ['shap_dependence_tab', 'shap_dependence_tab_register_callbacks']
+__all__ = ['ShapDependenceTab']
 
 import dash
 import dash_core_components as dcc
@@ -11,8 +11,30 @@ from dash.exceptions import PreventUpdate
 
 from .dashboard_methods import *
 
+class ShapDependenceTab:
+    def __init__(self, explainer, standalone=False, tab_id="shap_dependence", title='Shap Dependence',
+                 n_features=10, **kwargs):
+        self.explainer = explainer
+        self.standalone = standalone
+        self.tab_id = tab_id
+        self.title = title
 
-def shap_dependence_tab(explainer, 
+        self.n_features = n_features
+        self.kwargs = kwargs
+        
+    def layout(self):
+        if self.standalone:
+            return shap_dependence_layout(self.explainer, title=self.title, standalone=self.standalone, 
+                                            n_features=self.n_features)
+        else:
+            return shap_dependence_layout(self.explainer,  
+                                            n_features=self.n_features)
+    
+    def register_callbacks(self, app):
+        shap_dependence_callbacks(self.explainer, app, standalone=self.standalone)
+
+
+def shap_dependence_layout(explainer, 
             title=None, standalone=False, hide_selector=False,
             n_features=10, **kwargs):
     """return layout for shap dependence tab.
@@ -94,7 +116,7 @@ def shap_dependence_tab(explainer,
     ],  fluid=True)
 
 
-def shap_dependence_tab_register_callbacks(explainer, app, 
+def shap_dependence_callbacks(explainer, app, 
              standalone=False, **kwargs):
 
     if standalone:

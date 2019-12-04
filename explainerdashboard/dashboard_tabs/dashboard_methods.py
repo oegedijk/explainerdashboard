@@ -57,16 +57,10 @@ def title_and_label_selector(explainer, title=None, include_label_store=False, h
                 html.Div([
                     dcc.Dropdown(
                         id='pos-label-selector',
-                        options = [{'label': label, 'value':label} 
+                        options = [{'label': label, 'value': label} 
                                         for label in explainer.labels],
                         value = explainer.pos_label_str
                      )
-                    # dbc.DropdownMenu(
-                    #                 [dbc.DropdownMenuItem(label, id="labelbutton-"+label) 
-                    #                     for label in explainer.labels],
-                    #                 label="Select Positive Class", color="link",
-                    #                 group=True
-                    # )
                 ], style=hidden_style)
             ], width=2),
             dcc.Store(id='label-store')
@@ -79,26 +73,6 @@ def title_and_label_selector(explainer, title=None, include_label_store=False, h
             dcc.Store(id='label-store')
         ], justify="start", align="center")
 
-
-# def label_selector_register_callback(explainer, app, **kwargs):
-#     if explainer.is_classifier:
-#         @app.callback(
-#             [Output("label-store", "data")]+\
-#             [Output("labelbutton-"+label, "active") 
-#                     for label in explainer.labels],
-#             [Input("labelbutton-"+label, "n_clicks") 
-#                     for label in explainer.labels]
-#         )
-#         def change_positive_label(*args, **kwargs):
-#             ctx = dash.callback_context
-#             if ctx.triggered:
-#                 trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-#                 pos_label = trigger.split('labelbutton-')[1]
-#                 explainer.pos_label = pos_label
-#                 active_bools = [True if l==pos_label else False 
-#                                     for l in explainer.labels]
-#                 return (pos_label, *active_bools)
-#             raise PreventUpdate
         
 def label_selector_register_callback(explainer, app, **kwargs):
     if explainer.is_classifier:
@@ -107,8 +81,10 @@ def label_selector_register_callback(explainer, app, **kwargs):
             [Input('pos-label-selector', 'value')]
         )
         def change_positive_label(pos_label):
+            print('pos label:', pos_label)
             if pos_label is not None:
                 explainer.pos_label = pos_label
+                print('updated pos label')
                 return pos_label
             raise PreventUpdate
             

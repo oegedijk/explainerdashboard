@@ -1,4 +1,4 @@
-__all__ = ['contributions_tab', 'contributions_tab_register_callbacks']
+__all__ = ['ContributionsTab']
 
 import dash
 import dash_core_components as dcc
@@ -13,8 +13,31 @@ import numpy as np
 
 from .dashboard_methods import *
 
+class ContributionsTab:
+    def __init__(self, explainer, standalone=False, tab_id="contributions", title='Contributions',
+                 n_features=15, round=2, **kwargs):
+        self.explainer = explainer
+        self.standalone = standalone
+        self.tab_id = tab_id
+        self.title = title
+        
+        self.n_features = n_features
+        self.round = round
+        self.kwargs = kwargs
+           
+    def layout(self):
+        if self.standalone:
+            return contributions_layout(self.explainer, title=self.title, standalone=self.standalone, 
+                                     n_features=self.n_features, round=self.round)
+        else:
+            return contributions_layout(self.explainer,  
+                                     n_features=self.n_features, round=self.round)
+    
+    def register_callbacks(self, app):
+        contributions_callbacks(self.explainer, app, standalone=self.standalone)
 
-def contributions_tab(explainer, 
+
+def contributions_layout(explainer, 
             title=None, standalone=False, hide_selector=False, 
             n_features=15, round=2, **kwargs):
     """returns layout for individual contributions tabs
@@ -134,7 +157,7 @@ def contributions_tab(explainer,
     ], fluid=True)
 
 
-def contributions_tab_register_callbacks(explainer, app, 
+def contributions_callbacks(explainer, app, 
             standalone=False, round=2, **kwargs):
 
 
@@ -145,7 +168,7 @@ def contributions_tab_register_callbacks(explainer, app,
             Output('input-index', 'value'),
             [Input('index-button', 'n_clicks')],
             [State('prediction-range-slider', 'value'),
-            State('include-labels', 'value')]
+             State('include-labels', 'value')]
         )
         def update_input_index(n_clicks, slider_range, include):
             y = None

@@ -1,4 +1,4 @@
-__all__ = ['model_summary_tab', 'model_summary_tab_register_callbacks']
+__all__ = ['ModelSummaryTab']
 
 import dash
 import dash_core_components as dcc
@@ -10,8 +10,36 @@ from dash.exceptions import PreventUpdate
 
 from .dashboard_methods import *
 
+class ModelSummaryTab:
+    def __init__(self, explainer, standalone=False, tab_id="model_summary", title='Model Summary',
+                 bin_size=0.1, quantiles=10, cutoff=0.5, n_features=15, **kwargs):
+        self.explainer = explainer
+        self.standalone = standalone
+        
+        self.bin_size = bin_size
+        self.quantiles = quantiles
+        self.cutoff = cutoff
+        self.n_features = n_features
+        self.kwargs = kwargs
+        
+        self.tab_id = tab_id
+        self.title = title
+        
+    def layout(self):
+        if self.standalone:
+            return model_summary_layout(self.explainer, title=self.title, standalone=self.standalone, 
+                                     bin_size=self.bin_size, quantiles=self.quantiles, 
+                                     cutoff=self.cutoff, n_features=self.n_features)
+        else:
+            return model_summary_layout(self.explainer,  
+                                     bin_size=self.bin_size, quantiles=self.quantiles, 
+                                     cutoff=self.cutoff, n_features=self.n_features)
+    
+    def register_callbacks(self, app):
+        return model_summary_callbacks(self.explainer, app, standalone=self.standalone)
 
-def model_summary_tab(explainer, 
+
+def model_summary_layout(explainer, 
             title=None, standalone=False, hide_selector=False,
             bin_size=0.1, quantiles=10, cutoff=0.5, n_features=15, **kwargs):
     """returns layout for model summary tab
@@ -173,11 +201,11 @@ def model_summary_tab(explainer,
                 dbc.Col([
                     dcc.Loading(id="loading-predicted-vs-actual-graph", 
                                 children=[dcc.Graph(id='predicted-vs-actual-graph')]),
-                ]),
+                ], width=6),
                 dbc.Col([
                     dcc.Loading(id="loading-residuals-graph", 
                                 children=[dcc.Graph(id='residuals-graph')]),
-                ]),
+                ], width=6),
             ])
         ]
 
@@ -233,8 +261,7 @@ def model_summary_tab(explainer,
         ], fluid=True)
 
 
-def model_summary_tab_register_callbacks(explainer, app, 
-             standalone=False, **kwargs):
+def model_summary_callbacks(explainer, app, standalone=False, **kwargs):
     if explainer.is_classifier:
         if standalone:
             label_selector_register_callback(explainer, app)
@@ -330,9 +357,9 @@ def model_summary_tab_register_callbacks(explainer, app,
     @app.callback(  
         Output('importances-graph', 'figure'),
         [Input('importance-tablesize', 'value'),
-        Input('group-categoricals', 'checked'),
-        Input('permutation-or-shap', 'value'),
-        Input('label-store', 'data')]
+         Input('group-categoricals', 'checked'),
+         Input('permutation-or-shap', 'value'),
+         Input('label-store', 'data')]
     )
     def update_importances(tablesize, cats, permutation_shap, pos_label): 
         return explainer.plot_importances(

@@ -1,4 +1,4 @@
-__all__ = ['shap_interactions_tab', 'shap_interactions_tab_register_callbacks']
+__all__ = ['ShapInteractionsTab']
 
 import dash
 import dash_core_components as dcc
@@ -12,7 +12,30 @@ from dash.exceptions import PreventUpdate
 from .dashboard_methods import *
 
 
-def shap_interactions_tab(explainer, 
+class ShapInteractionsTab:
+    def __init__(self, explainer, standalone=False, tab_id="shap_interactions", title='Shap Interactions',
+                 n_features=10, **kwargs):
+        self.explainer = explainer
+        self.standalone = standalone
+        self.tab_id = tab_id
+        self.title = title
+
+        self.n_features = n_features
+        self.kwargs = kwargs
+        
+    def layout(self):
+        if self.standalone:
+            return shap_interactions_layout(self.explainer, title=self.title, standalone=self.standalone, 
+                                            n_features=self.n_features)
+        else:
+            return shap_interactions_layout(self.explainer,  
+                                            n_features=self.n_features)
+    
+    def register_callbacks(self, app):
+        shap_interactions_callbacks(self.explainer, app, standalone=self.standalone)
+
+
+def shap_interactions_layout(explainer, 
             title=None, standalone=False, hide_selector=False,
             n_features=10, **kwargs):
     """return layout for shap interactions tab.
@@ -96,7 +119,7 @@ def shap_interactions_tab(explainer,
     ],  fluid=True)
 
 
-def shap_interactions_tab_register_callbacks(explainer, app, 
+def shap_interactions_callbacks(explainer, app, 
              standalone=False, n_features=10, **kwargs):
     if standalone:
         label_selector_register_callback(explainer, app)

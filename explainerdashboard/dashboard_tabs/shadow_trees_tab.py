@@ -1,4 +1,4 @@
-__all__ = ['shadow_trees_tab', 'shadow_trees_tab_register_callbacks']
+__all__ = ['ShadowTreesTab']
 
 import dash
 import dash_core_components as dcc
@@ -12,7 +12,31 @@ from dash.exceptions import PreventUpdate
 from .dashboard_methods import *
 
 
-def shadow_trees_tab(explainer, 
+class ShadowTreesTab:
+    def __init__(self, explainer, standalone=False, tab_id="shadow_trees", title='Shadow Trees',
+                 round=2, **kwargs):
+        self.explainer = explainer
+        self.standalone = standalone
+        self.tab_id = tab_id
+        self.title = title
+
+        self.round = round
+        self.kwargs = kwargs
+        
+        
+    def layout(self):
+        if self.standalone:
+            return shadow_trees_layout(self.explainer, title=self.title, standalone=self.standalone, 
+                                     round=self.round)
+        else:
+            return shadow_trees_layout(self.explainer,  
+                                     round=self.round)
+    
+    def register_callbacks(self, app):
+        shadow_trees_callbacks(self.explainer, app, standalone=self.standalone)
+
+
+def shadow_trees_layout(explainer, 
             title=None, standalone=False, hide_selector=False,
             round=2, **kwargs):
     """return layout for shadow trees tab that display distributions of individual
@@ -67,7 +91,7 @@ def shadow_trees_tab(explainer,
     ],  fluid=True)
 
 
-def shadow_trees_tab_register_callbacks(explainer, app, 
+def shadow_trees_callbacks(explainer, app, 
              standalone=False, round=2, **kwargs):
 
     if standalone:

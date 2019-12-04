@@ -14,13 +14,13 @@ ShapExplainer to use to calculate the SHAP values.
 
 e.g.:
 
-- **TreeExplainerBunch**(model, X, y): uses shap.TreeExplainer
-- **LinearExplainerBunch**(model, X, y): uses shap.LinearExplainer
-- **DeepExplainerBunch**(model, X, y): uses shap.DeepExplainer
-- **KernelExplainerBunch**(model, X, y): uses shap.KernelExplainer
+**TreeExplainerBunch**(model, X, y): uses shap.TreeExplainer
+**LinearExplainerBunch**(model, X, y): uses shap.LinearExplainer
+**DeepExplainerBunch**(model, X, y): uses shap.DeepExplainer
+**KernelExplainerBunch**(model, X, y): uses shap.KernelExplainer
 
-These Explainer objects can be used for regression models where the output is a single
-scalar prediction. They provide  number of convenient plotting methods:
+These Explainer objects calculate shap values, feature importances, partial dependences, etc
+and provide a number of convenient plotting methods:
 
 - plot_importances()
 - plot_shap_contributions()
@@ -57,10 +57,11 @@ ClassifierBunch defines a number of additional plotting methods:
 
 You would instantiate an Explainer class for a specific type of model, e.g.:
 
-- **TreeClassifierBunch**(model, X, y)
-- **LinearClassifierBunch**(model, X, y)
-- **DeepClassifierBunch**(model, X, y)
-- **KernelClassifierBunch**(model, X, y)
+**TreeClassifierBunch**(model, X, y)
+**LinearClassifierBunch**(model, X, y)
+**DeepClassifierBunch**(model, X, y)
+**KernelClassifierBunch**(model, X, y)
+**RandomForestClassifierBunch**(model, X, y)
 
 
 example code::
@@ -68,6 +69,36 @@ example code::
     explainer = TreeExplainerBunch(model, X, y, labels=['Not Survived', 'Survived'])
     explainer.plot_confusion_matrix()
     explainer.plot_roc_auc()
+
+RegressionBunch
+===============
+
+For regression models where we try to predict a certain quantity.
+
+You can pass an additional parameter to __init__ with the units of the predicted quantity.
+
+RegressionBunch defines a number of additional plotting methods:
+
+-  plot_predicted_vs_actual(self, round=2, logs=False):
+-  plot_residuals(self, vs_actual=False, round=2, ratio=False):
+-  plot_residuals_vs_feature(self, col)
+
+You would instantiate an Explainer class for a specific type of model, e.g.:
+
+
+**TreeRegressionBunch**(model, X, y)
+**LinearRegressionBunch**(model, X, y)
+**DeepRegressionBunch**(model, X, y)
+**KernelRegressionBunch**(model, X, y)
+**RandomForestRegressionBunch**(model, X, y)
+
+
+example code::
+
+    explainer = TreeRegressionBunch(model, X, y, units='dollars')
+    explainer.plot_predicted_vs_actual()
+    explainer.plot_residuals()
+
 
 RandomForestExplainerBunch
 ==========================
@@ -84,9 +115,10 @@ You can also plot the individual prediction of each individual tree.
 - shadowtree_df(tree_idx, index)
 - plot_trees(index)
 
-This also works with classifiers:
+This also works with classifiers and regression models:
 
-- **RandomForestClassifierBunch(model, X, y)**
+**RandomForestClassifierBunch(model, X, y)**
+**RandomForestRegressionBunch(model, X, y)**
 
 BaseExplainerBunch
 ==================

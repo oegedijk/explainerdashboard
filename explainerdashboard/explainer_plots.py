@@ -987,3 +987,134 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns):
                       hovermode='closest',
                       plot_bgcolor = '#fff',)
     return fig
+
+def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
+    
+
+    trace0 = go.Scatter(
+        x=np.log(y) if logs else y, 
+        y=np.log(preds) if logs else preds, 
+        mode='markers', 
+        name='predicted',
+        text=[f"Predicted: {predicted}<br>Actual: {actual}" for actual, predicted in zip(np.round(y, round), np.round(preds, round))],
+        hoverinfo="text",
+    )
+    
+    trace1 = go.Scatter(
+        x=np.log(y) if logs else y, 
+        y=np.log(y) if logs else y, 
+        mode='lines', 
+        name='actual',
+        hoverinfo="none",
+    )
+    
+    data = [trace0, trace1]
+    
+    layout = go.Layout(
+        title='Log(Predicted) vs Log(Actual)' if logs else 'Predicted vs Actual',
+        yaxis=dict(
+            title=f'Log(Predicted {units})' if logs else f'Predicted {units}' 
+        ),
+        
+        xaxis=dict(
+            title=f'Log(Actual {units})' if logs else f'Actual {units}' 
+        ),
+        plot_bgcolor = '#fff',
+    )
+    
+    fig = go.Figure(data, layout)
+    return fig
+
+
+def plotly_plot_residuals(y, preds, vs_actual=False, units="", round=2, ratio=False):
+    
+    residuals = y - preds
+    residuals_ratio = residuals / y if vs_actual else residuals / preds
+    
+    trace0 = go.Scatter(
+        x=y if vs_actual else preds, 
+        y=residuals_ratio if ratio else residuals, 
+        mode='markers', 
+        name='residual ratio' if ratio else 'residuals',
+        text=[f"Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}<br>Ratio: {res_ratio}" 
+                  for actual, pred, residual, res_ratio in zip(np.round(y, round), 
+                                                                np.round(preds, round), 
+                                                                np.round(residuals, round),
+                                                                np.round(residuals_ratio, round))],
+        hoverinfo="text",
+    )
+    
+    trace1 = go.Scatter(
+        x=y if vs_actual else preds, 
+        y=np.zeros(len(preds)),
+        mode='lines', 
+        name=f'Actual {units}' if vs_actual else f'Predicted {units}',
+        hoverinfo="none",
+    )
+    
+    data = [trace0, trace1]
+    
+    layout = go.Layout(
+        title='Residuals vs Predicted',
+        yaxis=dict(
+            title='Relative Residuals' if ratio else 'Residuals'
+        ),
+        
+        xaxis=dict(
+            title=f'Actual {units}' if vs_actual else f'Predicted {units}' 
+        ),
+        plot_bgcolor = '#fff',
+    )
+    
+    fig = go.Figure(data, layout)
+    return fig
+    
+
+def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, vs_actual=False, units="", round=2, ratio=False):
+    
+    if col_name is None:
+        try:
+            col_name = col.name
+        except:
+            col_name = 'Feature' 
+            
+    residuals = y - preds
+    residuals_ratio = residuals / y if vs_actual else residuals / preds
+    
+    trace0 = go.Scatter(
+        x=col, 
+        y=residuals_ratio if ratio else residuals, 
+        mode='markers', 
+        name='residual ratio' if ratio else 'residuals',
+        text=[f"Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}<br>Ratio: {res_ratio}" 
+                  for actual, pred, residual, res_ratio in zip(np.round(y, round), 
+                                                                np.round(preds, round), 
+                                                                np.round(residuals, round),
+                                                                np.round(residuals_ratio, round))],
+        hoverinfo="text",
+    )
+    
+    trace1 = go.Scatter(
+        x=col, 
+        y=np.zeros(len(preds)),
+        mode='lines', 
+        name=col_name,
+        hoverinfo="none",
+    )
+    
+    data = [trace0, trace1]
+    
+    layout = go.Layout(
+        title=f'Residuals vs {col_name}',
+        yaxis=dict(
+            title='Relative Residuals' if ratio else 'Residuals'
+        ),
+        
+        xaxis=dict(
+            title=f'{col_name} value {units}'
+        ),
+        plot_bgcolor = '#fff',
+    )
+    
+    fig = go.Figure(data, layout)
+    return fig

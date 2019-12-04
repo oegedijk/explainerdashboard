@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ['ExplainerDashboard', 
-            'RandomForestDashboard']
+__all__ = ['ExplainerDashboard']
 
 
 import dash
@@ -26,13 +25,15 @@ class ExplainerDashboard:
     """Constructs a dashboard out of an ExplainerBunch object. You can indicate
     which tabs to include, and pass kwargs to individual tabs.
     """
-    def __init__(self, explainer, title='Model Explainer', *,  
-                    model_summary=True,  
-                    contributions=True,
-                    shap_dependence=True,
-                    shap_interaction=False,
-                    plotly_template="none",
-                    **kwargs):
+    def __init__(self, explainer, title='Model Explainer',   
+                tabs=None,
+                model_summary=True,  
+                contributions=True,
+                shap_dependence=True,
+                shap_interaction=False,
+                shadow_trees=False,
+                plotly_template="none",
+                **kwargs):
         """Constructs an ExplainerDashboard.
         
         :param explainer: an ExplainerBunch object
@@ -53,11 +54,11 @@ class ExplainerDashboard:
         self.contributions = contributions
         self.shap_dependence = shap_dependence
         self.shap_interaction = shap_interaction
+        self.shadow_trees = shadow_trees
         self.plotly_template = plotly_template
         self.kwargs=kwargs
 
-        # calculate properties before starting dashboard:
-        
+        # calculate lazily loaded properties before starting dashboard:
         if shap_dependence or contributions or model_summary:
             _ = explainer.shap_values, explainer.preds 
             if explainer.cats is not None:
@@ -72,6 +73,8 @@ class ExplainerDashboard:
             _ = explainer.shap_interaction_values
             if explainer.cats is not None:
                 _ = explainer.shap_interaction_values_cats
+        if shadow_trees:
+            _ = explainer.shadow_trees
 
         self.app = dash.Dash(__name__)
         self.app.config['suppress_callback_exceptions']=True
@@ -81,65 +84,36 @@ class ExplainerDashboard:
         
         pio.templates.default = self.plotly_template
 
-        tab_bools = [model_summary, contributions, shap_dependence, shap_interaction]
-        tab_names = ['model_tab', 'contributions_tab', 'dependence_tab', 'interactions_tab']
-        try:
-            first_tab = tab_names[tab_bools.index(True)]
-        except:
-            first_tab = None
+        self.tabs = [] if tabs is None else tabs
+        self.insert_tabs()
+        assert len(self.tabs) > 0, 'need to pass at least one tab!'
+        
+        self.tab_layouts = [dcc.Tab(children=tab.layout(), label=tab.title,  id=tab.tab_id) 
+                                for tab in self.tabs]
 
-
-        self.tabs = []
-        self.insert_tab_layouts(self.tabs)
         self.app.layout = dbc.Container([
             title_and_label_selector(self.explainer, self.title, 
                     include_label_store=True),
-            dcc.Tabs(self.tabs, id="tabs", value=first_tab),
+            dcc.Tabs(self.tab_layouts, id="tabs", value=self.tabs[0].tab_id),
         ],  fluid=True)
-        self.register_callbacks()
 
-    def insert_tab_layouts(self, tabs):
-        """Inserts the layouts for the appropriate tabs. These can be extended
-        in inherited ExplainerDashboard classes to easily add new tabs.
-        
-        :param tabs: a list of tab lauout that will be appended to
-        :type tabs: list
-        """
-        if self.model_summary:
-            tabs.append(dcc.Tab(
-                    children=model_summary_tab(self.explainer, **self.kwargs),
-                    label='Model Overview', 
-                    id='model_tab'))
-        if self.contributions:
-            tabs.append(dcc.Tab(
-                    children=contributions_tab(self.explainer, **self.kwargs), 
-                    label='Individual Contributions', 
-                    id='contributions_tab'))
-        if self.shap_dependence:
-            tabs.append(dcc.Tab(
-                    children=shap_dependence_tab(self.explainer, **self.kwargs), 
-                    label='Dependence Plots', 
-                    id='dependence_tab'))
-        if self.shap_interaction:
-            tabs.append(dcc.Tab(
-                    children=shap_interactions_tab(self.explainer, **self.kwargs), 
-                    label='Interactions graphs', 
-                    id='interactions_tab'))
-        
-    def register_callbacks(self):
-        """Registers the appropriate callbacks for the different tabs to the
-        Dash app. Can be easily extended by inheriting classes to add more tabs.
-        """
         label_selector_register_callback(self.explainer, self.app)
+        
+        for tab in self.tabs:
+            tab.register_callbacks(self.app)
 
-        if self.model_summary: 
-            model_summary_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
-        if self.contributions: 
-            contributions_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
-        if self.shap_dependence: 
-            shap_dependence_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
-        if self.shap_interaction: 
-            shap_interactions_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
+    def insert_tabs(self):
+        if self.model_summary:
+            self.tabs.append(ModelSummaryTab(self.explainer, **self.kwargs))
+        if self.contributions:
+            self.tabs.append(ContributionsTab(self.explainer, **self.kwargs))
+        if self.shap_dependence:
+            self.tabs.append(ShapDependenceTab(self.explainer, **self.kwargs))
+        if self.shap_interaction:
+            self.tabs.append(ShapInteractionTab(self.explainer, **self.kwargs))
+        if self.shadow_trees:
+            assert hasattr(self.explainer, 'shadow_trees')
+            self.tabs.append(ShadowTreesTab(self.explainer, **self.kwargs))
         
     def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
@@ -150,40 +124,5 @@ class ExplainerDashboard:
         print(f"Running {self.title} on http://localhost:{port}")
         pio.templates.default = self.plotly_template
         self.app.run_server(port=port, **kwargs)
-
-
-@delegates()
-class RandomForestDashboard(ExplainerDashboard):
-    """
-    Adds a shadow_trees tab to ExplainerDashboard where you can inspect
-    individal DecisionTrees in the RandomForest.
-    """
-    def __init__(self, explainer, title='Model Explainer', *, 
-                   shadow_trees=True, **kwargs):
-        """The RandomForestDashboard comes with an additional potential tab
-        called shadow_trees where individual DecisionTrees within the RandomForest
-        can be viewed. 
-        
-        :param shadow_trees: [description], defaults to True
-        :type shadow_trees: bool, optional
-        """
-        self.shadow_trees = shadow_trees
-        if shadow_trees:
-            _ = self.shadow_trees 
-        super().__init__(explainer, title, **kwargs)        
-
-    def insert_tab_layouts(self, tabs):
-        super().insert_tab_layouts(tabs)
-        if self.shadow_trees:
-            tabs.append(dcc.Tab(
-                children=shadow_trees_tab(self.explainer, **self.kwargs), 
-                label='Individual Trees', 
-                id='trees_tab'))
-        
-    def register_callbacks(self):
-        super().register_callbacks()
-        if self.shadow_trees: 
-            shadow_trees_tab_register_callbacks(self.explainer, self.app, **self.kwargs)
-
 
 

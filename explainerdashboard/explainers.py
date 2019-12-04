@@ -1184,6 +1184,49 @@ class ClassifierBunch(BaseExplainerBunch):
         super().calculate_properties(include_interactions)
 
 
+class RegressionBunch(BaseExplainerBunch):
+    """
+     ExplainerBunch for regression models.
+
+    In addition defines a number of plots specific to regression problems
+    such as a predicted vs actual and residual plots.
+    """
+    def __init__(self, model,  X, y=None, metric=roc_auc_score,
+                    cats=None, idxs=None, permutation_cv=None, na_fill=-999,
+                    units=""):
+        """Combared to BaseExplainerBunch defines two additional parameters:
+        :param units: units to display for regression quantity
+        :type units: str, optional
+
+        """
+        super().__init__(model, X, y, metric, cats, idxs, permutation_cv, na_fill)
+        self.units = units
+        self.is_regression = True
+    
+    @property
+    def residuals(self):
+        if not hasattr(self, '_residuals'):
+            print("Calculating residuals...")
+            self._residuals =  self.preds-self.y
+        return self._residuals
+
+    def plot_predicted_vs_actual(self, round=2, logs=False):
+        return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, round=round, logs=logs)
+    
+    def plot_residuals(self, vs_actual=False, round=2, ratio=False):
+        
+        return plotly_plot_residuals(self.y, self.preds, 
+                                     vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
+    
+    def plot_residuals_vs_feature(self, col, vs_actual=False, round=2, ratio=False):
+        assert col in self.columns, \
+            f'{col} not in columns!'
+        return plotly_residuals_vs_col(explainer.y, explainer.preds, explainer.X[col], 
+                                       vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
+    
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
+
 class TreeClassifierBunch(TreeExplainerBunch, ClassifierBunch):
     """TreeModelClassifierBunch inherits from both TreeModelBunch and
     ClassifierBunch.
@@ -1224,6 +1267,42 @@ class RandomForestClassifierBunch(RandomForestExplainerBunch, ClassifierBunch):
         super().calculate_properties(include_interactions)
 
 
+class TreeRegressionBunch(TreeExplainerBunch, RegressionBunch):
+    """TreeRegressionBunch inherits from both TreeExplainertBunch and
+    RegressionBunch.
+    """
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
 
+
+class LinearRegressionBunch(LinearExplainerBunch, RegressionBunch):
+    """LinearRegressionBunch inherits from both LinearExplainerBunch and
+    RegressionBunch.
+    """
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
+
+
+class DeepRegressionBunch(DeepExplainerBunch, RegressionBunch):
+    """DeepRegressionBunch inherits from both DeepExplainerBunch and
+    RegressionBunch.
+    """
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
+
+
+class KernelRegressionBunch(KernelExplainerBunch, RegressionBunch):
+    """KernelRegressionBunch inherits from both KernelExplainerBunch and
+    RegressionBunch.
+    """
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
+
+class RandomForestRegressionBunch(RandomForestExplainerBunch, RegressionBunch):
+    """RandomForestClassifierBunch inherits from both RandomForestBunch and
+    RegressionBunch.
+    """
+    def calculate_properties(self, include_interactions=True):
+        super().calculate_properties(include_interactions)
 
 
