@@ -75,7 +75,7 @@ so if you are not really interested in them, it may make sense to switch that ta
 Any additional `**kwargs` get passed down to the individual tabs. (mostly `n_features` and `round` for now)
 
 ```
-db = RandomForestDashboard(explainer, 'Titanic Explainer`,
+db = ExplainerDashboard(explainer, 'Titanic Explainer`,
                         model_summary=True,
                         contributions=True,
                         shap_dependence=True,
