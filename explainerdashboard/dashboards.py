@@ -84,20 +84,24 @@ class ExplainerDashboard:
         
         pio.templates.default = self.plotly_template
 
+        # layout
+        self.title_and_label_selector = TitleAndLabelSelector(explainer, title=title)
         self.tabs = [] if tabs is None else tabs
         self.insert_tabs()
         assert len(self.tabs) > 0, 'need to pass at least one tab!'
         
-        self.tab_layouts = [dcc.Tab(children=tab.layout(), label=tab.title,  id=tab.tab_id) 
-                                for tab in self.tabs]
+        self.tab_layouts = [
+            dcc.Tab(children=tab.layout(), 
+                    label=tab.title, 
+                    id=tab.tab_id) for tab in self.tabs]
 
         self.app.layout = dbc.Container([
-            title_and_label_selector(self.explainer, self.title, 
-                    include_label_store=True),
+            self.title_and_label_selector.layout(),
             dcc.Tabs(self.tab_layouts, id="tabs", value=self.tabs[0].tab_id),
-        ],  fluid=True)
+        ], fluid=True)
 
-        label_selector_register_callback(self.explainer, self.app)
+        #register callbacks
+        self.title_and_label_selector.register_callbacks(self.app)
         
         for tab in self.tabs:
             tab.register_callbacks(self.app)

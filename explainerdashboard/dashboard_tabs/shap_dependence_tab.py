@@ -21,38 +21,28 @@ class ShapDependenceTab:
 
         self.n_features = n_features
         self.kwargs = kwargs
+
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+           
         
     def layout(self):
-        if self.standalone:
-            return shap_dependence_layout(self.explainer, title=self.title, standalone=self.standalone, 
-                                            n_features=self.n_features)
-        else:
-            return shap_dependence_layout(self.explainer,  
-                                            n_features=self.n_features)
+        return dbc.Container([
+            self.label_selector.layout() if self.standalone else None,
+            shap_dependence_layout(self.explainer, n_features=self.n_features)
+    
+        ], fluid=True)
     
     def register_callbacks(self, app):
-        shap_dependence_callbacks(self.explainer, app, standalone=self.standalone)
+        if self.standalone:
+            self.label_selector.register_callbacks(app)
+        shap_dependence_callbacks(self.explainer, app)
 
 
-def shap_dependence_layout(explainer, 
-            title=None, standalone=False, hide_selector=False,
-            n_features=10, **kwargs):
-    """return layout for shap dependence tab.
-    
-    :param explainer: ExplainerBunch
-    :type explainer: ExplainerBunch 
-    :type title: str
-    :param standalone: when standalone layout, include a a label_store, defaults to False
-    :type standalone: bool
-    :param hide_selector: if model is a classifier, optionally hide the positive label selector, defaults to False
-    :type hide_selector: bool
-    :param n_features: default number of features to display, defaults to 10
-    :type n_features: int, optional
-    :rtype: dbc.Container
-    """
+def shap_dependence_layout(explainer, n_features=10, **kwargs):
+
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
-    title_and_label_selector(explainer, title, standalone, hide_selector),
     dbc.Row([
         dbc.Col([
             html.H3('Shap Summary'),
@@ -116,12 +106,8 @@ def shap_dependence_layout(explainer,
     ],  fluid=True)
 
 
-def shap_dependence_callbacks(explainer, app, 
-             standalone=False, **kwargs):
-
-    if standalone:
-        label_selector_register_callback(explainer, app)
-
+def shap_dependence_callbacks(explainer, app, **kwargs):
+    
     @app.callback(
         [Output('dependence-shap-scatter-graph', 'figure'),
         Output('dependence-col', 'options'),

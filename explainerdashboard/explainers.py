@@ -330,7 +330,7 @@ class BaseExplainerBunch(ABC):
 
         if topx is None: topx = len(shap_df)
         if cutoff is None: cutoff = shap_df['MEAN_ABS_SHAP'].min()
-        return shap_df[shap_df['MEAN_ABS_SHAP'] > cutoff].head(topx)
+        return shap_df[shap_df['MEAN_ABS_SHAP'] >= cutoff].head(topx)
 
     def shap_top_interactions(self, col, topx=None, cats=False):
         """returns the features that interact with feature col in descending order.

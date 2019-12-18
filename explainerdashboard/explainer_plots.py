@@ -648,7 +648,7 @@ def plotly_tree_predictions(model, observation, round=2, pos_label=1):
     """
     #print('plotly call', pos_label)
     #print('plotly call', observation)
-    if model.estimators_[0].classes_ is not None: #if classifier
+    if model.estimators_[0].classes_[0] is not None: #if classifier
         preds_df = pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
                 'prediction' : [

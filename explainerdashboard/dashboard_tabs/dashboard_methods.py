@@ -35,56 +35,70 @@ def delegates(to=None, keep=False):
     return _f
 
 
-def title_and_label_selector(explainer, title=None, include_label_store=False, hide_selector=False):
-    """
-    Returns a title dbc.Row with positive label selector in case of a classifier.
-    
-    """
-    if not include_label_store and title is None:
-        return None
-    
-    title_col = dbc.Col([html.H1(title)], width='auto') if title is not None else None
-    
-    if not include_label_store:
-        return dbc.Row([title_col], justify="start", align="center")
-    
-    if explainer.is_classifier: 
-        #classifier can show label selector, but still optionally hide it
-        hidden_style = {'display': 'none'} if hide_selector else None
-        return dbc.Row([
-            dbc.Col([html.H1(title)], width='auto'),
-            dbc.Col([
-                html.Div([
-                    dcc.Dropdown(
-                        id='pos-label-selector',
-                        options = [{'label': label, 'value': label} 
-                                        for label in explainer.labels],
-                        value = explainer.pos_label_str
-                     )
-                ], style=hidden_style)
-            ], width=2),
-            dcc.Store(id='label-store')
-        ], justify="start", align="center")
-    else: 
-        # regression never shows label selector, but still includes the label store 
-        # for callback compatability
-        return dbc.Row([
-            dbc.Col([html.H1(title)], width='auto'),
-            dcc.Store(id='label-store')
-        ], justify="start", align="center")
+class EmptyLayout:
+    def __init__(self):
+        pass
 
-        
-def label_selector_register_callback(explainer, app, **kwargs):
-    if explainer.is_classifier:
-        @app.callback(
-            Output("label-store", "data"),
-            [Input('pos-label-selector', 'value')]
-        )
-        def change_positive_label(pos_label):
-            print('pos label:', pos_label)
-            if pos_label is not None:
-                explainer.pos_label = pos_label
-                print('updated pos label')
-                return pos_label
-            raise PreventUpdate
-            
+    def layout(self):
+        return None
+
+    def register_callbacks(self, app):
+        pass
+
+class TitleAndLabelSelector:
+    def __init__(self, explainer, title="Explainer Dashboard", 
+                    title_only=False, label_store_only=False, dummy=False):
+        self.explainer = explainer
+        self.title = title
+        self.title_only, self.label_store_only = title_only, label_store_only
+        self.dummy = dummy
+
+    def layout(self):
+        if self.dummy: return None
+    
+        title_col = dbc.Col([html.H1(self.title)], width='auto')
+    
+        if self.title_only:
+            return dbc.Container([
+                dbc.Row([
+                    title_col,
+                ], justify="start", align="center")
+            ])
+        elif self.label_store_only or not self.explainer.is_classifier:
+            return dbc.Container([
+                dbc.Row([
+                    title_col,
+                    dcc.Store(id='label-store')
+                ], justify="start", align="center")
+            ])
+        elif self.explainer.is_classifier: 
+            #classifier can show label selector, but still optionally hide it
+            return dbc.Container([
+                dbc.Row([
+                    title_col,
+                    dbc.Col([
+                            dcc.Dropdown(
+                                id='pos-label-selector',
+                                options = [{'label': label, 'value': label} 
+                                                for label in self.explainer.labels],
+                                value = self.explainer.pos_label_str
+                            )
+                    ], width=2),
+                    dcc.Store(id='label-store')
+                ], justify="start", align="center")
+            ])
+        else:
+            return None
+ 
+
+    def register_callbacks(self, app, **kwargs):
+        if self.explainer.is_classifier and not self.label_store_only:
+            @app.callback(
+                Output("label-store", "data"),
+                [Input('pos-label-selector', 'value')]
+            )
+            def change_positive_label(pos_label):
+                if pos_label is not None:
+                    self.explainer.pos_label = pos_label
+                    return pos_label
+                raise PreventUpdate

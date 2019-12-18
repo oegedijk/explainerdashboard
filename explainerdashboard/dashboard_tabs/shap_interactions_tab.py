@@ -22,21 +22,22 @@ class ShapInteractionsTab:
 
         self.n_features = n_features
         self.kwargs = kwargs
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(explainer, title=title)
         
     def layout(self):
-        if self.standalone:
-            return shap_interactions_layout(self.explainer, title=self.title, standalone=self.standalone, 
-                                            n_features=self.n_features)
-        else:
-            return shap_interactions_layout(self.explainer,  
-                                            n_features=self.n_features)
+        return dbc.Container([
+            self.label_selector.layout() if self.standalone else None,
+            shap_interactions_layout(self.explainer, n_features=self.n_features)
+        ], fluid=True)
     
     def register_callbacks(self, app):
-        shap_interactions_callbacks(self.explainer, app, standalone=self.standalone)
+        if self.standalone:
+            self.label_selector.register_callbacks(app)
+        shap_interactions_callbacks(self.explainer, app)
 
 
 def shap_interactions_layout(explainer, 
-            title=None, standalone=False, hide_selector=False,
             n_features=10, **kwargs):
     """return layout for shap interactions tab.
     
@@ -55,7 +56,6 @@ def shap_interactions_layout(explainer,
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
     #dbc.Row([dbc.Col([html.H3('Shap Interaction Values')])]),
-    title_and_label_selector(explainer, title, standalone, hide_selector),
     dbc.Row([
         dbc.Col([
             html.H3('Shap Interaction Summary'),
@@ -121,8 +121,6 @@ def shap_interactions_layout(explainer,
 
 def shap_interactions_callbacks(explainer, app, 
              standalone=False, n_features=10, **kwargs):
-    if standalone:
-        label_selector_register_callback(explainer, app)
 
     @app.callback(
         [Output('interaction-col', 'options'),
@@ -151,7 +149,6 @@ def shap_interactions_callbacks(explainer, app,
             return plot, interact_col_options
         raise PreventUpdate
 
-
     @app.callback(
         [Output('interaction-highlight-index', 'value'),
          Output('interaction-interact-col', 'value')],
@@ -163,7 +160,6 @@ def shap_interactions_callbacks(explainer, app,
             col = clickData['points'][0]['text'].split('=')[0]
             return (idx, col)
         raise PreventUpdate
-
 
     @app.callback(
         [Output('interaction-graph', 'figure'),

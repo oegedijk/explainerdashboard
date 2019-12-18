@@ -24,22 +24,23 @@ class ContributionsTab:
         self.n_features = n_features
         self.round = round
         self.kwargs = kwargs
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(explainer, title=title)
            
     def layout(self):
-        if self.standalone:
-            return contributions_layout(self.explainer, title=self.title, standalone=self.standalone, 
-                                     n_features=self.n_features, round=self.round)
-        else:
-            return contributions_layout(self.explainer,  
-                                     n_features=self.n_features, round=self.round)
+        return dbc.Container([
+            self.label_selector.layout() if self.standalone else None,
+            contributions_layout(self.explainer,  
+                    n_features=self.n_features, round=self.round)
+        ], fluid=True)
     
     def register_callbacks(self, app):
+        if self.standalone:
+            self.label_selector.register_callbacks(app)
         contributions_callbacks(self.explainer, app, standalone=self.standalone)
 
 
-def contributions_layout(explainer, 
-            title=None, standalone=False, hide_selector=False, 
-            n_features=15, round=2, **kwargs):
+def contributions_layout(explainer, n_features=15, round=2, **kwargs):
     """returns layout for individual contributions tabs
     
     :param explainer: ExplainerBunch to build layout for
@@ -92,7 +93,6 @@ def contributions_layout(explainer,
             ])
 
     return dbc.Container([
-    title_and_label_selector(explainer, title, standalone, hide_selector),
     dbc.Row([
         dbc.Col([
             html.H2('Display prediction for:'),
@@ -157,13 +157,9 @@ def contributions_layout(explainer,
     ], fluid=True)
 
 
-def contributions_callbacks(explainer, app, 
-            standalone=False, round=2, **kwargs):
-
+def contributions_callbacks(explainer, app, round=2, **kwargs):
 
     if explainer.is_classifier:
-        if standalone:
-            label_selector_register_callback(explainer, app)
         @app.callback(
             Output('input-index', 'value'),
             [Input('index-button', 'n_clicks')],

@@ -22,40 +22,25 @@ class ShadowTreesTab:
 
         self.round = round
         self.kwargs = kwargs
+
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(explainer, title=title)
         
         
     def layout(self):
-        if self.standalone:
-            return shadow_trees_layout(self.explainer, title=self.title, standalone=self.standalone, 
-                                     round=self.round)
-        else:
-            return shadow_trees_layout(self.explainer,  
-                                     round=self.round)
-    
+        return dbc.Container([
+            self.label_selector.layout() if self.standalone else None,
+            shadow_trees_layout(self.explainer, round=self.round)
+        ], fluid=True)
+        
     def register_callbacks(self, app):
-        shadow_trees_callbacks(self.explainer, app, standalone=self.standalone)
+        if self.standalone:
+            self.label_selector.register_callbacks(app)
+        shadow_trees_callbacks(self.explainer, app, round=self.round)
 
 
-def shadow_trees_layout(explainer, 
-            title=None, standalone=False, hide_selector=False,
-            round=2, **kwargs):
-    """return layout for shadow trees tab that display distributions of individual
-    prediction of DecisionTrees that make up RandomForest, and when clicked
-    displays individual path through tree.
-    
-    :param explainer: RandomForestBunch Object (so should have shadow_trees attribute!)
-    :type explainer: RandomForestBunch
-    :type title: str
-    :param standalone: when standalone layout, include a a label_store, defaults to False
-    :type standalone: bool
-    :param hide_selector: if model is a classifier, optionally hide the positive label selector, defaults to False
-    :type hide_selector: bool
-    :param round: precision to round floats, defaults to 2
-    :type round: int, optional
-    :rtype: dbc.Container
-    """
+def shadow_trees_layout(explainer, round=2, **kwargs):
     return dbc.Container([
-        title_and_label_selector(explainer, title, standalone, hide_selector),
         dbc.Row([
             dbc.Col([
                 html.H2('Predictions of individual decision trees.'),
@@ -91,12 +76,7 @@ def shadow_trees_layout(explainer,
     ],  fluid=True)
 
 
-def shadow_trees_callbacks(explainer, app, 
-             standalone=False, round=2, **kwargs):
-
-    if standalone:
-        label_selector_register_callback(explainer, app)
-
+def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
             Output('tree-input-index', 'value'),
             [Input('tree-index-button', 'n_clicks')]
