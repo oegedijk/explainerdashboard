@@ -141,6 +141,30 @@ class ClassifierModelStats:
             html.Div([
                 dbc.Row([
                     dbc.Col([
+                        dbc.FormGroup([
+                                    dbc.RadioButton(
+                                        id="lift-curve-percentage", className="form-check-input"
+                                    ),
+                                    dbc.Label(
+                                        "Display percentages",
+                                        html_for="lift-curve-percentage",
+                                        className="form-check-label",
+                                    ),
+                                ], check=True),
+                    ], width=2),
+                ], justify="end",),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div([
+                            dcc.Loading(id="loading-lift-curve", 
+                                        children=[dcc.Graph(id='lift-curve-graph')]),
+                        ], style={'margin': 20}),
+                    ]),
+                ]),
+            ], id='lift-curve-div',  style={}), # style={'display': 'none'}),
+            html.Div([
+                dbc.Row([
+                    dbc.Col([
                             dbc.Label('Bin size:', html_for='precision-binsize'),
                             dcc.Slider(id='precision-binsize', 
                                         min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
@@ -190,33 +214,10 @@ class ClassifierModelStats:
                             dcc.Loading(id="loading-precision-graph", 
                                     children=[dcc.Graph(id='precision-graph')]),
                         ], style={'margin': 20}),
-                    ]),
-                ]),
-            ], id='precision-plot-div', style={'display': 'none'}),
-            html.Div([
-                dbc.Row([
-                    dbc.Col([
-                        dbc.FormGroup([
-                                    dbc.RadioButton(
-                                        id="lift-curve-percentage", className="form-check-input"
-                                    ),
-                                    dbc.Label(
-                                        "Display percentages",
-                                        html_for="lift-curve-percentage",
-                                        className="form-check-label",
-                                    ),
-                                ], check=True),
-                    ], width=2),
-                ], justify="end",),
-                dbc.Row([
-                    dbc.Col([
-                        html.Div([
-                            dcc.Loading(id="loading-lift-curve", 
-                                        children=[dcc.Graph(id='lift-curve-graph')]),
-                        ], style={'margin': 20}),
-                    ]),
-                ]),
-            ], id='lift-curve-div', style={'display': 'none'}),
+                    ], width=12),
+                ], align="center"),                
+            ], id='precision-plot-div', style={}), #{'display': 'none'}),
+            
             dbc.Row([
                     dbc.Col([
                         html.Div([

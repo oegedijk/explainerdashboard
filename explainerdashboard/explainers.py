@@ -11,7 +11,6 @@ from .explainer_methods import *
 from .explainer_plots import *
 
 
-
 class BaseExplainerBunch(ABC):
     """Abstract Base Class. Defines the basic functionality of an ExplainerBunch
     But does not yet have a defined shap_explainer.
@@ -779,8 +778,6 @@ class BaseExplainerBunch(ABC):
                         num_grid_lines=min(num_grid_lines, sample, len(self.X)))
 
 
-
-
 class TreeExplainerBunch(BaseExplainerBunch):
     """Defines an explainer bunch for tree based models (random forests, xgboost,etc).
 
@@ -888,7 +885,7 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]], round)
 
     def calculate_properties(self, include_interactions=True):
-        _ = (self.shadow_trees)
+        _ = self.shadow_trees
         super().calculate_properties(include_interactions)
 
 
@@ -1181,6 +1178,7 @@ class ClassifierBunch(BaseExplainerBunch):
         return plotly_pr_auc_curve(self.y_binary, self.pred_probas, cutoff=cutoff)
 
     def calculate_properties(self, include_interactions=True):
+        _ = self.pred_probas
         super().calculate_properties(include_interactions)
 
 
@@ -1224,85 +1222,68 @@ class RegressionBunch(BaseExplainerBunch):
         return plotly_residuals_vs_col(explainer.y, explainer.preds, explainer.X[col], 
                                        vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
     
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
+
 
 class TreeClassifierBunch(TreeExplainerBunch, ClassifierBunch):
     """TreeModelClassifierBunch inherits from both TreeModelBunch and
     ClassifierBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
 
 
 class DeepClassifierBunch(DeepExplainerBunch, ClassifierBunch):
     """DeepClassifierBunch inherits from both DeepExplainerBunch and
     ClassifierBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
 
 
 class LinearClassifierBunch(LinearExplainerBunch, ClassifierBunch):
     """LinearClassifierBunch inherits from both LinearExplainerBunch and
     ClassifierBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
 
 
 class KernelClassifierBunch(KernelExplainerBunch, ClassifierBunch):
     """KernelClassifierBunch inherits from both KernelExplainerBunch and
     ClassifierBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
 
 
 class RandomForestClassifierBunch(RandomForestExplainerBunch, ClassifierBunch):
     """RandomForestClassifierBunch inherits from both RandomForestBunch and
     ClassifierBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
 
 
 class TreeRegressionBunch(TreeExplainerBunch, RegressionBunch):
     """TreeRegressionBunch inherits from both TreeExplainertBunch and
     RegressionBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
 
 
 class LinearRegressionBunch(LinearExplainerBunch, RegressionBunch):
     """LinearRegressionBunch inherits from both LinearExplainerBunch and
     RegressionBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
+
 
 
 class DeepRegressionBunch(DeepExplainerBunch, RegressionBunch):
     """DeepRegressionBunch inherits from both DeepExplainerBunch and
     RegressionBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
+
 
 
 class KernelRegressionBunch(KernelExplainerBunch, RegressionBunch):
     """KernelRegressionBunch inherits from both KernelExplainerBunch and
     RegressionBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
+
 
 class RandomForestRegressionBunch(RandomForestExplainerBunch, RegressionBunch):
     """RandomForestClassifierBunch inherits from both RandomForestBunch and
     RegressionBunch.
     """
-    def calculate_properties(self, include_interactions=True):
-        super().calculate_properties(include_interactions)
+
 
 
