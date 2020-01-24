@@ -32,9 +32,9 @@ copyright = '2019, Oege Dijk'
 author = 'Oege Dijk'
 
 # The short X.Y version
-version = '0.1.0'
+version = '0.1'
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
+release = '0.1.6.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -51,9 +51,12 @@ extensions = [
     'sphinx.ext.autodoc',
 ]
 
-autodoc_mock_imports = ['np', 'dash', 'dash-daq', 'dash-bootstrap-components',
-                    'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
-                    'shap', 'sklearn', 'plotly']
+autodoc_mock_imports = ['matplotlib', 'np', 'dash', 'dash_bootstrap_components',
+                    'dash_html_components', 'dash_table', 'dash_core_components',
+                    'dtreeviz', 'numpy', 'pandas',  'pdpbox', 
+                    'sklearn', 'shap',  'plotly']
+
+
 
 autodoc_default_options = {
     'member-order': 'bysource',

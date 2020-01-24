@@ -1,0 +1,503 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ExplainerBunch &#8212; explainerdashboard 0.1.6.1 documentation</title>
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Plots" href="plots.html" />
+    <link rel="prev" title="explainerdashboard" href="index.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="plots.html" title="Plots"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="explainerdashboard"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">explainerdashboard 0.1.6.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ExplainerBunch</a><ul>
+<li><a class="reference internal" href="#explainersbunches">ExplainersBunches</a></li>
+<li><a class="reference internal" href="#classifierbunch">ClassifierBunch</a></li>
+<li><a class="reference internal" href="#regressionbunch">RegressionBunch</a></li>
+<li><a class="reference internal" href="#randomforestexplainerbunch">RandomForestExplainerBunch</a></li>
+<li><a class="reference internal" href="#baseexplainerbunch">BaseExplainerBunch</a></li>
+<li><a class="reference internal" href="#id29">ClassifierBunch</a></li>
+<li><a class="reference internal" href="#treeexplainerbunch">TreeExplainerBunch</a></li>
+<li><a class="reference internal" href="#linearexplainerbunch">LinearExplainerBunch</a></li>
+<li><a class="reference internal" href="#deepexplainerbunch">DeepExplainerBunch</a></li>
+<li><a class="reference internal" href="#kernelexplainerbunch">KernelExplainerBunch</a></li>
+<li><a class="reference internal" href="#id30">RandomForestExplainerBunch</a></li>
+<li><a class="reference internal" href="#treeclassifierbunch">TreeClassifierBunch</a></li>
+<li><a class="reference internal" href="#randomforestclassifierbunch">RandomForestClassifierBunch</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">explainerdashboard</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="plots.html"
+                        title="next chapter">Plots</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/explainers.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="explainerbunch">
+<h1>ExplainerBunch<a class="headerlink" href="#explainerbunch" title="Permalink to this headline">¶</a></h1>
+<p>In order to start an <strong>explainerdashboard</strong> you first need to construct an <strong>ExplainerBunch</strong>.</p>
+<div class="section" id="explainersbunches">
+<h2>ExplainersBunches<a class="headerlink" href="#explainersbunches" title="Permalink to this headline">¶</a></h2>
+<p>The abstract base class <strong>BaseExplainerBunch</strong> defines most of the functionality
+such as feature importances (both SHAP and permutation based), SHAP values, SHAP interaction values
+partial dependences, individual contributions, etc. Along with a number of convenient
+plotting methods The derived classes that you would actually instantiate specify what kind of
+ShapExplainer to use to calculate the SHAP values.</p>
+<p>e.g.:</p>
+<p><a href="#id1"><span class="problematic" id="id2">**</span></a>TreeExplainerBunch**(model, X, y): uses shap.TreeExplainer
+<a href="#id3"><span class="problematic" id="id4">**</span></a>LinearExplainerBunch**(model, X, y): uses shap.LinearExplainer
+<a href="#id5"><span class="problematic" id="id6">**</span></a>DeepExplainerBunch**(model, X, y): uses shap.DeepExplainer
+<a href="#id7"><span class="problematic" id="id8">**</span></a>KernelExplainerBunch**(model, X, y): uses shap.KernelExplainer</p>
+<p>These Explainer objects calculate shap values, feature importances, partial dependences, etc
+and provide a number of convenient plotting methods:</p>
+<ul class="simple">
+<li><p>plot_importances()</p></li>
+<li><p>plot_shap_contributions()</p></li>
+<li><p>plot_shap_summary()</p></li>
+<li><p>plot_shap_interaction_summary()</p></li>
+<li><p>plot_shap_dependence()</p></li>
+<li><p>plot_shap_interaction_dependence()</p></li>
+<li><p>plot_pdp()</p></li>
+</ul>
+<p>example code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">explainer</span> <span class="o">=</span> <span class="n">TreeExplainerBunch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">explainer</span><span class="o">.</span><span class="n">plot_importances</span><span class="p">()</span>
+<span class="n">explainer</span><span class="o">.</span><span class="n">plot_shap_contributions</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="classifierbunch">
+<h2>ClassifierBunch<a class="headerlink" href="#classifierbunch" title="Permalink to this headline">¶</a></h2>
+<p>For classification models where we try to predict the probability of each class
+we have a MixIn class called ClassifierBunch.</p>
+<p>You can pass an additional parameter to __init__ with a list label names. For
+multilabel classifier you can set the positive class with e.g. <em>explainer.pos_label=1</em>.
+This will make sure that for example <em>explainer.pred_probas</em> will return the probability
+of that label.You an also pass a string label if you pased <em>labels</em> to the constructor.</p>
+<p>ClassifierBunch defines a number of additional plotting methods:</p>
+<ul class="simple">
+<li><p>plot_precision()</p></li>
+<li><p>plot_confusion_matrix()</p></li>
+<li><p>plot_roc_auc()</p></li>
+<li><p>plot_pr_auc()</p></li>
+</ul>
+<p>You would instantiate an Explainer class for a specific type of model, e.g.:</p>
+<p><a href="#id9"><span class="problematic" id="id10">**</span></a>TreeClassifierBunch**(model, X, y)
+<a href="#id11"><span class="problematic" id="id12">**</span></a>LinearClassifierBunch**(model, X, y)
+<a href="#id13"><span class="problematic" id="id14">**</span></a>DeepClassifierBunch**(model, X, y)
+<a href="#id15"><span class="problematic" id="id16">**</span></a>KernelClassifierBunch**(model, X, y)
+<a href="#id17"><span class="problematic" id="id18">**</span></a>RandomForestClassifierBunch**(model, X, y)</p>
+<p>example code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">explainer</span> <span class="o">=</span> <span class="n">TreeExplainerBunch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Not Survived&#39;</span><span class="p">,</span> <span class="s1">&#39;Survived&#39;</span><span class="p">])</span>
+<span class="n">explainer</span><span class="o">.</span><span class="n">plot_confusion_matrix</span><span class="p">()</span>
+<span class="n">explainer</span><span class="o">.</span><span class="n">plot_roc_auc</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="regressionbunch">
+<h2>RegressionBunch<a class="headerlink" href="#regressionbunch" title="Permalink to this headline">¶</a></h2>
+<p>For regression models where we try to predict a certain quantity.</p>
+<p>You can pass an additional parameter to __init__ with the units of the predicted quantity.</p>
+<p>RegressionBunch defines a number of additional plotting methods:</p>
+<ul class="simple">
+<li><p>plot_predicted_vs_actual(self, round=2, logs=False):</p></li>
+<li><p>plot_residuals(self, vs_actual=False, round=2, ratio=False):</p></li>
+<li><p>plot_residuals_vs_feature(self, col)</p></li>
+</ul>
+<p>You would instantiate an Explainer class for a specific type of model, e.g.:</p>
+<p><a href="#id19"><span class="problematic" id="id20">**</span></a>TreeRegressionBunch**(model, X, y)
+<a href="#id21"><span class="problematic" id="id22">**</span></a>LinearRegressionBunch**(model, X, y)
+<a href="#id23"><span class="problematic" id="id24">**</span></a>DeepRegressionBunch**(model, X, y)
+<a href="#id25"><span class="problematic" id="id26">**</span></a>KernelRegressionBunch**(model, X, y)
+<a href="#id27"><span class="problematic" id="id28">**</span></a>RandomForestRegressionBunch**(model, X, y)</p>
+<p>example code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">explainer</span> <span class="o">=</span> <span class="n">TreeRegressionBunch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;dollars&#39;</span><span class="p">)</span>
+<span class="n">explainer</span><span class="o">.</span><span class="n">plot_predicted_vs_actual</span><span class="p">()</span>
+<span class="n">explainer</span><span class="o">.</span><span class="n">plot_residuals</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="randomforestexplainerbunch">
+<h2>RandomForestExplainerBunch<a class="headerlink" href="#randomforestexplainerbunch" title="Permalink to this headline">¶</a></h2>
+<p>There is an additional mixin class specifically for scikitlearn type RandomForests
+that defines additional methods and plots to investigate and visualize
+individual decision trees within the random forest.</p>
+<ul class="simple">
+<li><p><strong>RandomForestExplainerBunch</strong>: uses shap.TreeExplainer plus generates so-called shadow trees</p></li>
+</ul>
+<p>You can get a pd.DataFrame summary of the path that a specific index took through a specific tree.
+You can also plot the individual prediction of each individual tree.</p>
+<ul class="simple">
+<li><p>shadowtree_df(tree_idx, index)</p></li>
+<li><p>plot_trees(index)</p></li>
+</ul>
+<p>This also works with classifiers and regression models:</p>
+<p><strong>RandomForestClassifierBunch(model, X, y)</strong>
+<strong>RandomForestRegressionBunch(model, X, y)</strong></p>
+</div>
+<div class="section" id="baseexplainerbunch">
+<h2>BaseExplainerBunch<a class="headerlink" href="#baseexplainerbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">BaseExplainerBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract Base Class. Defines the basic functionality of an ExplainerBunch
+But does not yet have a defined shap_explainer.</p>
+<dl class="method">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>init</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>[</em><em>type</em><em>]</em>) – a model with a scikit-learn compatible .fit and .predict method</p></li>
+<li><p><strong>X</strong> (<em>pd.DataFrame</em>) – a pd.DataFrame with your model features</p></li>
+<li><p><strong>y</strong> (<em>pd.Series</em><em>, </em><em>optional</em>) – Dependent variable of your model, defaults to None</p></li>
+<li><p><strong>metric</strong> (<em>metric function</em><em>, </em><em>optional</em>) – is a scikit-learn compatible metric function (or string), 
+defaults to r2_score</p></li>
+<li><p><strong>cats</strong> (<em>list</em><em>, </em><em>optional</em>) – list of variables that have been onehotencoded. Allows to 
+group categorical variables together in plots, defaults to None</p></li>
+<li><p><strong>idxs</strong> (<em>list</em><em>, </em><em>optional</em>) – list of row identifiers. Can be names, id’s, etc. Get 
+converted to str, defaults to None</p></li>
+<li><p><strong>permutation_cv</strong> (<em>int</em><em>, </em><em>optional</em>) – If given permutation importances get calculated 
+using cross validation, defaults to None</p></li>
+<li><p><strong>na_fill</strong> (<em>int</em><em>, </em><em>optional</em>) – The filler used for missing values, defaults to -999</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch.mean_abs_shap_df">
+<code class="sig-name descname">mean_abs_shap_df</code><span class="sig-paren">(</span><em class="sig-param">topx=None</em>, <em class="sig-param">cutoff=None</em>, <em class="sig-param">cats=False</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch.mean_abs_shap_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a pd.DataFrame with the mean absolute shap values per features,
+sorted rom highest to lowest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topx</strong> (<em>int</em><em>, </em><em>optional</em>) – Only return topx most importance features, defaults to None</p></li>
+<li><p><strong>cutoff</strong> (<em>float</em><em>, </em><em>optional</em>) – Only return features with mean abs shap of at least cutoff, defaults to None</p></li>
+<li><p><strong>cats</strong> (<em>bool</em><em>, </em><em>optional</em>) – group categorical variables, defaults to False</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return:shap_df
+:rtype pd.DataFrame</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch.permutation_importances_df">
+<code class="sig-name descname">permutation_importances_df</code><span class="sig-paren">(</span><em class="sig-param">topx=None</em>, <em class="sig-param">cutoff=None</em>, <em class="sig-param">cats=False</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch.permutation_importances_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns pd.DataFrame with features ordered by permutation importance.
+For more about permutation importances see <a class="reference external" href="https://explained.ai/rf-importance/index.html">https://explained.ai/rf-importance/index.html</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topx</strong> (<em>int</em><em>, </em><em>optional</em>) – only return topx most important features, defaults to None</p></li>
+<li><p><strong>cutoff</strong> (<em>float</em><em>, </em><em>optional</em>) – only return features with importance of at least cutoff, defaults to None</p></li>
+<li><p><strong>cats</strong> (<em>bool</em><em>, </em><em>optional</em>) – Group categoricals, defaults to False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>importance_df</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch.importances_df">
+<code class="sig-name descname">importances_df</code><span class="sig-paren">(</span><em class="sig-param">type='permutation'</em>, <em class="sig-param">topx=None</em>, <em class="sig-param">cutoff=None</em>, <em class="sig-param">cats=False</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch.importances_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrapper function for mean_abs_shap_df() and permutation_importance_df()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch.contrib_df">
+<code class="sig-name descname">contrib_df</code><span class="sig-paren">(</span><em class="sig-param">index</em>, <em class="sig-param">cats=True</em>, <em class="sig-param">topx=None</em>, <em class="sig-param">cutoff=None</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch.contrib_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a contrib_df pd.DataFrame with the shap value contributions
+to the prediction for index. Used as input for the plot_contributions()
+method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>index</strong> (<em>int</em><em> or </em><em>str</em>) – index for which to calculate contributions</p></li>
+<li><p><strong>cats</strong> (<em>bool</em><em>, </em><em>optional</em>) – Group categoricals, defaults to True</p></li>
+<li><p><strong>topx</strong> (<em>int</em><em>, </em><em>optional</em>) – Only return topx features, remainder called REST, defaults to None</p></li>
+<li><p><strong>cutoff</strong> (<em>float</em><em>, </em><em>optional</em>) – only return features with at least cutoff contributions, defaults to None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>contrib_df</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.BaseExplainerBunch.to_sql">
+<code class="sig-name descname">to_sql</code><span class="sig-paren">(</span><em class="sig-param">conn</em>, <em class="sig-param">schema</em>, <em class="sig-param">name</em>, <em class="sig-param">if_exists='replace'</em>, <em class="sig-param">cats=True</em>, <em class="sig-param">round=None</em>, <em class="sig-param">lang='en'</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.BaseExplainerBunch.to_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes two dataframes generated by .get_dfs() to a sql server.
+Tables will be called name_COLS and name_SHAP</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>sqlalchemy.engine.Engine</em><em> or </em><em>sqlite3.Connection</em>) – database connecter acceptable for pd.to_sql</p></li>
+<li><p><strong>schema</strong> (<em>str</em>) – schema to write to</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – name prefix of tables</p></li>
+<li><p><strong>cats</strong> (<em>bool</em><em>, </em><em>optional</em>) – group categorical variables, defaults to True</p></li>
+<li><p><strong>if_exists</strong> (<em>{‘fail’</em><em>, </em><em>‘replace’</em><em>, </em><em>‘append’}</em><em>, </em><em>default ‘fail’</em>) – How to behave if the table already exists.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>For the plotting methods see <a href="#id31"><span class="problematic" id="id32">base_plots_</span></a></p>
+</div>
+<div class="section" id="id29">
+<h2>ClassifierBunch<a class="headerlink" href="#id29" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.ClassifierBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">ClassifierBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.roc_auc_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em>, <em class="sig-param">labels=None</em>, <em class="sig-param">pos_label=1</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.ClassifierBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>ExplainerBunch for classification models. Defines the shap values for
+each possible class in the classifications.</p>
+<p>You assign the positive label class afterwards with e.g. .pos_label=0</p>
+<p>In addition defines a number of plots specific to classification problems
+such as a precision plot, confusion matrix, roc auc curve and pr auc curve.</p>
+<dl class="method">
+<dt id="explainerdashboard.explainers.ClassifierBunch.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.roc_auc_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em>, <em class="sig-param">labels=None</em>, <em class="sig-param">pos_label=1</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.ClassifierBunch.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combared to BaseExplainerBunch defines two additional parameters:
+:param labels: list of str labels for the different classes, defaults to e.g. [‘0’, ‘1’] for a binary classification
+:type labels: list of str, optional
+:param pos_label: class that should be used as the positive class, defaults to 1
+:type pos_label: int or str (if str, needs to be in labels), optional</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.ClassifierBunch.random_index">
+<code class="sig-name descname">random_index</code><span class="sig-paren">(</span><em class="sig-param">y_values=None</em>, <em class="sig-param">return_str=False</em>, <em class="sig-param">pred_proba_min=None</em>, <em class="sig-param">pred_proba_max=None</em>, <em class="sig-param">rank_min=None</em>, <em class="sig-param">rank_max=None</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.ClassifierBunch.random_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a random index from dataset.
+if y_values is given select an index for which y in y_values
+if return_str return str index from self.idxs</p>
+<p>if pred_proba_min(max) is given, return an index with at least a predicted
+probabiity of positive class of pred_proba_min(max)</p>
+<p>if rank_min(max) is given, return an index with at least a predicted
+rank of probabiity of positive class of rank_min(max)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.ClassifierBunch.precision_df">
+<code class="sig-name descname">precision_df</code><span class="sig-paren">(</span><em class="sig-param">bin_size=None</em>, <em class="sig-param">quantiles=None</em>, <em class="sig-param">multiclass=False</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.ClassifierBunch.precision_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a pd.DataFrame with predicted probabilities and actually
+observed number of positive cases (i.e. precision)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bin_size</strong> (<em>float</em><em>, </em><em>optional</em>) – group predictions in bins of size bin_size, defaults to 0.1</p></li>
+<li><p><strong>quantiles</strong> (<em>int</em><em>, </em><em>optional</em>) – group predictions in evenly sized quantiles of size quantiles, defaults to None</p></li>
+<li><p><strong>multiclass</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether to calculate precision for every class</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>precision_df</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>For the plotting methods see <a href="#id33"><span class="problematic" id="id34">classifier_plots_</span></a></p>
+</div>
+<div class="section" id="treeexplainerbunch">
+<h2>TreeExplainerBunch<a class="headerlink" href="#treeexplainerbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.TreeExplainerBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">TreeExplainerBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.TreeExplainerBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines an explainer bunch for tree based models (random forests, xgboost,etc).</p>
+<p>Generates a self.shap_explainer based on shap.TreeExplainer</p>
+</dd></dl>
+
+</div>
+<div class="section" id="linearexplainerbunch">
+<h2>LinearExplainerBunch<a class="headerlink" href="#linearexplainerbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.LinearExplainerBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">LinearExplainerBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.LinearExplainerBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines an explainer bunch for linear models.</p>
+<p>Generates a self.shap_explainer based on shap.LinearExplainer</p>
+</dd></dl>
+
+</div>
+<div class="section" id="deepexplainerbunch">
+<h2>DeepExplainerBunch<a class="headerlink" href="#deepexplainerbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.DeepExplainerBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">DeepExplainerBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.DeepExplainerBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines an explainer bunch for Deep Learning neural nets.</p>
+<p>Generates a self.shap_explainer based on shap.DeepExplainer</p>
+</dd></dl>
+
+</div>
+<div class="section" id="kernelexplainerbunch">
+<h2>KernelExplainerBunch<a class="headerlink" href="#kernelexplainerbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.KernelExplainerBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">KernelExplainerBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.KernelExplainerBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines an explainer bunch for any type of model.</p>
+<p>Generates a self.shap_explainer based on shap.KernelExplainer</p>
+</dd></dl>
+
+</div>
+<div class="section" id="id30">
+<h2>RandomForestExplainerBunch<a class="headerlink" href="#id30" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.RandomForestExplainerBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">RandomForestExplainerBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.r2_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.RandomForestExplainerBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>RandomForestBunch allows for the analysis of individual DecisionTrees that
+make up the RandomForest.</p>
+<dl class="method">
+<dt id="explainerdashboard.explainers.RandomForestExplainerBunch.shadowtree_df">
+<code class="sig-name descname">shadowtree_df</code><span class="sig-paren">(</span><em class="sig-param">tree_idx</em>, <em class="sig-param">index</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.RandomForestExplainerBunch.shadowtree_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a pd.DataFrame with all decision nodes of a particular
+tree (indexed by tree_idx) for a particular observation
+(indexed by index)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.RandomForestExplainerBunch.shadowtree_df_summary">
+<code class="sig-name descname">shadowtree_df_summary</code><span class="sig-paren">(</span><em class="sig-param">tree_idx</em>, <em class="sig-param">index</em>, <em class="sig-param">round=2</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.RandomForestExplainerBunch.shadowtree_df_summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>formats shadowtree_df in a slightly more human readable format.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="explainerdashboard.explainers.RandomForestExplainerBunch.plot_trees">
+<code class="sig-name descname">plot_trees</code><span class="sig-paren">(</span><em class="sig-param">index</em>, <em class="sig-param">round=2</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.RandomForestExplainerBunch.plot_trees" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a plotly barchart with the values of the predictions
+of each individual tree for observation idx</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="treeclassifierbunch">
+<h2>TreeClassifierBunch<a class="headerlink" href="#treeclassifierbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.TreeClassifierBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">TreeClassifierBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.roc_auc_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em>, <em class="sig-param">labels=None</em>, <em class="sig-param">pos_label=1</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.TreeClassifierBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>TreeModelClassifierBunch inherits from both TreeModelBunch and
+ClassifierBunch.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="randomforestclassifierbunch">
+<h2>RandomForestClassifierBunch<a class="headerlink" href="#randomforestclassifierbunch" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="explainerdashboard.explainers.RandomForestClassifierBunch">
+<em class="property">class </em><code class="sig-prename descclassname">explainerdashboard.explainers.</code><code class="sig-name descname">RandomForestClassifierBunch</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">metric=sklearn.metrics.roc_auc_score</em>, <em class="sig-param">cats=None</em>, <em class="sig-param">idxs=None</em>, <em class="sig-param">permutation_cv=None</em>, <em class="sig-param">na_fill=-999</em>, <em class="sig-param">labels=None</em>, <em class="sig-param">pos_label=1</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.RandomForestClassifierBunch" title="Permalink to this definition">¶</a></dt>
+<dd><p>RandomForestClassifierBunch inherits from both RandomForestBunch and
+ClassifierBunch.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="plots.html" title="Plots"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="explainerdashboard"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">explainerdashboard 0.1.6.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Oege Dijk.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

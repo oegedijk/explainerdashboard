@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.1',
+    version='0.1.7.2',
     description='package to ease and speed up machine learning model explainability',
     long_description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of a machine learning model.',
     license='MIT',
@@ -19,7 +19,7 @@ setup(
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
-    install_requires=['dash', 'dash-daq', 'dash-bootstrap-components',
+    install_requires=['dash', 'dash-bootstrap-components',
                     'dtreeviz', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 'shap'],
     author='Oege Dijk',
     author_email='oegedijk@gmail.com',
@@ -27,6 +27,6 @@ setup(
     url='https://github.com/oegedijk/explainerdashboard',
     project_urls={
         "Github page": "https://github.com/oegedijk/explainerdashboard/",
-        "Documentation": "https://explainerdashboard.readthedocs.io/",oWorld/",
+        "Documentation": "https://explainerdashboard.readthedocs.io/",
     },
 )

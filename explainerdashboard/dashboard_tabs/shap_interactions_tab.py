@@ -1,8 +1,7 @@
-__all__ = ['shap_interactions_tab', 'shap_interactions_tab_register_callbacks']
+__all__ = ['ShapInteractionsTab']
 
 import dash
 import dash_core_components as dcc
-import dash_daq as daq
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_table
@@ -10,108 +9,174 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from .dashboard_methods import *
 
-def shap_interactions_tab(explainer, n_features=10, **kwargs):
+
+class ShapInteractionsTab:
+    def __init__(self, explainer, standalone=False, tab_id="shap_interactions", title='Shap Interactions',
+                 n_features=10, **kwargs):
+        self.explainer = explainer
+        self.standalone = standalone
+        self.tab_id = tab_id
+        self.title = title
+
+        self.n_features = n_features
+        self.kwargs = kwargs
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+        
+    def layout(self):
+        return dbc.Container([
+            self.label_selector.layout() if self.standalone else None,
+            # need to add dummy to make callbacks on tab change work:
+            html.Div(id='tabs') if self.standalone else None, 
+            shap_interactions_layout(self.explainer, n_features=self.n_features)
+        ], fluid=True)
+    
+    def register_callbacks(self, app):
+        if self.standalone:
+            self.label_selector.register_callbacks(app)
+        shap_interactions_callbacks(self.explainer, app)
+
+
+def shap_interactions_layout(explainer, 
+            n_features=10, **kwargs):
     """return layout for shap interactions tab.
     
     :param explainer: ExplainerBunch
     :type explainer: ExplainerBunch 
+    :param title: title displayed on top of page, defaults to None
+    :type title: str
+    :param standalone: when standalone layout, include a a label_store, defaults to False
+    :type standalone: bool
+    :param hide_selector: if model is a classifier, optionally hide the positive label selector, defaults to False
+    :type hide_selector: bool
     :param n_features: default number of features to display, defaults to 10
     :type n_features: int, optional
     :rtype: dbc.Container
     """
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
+    #dbc.Row([dbc.Col([html.H3('Shap Interaction Values')])]),
     dbc.Row([
         dbc.Col([
-            html.H3('Shap Interaction Values'),
-            html.Label('Display shap interaction values for column:'),
-            html.Div([
-                html.Div([
+            html.H3('Shap Interaction Summary'),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label("Feature"),
                     dcc.Dropdown(id='interaction-col', 
                         options=[{'label': col, 'value':col} 
                                     for col in explainer.mean_abs_shap_df()\
                                                                 .Feature.tolist()],
-                        value=explainer.mean_abs_shap_df().Feature[0])
-                ], style = {'width': '50%', 'display': 'inline-block'}),  
-                html.Div([
-                    html.Label('no of columns:'),
+                        value=explainer.mean_abs_shap_df().Feature[0])],
+                    width=4), 
+                dbc.Col([
+                    dbc.Label("Depth:"),
                     dcc.Dropdown(id='interaction-scatter-depth',
                         options = [{'label': str(i+1), 'value':i+1} 
                                         for i in range(len(explainer.columns)-1)],
-                        value=min(n_features, len(explainer.columns)-1)),
-                ], style = dict(width='30%', display='inline-block')),  
-                html.Div([
-                    daq.ToggleSwitch(
-                        id='interaction-group-categoricals',
-                        label='Group Categoricals')
-                ], style = {'width': '20%', 'display': cats_display}),
-            ], style = {'width':'100%'}),
-            html.Label('(Click on a dot to display interaction graph)'),
-            dcc.Loading(id="loading-interaction-shap-scatter", 
-                         children=[dcc.Graph(id='interaction-shap-scatter-graph')])
+                        value=min(n_features, len(explainer.columns)-1))],
+                    width=2), 
+                dbc.Col([
+                    dbc.FormGroup(
+                        [
+                            dbc.Label("Summary Type"),
+                            dbc.RadioItems(
+                                options=[
+                                    {"label": "Aggregate", "value": "aggregate"},
+                                    {"label": "Detailed", "value": "detailed"},
+                                ],
+                                value="aggregate",
+                                id="interaction-summary-type",
+                                inline=True,
+                            ),
+                        ]
+                    )
+                ], width=3),
+                dbc.Col([
+                    dbc.Label("Grouping:"),
+                    dbc.FormGroup(
+                    [
+                        dbc.RadioButton(
+                            id='interaction-group-categoricals', 
+                            className="form-check-input"),
+                        dbc.Label("Group Cats",
+                                html_for='interaction-group-categoricals',
+                                className="form-check-label"),
+                    ], check=True)],
+                    width=3),
+                ], form=True),
+            dbc.Label('(Click on a dot to display interaction graph)'),
+            dcc.Loading(id="loading-interaction-summary-scatter", 
+                         children=[dcc.Graph(id='interaction-shap-summary-graph')])
         ], width=6),
         dbc.Col([
-            html.Div([
-                html.Div([
-                    html.Label('Show interaction with column:'),
+            html.H3('Shap Interaction Plots'),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label("Interaction Feature"),
                     dcc.Dropdown(id='interaction-interact-col', 
                         options=[{'label': col, 'value':col} 
                                     for col in explainer.mean_abs_shap_df()\
                                                                 .Feature.tolist()],
-                        value=explainer.mean_abs_shap_df().Feature[0]),
-                ], style = {'width': '80%', 'display': 'inline-block'}),
-                html.Div([
-                    html.Label('Highlight:'),
+                        value=explainer.mean_abs_shap_df().Feature[0])],
+                    width=8), 
+                dbc.Col([
+                    dbc.Label("Highlight index:"),
                     dbc.Input(id='interaction-highlight-index', 
-                        placeholder="Highlight index...", debounce=True),
-                ], style = {'width': '20%', 'display': 'inline-block'}),
-            ]),
+                        placeholder="Highlight index...", debounce=True)],
+                    width=4), 
+                ], form=True),
             
-            html.Label('Shap interaction values:'),
             dcc.Loading(id="loading-interaction-graph", 
                          children=[dcc.Graph(id='interaction-graph')]),
+            dcc.Loading(id="loading-reverse-interaction-graph", 
+                         children=[dcc.Graph(id='reverse-interaction-graph')]),
         ], width=6)
     ]), 
     ],  fluid=True)
 
 
-def shap_interactions_tab_register_callbacks(explainer, app, **kwargs):
+def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10, **kwargs):
+
     @app.callback(
-        [Output('interaction-shap-scatter-graph', 'figure'),
-        Output('interaction-interact-col', 'options'),
-        Output('interaction-scatter-depth', 'options'),
-        Output('interaction-col', 'options'),],
-        [Input('interaction-col', 'value'),
-        Input('interaction-group-categoricals', 'value'),
-        Input('interaction-scatter-depth', 'value')])
-    def update_interaction_scatter_graph(col, cats, depth):
-        ctx = dash.callback_context
-        if ctx.triggered:
-            if depth is None: depth = 10
-            plot = plot = explainer.plot_shap_interaction_summary(col, topx=depth, cats=cats)
-            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+        [Output('interaction-col', 'options'),
+         Output('interaction-scatter-depth', 'options')],
+        [Input('interaction-group-categoricals', 'checked')],
+        [State('tabs', 'value')])
+    def update_col_options(cats, tab):
+        col_options = [{'label': col, 'value':col} 
+                                for col in explainer.mean_abs_shap_df(cats=cats)\
+                                                            .Feature.tolist()] 
+        depth_options = [{'label': str(i+1), 'value':i+1} for i in range(len(col_options))]
+        return (col_options, depth_options)
 
-            if trigger=='interaction-scatter-depth':
-                return (plot, dash.no_update, dash.no_update, dash.no_update)
-            elif trigger=='interaction-group-categoricals':
-                interact_cols = explainer.shap_top_interactions(col, cats=cats)
-                col_options = [{'label': col, 'value':col} 
-                                        for col in explainer.mean_abs_shap_df(cats=cats)\
-                                                                    .Feature.tolist()] 
-                interact_col_options = [{'label': col, 'value':col} for col in interact_cols]
-                depth_options = [{'label': str(i+1), 'value':i+1} for i in range(len(col_options))]
-                return (plot, interact_col_options, depth_options, col_options)
-            elif trigger=='interaction-col':
-                interact_cols = explainer.shap_top_interactions(col, cats=cats)
-                interact_col_options = [{'label': col, 'value':col} for col in interact_cols]
-                return (plot, interact_col_options, dash.no_update, dash.no_update)
+    @app.callback(
+        [Output('interaction-shap-summary-graph', 'figure'),
+         Output('interaction-interact-col', 'options')],
+        [Input('interaction-summary-type', 'value'),
+         Input('interaction-col', 'value'),
+         Input('interaction-scatter-depth', 'value'),
+         Input('label-store', 'data'),
+         Input('interaction-group-categoricals', 'checked')])
+    def update_interaction_scatter_graph(summary_type, col, depth, pos_label, cats):
+        if col is not None:
+            if depth is None: 
+                depth = len(explainer.columns_cats)-1 if cats else len(explainer.columns)-1
+            if summary_type=='aggregate':
+                plot = explainer.plot_interactions(col, cats=cats, topx=depth)
+            elif summary_type=='detailed':
+                plot = explainer.plot_shap_interaction_summary(col, topx=depth, cats=cats)
+
+            #plot = explainer.plot_shap_interaction_summary(col, topx=depth, cats=cats)
+            interact_cols = explainer.shap_top_interactions(col, cats=cats)
+            interact_col_options = [{'label': col, 'value':col} for col in interact_cols]
+            return plot, interact_col_options
         raise PreventUpdate
-
 
     @app.callback(
         [Output('interaction-highlight-index', 'value'),
-        Output('interaction-interact-col', 'value')],
+         Output('interaction-interact-col', 'value')],
         [Input('interaction-shap-scatter-graph', 'clickData')])
     def display_scatter_click_data(clickData):
         if clickData is not None:
@@ -121,15 +186,18 @@ def shap_interactions_tab_register_callbacks(explainer, app, **kwargs):
             return (idx, col)
         raise PreventUpdate
 
-
     @app.callback(
-        Output('interaction-graph', 'figure'),
-        [Input('interaction-col', 'value'),
-        Input('interaction-interact-col', 'value'),
-        Input('interaction-highlight-index', 'value')],
-        [State('interaction-group-categoricals', 'value')])
-    def update_dependence_graph(col, interact_col, idx, cats):
+        [Output('interaction-graph', 'figure'),
+         Output('reverse-interaction-graph', 'figure')],
+        [Input('interaction-interact-col', 'value'),
+         Input('interaction-highlight-index', 'value'),
+         Input('label-store', 'data')],
+        [State('interaction-col', 'value'),
+         State('interaction-group-categoricals', 'checked')])
+    def update_dependence_graph(interact_col, index, pos_label, col, cats):
         if interact_col is not None:
-            return explainer.plot_shap_interaction_dependence(
-                    col, interact_col, highlight_idx=idx, cats=cats)
+            return (explainer.plot_shap_interaction_dependence(
+                        col, interact_col, highlight_idx=index, cats=cats),
+                    explainer.plot_shap_interaction_dependence(
+                        interact_col, col, highlight_idx=index, cats=cats))
         raise PreventUpdate

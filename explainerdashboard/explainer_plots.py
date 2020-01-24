@@ -89,8 +89,7 @@ def plotly_contribution_plot(contrib_df, target="target",
     layout = go.Layout(
         title=title,
         barmode='stack',
-        paper_bgcolor='rgba(245, 246, 249, 1)',
-        plot_bgcolor='rgba(245, 246, 249, 1)',
+        plot_bgcolor = '#fff',
         showlegend=False
     )
 
@@ -109,10 +108,9 @@ def plotly_contribution_plot(contrib_df, target="target",
         fig.update_yaxes(title_text='Prediction')
     return fig
 
-def plotly_precision_plot(precision_df, 
-                            count_label='counts', 
-                            pos_label='positive', 
-                            cutoff=0.5):
+
+
+def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None):
     """
     returns a plotly figure with bar plots for counts of observations for a 
     certain pred_proba bin,
@@ -121,28 +119,69 @@ def plotly_precision_plot(precision_df,
     precision_df generated from get_precision_df(predictions_df)
     predictions_df generated from get_predictions_df(rf_model, X, y)
     """
+    label = labels[pos_label] if labels is not None and pos_label is not None else 'positive'
+    
+    
 
     precision_df = precision_df.copy()
+
+    spacing = 0.1 /  len(precision_df)
+    bin_widths = precision_df['bin_width'] - spacing
+    bin_widths[bin_widths<0.005] = 0.005
+
     trace1 = go.Bar(
-        x=precision_df['p_avg'].values.tolist(),
-        y=precision_df['count'].values.tolist(),
-        width=0.9*precision_df['bin_width'].values,
-        name=count_label
+        x=(0.5*(precision_df['p_min']+precision_df['p_max'])).values,
+        y=precision_df['count'].values,
+        width=bin_widths,
+        name='counts'
     )
-    trace2 = go.Scatter(
-        x=precision_df['p_avg'].values.tolist(),
-        y=precision_df['precision'].values.tolist(),
-        name='percentage ' + pos_label,
-        yaxis='y2'
-    )
-    data = [trace1, trace2]
+    
+    data = [trace1]
+    
+    if 'precision_0' in precision_df.columns.tolist():
+        # if a pred_proba with probability for every class gets passed
+        # to get_precision_df, it generates a precision for every class
+        # in every bin as well.
+        precision_cols = [col for col in precision_df.columns.tolist() 
+                                if col.startswith('precision_')]
+        if labels is None: labels = ['class ' + str(i) for i in range(len(precision_cols))]
+        if pos_label is not None:
+            # add the positive class first with thick line
+            trace = go.Scatter(
+                x=precision_df['p_avg'].values.tolist(),
+                y=precision_df['precision_'+str(pos_label)].values.tolist(),
+                name=labels[pos_label] + '(positive class)',
+                line = dict(width=4),
+                yaxis='y2')
+            data.append(trace)
+
+        for i, precision_col in enumerate(precision_cols):
+            # add the rest of the classes with thin lines
+            if pos_label is None or i != pos_label:
+                trace = go.Scatter(
+                    x=precision_df['p_avg'].values.tolist(),
+                    y=precision_df[precision_col].values.tolist(),
+                    name=labels[i],
+                    line = dict(width=2),
+                    yaxis='y2')
+                data.append(trace)
+    else: 
+        
+        trace2 = go.Scatter(
+            x=precision_df['p_avg'].values.tolist(),
+            y=precision_df['precision'].values.tolist(),
+            name='percentage ' + label,
+            yaxis='y2'
+        )
+        data = [trace1, trace2]
+        
     layout = go.Layout(
-        title='percentage ' + pos_label + ' vs predicted probability',
+        title=f'percentage {label} vs predicted probability',
         yaxis=dict(
-            title=count_label
+            title='counts'
         ),
         yaxis2=dict(
-            title='percentage ' + pos_label,
+            title='percentage',
             titlefont=dict(
                 color='rgb(148, 103, 189)'
             ),
@@ -155,7 +194,8 @@ def plotly_precision_plot(precision_df,
         ),
         xaxis=dict(
             title='predicted probability'
-        )
+        ),
+        plot_bgcolor = '#fff',
     )
     
     if cutoff is not None:
@@ -170,6 +210,10 @@ def plotly_precision_plot(precision_df,
                  )]
         
     fig = go.Figure(data=data, layout=layout)
+    fig.update_layout(legend=dict(orientation="h",
+                                    xanchor="center",
+                                    y=-0.2,
+                                    x=0.5))
     if cutoff is not None:
         fig.update_layout(annotations=[
             go.layout.Annotation(x=cutoff, y=0.1, yref='y2',
@@ -177,15 +221,248 @@ def plotly_precision_plot(precision_df,
     return fig
 
 
+def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, pos_label=1, percentage=False):
+    if len(pred_probas.shape) == 2:
+        below = (pred_probas[:, pos_label] < cutoff)
+    else:
+        below = pred_probas < cutoff
+
+    below_threshold = (pred_probas[below], targets[below])
+    above_threshold = (pred_probas[~below], targets[~below])
+    x=['below cutoff', 'above cutoff', 'all']
+    
+    
+    fig = go.Figure()
+    for i, label in enumerate(labels):
+        if percentage:
+            fig.add_trace(go.Bar(
+                x=x, 
+                y=[100*np.mean(below_threshold[1]==i),
+                    100*np.mean(above_threshold[1]==i), 
+                    100*np.mean(targets==i)], 
+                text=[str(np.round(100*np.mean(below_threshold[1]==i), 2)) + '%',
+                      str(np.round(100*np.mean(above_threshold[1]==i), 2)) + '%', 
+                      str(np.round(100*np.mean(targets==i), 2)) + '%'],
+                textposition='auto',
+                hoverinfo="text",
+                name=label))
+            fig.update_layout(title='Percentage above and below cutoff')
+        else:
+            fig.add_trace(go.Bar(
+                x=x, 
+                y=[sum(below_threshold[1]==i),
+                    sum(above_threshold[1]==i), 
+                    sum(targets==i)], 
+                text = [sum(below_threshold[1]==i),
+                    sum(above_threshold[1]==i), 
+                    sum(targets==i)], 
+                textposition='auto',
+                hoverinfo="text",
+                name=label))
+            fig.update_layout(title='Total above and below cutoff')
+
+    fig.update_layout(barmode='stack')
+
+    fig.update_layout(legend=dict(orientation="h",
+                                    xanchor="center",
+                                    y=-0.2,
+                                    x=0.5))
+
+    return fig
+
+
+def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
+    """
+    returns a lift plot for values generated with get_lift_curve_df(pred_proba, y)
+    """
+    
+    if percentage:
+        model_text=[f"model selected {np.round(pos, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
+                    + f"precision={np.round(precision, 2)}% positives in sample<br>" \
+                    + f"lift={np.round(pos/exp, 2)}" 
+                  for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage, 
+                                                      lift_curve_df.cumulative_percentage_pos,
+                                                      lift_curve_df.random_cumulative_percentage_pos, 
+                                                      lift_curve_df.precision)]
+        
+        random_text=[f"random selected {np.round(exp, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
+                     + f"precision={np.round(precision, 2)}% positives in sample"
+                  for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage,
+                                                      lift_curve_df.cumulative_percentage_pos, 
+                                                      lift_curve_df.random_cumulative_percentage_pos, 
+                                                      lift_curve_df.random_precision)]
+    else:
+        model_text=[f"model selected {pos} positives out of {i}<br>" \
+                    + f"precision={np.round(precision, 2)}<br>" \
+                    + f"lift={np.round(pos/exp, 2)}" 
+                  for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
+                                                      lift_curve_df.positives,
+                                                      lift_curve_df.random_pos, 
+                                                      lift_curve_df.precision)]
+        random_text=[f"random selected {np.round(exp).astype(int)} positives out of {i}<br>" \
+                     + f"precision={np.round(precision, 2)}"
+                  for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
+                                                      lift_curve_df.positives, 
+                                                      lift_curve_df.random_pos, 
+                                                      lift_curve_df.random_precision)]
+        
+    
+    trace0 = go.Scatter(
+        x=lift_curve_df['index_percentage'].values if percentage else lift_curve_df['index'],
+        y=np.round(lift_curve_df.cumulative_percentage_pos.values, round) if percentage \
+                    else np.round(lift_curve_df.positives.values, round),
+        name='model',
+        text=model_text,
+        hoverinfo="text",
+    )
+
+    trace1 = go.Scatter(
+        x=lift_curve_df['index_percentage'].values if percentage else lift_curve_df['index'],
+        y=np.round(lift_curve_df.random_cumulative_percentage_pos.values, round) if percentage \
+                    else np.round(lift_curve_df.random_pos.values, round),
+        name='random',
+        text=random_text,
+        hoverinfo="text",
+    )
+
+    data = [trace0, trace1]
+
+    fig = go.Figure(data)
+
+    fig.update_layout(title=dict(text='Lift curve', 
+                                 x=0.5, 
+                                 font=dict(size=18)),
+                        xaxis_title= 'Percentage sampled' if percentage else 'Number sampled',
+                        yaxis_title='Percentage of positive' if percentage else 'Number of positives',
+                        xaxis=dict(spikemode="across"),
+                        hovermode="x",
+                        plot_bgcolor = '#fff')
+
+    fig.update_layout(legend=dict(#orientation="h",
+                                    xanchor="center",
+                                    y=0.9,
+                                    x=0.1))
+    
+    if cutoff is not None:
+        
+        cutoff_idx = (np.abs(lift_curve_df.pred_proba - cutoff)).argmin()
+        if percentage:
+            cutoff_x = lift_curve_df['index_percentage'].iloc[cutoff_idx]
+        else:
+            cutoff_x = lift_curve_df['index'].iloc[cutoff_idx] 
+
+        cutoff_n = lift_curve_df['index'].iloc[cutoff_idx] 
+        cutoff_pos = lift_curve_df['positives'].iloc[cutoff_idx]
+        cutoff_random_pos = int(lift_curve_df['random_pos'].iloc[cutoff_idx])
+        cutoff_lift = np.round(lift_curve_df['positives'].iloc[cutoff_idx] / lift_curve_df.random_pos.iloc[cutoff_idx], 1)
+        cutoff_precision = np.round(lift_curve_df['precision'].iloc[cutoff_idx], 2)
+        cutoff_random_precision = np.round(lift_curve_df['random_precision'].iloc[cutoff_idx], 2)
+
+        fig.update_layout(shapes = [dict(
+                                        type='line',
+                                        xref='x',
+                                        yref='y',
+                                        x0=cutoff_x,
+                                        x1=cutoff_x,
+                                        y0=0,
+                                        y1=100.0 if percentage else lift_curve_df.positives.max(),
+                                     )],
+                         annotations=[
+                                    go.layout.Annotation(
+                                        x=cutoff_x, 
+                                        y=5, 
+                                        yref='y',
+                                        text=f"cutoff={np.round(cutoff,3)}"),
+                                    go.layout.Annotation(x=0.5, y=0.4, 
+                                        text=f"Model: {cutoff_pos} out {cutoff_n} ({cutoff_precision}%)",
+                                        showarrow=False, align="right", 
+                                        xref='paper', yref='paper',
+                                        xanchor='left', yanchor='top'
+                                        ),
+                                    go.layout.Annotation(x=0.5, y=0.33, 
+                                        text=f"Random: {cutoff_random_pos} out {cutoff_n} ({cutoff_random_precision}%)",
+                                        showarrow=False, align="right", 
+                                        xref='paper', yref='paper',
+                                        xanchor='left', yanchor='top'
+                                        ),
+                                    go.layout.Annotation(x=0.5, y=0.26, 
+                                        text=f"Lift: {cutoff_lift}",
+                                        showarrow=False, align="right", 
+                                        xref='paper', yref='paper',
+                                        xanchor='left', yanchor='top'
+                                        )
+                         ])
+    return fig
+
+
+def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
+
+    if labels is None:
+        labels = ['category ' + str(i) for i in range(lift_curve_df.y.max()+1)]
+    fig = go.Figure()
+    text = [f"percentage sampled = top {round(idx_perc,2)}%"
+                for idx_perc in lift_curve_df['index_percentage'].values]
+    fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                   y=np.zeros(len(lift_curve_df)),
+                                   showlegend=False,
+                                   text=text,
+                                   hoverinfo="text")) 
+
+    text = [f"percentage {labels[pos_label]}={round(perc, 2)}%" 
+                for perc in lift_curve_df['precision_' +str(pos_label)].values]
+    fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                   y=lift_curve_df['precision_' +str(pos_label)].values, 
+                                   fill='tozeroy', 
+                                   name=labels[pos_label]+"(positive label)",
+                                   text=text,
+                                   hoverinfo="text")) 
+
+    cumulative_y = lift_curve_df['precision_' +str(pos_label)].values
+    for y_label in range(pos_label, lift_curve_df.y.max()+1):
+        
+        if y_label != pos_label:
+            cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
+            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+                for perc in lift_curve_df['precision_' +str(y_label)].values]
+            fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                         y=cumulative_y, 
+                                         fill='tonexty', 
+                                         name=labels[y_label],
+                                         text=text,
+                                         hoverinfo="text")) 
+
+    for y_label in range(0, pos_label): 
+        if y_label != pos_label:
+            cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
+            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+                for perc in lift_curve_df['precision_' +str(y_label)].values]
+            fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
+                                         y=cumulative_y, 
+                                         fill='tonexty', 
+                                         name=labels[y_label],
+                                         text=text,
+                                         hoverinfo="text")) 
+    fig.update_layout(title=dict(text='Cumulative percentage per category when sampling top X%', 
+                                 x=0.5, 
+                                 font=dict(size=18)),
+                     yaxis=dict(title='Cumulative precision per category'),
+                     xaxis=dict(title='Top X% model scores', spikemode="across"),
+                     hovermode="x",
+                     plot_bgcolor = '#fff')
+    fig.update_xaxes(nticks=10)
+
+    return fig
+
+
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
-                            highlight_idx=None, na_fill=-999, round=2):
+                            highlight_idx=None, interaction=False, na_fill=-999, round=2):
     """
     Returns a partial dependence plot based on shap values.
 
     Observations are colored according to the values in column interact_col_name
     """
     assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
-    assert interact_col_name is None or interact_col_name in X.columns.tolist(),\
+    assert (interact_col_name is None and not interaction) or interact_col_name in X.columns.tolist(),\
             f'{interact_col_name} not in X.columns'
     
     x = X[col_name].replace({-999:np.nan})
@@ -264,11 +541,15 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         marker=dict(size=7, 
                                     opacity=0.6)  ,                    
                 ))
+    if interaction:
+        title = f'Interaction plot for {col_name} and {interact_col_name}'
+    else:
+        title = f'Dependence plot for {col_name}'
 
     layout = go.Layout(
-            title=f'dependence plot for {col_name}',
-            paper_bgcolor='rgba(245, 246, 249, 1)',
-            plot_bgcolor='rgba(245, 246, 249, 1)',
+            title=title,
+            paper_bgcolor='#fff',
+            plot_bgcolor = '#fff',
             showlegend=False,
             hovermode='closest',
             xaxis=dict(title=col_name),
@@ -297,8 +578,29 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                 name = f"index {highlight_idx}",
                 text=f"index {highlight_idx}",
                 hoverinfo="text"))
-    fig.update_traces(selector=dict(mode='markers'))
+    fig.update_traces(selector = dict(mode='markers'))
     return fig
+
+
+def plotly_shap_violin_plot(X, shap_values, col_name):
+    assert is_string_dtype(X[col_name]), \
+        f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
+        
+    x = X[col_name]
+    shaps = shap_values[:, X.columns.get_loc(col_name)]
+    
+    fig = go.Figure()
+
+    for cat in X[col_name].unique():
+        fig.add_trace(go.Violin(x=x[x == cat],
+                            y=shaps[x == cat],
+                            name=cat,
+                            box_visible=True,
+                            meanline_visible=True))
+        
+    fig.update_layout(title=f'Shap values for {col_name}')
+    return fig
+
 
 
 def plotly_pdp(pdp_result, 
@@ -356,7 +658,8 @@ def plotly_pdp(pdp_result,
                 )
             )
 
-    layout = go.Layout(title = f'pdp plot for {feature_name}')
+    layout = go.Layout(title = f'pdp plot for {feature_name}',
+                        plot_bgcolor = '#fff',)
 
     fig = go.Figure(data=data, layout=layout)
 
@@ -438,8 +741,7 @@ def plotly_importances_plot(importance_df):
     data = [trace0]
     layout = go.Layout(
         title=importance_name,
-        paper_bgcolor='rgba(245, 246, 249, 1)',
-        plot_bgcolor='rgba(245, 246, 249, 1)',
+        plot_bgcolor = '#fff',
         showlegend=False
     )
     fig = go.Figure(data=data, layout=layout)
@@ -456,16 +758,18 @@ def plotly_importances_plot(importance_df):
     return fig
 
 
-def plotly_tree_predictions(model, observation, round=2):
+def plotly_tree_predictions(model, observation, round=2, pos_label=1):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
     """
-    if model.estimators_[0].classes_ is not None: #if classifier
-         preds_df = pd.DataFrame({
+    #print('plotly call', pos_label)
+    #print('plotly call', observation)
+    if model.estimators_[0].classes_[0] is not None: #if classifier
+        preds_df = pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
                 'prediction' : [
-                        np.round(100*m.predict_proba(observation)[0, 1], round) 
+                        np.round(100*m.predict_proba(observation)[0, pos_label], round) 
                                     for m in model.estimators_]
             })\
             .sort_values('prediction')\
@@ -485,7 +789,8 @@ def plotly_tree_predictions(model, observation, round=2):
                     hoverinfo="text")
     
     layout = go.Layout(
-                title='individual predictions trees'
+                title='individual predictions trees',
+                plot_bgcolor = '#fff',
             )
     fig = go.Figure(data = [trace0], layout=layout)
     shapes = [dict(
@@ -532,17 +837,20 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                         y=[f'actual {lab}' if len(lab) < 5 else f'actual<br>{lab}' for lab in labels],
                         hoverinfo="skip",
                         zmin=0, zmax=zmax, colorscale='Blues',
+                        showscale=False,
                     )]
     #     annotations = [go.layout.Annotation()]
     layout = go.Layout(
             title="Confusion Matrix",
-            width=450,
-            height=450,
-            xaxis=dict(side='top'),
-            yaxis=dict(autorange="reversed",side='left')
+            # width=450,
+            # height=450,
+            xaxis=dict(side='top', constrain="domain"),
+            yaxis=dict(autorange="reversed", side='left',
+                        scaleanchor='x', scaleratio=1),
+            plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
-    
+
     annotations = []
 
     for x in range(cm.shape[0]):
@@ -569,7 +877,7 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                                     opacity=0.05,
                                     ))
 
-    fig.update_layout(annotations=annotations)
+    fig.update_layout(annotations=annotations)  
     return fig
 
 
@@ -585,11 +893,13 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
                 )
     data = [trace0]
     layout = go.Layout(title='ROC AUC CURVE', 
-                       width=450,
-                       height=450,
-                       xaxis= dict(title='False Positive Rate', range=[0,1]),
-                       yaxis = dict(title='True Positive Rate', range=[0,1], 
-                                    scaleanchor='y', scaleratio=1))
+                    #    width=450,
+                    #    height=450,
+                       xaxis= dict(title='False Positive Rate', range=[0,1], constrain="domain"),
+                       yaxis = dict(title='True Positive Rate', range=[0,1], constrain="domain", 
+                                    scaleanchor='x', scaleratio=1),
+                       hovermode='closest',
+                       plot_bgcolor = '#fff',)
     fig = go.Figure(data, layout)
     shapes = [dict(
                             type='line',
@@ -663,11 +973,13 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
                 )
     data = [trace0]
     layout = go.Layout(title='PR AUC CURVE', 
-                       width=450,
-                       height=450,
-                       xaxis= dict(title='Precision', range=[0,1]),
-                       yaxis = dict(title='Recall', range=[0,1], 
-                       scaleanchor='y', scaleratio=1))
+                    #    width=450,
+                    #    height=450,
+                       xaxis= dict(title='Precision', range=[0,1], constrain="domain"),
+                       yaxis = dict(title='Recall', range=[0,1], constrain="domain", 
+                       scaleanchor='x', scaleratio=1),
+                       hovermode='closest',
+                       plot_bgcolor = '#fff',)
     fig = go.Figure(data, layout)
     shapes = [] 
     
@@ -791,5 +1103,137 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns):
                                 t=50,
                                 pad=4
                             ),
-                      hovermode='closest')
+                      hovermode='closest',
+                      plot_bgcolor = '#fff',)
+    return fig
+
+
+def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
+    trace0 = go.Scatter(
+        x = y,
+        y = preds,
+        mode='markers', 
+        name='predicted',
+        text=[f"Predicted: {predicted}<br>Actual: {actual}" for actual, predicted in zip(np.round(y, round), np.round(preds, round))],
+        hoverinfo="text",
+    )
+    
+    trace1 = go.Scatter(
+        x = y,
+        y = y,
+        mode='lines', 
+        name='actual',
+        hoverinfo="none",
+    )
+    
+    data = [trace0, trace1]
+    
+    layout = go.Layout(
+        title='Predicted vs Actual',
+        yaxis=dict(
+            title=f'Predicted {units}' 
+        ),
+        xaxis=dict(
+            title=f'Actual {units}' 
+        ),
+        plot_bgcolor = '#fff',
+    )
+    
+    fig = go.Figure(data, layout)
+    if logs:
+        fig.update_layout(xaxis_type='log', yaxis_type='log')
+    return fig
+
+
+def plotly_plot_residuals(y, preds, vs_actual=False, units="", round=2, ratio=False):
+    
+    residuals = y - preds
+    residuals_ratio = residuals / y if vs_actual else residuals / preds
+    
+    trace0 = go.Scatter(
+        x=y if vs_actual else preds, 
+        y=residuals_ratio if ratio else residuals, 
+        mode='markers', 
+        name='residual ratio' if ratio else 'residuals',
+        text=[f"Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}<br>Ratio: {res_ratio}" 
+                  for actual, pred, residual, res_ratio in zip(np.round(y, round), 
+                                                                np.round(preds, round), 
+                                                                np.round(residuals, round),
+                                                                np.round(residuals_ratio, round))],
+        hoverinfo="text",
+    )
+    
+    trace1 = go.Scatter(
+        x=y if vs_actual else preds, 
+        y=np.zeros(len(preds)),
+        mode='lines', 
+        name=f'Actual {units}' if vs_actual else f'Predicted {units}',
+        hoverinfo="none",
+    )
+    
+    data = [trace0, trace1]
+    
+    layout = go.Layout(
+        title='Residuals vs Predicted',
+        yaxis=dict(
+            title='Relative Residuals' if ratio else 'Residuals'
+        ),
+        
+        xaxis=dict(
+            title=f'Actual {units}' if vs_actual else f'Predicted {units}' 
+        ),
+        plot_bgcolor = '#fff',
+    )
+    
+    fig = go.Figure(data, layout)
+    return fig
+    
+
+def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, units="", round=2, ratio=False):
+    
+    if col_name is None:
+        try:
+            col_name = col.name
+        except:
+            col_name = 'Feature' 
+            
+    residuals = y - preds
+    residuals_ratio = residuals / y
+    
+    trace0 = go.Scatter(
+        x=col, 
+        y=residuals_ratio if ratio else residuals, 
+        mode='markers', 
+        name='residual ratio' if ratio else 'residuals',
+        text=[f"Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}<br>Ratio: {res_ratio}" 
+                  for actual, pred, residual, res_ratio in zip(np.round(y, round), 
+                                                                np.round(preds, round), 
+                                                                np.round(residuals, round),
+                                                                np.round(residuals_ratio, round))],
+        hoverinfo="text",
+    )
+    
+    trace1 = go.Scatter(
+        x=col, 
+        y=np.zeros(len(preds)),
+        mode='lines', 
+        name=col_name,
+        hoverinfo="none",
+    )
+    
+    data = [trace0, trace1]
+    
+    layout = go.Layout(
+        title=f'Residuals vs {col_name}',
+        yaxis=dict(
+            title='Relative Residuals' if ratio else 'Residuals'
+        ),
+        
+        xaxis=dict(
+            title=f'{col_name} value'
+        ),
+        plot_bgcolor = '#fff',
+    )
+    
+    fig = go.Figure(data, layout)
     return fig
