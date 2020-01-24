@@ -4,7 +4,7 @@ by: Oege Dijk
 This package makes it convenient to quickly explain the workings of a
 fitted machine learning model using either interactive plots in e.g. Jupyter Notebook or 
 deploying an interactive dashboard (based on Flask/Dash) that allows you to quickly explore
-the impact of different features on model predictions.
+the impact of different features on model predictions. Example: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com)
 
 This includes:
 - *Shap values* (i.e. what is the contributions of each feature to each individual prediction?)
@@ -24,7 +24,7 @@ You can install the package through pip:
 
 Documentation can be found at [explainerdashboard.readthedocs.io](https://explainerdashboard.readthedocs.io/en/latest/).
 
-(NOTE: at the moment some dependency issue is preventing sphinx from correctly rendering all the autodoc features)
+(NOTE: at the moment some dependency issue is preventing sphinx from correctly rendering all the autodoc content)
 
 ## A simple demonstration
 
@@ -92,6 +92,6 @@ See [dashboard_examples.ipynb](dashboard_examples.ipynb)
 
 ## Deployed example:
 
-You can find an example dashboard at [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com)
+You can find an example dashboard at [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com) (may take some time to load due to serverless deployment)
 
 (source code at [https://github.com/oegedijk/explainingtitanic](https://github.com/oegedijk/explainingtitanic))

@@ -1,6 +1,9 @@
 
 # TO BE DONE:
 
+- Fix base classifier prediction
+- add cumulative tab contribution plot
+- add base to shap contribution table
 Layout:
 - add option to drop na's from interaction plot
 - Add percentile of scores to contributions tab
