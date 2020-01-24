@@ -342,12 +342,14 @@ such as a precision plot, confusion matrix, roc auc curve and pr auc curve.</p>
 
 <dl class="method">
 <dt id="explainerdashboard.explainers.ClassifierBunch.random_index">
-<code class="sig-name descname">random_index</code><span class="sig-paren">(</span><em class="sig-param">y_values=None</em>, <em class="sig-param">return_str=False</em>, <em class="sig-param">pred_proba_min=None</em>, <em class="sig-param">pred_proba_max=None</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.ClassifierBunch.random_index" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">random_index</code><span class="sig-paren">(</span><em class="sig-param">y_values=None</em>, <em class="sig-param">return_str=False</em>, <em class="sig-param">pred_proba_min=None</em>, <em class="sig-param">pred_proba_max=None</em>, <em class="sig-param">rank_min=None</em>, <em class="sig-param">rank_max=None</em><span class="sig-paren">)</span><a class="headerlink" href="#explainerdashboard.explainers.ClassifierBunch.random_index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a random index from dataset.
 if y_values is given select an index for which y in y_values
 if return_str return str index from self.idxs</p>
 <p>if pred_proba_min(max) is given, return an index with at least a predicted
 probabiity of positive class of pred_proba_min(max)</p>
+<p>if rank_min(max) is given, return an index with at least a predicted
+rank of probabiity of positive class of rank_min(max)</p>
 </dd></dl>
 
 <dl class="method">

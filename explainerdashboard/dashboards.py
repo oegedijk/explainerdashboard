@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ['ExplainerDashboard']
+__all__ = ['ExplainerDashboard', 'ExplainerDashboardStandaloneTab',
+            'ModelSummaryTab']
 
 
 import dash
@@ -56,7 +57,7 @@ class ExplainerDashboard:
         self.shap_interaction = shap_interaction
         self.shadow_trees = shadow_trees
         self.plotly_template = plotly_template
-        self.kwargs=kwargs
+        self.kwargs = kwargs
 
         # calculate lazily loaded properties before starting dashboard:
         if shap_dependence or contributions or model_summary:
@@ -87,13 +88,12 @@ class ExplainerDashboard:
         # layout
         self.title_and_label_selector = TitleAndLabelSelector(explainer, title=title)
         self.tabs = [] if tabs is None else tabs
-        self.insert_tabs()
+        self._insert_tabs()
         assert len(self.tabs) > 0, 'need to pass at least one tab!'
         
         self.tab_layouts = [
-            dcc.Tab(children=tab.layout(), 
-                    label=tab.title, 
-                    id=tab.tab_id) for tab in self.tabs]
+            dcc.Tab(children=tab.layout(), label=tab.title, id=tab.tab_id) 
+                for tab in self.tabs]
 
         self.app.layout = dbc.Container([
             self.title_and_label_selector.layout(),
@@ -106,7 +106,7 @@ class ExplainerDashboard:
         for tab in self.tabs:
             tab.register_callbacks(self.app)
 
-    def insert_tabs(self):
+    def _insert_tabs(self):
         if self.model_summary:
             self.tabs.append(ModelSummaryTab(self.explainer, **self.kwargs))
         if self.contributions:
@@ -119,6 +119,49 @@ class ExplainerDashboard:
             assert hasattr(self.explainer, 'shadow_trees')
             self.tabs.append(ShadowTreesTab(self.explainer, **self.kwargs))
         
+    def run(self, port=8050, **kwargs):
+        """Starts the dashboard using the built-in Flask server on localhost:port
+        
+        :param port: the port to run the dashboard on, defaults to 8050
+        :type port: int, optional
+        """
+        print(f"Running {self.title} on http://localhost:{port}")
+        pio.templates.default = self.plotly_template
+        self.app.run_server(port=port, **kwargs)
+
+
+class ExplainerDashboardStandaloneTab:
+    """Constructs a dashboard out of an ExplainerBunch object. You can indicate
+    which tabs to include, and pass kwargs to individual tabs.
+    """
+    def __init__(self, explainer, tab, title='Model Explainer', 
+                    plotly_template="none", **kwargs):
+        """Constructs an ExplainerDashboard.
+        
+        :param explainer: an ExplainerBunch object
+        :param title: Title of the dashboard, defaults to 'Model Explainer'
+        :type title: str, optional
+        :param tab: single tab to be run as dashboard
+        """
+        self.explainer = explainer
+        self.title = title
+
+        self.plotly_template = plotly_template
+        self.kwargs = kwargs
+
+        self.tab = tab(self.explainer, standalone=True, **self.kwargs)
+
+        self.app = dash.Dash(__name__)
+        self.app.config['suppress_callback_exceptions']=True
+        self.app.css.config.serve_locally = True
+        self.app.scripts.config.serve_locally = True
+        self.app.title = title
+        
+        pio.templates.default = self.plotly_template
+
+        self.app.layout = self.tab.layout()
+        self.tab.register_callbacks(self.app)
+
     def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
         

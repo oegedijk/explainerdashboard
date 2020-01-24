@@ -120,12 +120,19 @@ def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None)
     predictions_df generated from get_predictions_df(rf_model, X, y)
     """
     label = labels[pos_label] if labels is not None and pos_label is not None else 'positive'
+    
+    
 
     precision_df = precision_df.copy()
+
+    spacing = 0.1 /  len(precision_df)
+    bin_widths = precision_df['bin_width'] - spacing
+    bin_widths[bin_widths<0.005] = 0.005
+
     trace1 = go.Bar(
-        x=precision_df['p_avg'].values.tolist(),
-        y=precision_df['count'].values.tolist(),
-        width=0.9*precision_df['bin_width'].values,
+        x=(0.5*(precision_df['p_min']+precision_df['p_max'])).values,
+        y=precision_df['count'].values,
+        width=bin_widths,
         name='counts'
     )
     
@@ -203,10 +210,64 @@ def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None)
                  )]
         
     fig = go.Figure(data=data, layout=layout)
+    fig.update_layout(legend=dict(orientation="h",
+                                    xanchor="center",
+                                    y=-0.2,
+                                    x=0.5))
     if cutoff is not None:
         fig.update_layout(annotations=[
             go.layout.Annotation(x=cutoff, y=0.1, yref='y2',
                                     text=f"cutoff={cutoff}")])
+    return fig
+
+
+def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, pos_label=1, percentage=False):
+    if len(pred_probas.shape) == 2:
+        below = (pred_probas[:, pos_label] < cutoff)
+    else:
+        below = pred_probas < cutoff
+
+    below_threshold = (pred_probas[below], targets[below])
+    above_threshold = (pred_probas[~below], targets[~below])
+    x=['below cutoff', 'above cutoff', 'all']
+    
+    
+    fig = go.Figure()
+    for i, label in enumerate(labels):
+        if percentage:
+            fig.add_trace(go.Bar(
+                x=x, 
+                y=[100*np.mean(below_threshold[1]==i),
+                    100*np.mean(above_threshold[1]==i), 
+                    100*np.mean(targets==i)], 
+                text=[str(np.round(100*np.mean(below_threshold[1]==i), 2)) + '%',
+                      str(np.round(100*np.mean(above_threshold[1]==i), 2)) + '%', 
+                      str(np.round(100*np.mean(targets==i), 2)) + '%'],
+                textposition='auto',
+                hoverinfo="text",
+                name=label))
+            fig.update_layout(title='Percentage above and below cutoff')
+        else:
+            fig.add_trace(go.Bar(
+                x=x, 
+                y=[sum(below_threshold[1]==i),
+                    sum(above_threshold[1]==i), 
+                    sum(targets==i)], 
+                text = [sum(below_threshold[1]==i),
+                    sum(above_threshold[1]==i), 
+                    sum(targets==i)], 
+                textposition='auto',
+                hoverinfo="text",
+                name=label))
+            fig.update_layout(title='Total above and below cutoff')
+
+    fig.update_layout(barmode='stack')
+
+    fig.update_layout(legend=dict(orientation="h",
+                                    xanchor="center",
+                                    y=-0.2,
+                                    x=0.5))
+
     return fig
 
 
@@ -276,10 +337,27 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
                         xaxis=dict(spikemode="across"),
                         hovermode="x",
                         plot_bgcolor = '#fff')
+
+    fig.update_layout(legend=dict(#orientation="h",
+                                    xanchor="center",
+                                    y=0.9,
+                                    x=0.1))
     
     if cutoff is not None:
+        
         cutoff_idx = (np.abs(lift_curve_df.pred_proba - cutoff)).argmin()
-        cutoff_x = lift_curve_df['index_percentage'].iloc[cutoff_idx] if percentage else lift_curve_df['index'].iloc[cutoff_idx] 
+        if percentage:
+            cutoff_x = lift_curve_df['index_percentage'].iloc[cutoff_idx]
+        else:
+            cutoff_x = lift_curve_df['index'].iloc[cutoff_idx] 
+
+        cutoff_n = lift_curve_df['index'].iloc[cutoff_idx] 
+        cutoff_pos = lift_curve_df['positives'].iloc[cutoff_idx]
+        cutoff_random_pos = int(lift_curve_df['random_pos'].iloc[cutoff_idx])
+        cutoff_lift = np.round(lift_curve_df['positives'].iloc[cutoff_idx] / lift_curve_df.random_pos.iloc[cutoff_idx], 1)
+        cutoff_precision = np.round(lift_curve_df['precision'].iloc[cutoff_idx], 2)
+        cutoff_random_precision = np.round(lift_curve_df['random_precision'].iloc[cutoff_idx], 2)
+
         fig.update_layout(shapes = [dict(
                                         type='line',
                                         xref='x',
@@ -294,7 +372,25 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
                                         x=cutoff_x, 
                                         y=5, 
                                         yref='y',
-                                        text=f"cutoff={cutoff}")
+                                        text=f"cutoff={np.round(cutoff,3)}"),
+                                    go.layout.Annotation(x=0.5, y=0.4, 
+                                        text=f"Model: {cutoff_pos} out {cutoff_n} ({cutoff_precision}%)",
+                                        showarrow=False, align="right", 
+                                        xref='paper', yref='paper',
+                                        xanchor='left', yanchor='top'
+                                        ),
+                                    go.layout.Annotation(x=0.5, y=0.33, 
+                                        text=f"Random: {cutoff_random_pos} out {cutoff_n} ({cutoff_random_precision}%)",
+                                        showarrow=False, align="right", 
+                                        xref='paper', yref='paper',
+                                        xanchor='left', yanchor='top'
+                                        ),
+                                    go.layout.Annotation(x=0.5, y=0.26, 
+                                        text=f"Lift: {cutoff_lift}",
+                                        showarrow=False, align="right", 
+                                        xref='paper', yref='paper',
+                                        xanchor='left', yanchor='top'
+                                        )
                          ])
     return fig
 
@@ -484,6 +580,27 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                 hoverinfo="text"))
     fig.update_traces(selector = dict(mode='markers'))
     return fig
+
+
+def plotly_shap_violin_plot(X, shap_values, col_name):
+    assert is_string_dtype(X[col_name]), \
+        f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
+        
+    x = X[col_name]
+    shaps = shap_values[:, X.columns.get_loc(col_name)]
+    
+    fig = go.Figure()
+
+    for cat in X[col_name].unique():
+        fig.add_trace(go.Violin(x=x[x == cat],
+                            y=shaps[x == cat],
+                            name=cat,
+                            box_visible=True,
+                            meanline_visible=True))
+        
+    fig.update_layout(title=f'Shap values for {col_name}')
+    return fig
+
 
 
 def plotly_pdp(pdp_result, 
@@ -720,18 +837,20 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                         y=[f'actual {lab}' if len(lab) < 5 else f'actual<br>{lab}' for lab in labels],
                         hoverinfo="skip",
                         zmin=0, zmax=zmax, colorscale='Blues',
+                        showscale=False,
                     )]
     #     annotations = [go.layout.Annotation()]
     layout = go.Layout(
             title="Confusion Matrix",
-            width=450,
-            height=450,
-            xaxis=dict(side='top'),
-            yaxis=dict(autorange="reversed",side='left'),
+            # width=450,
+            # height=450,
+            xaxis=dict(side='top', constrain="domain"),
+            yaxis=dict(autorange="reversed", side='left',
+                        scaleanchor='x', scaleratio=1),
             plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
-    
+
     annotations = []
 
     for x in range(cm.shape[0]):
@@ -758,7 +877,7 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                                     opacity=0.05,
                                     ))
 
-    fig.update_layout(annotations=annotations)
+    fig.update_layout(annotations=annotations)  
     return fig
 
 
@@ -774,11 +893,11 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
                 )
     data = [trace0]
     layout = go.Layout(title='ROC AUC CURVE', 
-                       width=450,
-                       height=450,
-                       xaxis= dict(title='False Positive Rate', range=[0,1]),
-                       yaxis = dict(title='True Positive Rate', range=[0,1], 
-                                    scaleanchor='y', scaleratio=1),
+                    #    width=450,
+                    #    height=450,
+                       xaxis= dict(title='False Positive Rate', range=[0,1], constrain="domain"),
+                       yaxis = dict(title='True Positive Rate', range=[0,1], constrain="domain", 
+                                    scaleanchor='x', scaleratio=1),
                        hovermode='closest',
                        plot_bgcolor = '#fff',)
     fig = go.Figure(data, layout)
@@ -854,11 +973,11 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
                 )
     data = [trace0]
     layout = go.Layout(title='PR AUC CURVE', 
-                       width=450,
-                       height=450,
-                       xaxis= dict(title='Precision', range=[0,1]),
-                       yaxis = dict(title='Recall', range=[0,1], 
-                       scaleanchor='y', scaleratio=1),
+                    #    width=450,
+                    #    height=450,
+                       xaxis= dict(title='Precision', range=[0,1], constrain="domain"),
+                       yaxis = dict(title='Recall', range=[0,1], constrain="domain", 
+                       scaleanchor='x', scaleratio=1),
                        hovermode='closest',
                        plot_bgcolor = '#fff',)
     fig = go.Figure(data, layout)
@@ -988,12 +1107,11 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns):
                       plot_bgcolor = '#fff',)
     return fig
 
-def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
-    
 
+def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
     trace0 = go.Scatter(
-        x=np.log(y) if logs else y, 
-        y=np.log(preds) if logs else preds, 
+        x = y,
+        y = preds,
         mode='markers', 
         name='predicted',
         text=[f"Predicted: {predicted}<br>Actual: {actual}" for actual, predicted in zip(np.round(y, round), np.round(preds, round))],
@@ -1001,8 +1119,8 @@ def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
     )
     
     trace1 = go.Scatter(
-        x=np.log(y) if logs else y, 
-        y=np.log(y) if logs else y, 
+        x = y,
+        y = y,
         mode='lines', 
         name='actual',
         hoverinfo="none",
@@ -1011,18 +1129,19 @@ def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
     data = [trace0, trace1]
     
     layout = go.Layout(
-        title='Log(Predicted) vs Log(Actual)' if logs else 'Predicted vs Actual',
+        title='Predicted vs Actual',
         yaxis=dict(
-            title=f'Log(Predicted {units})' if logs else f'Predicted {units}' 
+            title=f'Predicted {units}' 
         ),
-        
         xaxis=dict(
-            title=f'Log(Actual {units})' if logs else f'Actual {units}' 
+            title=f'Actual {units}' 
         ),
         plot_bgcolor = '#fff',
     )
     
     fig = go.Figure(data, layout)
+    if logs:
+        fig.update_layout(xaxis_type='log', yaxis_type='log')
     return fig
 
 
@@ -1070,7 +1189,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, units="", round=2, ratio=Fa
     return fig
     
 
-def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, vs_actual=False, units="", round=2, ratio=False):
+def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, units="", round=2, ratio=False):
     
     if col_name is None:
         try:
@@ -1079,7 +1198,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, vs_actual=F
             col_name = 'Feature' 
             
     residuals = y - preds
-    residuals_ratio = residuals / y if vs_actual else residuals / preds
+    residuals_ratio = residuals / y
     
     trace0 = go.Scatter(
         x=col, 
@@ -1111,7 +1230,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, vs_actual=F
         ),
         
         xaxis=dict(
-            title=f'{col_name} value {units}'
+            title=f'{col_name} value'
         ),
         plot_bgcolor = '#fff',
     )

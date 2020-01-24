@@ -2,40 +2,31 @@
 # TODO:
 
 ## Layout:
-- Add percentile of scores to contributions tab
-- add violin plot to categorical plots
-- jitter categorical plots
-- automatic load graphs upon page load  (dash > 1.4 bug?)
-- Change pos label selector to regular dropdown
-    - also give default value
+- set all tabs default to False
 
 ## Plots:
-
-### Classifier:
-- Add lift curve
+- add multiclass confusion matrix
+- individual trees: highlight selected tree
+- fix shap dependence summary going full width
 
 ### Regression plots:
-    - https://medium.com/microsoftazure/how-to-better-evaluate-the-goodness-of-fit-of-regressions-990dbf1c0091
-    - predicted vs actual (should be on 45 deg line)
-    - residuals vs prediction plot (heteroskedastic?)
-    - residuals vs feature
-    - residuals histogram
-    - QQ plot
-    - MAE, RMSE, RAE, RSE, R2
 
 ## Explainers:
-- Add LinearExplainerBunch, DeepExplainerBunch
 
 ## Dashboard:
-- Make flexible dashboard class with (layout, callback) tuples -TBD
+- add dependence plot to importances list
 
 ## Methods:
 
-- Multiprocessing shap summary graph -TBD
+- Multiprocessing shap summary graph 
 - Move pdp function to explainer_methods.py
-
+- add feature explanations
 
 ## Library level:
+- fix forever updating bug (seems shadow tree related?)
+- fix jupyter reload pdp bug
+- just add kind='tree', 'linear', 'deep', etc
+- add long description to pypi: https://packaging.python.org/guides/making-a-pypi-friendly-readme/
 - Add tests
 - Test with lightgbm, catboost, extratrees
 - turn all docstrings into sphynx compatible

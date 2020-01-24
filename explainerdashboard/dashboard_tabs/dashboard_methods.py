@@ -101,4 +101,4 @@ class TitleAndLabelSelector:
                 if pos_label is not None:
                     self.explainer.pos_label = pos_label
                     return pos_label
-                raise PreventUpdate
+                return self.explainer.pos_label

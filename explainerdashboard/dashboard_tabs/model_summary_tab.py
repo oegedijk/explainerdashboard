@@ -1,4 +1,5 @@
 __all__ = ['ModelSummaryTab']
+import numpy as np
 
 import dash
 import dash_core_components as dcc
@@ -9,6 +10,9 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from .dashboard_methods import *
+
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
 
 class ModelSummaryTab:
     def __init__(self, explainer, standalone=False, tab_id="model_summary", title='Model Summary',
@@ -36,6 +40,9 @@ class ModelSummaryTab:
     def layout(self):
         return dbc.Container([
             self.label_selector.layout() if self.standalone else None,
+            # need to add dummy to make callbacks on tab change work:
+            html.Div(id='tabs') if self.standalone else None, 
+            dcc.Store(id='testtest'),
             self.model_stats.layout(),
             self.importances.layout()
         ], fluid=True)
@@ -114,9 +121,10 @@ class ImportancesStats:
             [Input('importance-tablesize', 'value'),
              Input('group-categoricals', 'checked'),
              Input('permutation-or-shap', 'value'),
-             Input('label-store', 'data')]
+             Input('label-store', 'data')],
+            [State('tabs', 'value')]
         )
-        def update_importances(tablesize, cats, permutation_shap, pos_label): 
+        def update_importances(tablesize, cats, permutation_shap, pos_label, tab): 
             return self.explainer.plot_importances(
                         type=permutation_shap, topx=tablesize, cats=cats)
 
@@ -128,96 +136,93 @@ class ClassifierModelStats:
     def layout(self):
         return dbc.Container([
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
+
             dbc.Row([
-                dbc.ButtonGroup(
-                    [
-                        dbc.Button("precision plot", id="precision-plot-button", ), 
-                        dbc.Button("lift curve", id="lift-curve-button")
-                    ],
-                    size="lg",
-                    className="mr-1",
-                ),
-            ], justify="center"),
-            html.Div([
-                dbc.Row([
-                    dbc.Col([
-                        dbc.FormGroup([
-                                    dbc.RadioButton(
-                                        id="lift-curve-percentage", className="form-check-input"
-                                    ),
-                                    dbc.Label(
-                                        "Display percentages",
-                                        html_for="lift-curve-percentage",
-                                        className="form-check-label",
-                                    ),
-                                ], check=True),
-                    ], width=2),
-                ], justify="end",),
-                dbc.Row([
-                    dbc.Col([
-                        html.Div([
-                            dcc.Loading(id="loading-lift-curve", 
-                                        children=[dcc.Graph(id='lift-curve-graph')]),
-                        ], style={'margin': 20}),
-                    ]),
-                ]),
-            ], id='lift-curve-div',  style={}), # style={'display': 'none'}),
-            html.Div([
-                dbc.Row([
-                    dbc.Col([
-                            dbc.Label('Bin size:', html_for='precision-binsize'),
-                            dcc.Slider(id='precision-binsize', 
-                                        min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
-                                        marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
-                                            0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
-                                            0.5: '0.5'}, 
-                                        included=False,
-                                        tooltip = {'always_visible' : True})
-                        ], width=4),
-                    dbc.Col([
-                            dbc.Label('Binning Method:', html_for='binsize-or-quantiles'),
-                            dbc.RadioItems(
-                                id='binsize-or-quantiles',
-                                options=[
-                                    {'label': 'Bin Size', 
-                                    'value': 'bin_size'},
-                                    {'label': 'Quantiles', 
-                                    'value': 'quantiles'}
-                                ],
-                                value='bin_size',
-                                inline=True)
-                        ], width=2),
-                    dbc.Col([
-                        dbc.FormGroup([
-                                    dbc.RadioButton(
-                                        id="precision-multiclass", className="form-check-input"
-                                    ),
-                                    dbc.Label(
-                                        "Display all classes",
-                                        html_for="precision-multiclass",
-                                        className="form-check-label",
-                                    ),
-                                ], check=True),
-                    ], width=2),
-                    dbc.Col([
+                dbc.Col([
+                    html.Div([
+                        dcc.Loading(id="loading-lift-curve", 
+                                children=[dcc.Graph(id='lift-curve-graph')]),
+                    ], style={'margin': 20}),
+                    dbc.FormGroup([
+                        dbc.RadioButton(
+                            id="lift-curve-percentage", 
+                            className="form-check-input", 
+                            checked=True
+                        ),
+                        dbc.Label(
+                            "Display percentages",
+                            html_for="lift-curve-percentage",
+                            className="form-check-label",
+                        ),
+                    ], check=True),          
+                ], width=4, align="start"),
+
+                dbc.Col([
+                    html.Div([
+                        dcc.Loading(id="loading-precision-graph", 
+                                children=[dcc.Graph(id='precision-graph')]),
+                    ], style={'margin': 20}),
+                    html.Div([
+                        dbc.Label('Bin size:', html_for='precision-binsize'),
+                        dcc.Slider(id='precision-binsize', 
+                                    min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
+                                    marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
+                                        0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
+                                        0.5: '0.5'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : True}),
+                    ], id='bin-size-div'),
+                    html.Div([
                         dbc.Label('Quantiles:', html_for='precision-quantiles'),
                         dcc.Slider(id='precision-quantiles', 
                                     min = 1, max = 20, step=1, value=self.quantiles,
                                     marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
                                     included=False,
-                                    tooltip = {'always_visible' : True})
-                    ], width=4),
-                ], form=True, align="center"),
-                dbc.Row([
-                    dbc.Col([
-                        html.Div([
-                            dcc.Loading(id="loading-precision-graph", 
-                                    children=[dcc.Graph(id='precision-graph')]),
-                        ], style={'margin': 20}),
-                    ], width=12),
-                ], align="center"),                
-            ], id='precision-plot-div', style={}), #{'display': 'none'}),
-            
+                                    tooltip = {'always_visible' : True}),
+                    ], id='quantiles-div'),
+                    dbc.Label('Binning Method:', html_for='binsize-or-quantiles'),
+                    dbc.RadioItems(
+                        id='binsize-or-quantiles',
+                        options=[
+                            {'label': 'Bin Size', 
+                            'value': 'bin_size'},
+                            {'label': 'Quantiles', 
+                            'value': 'quantiles'}
+                        ],
+                        value='bin_size',
+                        inline=True),
+                    dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id="precision-multiclass", className="form-check-input"
+                                ),
+                                dbc.Label(
+                                    "Display all classes",
+                                    html_for="precision-multiclass",
+                                    className="form-check-label",
+                                ),
+                            ], check=True),
+                ], width=4, align="start"),
+
+                dbc.Col([
+                    html.Div([
+                                dcc.Loading(id="loading-classification-graph", 
+                                            children=[dcc.Graph(id='classification-graph')]),
+                    ], style={'margin': 20}),
+
+                    dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id="classification-percentage", 
+                                    className="form-check-input", 
+                                    checked=True
+                                ),
+                                dbc.Label(
+                                    "Display percentages",
+                                    html_for="classification-percentage",
+                                    className="form-check-label",
+                                ),
+                    ], check=True),
+                ], width=4, align="start"),
+            ]),
             dbc.Row([
                     dbc.Col([
                         html.Div([
@@ -232,49 +237,76 @@ class ClassifierModelStats:
                     ])
                 ]),
             dbc.Row([
+                    dbc.Col([
+                        html.Div([
+                            html.Label('Cutoff fraction:'),
+                            dcc.Slider(id='fraction-cutoff', 
+                                        min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                        marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                0.75: '0.75', 0.99: '0.99'}, 
+                                        included=False,
+                                        tooltip = {'always_visible' : True})
+                        ], style={'margin': 20}),
+                    ])
+                ]),
+            dbc.Row([
                 dbc.Col([
                     dcc.Loading(id="loading-confusionmatrix-graph", 
                                 children=[dcc.Graph(id='confusionmatrix-graph')]),
-                    dbc.FormGroup(
-                        [
-                            dbc.Label("Confusion Matrix Display:"),
-                            dbc.RadioItems(
-                                options=[{'label': o, 'value': o} 
-                                    for o in ['Counts', 'Normalized']],
-                                value='Counts',
-                                id='confusionmatrix-normalize',
-                                inline=True,
-                            ),  
-                        ]
-                    ),
-                ]),
+                    dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id='confusionmatrix-percentage', 
+                                    className="form-check-input", 
+                                    checked=True
+                                ),
+                                dbc.Label(
+                                    "Display percentages",
+                                    html_for="confusionmatrix-percentage",
+                                    className="form-check-label",
+                                ),
+                    ], check=True),
+                ], width=4),
                 dbc.Col([
                     dcc.Loading(id="loading-roc-auc-graph", 
                                 children=[dcc.Graph(id='roc-auc-graph')]),
-                ]),
+                ], width=4),
                 dbc.Col([
                     dcc.Loading(id="loading-pr-auc-graph", 
                                 children=[dcc.Graph(id='pr-auc-graph')]),
-                ]),
+                ], width=4),
             ]),
         ], fluid=True)
 
     def register_callbacks(self, app, **kwargs):
+
         @app.callback(
-            [Output('precision-plot-div', 'style'),
-             Output('lift-curve-div', 'style')],
-            [Input('precision-plot-button', 'n_clicks'),
-             Input('lift-curve-button', 'n_clicks')]
+            Output('precision-cutoff', 'value'),
+            [Input('fraction-cutoff', 'value')]
         )
-        def update_output_div(precision, lift):
-            ctx = dash.callback_context
-            if ctx.triggered:
-                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-                if trigger=='precision-plot-button':
-                    return {}, {'display': 'none'}
-                elif trigger=='lift-curve-button':
-                    return {'display': 'none'}, {}, 
-            raise PreventUpdate
+        def update_cutoff(fraction):
+            return np.round(self.explainer.cutoff_fraction(fraction), 2)
+
+        @app.callback(
+            [Output('bin-size-div', 'style'),
+             Output('quantiles-div', 'style')],
+            [Input('binsize-or-quantiles', 'value')],
+        )
+        def update_div_visibility(bins_or_quantiles):
+            if bins_or_quantiles=='bin_size':
+                return {}, {'display': 'none'}
+            elif bins_or_quantiles=='quantiles':
+                return {'display': 'none'}, {}
+            raise PreventUpdate   
+            
+        @app.callback(
+            Output('lift-curve-graph', 'figure'),
+            [Input('lift-curve-percentage', 'checked'),
+             Input('precision-cutoff', 'value'),
+             Input('label-store', 'data')],
+            [State('tabs', 'value')],
+        )
+        def update_precision_graph(percentage, cutoff, pos_label, tab):
+            return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage)
 
         @app.callback(
             Output('precision-graph', 'figure'),
@@ -284,8 +316,9 @@ class ClassifierModelStats:
              Input('precision-cutoff', 'value'),
              Input('precision-multiclass', 'checked'),
              Input('label-store', 'data')],
+            [State('tabs', 'value')],
         )
-        def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label):
+        def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, tab):
             if bins=='bin_size':
                 return self.explainer.plot_precision(
                     bin_size=bin_size, cutoff=cutoff, multiclass=multiclass)
@@ -294,40 +327,45 @@ class ClassifierModelStats:
                     quantiles=quantiles, cutoff=cutoff, multiclass=multiclass)
             raise PreventUpdate
 
+        @app.callback(
+            Output('classification-graph', 'figure'),
+            [Input('classification-percentage', 'checked'),
+             Input('precision-cutoff', 'value'),
+             Input('label-store', 'data')],
+            [State('tabs', 'value')],
+        )
+        def update_precision_graph(percentage, cutoff, pos_label, tab):
+            return self.explainer.plot_classification(cutoff=cutoff, percentage=percentage)
 
         @app.callback(
              Output('confusionmatrix-graph', 'figure'),
             [Input('precision-cutoff', 'value'),
-             Input('confusionmatrix-normalize', 'value'),
+             Input('confusionmatrix-percentage', 'checked'),
              Input('label-store', 'data')],
+            [State('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, normalized, pos_label):
+        def update_precision_graph(cutoff, percentage, pos_label, tab):
             return self.explainer.plot_confusion_matrix(
-                                cutoff=cutoff, normalized=normalized=='Normalized')
+                                cutoff=cutoff, normalized=percentage)
 
-        @app.callback(
-            Output('lift-curve-graph', 'figure'),
-            [Input('lift-curve-percentage', 'checked'),
-             Input('precision-cutoff', 'value'),
-             Input('label-store', 'data')],
-        )
-        def update_precision_graph(percentage, cutoff, pos_label):
-            return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage)
+        
         
         @app.callback(
             Output('roc-auc-graph', 'figure'),
             [Input('precision-cutoff', 'value'),
-             Input('label-store', 'data')],
+             Input('label-store', 'data'),
+             Input('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, pos_label):
+        def update_precision_graph(cutoff, pos_label, tab):
             return self.explainer.plot_roc_auc(cutoff=cutoff)
 
         @app.callback(
             Output('pr-auc-graph', 'figure'),
             [Input('precision-cutoff', 'value'),
              Input('label-store', 'data')],
+            [State('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, pos_label):
+        def update_precision_graph(cutoff, pos_label, tab):
             return self.explainer.plot_pr_auc(cutoff=cutoff)
 
 class RegressionModelStats:
@@ -340,31 +378,127 @@ class RegressionModelStats:
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
             dbc.Row([
                 dbc.Col([
+                    
                     dcc.Loading(id="loading-predicted-vs-actual-graph", 
                                 children=[dcc.Graph(id='predicted-vs-actual-graph')]),
-                ], width=6),
+                    dbc.FormGroup(
+                    [
+                        dbc.RadioButton(
+                            id='preds-vs-actual-logs',
+                            className="form-check-input"),
+                        dbc.Label("Take Logs",
+                                html_for='preds-vs-actual-logs',
+                                className="form-check-label"),
+                    ], check=True),
+                    ], width=6),
                 dbc.Col([
+                    dcc.Loading(id="loading-model-summary", 
+                                children=[dcc.Markdown(id='model-summary')]),      
+                ], width=6),
+            ]),
+            dbc.Row([
+                dbc.Col([
+
                     dcc.Loading(id="loading-residuals-graph", 
                                 children=[dcc.Graph(id='residuals-graph')]),
+                    dbc.FormGroup(
+                    [
+                        dbc.RadioItems(
+                            options=[
+                                {"label": "vs Prediction", "value": "vs_pred"},
+                                {"label": "vs Actual", "value": "vs_actual"},
+                            ],
+                            value="vs_pred",
+                            id='residuals-pred-or-actual',
+                            inline=True,
+                        ),
+                    ]),
+                    dbc.FormGroup(
+                    [
+                        dbc.RadioButton(
+                            id='residuals-ratio',
+                            className="form-check-input"),
+                        dbc.Label("Display Ratio",
+                                html_for='residuals-ratio',
+                                className="form-check-label"),
+                    ], check=True),
+
+                ], width=6),
+                dbc.Col([
+                    dcc.Loading(id="loading-residuals-vs-col-graph", 
+                                children=[dcc.Graph(id='residuals-vs-col-graph')]),
+                    dbc.Label("Column:"),
+                    dcc.Dropdown(id='residuals-col',
+                        options = [{'label': col, 'value': col} 
+                                        for col in self.explainer.mean_abs_shap_df(cats=False)\
+                                                        .Feature.tolist()],
+                        value=self.explainer.mean_abs_shap_df(cats=False)\
+                                                        .Feature.tolist()[0]),
+                    dbc.FormGroup(
+                    [
+                        dbc.RadioButton(
+                            id='residuals-vs-col-ratio',
+                            className="form-check-input"),
+                        dbc.Label("Display Ratio",
+                                html_for='residuals-vs-col-ratio',
+                                className="form-check-label"),
+                    ], check=True),
                 ], width=6),
             ])
-        ])
+        ], fluid=True)
         
 
     def register_callbacks(self, app, **kwargs):
+
+        @app.callback(
+            Output('model-summary', 'children'),
+            [Input('label-store', 'data')],
+            [State('tabs', 'value')]
+        )
+        def update_model_summary(pos_label, tab):
+            rmse = np.round(mean_squared_error(self.explainer.y, self.explainer.preds, squared=False), 2)
+            mae = np.round(mean_absolute_error(self.explainer.y, self.explainer.preds), 2)
+            r2 = np.round(r2_score(self.explainer.y, self.explainer.preds), 2)
+            summary = f"""
+            # Model Summary 
+
+            ### RMSE: {rmse}
+            ### MAE: {mae}
+            ### R^2: {r2}
+            """
+
+            return summary
+
+        Output('model-prediction', 'children')
         @app.callback(
             Output('predicted-vs-actual-graph', 'figure'),
-            [Input('label-store', 'data')],
+            [Input('preds-vs-actual-logs', 'checked'),
+             Input('label-store', 'data')],
+            [State('tabs', 'value')]
         )
-        def update_predicted_vs_actual_graph(pos_label):
-            return self.explainer.plot_predicted_vs_actual()
+        def update_predicted_vs_actual_graph(logs, pos_label, tab):
+            return self.explainer.plot_predicted_vs_actual(logs=logs)
 
         @app.callback(
             Output('residuals-graph', 'figure'),
-            [Input('label-store', 'data')],
+            [Input('residuals-pred-or-actual', 'value'),
+             Input('residuals-ratio', 'checked'),
+             Input('label-store', 'data')],
+            [State('tabs', 'value')],
         )
-        def update_residuals_graph( pos_label):
-            return self.explainer.plot_residuals()
+        def update_residuals_graph(pred_or_actual, ratio, pos_label, tab):
+            vs_actual = pred_or_actual=='vs_actual'
+            return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
+
+        @app.callback(
+            Output('residuals-vs-col-graph', 'figure'),
+            [Input('residuals-col', 'value'),
+             Input('residuals-vs-col-ratio', 'checked'),
+             Input('label-store', 'data')],
+            [State('tabs', 'value')],
+        )
+        def update_residuals_graph(col, ratio, pos_label, tab):
+            return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
 
 
 

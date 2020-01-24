@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 import warnings
+import base64
 
 import pandas as pd
 from pdpbox import pdp
 import shap
+from dtreeviz.trees import *
 
 from sklearn.metrics import r2_score, roc_auc_score
 
@@ -153,7 +155,18 @@ class BaseExplainerBunch(ABC):
         if not hasattr(self, '_preds'):
             print("Calculating predictions...")
             self._preds = self.model.predict(self.X)
+            
         return self._preds
+
+    @property
+    def ranks(self):
+        if not hasattr(self, '_ranks'):
+            print("Calculating ranks...")
+            self._ranks = (pd.Series(self.preds)
+                                .rank(method='min')
+                                .divide(len(self.preds))
+                                .values)
+        return self._ranks
 
     def get_col(self, col):
         assert col in self.columns or col in self.cats, \
@@ -447,6 +460,15 @@ class BaseExplainerBunch(ABC):
                                         classification=self.is_classifier,
                                         round=round)
 
+    def interactions_df(self, col, cats=False, topx=None, cutoff=None):
+        importance_df = mean_absolute_shap_values(
+                            self.columns_cats if cats else self.columns, 
+                            self.shap_interaction_values_by_col(col, cats))
+
+        if topx is None: topx = len(importance_df)
+        if cutoff is None: cutoff = importance_df.MEAN_ABS_SHAP.min()
+        return importance_df[importance_df.MEAN_ABS_SHAP > cutoff].head(topx)
+    
     def formatted_contrib_df(self, index, round=None, lang='en'):
         """Out PowerBI specialist wanted this the contrib_df in a certain format in order
         to conventiently build powerbi dashboards from the output of get_dfs.
@@ -626,6 +648,10 @@ class BaseExplainerBunch(ABC):
         importances_df = self.importances_df(type=type, topx=topx, cats=cats)
         return plotly_importances_plot(importances_df)
 
+    def plot_interactions(self, col, cats=False, topx=None):
+        interactions_df = self.interactions_df(col, cats=cats, topx=topx)
+        return plotly_importances_plot(interactions_df)
+
     def plot_shap_contributions(self, index, cats=True,
                                     topx=None, cutoff=None, round=2):
         """reutn Plotly fig with waterfall plot of shap value contributions
@@ -707,10 +733,13 @@ class BaseExplainerBunch(ABC):
         :param cats: group categorical variables
         """
         if cats:
-            return plotly_dependence_plot(self.X_cats, self.shap_values_cats,
-                                            col, color_col,
-                                            highlight_idx=highlight_idx,
-                                            na_fill=self.na_fill)
+            if col in self.cats:
+                return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats, col)
+            else:
+                return plotly_dependence_plot(self.X_cats, self.shap_values_cats,
+                                                col, color_col,
+                                                highlight_idx=highlight_idx,
+                                                na_fill=self.na_fill)
         else:
             return plotly_dependence_plot(self.X, self.shap_values,
                                             col, color_col,
@@ -732,7 +761,13 @@ class BaseExplainerBunch(ABC):
         :return: Plotly Fig
         :rtype: plotly.Fig
         """
-        return plotly_dependence_plot(self.X_cats if cats else self.X,
+        if cats and interact_col in self.cats:
+            return plotly_shap_violin_plot(
+                self.X_cats, 
+                self.shap_interaction_values_by_col(col, cats),
+                interact_col)
+        else:
+            return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats),
                 interact_col, col, highlight_idx=highlight_idx,
                 interaction=True)
@@ -844,6 +879,22 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
     RandomForestBunch allows for the analysis of individual DecisionTrees that
     make up the RandomForest.
     """
+    
+    @property
+    def graphviz_available(self):
+        if not hasattr(self, '_graphviz_available'):
+            try:
+                import graphviz.backend as be
+                cmd = ["dot", "-V"]
+                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
+            except:
+                print("""you don't seem to have graphviz in your path (cannot run 'dot -V'), 
+                        so no decision path will be shown on the shadow trees tab""")
+                self._graphviz_available = False
+            else:
+                self._graphviz_available = True
+        return self._graphviz_available
+
     @property
     def shadow_trees(self):
         if not hasattr(self, '_shadow_trees'):
@@ -871,6 +922,51 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
         idx=self.get_int_idx(index)
         return shadowtree_df_summary(self.shadowtree_df(tree_idx, idx),
                     classifier=self.is_classifier, round=round)
+
+    def decision_path_file(self, tree_idx, index):
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!") 
+            return None
+
+        idx = self.get_int_idx(index)
+
+        if self.is_regression:
+            viz = dtreeviz(self.model.estimators_[tree_idx],
+               self.X, self.y, 
+               target_name='Target',
+               #orientation ='LR',  # left-right orientation
+               feature_names=self.columns,
+               X=self.X.iloc[idx, :],)
+        elif self.is_classifier:
+            viz = dtreeviz(self.model.estimators_[tree_idx],
+               self.X, self.y, 
+               target_name='Target',
+               #orientation ='LR',  # left-right orientation
+               feature_names=self.columns,
+               class_names=self.labels,
+               X=self.X.iloc[idx, :]) 
+        return viz.save_svg()
+
+    def decision_path(self, tree_idx, index):
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!") 
+            return None
+
+        from IPython.display import SVG
+        svg_file = self.decision_path_file(tree_idx, index)
+        return SVG(open(svg_file,'rb').read())
+
+    def decision_path_encoded(self, tree_idx, index):
+        if not self.graphviz_available: 
+            print("No graphviz 'dot' executable available!")
+            return None
+
+        svg_file = self.decision_path_file(tree_idx, index)
+        encoded = base64.b64encode(open(svg_file,'rb').read()) 
+        #encoded = base64.b64encode(viz.svg()) 
+        svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
+        return svg_encoded
+
 
     def plot_trees(self, index, round=2):
         """returns a plotly barchart with the values of the predictions
@@ -949,12 +1045,14 @@ class ClassifierBunch(BaseExplainerBunch):
     @property
     def pred_probas(self):
         """returns pred_proba for pos_label class"""
-        if not hasattr(self, '_pred_probas'):
-            print("Calculating prediction probabilities...")
-            assert hasattr(self.model, 'predict_proba'), \
-                "model does not have a predict_proba method!"
-            self._pred_probas =  self.model.predict_proba(self.X)
-        return self._pred_probas[:, self.pos_label]
+        return self.pred_probas_raw[:, self.pos_label]
+
+    @property
+    def ranks(self):
+        """returns ranks for pos_label class"""
+        return self.ranks_raw[:, self.pos_label]
+
+
 
     @property
     def pred_probas_raw(self):
@@ -965,6 +1063,16 @@ class ClassifierBunch(BaseExplainerBunch):
                 "model does not have a predict_proba method!"
             self._pred_probas =  self.model.predict_proba(self.X)
         return self._pred_probas
+
+    @property
+    def ranks_raw(self):
+        if not hasattr(self, '_ranks_raw'):
+            print("Calculating ranks...")
+            self._ranks_raw = (pd.DataFrame(self.pred_probas_raw)
+                                .rank(method='min')
+                                .divide(len(self.pred_probas_raw))
+                                .values)
+        return self._ranks_raw
 
     @property
     def permutation_importances(self):
@@ -1062,6 +1170,13 @@ class ClassifierBunch(BaseExplainerBunch):
                                 self.columns, sv, self.cats) for sv in self._shap_values]
         return self._mean_abs_shap_cats[self.pos_label]
 
+    def cutoff_fraction(self, fraction, pos_label=None):
+        if pos_label is None:
+            return pd.Series(self.pred_probas).nlargest(int((1-fraction)*len(self))).min()
+        else:
+            return pd.Series(self.pred_probas_raw[:, pos_label]).nlargest(int((1-fraction)*len(self))).min()
+
+
     def get_pdp_result(self, col, index=None, drop_na=True,
                         sample=1000, num_grid_points=20):
         pdp_result = super(ClassifierBunch, self).get_pdp_result(
@@ -1078,7 +1193,8 @@ class ClassifierBunch(BaseExplainerBunch):
              return pdp_result[self.pos_label]
 
     def random_index(self, y_values=None, return_str=False,
-                    pred_proba_min=None, pred_proba_max=None):
+                    pred_proba_min=None, pred_proba_max=None,
+                    rank_min=None, rank_max=None):
         """
         Return a random index from dataset.
         if y_values is given select an index for which y in y_values
@@ -1086,17 +1202,27 @@ class ClassifierBunch(BaseExplainerBunch):
 
         if pred_proba_min(max) is given, return an index with at least a predicted
         probabiity of positive class of pred_proba_min(max)
+
+        if rank_min(max) is given, return an index with at least a predicted
+        rank of probabiity of positive class of rank_min(max)
         """
-        if y_values is None and pred_proba_min is None and pred_proba_max is None:
+        if (y_values is None 
+            and pred_proba_min is None and pred_proba_max is None
+            and rank_min is None and rank_max is None):
             potential_idxs = self.y.index
         else:
             if y_values is None: y_values = self.y.unique().tolist()
             if not isinstance(y_values, list): y_values = [y_values]
             if pred_proba_min is None: pred_proba_min = self.pred_probas.min()
             if pred_proba_max is None: pred_proba_max = self.pred_probas.max()
+            if rank_min is None: rank_min = 0.0
+            if rank_max is None: rank_max = 1.0
+            
             potential_idxs = self.y[(self.y.isin(y_values)) &
                             (self.pred_probas >= pred_proba_min) &
-                            (self.pred_probas <= pred_proba_max)].index
+                            (self.pred_probas <= pred_proba_max) &
+                            (self.ranks > rank_min) &
+                            (self.ranks <= rank_max)].index
         if not potential_idxs.empty:
             idx = np.random.choice(potential_idxs)
         else:
@@ -1167,6 +1293,13 @@ class ClassifierBunch(BaseExplainerBunch):
     def plot_lift_curve(self, cutoff=None, percentage=False, round=2):
         return plotly_lift_curve(self.lift_curve_df(), cutoff, percentage, round)
 
+    def plot_cumulative_precision(self):
+        return plotly_cumulative_precision_plot(self.lift_curve_df(), 
+                labels=self.labels, pos_label=self.pos_label)
+
+    def plot_classification(self, cutoff=0.5, percentage=True):
+        return plotly_classification_plot(self.pred_probas, self.y, self.labels, cutoff, percentage=percentage)
+
     def plot_roc_auc(self, cutoff=0.5):
         """plots ROC_AUC curve. The TPR and FPR of a particular
             cutoff is displayed in crosshairs."""
@@ -1212,15 +1345,15 @@ class RegressionBunch(BaseExplainerBunch):
         return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, round=round, logs=logs)
     
     def plot_residuals(self, vs_actual=False, round=2, ratio=False):
-        
         return plotly_plot_residuals(self.y, self.preds, 
                                      vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
     
-    def plot_residuals_vs_feature(self, col, vs_actual=False, round=2, ratio=False):
+    def plot_residuals_vs_feature(self, col, ratio=False, round=2, dropna=True):
         assert col in self.columns, \
             f'{col} not in columns!'
-        return plotly_residuals_vs_col(explainer.y, explainer.preds, explainer.X[col], 
-                                       vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
+        na_mask = self.X[col] != self.na_fill if dropna else np.array([True]*len(self.X))
+        return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], self.X[col][na_mask], 
+                                       ratio=ratio, units=self.units, round=round)
     
 
 

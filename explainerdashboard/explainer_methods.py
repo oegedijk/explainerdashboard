@@ -269,7 +269,7 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, pos_lab
             or (bin_size is None and quantiles is not None)), \
         "either only pass bin_size or only pass quantiles!"
 
-    n_classes = 1
+    
     if len(pred_probas.shape) == 2:
         # in case the full binary classifier pred_proba is passed,
         # we only select the probability of the positive class
@@ -279,6 +279,9 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, pos_lab
     else:
         predictions_df = pd.DataFrame(
             {'pred_proba': pred_probas, 'target': y_true})
+        n_classes = 1
+        
+    predictions_df = predictions_df.sort_values('pred_proba')
 
     # define a placeholder df:
     columns = ['p_min', 'p_max', 'p_avg', 'bin_width', 'precision', 'count']
@@ -290,63 +293,90 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, pos_lab
 
     if bin_size:
         thresholds = np.arange(0.0, 1.0, bin_size).tolist()
+        # loop through prediction intervals, and compute
+        for bin_min, bin_max in zip(thresholds, thresholds[1:] + [1.0]):
+            if bin_min != bin_max:
+                new_row_dict = {
+                    'p_min': [bin_min],
+                    'p_max': [bin_max],
+                    'p_avg': [bin_min + (bin_max - bin_min) / 2.0],
+                    'bin_width': [bin_max - bin_min]
+                }
+
+                if bin_min == 0.0:
+                    new_row_dict['p_avg'] = predictions_df[
+                            (predictions_df.pred_proba >= bin_min)
+                            & (predictions_df.pred_proba <= bin_max)
+                        ]['pred_proba'].mean()
+                    new_row_dict['precision'] = (
+                        predictions_df[
+                            (predictions_df.pred_proba >= bin_min)
+                            & (predictions_df.pred_proba <= bin_max)
+                        ].target == pos_label
+                    ).mean()
+                    new_row_dict['count'] = predictions_df[
+                            (predictions_df.pred_proba >= bin_min)
+                            & (predictions_df.pred_proba <= bin_max)
+                        ].target.count()
+                    if n_classes > 1:
+                        for i in range(n_classes):
+                            new_row_dict['precision_' + str(i)] = (
+                                predictions_df[
+                                    (predictions_df.pred_proba >= bin_min)
+                                    & (predictions_df.pred_proba <= bin_max)
+                                ].target == i
+                            ).mean()
+                else:
+                    new_row_dict['p_avg'] = predictions_df[
+                            (predictions_df.pred_proba > bin_min)
+                            & (predictions_df.pred_proba <= bin_max)
+                        ]['pred_proba'].mean()
+                    new_row_dict['precision'] = (
+                        predictions_df[
+                            (predictions_df.pred_proba > bin_min)
+                            & (predictions_df.pred_proba <= bin_max)
+                        ].target == pos_label
+                    ).mean()
+                    new_row_dict['count'] = (
+                        predictions_df[
+                            (predictions_df.pred_proba > bin_min)
+                            & (predictions_df.pred_proba <= bin_max)
+                        ].target == pos_label
+                    ).count()
+                    if n_classes > 1:
+                        for i in range(n_classes):
+                            new_row_dict['precision_' + str(i)] = (
+                                predictions_df[
+                                    (predictions_df.pred_proba > bin_min)
+                                    & (predictions_df.pred_proba <= bin_max)
+                                ].target == i
+                            ).mean()
+                new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns)
+                precision_df = pd.concat([precision_df, new_row_df])
+        
     elif quantiles:
-        thresholds = np.quantile(pred_probas, np.arange(0, 1.0, 1.0 / quantiles)).tolist()
+        preds_quantiles = np.array_split(predictions_df.pred_proba.values, quantiles)
+        target_quantiles = np.array_split(predictions_df.target.values, quantiles)
 
-    # loop through prediction intervals, and compute
-    for bin_min, bin_max in zip(thresholds, thresholds[1:] + [1.0]):
-        if bin_min != bin_max:
+        last_p_max = 0.0
+        for preds, targets in zip(preds_quantiles, target_quantiles):
             new_row_dict = {
-                'p_min': [bin_min],
-                'p_max': [bin_max],
-                'p_avg': [bin_min + (bin_max - bin_min) / 2.0],
-                'bin_width': [bin_max - bin_min]
-            }
+                    'p_min': [last_p_max],
+                    'p_max': [preds.max()],
+                    'p_avg': [preds.mean()],
+                    'bin_width': [preds.max() - last_p_max],
+                    'precision': [np.mean(targets==pos_label)],
+                    'count' : [len(preds)],
 
-            if bin_min == 0.0:
-                new_row_dict['precision'] = (
-                    predictions_df[
-                        (predictions_df.pred_proba >= bin_min)
-                        & (predictions_df.pred_proba <= bin_max)
-                    ].target == pos_label
-                ).mean()
-                new_row_dict['count'] = (
-                    predictions_df[
-                        (predictions_df.pred_proba >= bin_min)
-                        & (predictions_df.pred_proba <= bin_max)
-                    ].target == pos_label
-                ).count()
-                if n_classes > 1:
-                    for i in range(n_classes):
-                        new_row_dict['precision_' + str(i)] = (
-                            predictions_df[
-                                (predictions_df.pred_proba >= bin_min)
-                                & (predictions_df.pred_proba <= bin_max)
-                            ].target == i
-                        ).mean()
-            else:
-                new_row_dict['precision'] = (
-                    predictions_df[
-                        (predictions_df.pred_proba > bin_min)
-                        & (predictions_df.pred_proba <= bin_max)
-                    ].target == pos_label
-                ).mean()
-                new_row_dict['count'] = (
-                    predictions_df[
-                        (predictions_df.pred_proba > bin_min)
-                        & (predictions_df.pred_proba <= bin_max)
-                    ].target == pos_label
-                ).count()
-                if n_classes > 1:
-                    for i in range(n_classes):
-                        new_row_dict['precision_' + str(i)] = (
-                            predictions_df[
-                                (predictions_df.pred_proba > bin_min)
-                                & (predictions_df.pred_proba <= bin_max)
-                            ].target == i
-                        ).mean()
+                }
+            if n_classes > 1:
+                for i in range(n_classes):
+                    new_row_dict['precision_' + str(i)] = np.mean(targets==i)
+
             new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns)
             precision_df = pd.concat([precision_df, new_row_df])
+            last_p_max = preds.max()
+    
     return precision_df
 
 

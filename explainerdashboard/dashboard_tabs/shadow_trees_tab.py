@@ -30,6 +30,8 @@ class ShadowTreesTab:
     def layout(self):
         return dbc.Container([
             self.label_selector.layout() if self.standalone else None,
+            # need to add dummy to make callbacks on tab change work:
+            html.Div(id='tabs') if self.standalone else None, 
             shadow_trees_layout(self.explainer, round=self.round)
         ], fluid=True)
         
@@ -73,16 +75,24 @@ def shadow_trees_layout(explainer, round=2, **kwargs):
                 ),
             ], width={"size": 6, "offset": 3})
         ]), 
+        dbc.Row([
+            dbc.Col([
+                 dcc.Loading(id="loading-svg-graph", 
+                            children=[html.Img(id='dtreeviz-svg')])
+            ])
+            
+        ])
     ],  fluid=True)
 
 
 def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
             Output('tree-input-index', 'value'),
-            [Input('tree-index-button', 'n_clicks')]
+            [Input('tree-index-button', 'n_clicks')],
+            [State('tabs', 'value')]
         )
-    def update_tree_input_index(n_clicks):
-            return explainer.random_index(return_str=True)
+    def update_tree_input_index(n_clicks, tab):
+        return explainer.random_index(return_str=True)
 
     @app.callback(
         Output('tree-index-store', 'data'),
@@ -102,22 +112,23 @@ def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
         Output('tree-predictions-graph', 'figure'),
         [Input('tree-index-store', 'data'),
-         Input('label-store', 'data')]
+         Input('label-store', 'data')],
+        [State('tabs', 'value')]
     )
-    def update_tree_graph(index, pos_label):
+    def update_tree_graph(index, pos_label, tab):
         if index is not None:
             return explainer.plot_trees(index, round=round)
         raise PreventUpdate
 
     @app.callback(
         [Output('tree-basevalue', 'children'),
-        Output('tree-predictions-table', 'columns'),
-        Output('tree-predictions-table', 'data'),],
+         Output('tree-predictions-table', 'columns'),
+         Output('tree-predictions-table', 'data'),],
         [Input('tree-predictions-graph', 'clickData'),
          Input('tree-index-store', 'data'),
          Input('label-store', 'data')],
-        [State('tree-predictions-table', 'columns')])
-    def display_click_data(clickData, idx, pos_label, old_columns):
+        [State('tabs', 'value')])
+    def display_click_data(clickData, idx, pos_label, tab):
         if clickData is not None and idx is not None:
             model = int(clickData['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickData is not None else 0
             (baseval, prediction, 
@@ -125,4 +136,20 @@ def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
             columns=[{'id': c, 'name': c} for c in  shadowtree_df.columns.tolist()]
             baseval_str = f"Tree no {model}, Starting prediction   : {baseval}, final prediction : {prediction}"
             return (baseval_str, columns, shadowtree_df.to_dict('records'))
+        raise PreventUpdate
+
+
+    @app.callback(
+        Output('dtreeviz-svg', 'src'),
+        [Input('tree-predictions-graph', 'clickData'),
+         Input('tree-index-store', 'data'),
+         Input('label-store', 'data')],
+        [State('tabs', 'value')])
+    def display_click_data(clickData, idx, pos_label, tab):
+        if (clickData is not None 
+            and idx is not None 
+            and explainer.graphviz_available):
+            model = int(clickData['points'][0]['text'].split('tree no ')[1].split(':')[0]) 
+            svg_encoded = explainer.decision_path_encoded(model, idx)
+            return svg_encoded
         raise PreventUpdate

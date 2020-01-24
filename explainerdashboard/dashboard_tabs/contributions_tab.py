@@ -30,8 +30,10 @@ class ContributionsTab:
     def layout(self):
         return dbc.Container([
             self.label_selector.layout() if self.standalone else None,
+            # need to add dummy to make callbacks on tab change work:
+            html.Div(id='tabs') if self.standalone else None, 
             contributions_layout(self.explainer,  
-                    n_features=self.n_features, round=self.round)
+                    n_features=self.n_features, round=self.round, **self.kwargs)
         ], fluid=True)
     
     def register_callbacks(self, app):
@@ -59,6 +61,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
 
     if explainer.is_classifier:
         index_choice_form = dbc.Form([
+
                 dbc.FormGroup([
                     dcc.RangeSlider(
                         id='prediction-range-slider',
@@ -77,6 +80,14 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                             {'label': 'Both/either', 'value': 'any'},
                         ],
                         value='any',
+                        inline=True),
+                    dbc.RadioItems(
+                        id='preds-or-ranks',
+                        options=[
+                            {'label': 'Use predictions', 'value': 'preds'},
+                            {'label': 'Use ranks', 'value': 'ranks'},
+                        ],
+                        value='preds',
                         inline=True)
                 ])        
             ])
@@ -164,16 +175,25 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
             Output('input-index', 'value'),
             [Input('index-button', 'n_clicks')],
             [State('prediction-range-slider', 'value'),
-             State('include-labels', 'value')]
+             State('include-labels', 'value'),
+             State('preds-or-ranks', 'value'),
+             State('tabs', 'value')]
         )
-        def update_input_index(n_clicks, slider_range, include):
+        def update_input_index(n_clicks, slider_range, include, preds_or_ranks, tab):
             y = None
             if include=='neg': y = 0 
             elif include=='pos': y = 1
             return_str = True if explainer.idxs is not None else False
-            idx = explainer.random_index(
+
+            if preds_or_ranks == 'preds':
+                idx = explainer.random_index(
                     y_values=y, pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
                     return_str=return_str)
+            elif preds_or_ranks == 'ranks':
+                idx = explainer.random_index(
+                    y_values=y, rank_min=slider_range[0], rank_max=slider_range[1],
+                    return_str=return_str)
+
             if idx is not None:
                 return idx
             raise PreventUpdate
@@ -224,15 +244,22 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
         int_idx = explainer.get_int_idx(index)
         if explainer.is_classifier:
             def display_probas(pred_probas_raw, labels, round=2):
-                assert len(pred_probas_raw.shape)==1 and len(pred_probas_raw) ==len(labels)
+                assert (len(pred_probas_raw.shape)==1 
+                        and len(pred_probas_raw) ==len(labels))
                 for i in range(len(labels)):
-                    yield '##### ' + labels[i] + ': ' + str(np.round(100*pred_probas_raw[i], round))+ '%\n'
+                    yield '##### ' + labels[i] + ': ' + str(np.round(100*pred_probas_raw[i], round)) + '%\n'
 
             model_prediction = f"# Prediction for {index}:\n" 
-            for pred in display_probas(explainer.pred_probas_raw[int_idx], explainer.labels, round):
+            for pred in display_probas(
+                    explainer.pred_probas_raw[int_idx], 
+                    explainer.labels, round):
                 model_prediction += pred
-            if isinstance(explainer.y[0], int) or isinstance(explainer.y[0], np.int64):
-                model_prediction += f"##### Actual Outcome: {explainer.labels[explainer.y[int_idx]]}"
+            if (isinstance(explainer.y[0], int) or 
+                isinstance(explainer.y[0], np.int64)):
+                model_prediction += f"##### Actual Outcome: {explainer.labels[explainer.y[int_idx]]}\n\n"
+
+            model_prediction += f'##### In top {np.round(100*(1-explainer.ranks[int_idx]))}% prediction {explainer.pos_label_str}'
+        
         else:
             model_prediction = f"# Prediction for {index}:\n" \
                                 + f"##### Prediction: {np.round(explainer.preds[int_idx], round)}\n"
