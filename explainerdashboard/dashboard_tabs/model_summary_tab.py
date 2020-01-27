@@ -56,7 +56,7 @@ class ModelSummaryTab:
 
 
 class ImportancesStats:
-    def __init__(self, explainer, n_features=15):
+    def __init__(self, explainer, n_features=None):
         self.explainer = explainer
         self.n_features = n_features
     
@@ -87,8 +87,8 @@ class ImportancesStats:
                     html.Label('Select max number of importances to display:'),
                     dcc.Dropdown(id='importance-tablesize',
                                         options = [{'label': str(i+1), 'value':i+1} 
-                                                    for i in range(len(self.explainer.columns))],
-                                        value=min(self.n_features, len(self.explainer.columns)))
+                                                    for i in range(len(self.explainer.columns_cats))],
+                                        value=min(self.n_features, len(self.explainer.columns_cats)))
                 ]),
                 dbc.Col([
                     html.Div([
@@ -97,7 +97,8 @@ class ImportancesStats:
                         [
                             dbc.RadioButton(
                                 id='group-categoricals', 
-                                className="form-check-input"),
+                                className="form-check-input",
+                                checked=True),
                             dbc.Label("Group Cats",
                                     html_for='group-categoricals',
                                     className="form-check-label"),

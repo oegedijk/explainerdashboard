@@ -28,9 +28,9 @@ class ExplainerDashboard:
     """
     def __init__(self, explainer, title='Model Explainer',   
                 tabs=None,
-                model_summary=True,  
-                contributions=True,
-                shap_dependence=True,
+                model_summary=False,  
+                contributions=False,
+                shap_dependence=False,
                 shap_interaction=False,
                 shadow_trees=False,
                 plotly_template="none",
@@ -89,7 +89,7 @@ class ExplainerDashboard:
         self.title_and_label_selector = TitleAndLabelSelector(explainer, title=title)
         self.tabs = [] if tabs is None else tabs
         self._insert_tabs()
-        assert len(self.tabs) > 0, 'need to pass at least one tab!'
+        assert len(self.tabs) > 0, 'need to pass at least one tab! e.g. model_summary=True'
         
         self.tab_layouts = [
             dcc.Tab(children=tab.layout(), label=tab.title, id=tab.tab_id) 

@@ -15,6 +15,10 @@
 
 ## Dashboard:
 - add dependence plot to importances list
+- COntributions: add div margin to index selector
+- move number of features to display
+- add option for vertical contributions?
+- reformat contributions table
 
 ## Methods:
 

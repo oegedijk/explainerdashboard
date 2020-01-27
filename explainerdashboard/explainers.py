@@ -168,6 +168,22 @@ class BaseExplainerBunch(ABC):
                                 .values)
         return self._ranks
 
+    def columns_ranked(self, cats=False):
+        if cats:
+            return self.mean_abs_shap_cats.Feature.tolist()
+        else:
+            return self.mean_abs_shap.Feature.tolist()
+
+    def inverse_cats(self, col):
+        """if col in self.columns, return equivalent col in self.columns_cats,
+           if col in self.columns_cats, return equivalent in self.columns
+        """
+        if col in self.columns_cats:
+            new_col = get_feature_dict(self.columns, self.cats)[col][0]
+        else:
+            new_col = [k for k, v in get_feature_dict(self.columns, self.cats).items() if col in v][0]
+        return new_col
+
     def get_col(self, col):
         assert col in self.columns or col in self.cats, \
             f"{col} not in columns!"
@@ -1136,6 +1152,7 @@ class ClassifierBunch(BaseExplainerBunch):
     def shap_interaction_values(self):
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...")
+            _ = self.shap_values #make sure shap values have been calculated
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(self.X)
             if not isinstance(self._shap_interaction_values, list) and len(self.labels)==2:
                 self._shap_interaction_values = [1-self._shap_interaction_values,

@@ -11,8 +11,8 @@ This includes:
 - *Permutation importances* (how much does the model metric deteriorate when you shuffle a feature?)
 - *Partial dependence plots* (how does the model prediction change when you vary a single feature?
 - *Shap interaction values* (decompose the shap value into a direct effect an interaction effects)
-- For Random Forests: what is the prediction of each *individual decision tree*, and what is the path through each tree?
-- Plus for classifiers: precision plots, confusion matrixm, ROC AUC plot, PR AUC plot, etc
+- For Random Forests: what is the prediction of each *individual decision tree*, and what is the path through each tree? (using `dtreeviz`)
+- Plus for classifiers: precision plots, confusion matrix, ROC AUC plot, PR AUC plot, etc
 
 ## Installation
 
