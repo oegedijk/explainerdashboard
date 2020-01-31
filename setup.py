@@ -2,12 +2,25 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.1.7.2',
-    description='package to ease and speed up machine learning model explainability',
-    long_description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of a machine learning model.',
+    version='0.1.8.0',
+    description='library that',
+    long_description="""
+    explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.
+
+    It includes:
+    - Model summary statistics
+    - SHAP values (importances, individual contributions, dependence plots, interaction plots, etc)
+    - permutation importances
+    - partial dependence plots
+    - DecisionTree visualizers
+
+    You can display an interactive dashboard with all of these features with only three lines of code.
+
+    A deployed example can be found at http://titanicexplainer.herokuapp.com
+    """,
     license='MIT',
     packages=find_packages(),
-    package_dir={'explainerdashboard':'explainerdashboard'}, # the one line where all the magic happens
+    package_dir={'explainerdashboard': 'explainerdashboard'}, # the one line where all the magic happens
     package_data={
         'explainerdashboard': ['assets/*', 'datasets/*'],
     },
