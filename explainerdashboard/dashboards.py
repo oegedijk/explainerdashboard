@@ -116,7 +116,9 @@ class ExplainerDashboard:
         if self.shap_interaction:
             self.tabs.append(ShapInteractionsTab(self.explainer, **self.kwargs))
         if self.shadow_trees:
-            assert hasattr(self.explainer, 'shadow_trees')
+            assert hasattr(self.explainer, 'shadow_trees'), \
+                """the explainer object has no shadow_trees property. This tab 
+                only works with a RandomForestClassifierBunch or RandomForestRegressionBunch""" 
             self.tabs.append(ShadowTreesTab(self.explainer, **self.kwargs))
         
     def run(self, port=8050, **kwargs):

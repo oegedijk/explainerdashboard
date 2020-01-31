@@ -519,7 +519,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                                     colorbar=dict(
                                         title=interact_col_name
                                         ),
-                        showscale=True),
+                                    showscale=True),    
                 ))
         data.append(go.Scatter(
                         x=x[X[interact_col_name]==na_fill],
@@ -582,25 +582,103 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     return fig
 
 
-def plotly_shap_violin_plot(X, shap_values, col_name):
+def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, interaction=False):
     assert is_string_dtype(X[col_name]), \
         f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
         
     x = X[col_name]
     shaps = shap_values[:, X.columns.get_loc(col_name)]
+    n_cats = X[col_name].nunique()
     
-    fig = go.Figure()
+    if points or color_col is not None:
+        fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[0.8, 0.2]*n_cats, shared_yaxes=True)
+        showscale = True
+    else:
+        fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
-    for cat in X[col_name].unique():
-        fig.add_trace(go.Violin(x=x[x == cat],
+    for i, cat in enumerate(X[col_name].unique()):
+        col = 1+i*2 if points or color_col is not None else 1+i
+        fig.add_trace(go.Violin(
+                            x=x[x == cat],
                             y=shaps[x == cat],
                             name=cat,
                             box_visible=True,
-                            meanline_visible=True))
+                            meanline_visible=True,  
+                            showlegend=False,
+                               ),
+                     row=1, col=col)
+        if color_col is not None:
+            if is_numeric_dtype(X[color_col]):
+                fig.add_trace(go.Scatter(
+                                x=np.random.randn(len(x[x == cat])),
+                                y=shaps[x == cat],
+                                name=color_col,
+                                mode='markers',
+                                showlegend=False,
+                                hoverinfo="text",
+                                hovertemplate = 
+                                "<i>shap</i>: %{y:.2f}<BR>" +
+                                f"<i>{color_col}" + ": %{marker.color}",
+                                text = [f"shap: {shap}<>{color_col}: {col}" for shap, col in zip(shaps[x == cat], X[color_col][x==cat])],
+                                marker=dict(size=7, 
+                                        opacity=0.6,
+                                        cmin=X[color_col].min(),
+                                        cmax=X[color_col].max(),
+                                        color=X[color_col][x==cat],
+                                        colorscale='Bluered',
+                                        showscale=showscale,
+                                        colorbar=dict(title=color_col)),              
+                                ),
+                         row=1, col=col+1)
+            else:
+                n_color_cats = X[color_col].nunique()
+                colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+                colors = colors * (1+int(n_color_cats / len(colors)))
+                colors = colors[:n_color_cats]
+                for color_cat, color in zip(X[color_col].unique(), colors):
+                    fig.add_trace(go.Scatter(
+                                    x=np.random.randn(len(x[(x == cat) & (X[color_col] == color_cat)])),
+                                    y=shaps[(x == cat) & (X[color_col] == color_cat)],
+                                    name=color_cat,
+                                   
+                                    mode='markers',
+                                    showlegend=showscale,
+                                    hoverinfo="text",
+                                    hovertemplate = 
+                                    "<i>shap</i>: %{y:.2f}<BR>" +
+                                    f"<i>{color_col}: {color_cat}",
+                                    marker=dict(size=7, 
+                                                opacity=0.8,
+                                                color=color)           
+                                    ),
+                             row=1, col=col+1)
+                
+            showscale = False
+        elif points:
+            fig.add_trace(go.Scatter(
+                            x=np.random.randn(len(x[x == cat])),
+                            y=shaps[x == cat],
+                            mode='markers',
+                            showlegend=False,
+                            hovertemplate = 
+                            "<i>shap</i>: %{y:.2f}",
+                            marker=dict(size=7, 
+                                    opacity=0.6,
+                                       color='blue'),
+                        ), row=1, col=col+1)
         
-    fig.update_layout(title=f'Shap values for {col_name}')
+    if points or color_col is not None:
+        for i in range(n_cats):
+            fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
+            fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
+        if color_col is not None:
+            fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}<br>(colored by {color_col})', hovermode='closest')
+        else:
+            fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}', hovermode='closest')
+    else:
+        fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}')
+        
     return fig
-
 
 
 def plotly_pdp(pdp_result, 

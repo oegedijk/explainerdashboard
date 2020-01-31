@@ -750,7 +750,7 @@ class BaseExplainerBunch(ABC):
         """
         if cats:
             if col in self.cats:
-                return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats, col)
+                return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats, col, color_col)
             else:
                 return plotly_dependence_plot(self.X_cats, self.shap_values_cats,
                                                 col, color_col,
@@ -777,15 +777,15 @@ class BaseExplainerBunch(ABC):
         :return: Plotly Fig
         :rtype: plotly.Fig
         """
-        if cats and interact_col in self.cats:
+        if cats and col in self.cats:
             return plotly_shap_violin_plot(
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats),
-                interact_col)
+                col, interact_col, interaction=True)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats),
-                interact_col, col, highlight_idx=highlight_idx,
+                col, interact_col, highlight_idx=highlight_idx,
                 interaction=True)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,

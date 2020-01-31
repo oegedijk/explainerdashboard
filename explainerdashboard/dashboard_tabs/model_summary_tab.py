@@ -234,7 +234,7 @@ class ClassifierModelStats:
                                                 0.75: '0.75', 0.99: '0.99'}, 
                                         included=False,
                                         tooltip = {'always_visible' : True})
-                        ], style={'margin': 20}),
+                        ], style={'margin': 0}),
                     ])
                 ]),
             dbc.Row([
@@ -247,7 +247,7 @@ class ClassifierModelStats:
                                                 0.75: '0.75', 0.99: '0.99'}, 
                                         included=False,
                                         tooltip = {'always_visible' : True})
-                        ], style={'margin': 20}),
+                        ], style={'margin': 0}),
                     ])
                 ]),
             dbc.Row([
@@ -279,13 +279,6 @@ class ClassifierModelStats:
         ], fluid=True)
 
     def register_callbacks(self, app, **kwargs):
-
-        @app.callback(
-            Output('precision-cutoff', 'value'),
-            [Input('fraction-cutoff', 'value')]
-        )
-        def update_cutoff(fraction):
-            return np.round(self.explainer.cutoff_fraction(fraction), 2)
 
         @app.callback(
             [Output('bin-size-div', 'style'),
@@ -349,8 +342,6 @@ class ClassifierModelStats:
             return self.explainer.plot_confusion_matrix(
                                 cutoff=cutoff, normalized=percentage)
 
-        
-        
         @app.callback(
             Output('roc-auc-graph', 'figure'),
             [Input('precision-cutoff', 'value'),
@@ -368,6 +359,13 @@ class ClassifierModelStats:
         )
         def update_precision_graph(cutoff, pos_label, tab):
             return self.explainer.plot_pr_auc(cutoff=cutoff)
+
+        @app.callback(
+            Output('precision-cutoff', 'value'),
+            [Input('fraction-cutoff', 'value')]
+        )
+        def update_cutoff(fraction):
+            return np.round(self.explainer.cutoff_fraction(fraction), 2)
 
 class RegressionModelStats:
     def __init__(self, explainer, round=2, logs=False, vs_actual=False, ratio=False):

@@ -67,7 +67,7 @@ def shap_interactions_layout(explainer,
                 dbc.Col([
                     dbc.Label("Feature"),
                     dcc.Dropdown(id='interaction-col', 
-                        options=[{'label': col, 'value':col} 
+                        options=[{'label': col, 'value': col} 
                                     for col in explainer.columns_ranked(cats)],
                         value=explainer.columns_ranked(cats)[0])],
                     width=4), 
