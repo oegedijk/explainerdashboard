@@ -106,19 +106,24 @@ class BaseExplainerBunch(ABC):
     def __len__(self):
         return len(self.X)
 
-    def random_index(self, y_values=None, return_str=False):
+    def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, return_str=False):
         """
         Return a random index from dataset.
         if y_values is given select an index for which y in y_values
         if return_str return str index from self.idxs
         """
-        if y_values is None: y_values = self.y.unique().tolist()
+        if y_min is None:
+            y_min = self.y.min()
+        if y_max is None:
+            y_max = self.y.max()
+        if pred_min is None:
+            pred_min = self.preds.min()
+        if pred_max is None:
+            pred_max = self.preds.max()
 
-        if y_values is None:
-            potential_idxs = self.y.index
-        else:
-            if not isinstance(y_values, list): y_values = [y_values]
-            potential_idxs = self.y[(self.y.isin(y_values))].index
+        potential_idxs = self.y[(self.y>=y_min) & (self.y <= y_max) & 
+                                (self.preds>=pred_min) & (self.preds <= pred_max)].index
+
         if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
         else:
@@ -177,7 +182,7 @@ class BaseExplainerBunch(ABC):
     def inverse_cats(self, col):
         """if col in self.columns, return equivalent col in self.columns_cats,
            if col in self.columns_cats, return equivalent in self.columns
-        """
+        11"""
         if col in self.columns_cats:
             new_col = get_feature_dict(self.columns, self.cats)[col][0]
         else:
@@ -777,15 +782,15 @@ class BaseExplainerBunch(ABC):
         :return: Plotly Fig
         :rtype: plotly.Fig
         """
-        if cats and col in self.cats:
+        if cats and interact_col in self.cats:
             return plotly_shap_violin_plot(
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats),
-                col, interact_col, interaction=True)
+                interact_col, col, interaction=True)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats),
-                col, interact_col, highlight_idx=highlight_idx,
+                interact_col, col, highlight_idx=highlight_idx,
                 interaction=True)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,
@@ -904,8 +909,13 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
                 cmd = ["dot", "-V"]
                 stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
             except:
-                print("""you don't seem to have graphviz in your path (cannot run 'dot -V'), 
-                        so no decision path will be shown on the shadow trees tab""")
+                print("""
+                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
+                so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
+
+                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz 
+                for dtreeviz. 
+                """)
                 self._graphviz_available = False
             else:
                 self._graphviz_available = True

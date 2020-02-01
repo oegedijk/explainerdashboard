@@ -105,7 +105,6 @@ def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
             columns=[{'id': c, 'name': c} 
                         for c in  shadowtree_df.columns.tolist()]
             baseval_str = f"Tree no {model}, Starting prediction   : {baseval}, final prediction : {prediction}"
-            print(baseval, columns, shadowtree_df)
             return (baseval_str, columns, shadowtree_df.to_dict('records'))
         raise PreventUpdate
 

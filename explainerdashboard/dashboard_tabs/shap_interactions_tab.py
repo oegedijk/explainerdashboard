@@ -120,8 +120,9 @@ def shap_interactions_layout(explainer,
                     dcc.Dropdown(id='interaction-interact-col', 
                         options=[{'label': col, 'value':col} 
                                     for col in explainer.columns_ranked(cats)],
-                        value=explainer.columns_ranked(cats)[0])],
-                    width=8), 
+                        value=explainer.shap_top_interactions(explainer.columns_ranked(cats)[0], cats=cats)[1]
+                    ),
+                ], width=8), 
                 dbc.Col([
                     dbc.Label("Highlight index:"),
                     dbc.Input(id='interaction-highlight-index', 
