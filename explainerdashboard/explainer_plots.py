@@ -229,8 +229,7 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, po
 
     below_threshold = (pred_probas[below], targets[below])
     above_threshold = (pred_probas[~below], targets[~below])
-    x=['below cutoff', 'above cutoff', 'all']
-    
+    x = ['below cutoff', 'above cutoff', 'all']
     
     fig = go.Figure()
     for i, label in enumerate(labels):
