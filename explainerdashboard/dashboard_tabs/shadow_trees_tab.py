@@ -88,7 +88,6 @@ def shadow_trees_layout(explainer, round=2, **kwargs):
 
 
 def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
-
     @app.callback(
         [Output('tree-basevalue', 'children'),
          Output('tree-predictions-table', 'columns'),
@@ -129,6 +128,7 @@ def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
         [State('tabs', 'value')]
     )
     def update_tree_graph(index, pos_label, tab):
+        explainer.pos_label=pos_label
         if index is not None:
             return explainer.plot_trees(index, round=round)
         return {}

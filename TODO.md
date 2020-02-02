@@ -7,15 +7,19 @@
 - add multiclass confusion matrix
 - individual trees: highlight selected tree
 - Add feature names to waterfall plot
+- fix percentages difference bug lift plot vs classification plot
 
 ### Regression plots:
 
 ## Explainers:
+- add `get_metrics_dict()` function
 
 ## Dashboard:
+- FIX NOT LOADING UNTIL CLICKED ON CONTRIBUTIONS TAB BUG!
 - add option for vertical contributions?
 - reformat contributions table
 - add final prediction to contributions table
+- 
 
 ## Methods:
 

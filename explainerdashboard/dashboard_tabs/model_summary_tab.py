@@ -126,6 +126,7 @@ class ImportancesStats:
             [State('tabs', 'value')]
         )
         def update_importances(tablesize, cats, permutation_shap, pos_label, tab): 
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_importances(
                         type=permutation_shap, topx=tablesize, cats=cats)
 
@@ -304,6 +305,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage)
 
         @app.callback(
@@ -317,6 +319,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             if bins=='bin_size':
                 return self.explainer.plot_precision(
                     bin_size=bin_size, cutoff=cutoff, multiclass=multiclass)
@@ -333,6 +336,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_classification(cutoff=cutoff, percentage=percentage)
 
         @app.callback(
@@ -343,6 +347,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, percentage, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_confusion_matrix(
                                 cutoff=cutoff, normalized=percentage)
 
@@ -353,6 +358,7 @@ class ClassifierModelStats:
              Input('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_roc_auc(cutoff=cutoff)
 
         @app.callback(
@@ -362,6 +368,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_pr_auc(cutoff=cutoff)
 
         @app.callback(
@@ -452,13 +459,13 @@ class RegressionModelStats:
         
 
     def register_callbacks(self, app, **kwargs):
-
         @app.callback(
             Output('model-summary', 'children'),
             [Input('label-store', 'data')],
             [State('tabs', 'value')]
         )
         def update_model_summary(pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             rmse = np.round(np.sqrt(mean_squared_error(self.explainer.y, self.explainer.preds)), 2)
             mae = np.round(mean_absolute_error(self.explainer.y, self.explainer.preds), 2)
             r2 = np.round(r2_score(self.explainer.y, self.explainer.preds), 2)
@@ -480,6 +487,7 @@ class RegressionModelStats:
             [State('tabs', 'value')]
         )
         def update_predicted_vs_actual_graph(logs, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_predicted_vs_actual(logs=logs)
 
         @app.callback(
@@ -490,6 +498,7 @@ class RegressionModelStats:
             [State('tabs', 'value')],
         )
         def update_residuals_graph(pred_or_actual, ratio, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             vs_actual = pred_or_actual=='vs_actual'
             return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
 
@@ -501,6 +510,7 @@ class RegressionModelStats:
             [State('tabs', 'value')],
         )
         def update_residuals_graph(col, ratio, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
 
 

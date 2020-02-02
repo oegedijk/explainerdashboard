@@ -264,6 +264,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     def update_output_div(index, topx, pos_label):
         if index is None:
             raise PreventUpdate
+        explainer.pos_label = pos_label #needed in case of multiple workers
         int_idx = explainer.get_int_idx(index)
         if explainer.is_classifier:
             def display_probas(pred_probas_raw, labels, round=2):
@@ -308,4 +309,5 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
          Input('label-store', 'data')]
     )
     def update_pdp_graph(idx, col, pos_label):
+        explainer.pos_label = pos_label #needed in case of multiple workers
         return explainer.plot_pdp(col, idx, sample=100)
