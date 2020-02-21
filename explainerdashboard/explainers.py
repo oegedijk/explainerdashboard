@@ -984,7 +984,7 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
         return svg_encoded
 
 
-    def plot_trees(self, index, round=2):
+    def plot_trees(self, index, highlight_tree=None, round=2):
         """returns a plotly barchart with the values of the predictions
                 of each individual tree for observation idx"""
         #print('explainer call')
@@ -992,9 +992,10 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
         assert idx is not None, 'invalid index'
         if self.is_classifier:
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
-                        round=round, pos_label=self.pos_label)
+                        highlight_tree=highlight_tree, round=round, pos_label=self.pos_label)
         else:
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], round)
+            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
+                        highlight_tree=highlight_tree, round=round)
 
     def calculate_properties(self, include_interactions=True):
         _ = self.shadow_trees
@@ -1135,7 +1136,7 @@ class ClassifierBunch(BaseExplainerBunch):
                 self._shap_values = [1-self._shap_values, self._shap_values]
 
             assert len(self._shap_values)==len(self.labels),\
-                f"len(shap_values)={len(self._shap_base_value)}"\
+                f"len(shap_values)={len(self._shap_values)}"\
                  + f"and len(labels)={len(self.labels)} do not match!"
         return self._shap_values[self.pos_label]
 

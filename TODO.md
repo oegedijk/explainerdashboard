@@ -1,5 +1,15 @@
 
 # TODO:
+- model summary markdown
+- metrics (classifier + regression)
+- cutoff_fraction -> rename cutoff_from_percentile
+- shadowtree_df_summary only return df
+- plot_shap_importances()
+- plot_shap_summary() ?
+- rename columns_ranked
+- rename shadow trees -> individual trees
+- rename plotly_ from all plotting functions
+
 
 ## Layout:
 

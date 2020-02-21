@@ -90,23 +90,18 @@ def shadow_trees_layout(explainer, round=2, **kwargs):
 def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
 
     @app.callback(
-        [Output('tree-basevalue', 'children'),
-         Output('tree-predictions-table', 'columns'),
-         Output('tree-predictions-table', 'data')],
+        [Output('tree-predictions-table', 'data'),
+         Output('tree-predictions-table', 'columns')],
         [Input('tree-predictions-graph', 'clickData')],
-         #Input('label-store', 'data')], #this causes issues for some reason, only on this tab??
+         # Input('label-store', 'data')], #this causes issues for some reason, only on this tab??
         [State('tree-index-store', 'data'),
          State('tabs', 'value')])
-    def display_tree_click_data(clickData, idx, tab):
-        if clickData is not None and idx is not None:
-            model = int(clickData['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickData is not None else 0
-            (baseval, prediction, shadowtree_df) = \
-                explainer.shadowtree_df_summary(model, idx, round=round)
-            columns=[{'id': c, 'name': c} 
-                        for c in  shadowtree_df.columns.tolist()]
-            baseval_str = f"Tree no {model}, Starting prediction   : {baseval}, final prediction : {prediction}"
-            print(baseval, columns, shadowtree_df)
-            return (baseval_str, columns, shadowtree_df.to_dict('records'))
+    def display_tree_click_data(clickdata, idx, tab):
+        if clickdata is not None and idx is not None:
+            model = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else 0
+            _, _, shadowtree_df = explainer.shadowtree_df_summary(model, idx, round=round)
+            columns = [{'id': c, 'name': c} for c in  shadowtree_df.columns.tolist()]
+            return (shadowtree_df.to_dict('records'), columns)
         raise PreventUpdate
 
     @app.callback(
@@ -126,12 +121,14 @@ def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
         Output('tree-predictions-graph', 'figure'),
         [Input('tree-index-store', 'data'),
-         Input('label-store', 'data')],
+         Input('label-store', 'data'),
+         Input('tree-predictions-graph', 'clickData')],
         [State('tabs', 'value')]
     )
-    def update_tree_graph(index, pos_label, tab):
+    def update_tree_graph(index, pos_label, clickdata, tab):
         if index is not None:
-            return explainer.plot_trees(index, round=round)
+            highlight_tree = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else None
+            return explainer.plot_trees(index, highlight_tree=highlight_tree, round=round)
         return {}
 
     @app.callback(

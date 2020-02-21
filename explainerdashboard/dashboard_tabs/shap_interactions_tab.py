@@ -135,7 +135,7 @@ def shap_interactions_layout(explainer,
                          children=[dcc.Graph(id='reverse-interaction-graph')]),
         ], width=6)
     ]), 
-    ],  fluid=True)
+    ], fluid=True)
 
 
 def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10, **kwargs):
@@ -152,6 +152,9 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         cols = explainer.columns_ranked(cats)
         col_options = [{'label': col, 'value': col} for col in cols] 
         if col not in cols:
+            # if currently selected col is not in new col options (i.e. because
+            # grouped cat and switched to onehot or reverse), get the equivalent
+            # col
             col = explainer.inverse_cats(col)
         depth_options = [{'label': str(i+1), 'value': i+1} for i in range(len(cols))]
         depth = len(cols)-1

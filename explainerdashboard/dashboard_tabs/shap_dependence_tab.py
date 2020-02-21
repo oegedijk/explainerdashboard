@@ -136,7 +136,6 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
     def update_dependence_shap_scatter_graph(summary_type, cats, depth, pos_label, tab):
         ctx = dash.callback_context
         if ctx.triggered:
-            if depth is None: depth = 10
             if summary_type=='aggregate':
                 plot = explainer.plot_importances(
                         type='shap', topx=depth, cats=cats)
@@ -146,6 +145,7 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
 
             if trigger=='dependence-group-categoricals':
+                # if change to group cats, adjust columns and depth
                 if cats:
                     col_options = [{'label':col, 'value':col} 
                                 for col in explainer.columns_cats]
@@ -170,10 +170,12 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
     def display_scatter_click_data(clickdata, cats):
         if clickdata is not None and clickdata['points'][0] is not None:
             if isinstance(clickdata['points'][0]['y'], float): # detailed
+                # if detailed, clickdata returns scatter marker location -> type==float
                 idx = clickdata['points'][0]['pointIndex']
                 col = clickdata['points'][0]['text'].split('=')[0]                             
                 return (idx, col)
-            elif  isinstance(clickdata['points'][0]['y'], str): # aggregate
+            elif isinstance(clickdata['points'][0]['y'], str): # aggregate
+                # in aggregate clickdata returns col name -> type==str
                 col = clickdata['points'][0]['y']
                 return (dash.no_update, col) 
         raise PreventUpdate
@@ -187,7 +189,7 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         sorted_interact_cols = explainer.shap_top_interactions(col, cats=cats)
         options = [{'label': col, 'value':col} 
                                     for col in sorted_interact_cols]
-        value =   sorted_interact_cols[1]                                
+        value = sorted_interact_cols[1]                                
         return (options, value)
 
 

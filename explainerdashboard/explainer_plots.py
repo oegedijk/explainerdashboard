@@ -835,32 +835,46 @@ def plotly_importances_plot(importance_df):
     return fig
 
 
-def plotly_tree_predictions(model, observation, round=2, pos_label=1):
+def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, pos_label=1):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
     """
-    #print('plotly call', pos_label)
-    #print('plotly call', observation)
+    assert (str(type(model)).endswith("RandomForestClassifier'>") 
+            or str(type(model)).endswith("RandomForestRegressor'>")), \
+        f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
+    
+    colors = ['blue'] * len(model.estimators_) 
+    if highlight_tree is not None:
+        assert highlight_tree >= 0 and highlight_tree <= len(model.estimators_), \
+            f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
+        colors[highlight_tree] = 'red'
+        
     if model.estimators_[0].classes_[0] is not None: #if classifier
-        preds_df = pd.DataFrame({
+        preds_df = (
+            pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
                 'prediction' : [
                         np.round(100*m.predict_proba(observation)[0, pos_label], round) 
-                                    for m in model.estimators_]
-            })\
+                                    for m in model.estimators_],
+                'color' : colors
+            })
             .sort_values('prediction')\
-            .reset_index(drop=True)
+            .reset_index(drop=True))
     else:
-        preds_df = pd.DataFrame({
-            'model' : range(len(model.estimators_)), 
-            'prediction' : [np.round(m.predict(observation)[0] , round)
-                                for m in model.estimators_]})\
+        preds_df = (
+            pd.DataFrame({
+                'model' : range(len(model.estimators_)), 
+                'prediction' : [np.round(m.predict(observation)[0] , round)
+                                    for m in model.estimators_],
+                'color' : colors
+            })
             .sort_values('prediction')\
-            .reset_index(drop=True)
-        
+            .reset_index(drop=True))
+      
     trace0 = go.Bar(x=preds_df.index, 
                     y=preds_df.prediction, 
+                    marker_color=preds_df.color,
                     text=[f"tree no {t}:<br> prediction={p}<br> click for detailed info"
                              for (t, p) in zip(preds_df.model.values, preds_df.prediction.values)],
                     hoverinfo="text")
@@ -871,18 +885,18 @@ def plotly_tree_predictions(model, observation, round=2, pos_label=1):
             )
     fig = go.Figure(data = [trace0], layout=layout)
     shapes = [dict(
-                        type='line',
-                        xref='x',
-                        yref='y',
-                        x0=0,
-                        x1=preds_df.model.max(),
-                        y0=preds_df.prediction.mean(),
-                        y1=preds_df.prediction.mean(),
-                        line=dict(
-                            color="darkslategray",
-                            width=4,
-                            dash="dot"),
-                        )]
+                type='line',
+                xref='x',
+                yref='y',
+                x0=0,
+                x1=preds_df.model.max(),
+                y0=preds_df.prediction.mean(),
+                y1=preds_df.prediction.mean(),
+                line=dict(
+                    color="darkslategray",
+                    width=4,
+                    dash="dot"),
+                )]
     
     annotations = [go.layout.Annotation(x=preds_df.model.mean(), 
                                          y=preds_df.prediction.mean(),
