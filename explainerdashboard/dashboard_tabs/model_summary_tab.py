@@ -126,6 +126,7 @@ class ImportancesStats:
             [State('tabs', 'value')]
         )
         def update_importances(tablesize, cats, permutation_shap, pos_label, tab): 
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_importances(
                         type=permutation_shap, topx=tablesize, cats=cats)
 
@@ -143,7 +144,7 @@ class ClassifierModelStats:
                     html.Div([
                         dcc.Loading(id="loading-lift-curve", 
                                 children=[dcc.Graph(id='lift-curve-graph')]),
-                    ], style={'margin': 20}),
+                    ], style={'margin': 0}),
                     dbc.FormGroup([
                         dbc.RadioButton(
                             id="lift-curve-percentage", 
@@ -162,25 +163,29 @@ class ClassifierModelStats:
                     html.Div([
                         dcc.Loading(id="loading-precision-graph", 
                                 children=[dcc.Graph(id='precision-graph')]),
-                    ], style={'margin': 20}),
+                    ], style={'margin': 0}),
                     html.Div([
                         dbc.Label('Bin size:', html_for='precision-binsize'),
-                        dcc.Slider(id='precision-binsize', 
+                        html.Div([
+                            dcc.Slider(id='precision-binsize', 
                                     min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
                                     marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
                                         0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
                                         0.5: '0.5'}, 
                                     included=False,
-                                    tooltip = {'always_visible' : True}),
-                    ], id='bin-size-div'),
+                                    tooltip = {'always_visible' : False})
+                        ], style={'margin-bottom': 25}),
+                    ], id='bin-size-div', style={'margin': 5}),
                     html.Div([
                         dbc.Label('Quantiles:', html_for='precision-quantiles'),
-                        dcc.Slider(id='precision-quantiles', 
-                                    min = 1, max = 20, step=1, value=self.quantiles,
-                                    marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
-                                    included=False,
-                                    tooltip = {'always_visible' : True}),
-                    ], id='quantiles-div'),
+                        html.Div([
+                            dcc.Slider(id='precision-quantiles', 
+                                        min = 1, max = 20, step=1, value=self.quantiles,
+                                        marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
+                                        included=False,
+                                        tooltip = {'always_visible' : False}),
+                        ], style={'margin-bottom':25}),
+                    ], id='quantiles-div', style={'margin': 5}),
                     dbc.Label('Binning Method:', html_for='binsize-or-quantiles'),
                     dbc.RadioItems(
                         id='binsize-or-quantiles',
@@ -208,7 +213,7 @@ class ClassifierModelStats:
                     html.Div([
                                 dcc.Loading(id="loading-classification-graph", 
                                             children=[dcc.Graph(id='classification-graph')]),
-                    ], style={'margin': 20}),
+                    ], style={'margin': 0}),
 
                     dbc.FormGroup([
                                 dbc.RadioButton(
@@ -227,27 +232,27 @@ class ClassifierModelStats:
             dbc.Row([
                     dbc.Col([
                         html.Div([
-                            html.Label('Cutoff:'),
+                            html.Label('Cutoff prediction probability:'),
                             dcc.Slider(id='precision-cutoff', 
                                         min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                         marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                 0.75: '0.75', 0.99: '0.99'}, 
                                         included=False,
-                                        tooltip = {'always_visible' : True})
-                        ], style={'margin': 0}),
+                                        tooltip = {'always_visible' : False})
+                        ], style={'margin-bottom': 25}),
                     ])
                 ]),
             dbc.Row([
                     dbc.Col([
                         html.Div([
-                            html.Label('Cutoff fraction:'),
+                            html.Label('Cutoff fraction of samples:'),
                             dcc.Slider(id='fraction-cutoff', 
                                         min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                         marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                 0.75: '0.75', 0.99: '0.99'}, 
                                         included=False,
-                                        tooltip = {'always_visible' : True})
-                        ], style={'margin': 0}),
+                                        tooltip = {'always_visible' : False})
+                        ], style={'margin-bottom': 25}),
                     ])
                 ]),
             dbc.Row([
@@ -300,6 +305,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage)
 
         @app.callback(
@@ -313,6 +319,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             if bins=='bin_size':
                 return self.explainer.plot_precision(
                     bin_size=bin_size, cutoff=cutoff, multiclass=multiclass)
@@ -329,6 +336,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_classification(cutoff=cutoff, percentage=percentage)
 
         @app.callback(
@@ -339,6 +347,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, percentage, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_confusion_matrix(
                                 cutoff=cutoff, normalized=percentage)
 
@@ -349,6 +358,7 @@ class ClassifierModelStats:
              Input('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_roc_auc(cutoff=cutoff)
 
         @app.callback(
@@ -358,6 +368,7 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_pr_auc(cutoff=cutoff)
 
         @app.callback(
@@ -394,7 +405,7 @@ class RegressionModelStats:
                     dcc.Loading(id="loading-model-summary", 
                                 children=[dcc.Markdown(id='model-summary')]),      
                 ], width=6),
-            ]),
+            ], align="start"),
             dbc.Row([
                 dbc.Col([
 
@@ -448,14 +459,14 @@ class RegressionModelStats:
         
 
     def register_callbacks(self, app, **kwargs):
-
         @app.callback(
             Output('model-summary', 'children'),
             [Input('label-store', 'data')],
             [State('tabs', 'value')]
         )
         def update_model_summary(pos_label, tab):
-            rmse = np.round(mean_squared_error(self.explainer.y, self.explainer.preds, squared=False), 2)
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
+            rmse = np.round(np.sqrt(mean_squared_error(self.explainer.y, self.explainer.preds)), 2)
             mae = np.round(mean_absolute_error(self.explainer.y, self.explainer.preds), 2)
             r2 = np.round(r2_score(self.explainer.y, self.explainer.preds), 2)
             summary = f"""
@@ -476,6 +487,7 @@ class RegressionModelStats:
             [State('tabs', 'value')]
         )
         def update_predicted_vs_actual_graph(logs, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_predicted_vs_actual(logs=logs)
 
         @app.callback(
@@ -486,6 +498,7 @@ class RegressionModelStats:
             [State('tabs', 'value')],
         )
         def update_residuals_graph(pred_or_actual, ratio, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             vs_actual = pred_or_actual=='vs_actual'
             return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
 
@@ -497,6 +510,7 @@ class RegressionModelStats:
             [State('tabs', 'value')],
         )
         def update_residuals_graph(col, ratio, pos_label, tab):
+            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
 
 

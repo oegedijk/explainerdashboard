@@ -337,13 +337,9 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
                         hovermode="x",
                         plot_bgcolor = '#fff')
 
-    fig.update_layout(legend=dict(#orientation="h",
-                                    xanchor="center",
-                                    y=0.9,
-                                    x=0.1))
+    fig.update_layout(legend=dict(xanchor="center", y=0.9, x=0.1))
     
     if cutoff is not None:
-        
         cutoff_idx = (np.abs(lift_curve_df.pred_proba - cutoff)).argmin()
         if percentage:
             cutoff_x = lift_curve_df['index_percentage'].iloc[cutoff_idx]
@@ -365,8 +361,9 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
                                         x1=cutoff_x,
                                         y0=0,
                                         y1=100.0 if percentage else lift_curve_df.positives.max(),
-                                     )],
-                         annotations=[
+                                     )]
+        )
+        fig.update_layout(annotations=[
                                     go.layout.Annotation(
                                         x=cutoff_x, 
                                         y=5, 
@@ -390,12 +387,11 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
                                         xref='paper', yref='paper',
                                         xanchor='left', yanchor='top'
                                         )
-                         ])
+        ])
     return fig
 
 
 def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
-
     if labels is None:
         labels = ['category ' + str(i) for i in range(lift_curve_df.y.max()+1)]
     fig = go.Figure()
@@ -582,6 +578,12 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
 
 
 def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, interaction=False):
+    """
+    Returns a violin plot for categorical values. 
+
+    if points=True or color_col is not None, a scatterplot of points is plotted next to the violin plots.
+    If color_col is given, scatter is colored by color_col.
+    """
     assert is_string_dtype(X[col_name]), \
         f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
         
@@ -590,10 +592,12 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     n_cats = X[col_name].nunique()
     
     if points or color_col is not None:
-        fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[0.8, 0.2]*n_cats, shared_yaxes=True)
+        fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
         showscale = True
     else:
         fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
+
+    fig.update_yaxes(range=[shaps.min()*1.3, shaps.max()*1.3])  
 
     for i, cat in enumerate(X[col_name].unique()):
         col = 1+i*2 if points or color_col is not None else 1+i
@@ -665,7 +669,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                                     opacity=0.6,
                                        color='blue'),
                         ), row=1, col=col+1)
-        
+
     if points or color_col is not None:
         for i in range(n_cats):
             fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
@@ -676,7 +680,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
             fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}', hovermode='closest')
     else:
         fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}')
-        
+    
     return fig
 
 

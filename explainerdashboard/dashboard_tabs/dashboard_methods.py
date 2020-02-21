@@ -63,14 +63,14 @@ class TitleAndLabelSelector:
                 dbc.Row([
                     title_col,
                 ], justify="start", align="center")
-            ])
+            ], fluid=True)
         elif self.label_store_only or not self.explainer.is_classifier:
             return dbc.Container([
                 dbc.Row([
                     title_col,
                     dcc.Store(id='label-store')
                 ], justify="start", align="center")
-            ])
+            ], fluid=True)
         elif self.explainer.is_classifier: 
             #classifier can show label selector, but still optionally hide it
             return dbc.Container([
@@ -86,7 +86,7 @@ class TitleAndLabelSelector:
                     ], width=2),
                     dcc.Store(id='label-store')
                 ], justify="start", align="center")
-            ])
+            ], fluid=True)
         else:
             return None
  

@@ -134,6 +134,7 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
          Input('label-store', 'data')],
         [State('tabs', 'value')])
     def update_dependence_shap_scatter_graph(summary_type, cats, depth, pos_label, tab):
+        explainer.pos_label = pos_label #needed in case of multiple workers
         ctx = dash.callback_context
         if ctx.triggered:
             if summary_type=='aggregate':
@@ -201,6 +202,7 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         [State('dependence-col', 'value'),
          State('dependence-group-categoricals', 'checked')])
     def update_dependence_graph(color_col, idx, pos_label, col, cats):
+        explainer.pos_label = pos_label #needed in case of multiple workers
         if color_col is not None:
             return explainer.plot_shap_dependence(
                         col, color_col, highlight_idx=idx, cats=cats)

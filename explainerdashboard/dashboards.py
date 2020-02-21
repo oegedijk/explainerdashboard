@@ -61,7 +61,7 @@ class ExplainerDashboard:
 
         # calculate lazily loaded properties before starting dashboard:
         if shap_dependence or contributions or model_summary:
-            _ = explainer.shap_values, explainer.preds 
+            _ = explainer.shap_values, explainer.preds, explainer.ranks
             if explainer.cats is not None:
                 _ = explainer.shap_values_cats
             if explainer.is_classifier:
@@ -75,7 +75,9 @@ class ExplainerDashboard:
             if explainer.cats is not None:
                 _ = explainer.shap_interaction_values_cats
         if shadow_trees:
+            _ = explainer.graphviz_available
             _ = explainer.shadow_trees
+            
 
         self.app = dash.Dash(__name__)
         self.app.config['suppress_callback_exceptions']=True
@@ -92,12 +94,12 @@ class ExplainerDashboard:
         assert len(self.tabs) > 0, 'need to pass at least one tab! e.g. model_summary=True'
         
         self.tab_layouts = [
-            dcc.Tab(children=tab.layout(), label=tab.title, id=tab.tab_id) 
+            dcc.Tab(children=tab.layout(), label=tab.title, id=tab.tab_id, value=tab.tab_id) 
                 for tab in self.tabs]
 
         self.app.layout = dbc.Container([
             self.title_and_label_selector.layout(),
-            dcc.Tabs(self.tab_layouts, id="tabs", value=self.tabs[0].tab_id),
+            dcc.Tabs(id="tabs", value=self.tabs[0].tab_id, children=self.tab_layouts),
         ], fluid=True)
 
         #register callbacks

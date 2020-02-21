@@ -88,7 +88,6 @@ def shadow_trees_layout(explainer, round=2, **kwargs):
 
 
 def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
-
     @app.callback(
         [Output('tree-predictions-table', 'data'),
          Output('tree-predictions-table', 'columns')],
@@ -125,7 +124,12 @@ def shadow_trees_callbacks(explainer, app, round=2, **kwargs):
          Input('tree-predictions-graph', 'clickData')],
         [State('tabs', 'value')]
     )
+<<<<<<< HEAD
     def update_tree_graph(index, pos_label, clickdata, tab):
+=======
+    def update_tree_graph(index, pos_label, tab):
+        explainer.pos_label=pos_label
+>>>>>>> 5c623f400e54fea25a04f60bcc9229b0cc2a17d8
         if index is not None:
             highlight_tree = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else None
             return explainer.plot_trees(index, highlight_tree=highlight_tree, round=round)

@@ -63,13 +63,19 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
         index_choice_form = dbc.Form([
 
                 dbc.FormGroup([
-                    dcc.RangeSlider(
+                    html.Div([
+                        dbc.Label('Range to select from (prediction probability or prediction percentile):', 
+                                    html_for='prediction-range-slider'),
+                        dcc.RangeSlider(
                         id='prediction-range-slider',
                         min=0.0, max=1.0, step=0.01,
                         value=[0.5, 1.0],  allowCross=False,
                         marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3', 
                                 0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7', 
-                                0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},)
+                                0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
+                        tooltip = {'always_visible' : False})
+                    ], style={'margin-bottom':25})
+                    
                 ]),
                 dbc.FormGroup([
                     dbc.RadioItems(
@@ -85,7 +91,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                         id='preds-or-ranks',
                         options=[
                             {'label': 'Use predictions', 'value': 'preds'},
-                            {'label': 'Use ranks', 'value': 'ranks'},
+                            {'label': 'Use percentiles', 'value': 'ranks'},
                         ],
                         value='preds',
                         inline=True)
@@ -94,13 +100,25 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
     else:
         index_choice_form =  dbc.Form([
                 dbc.FormGroup([
-                    dcc.RangeSlider(
-                        id='prediction-range-slider',
-                        min=min(explainer.preds), max=max(explainer.preds), 
-                        step=np.float_power(10, -round),
-                        value=[min(explainer.preds), max(explainer.preds)],  
-                        allowCross=False)
-                ]),  
+                    html.Div([
+                        html.Div([
+                            dbc.Label('Range of predicted outcomes to select from:', 
+                                    html_for='prediction-range-slider'),
+                            dcc.RangeSlider(
+                                id='prediction-range-slider',
+                                min=min(explainer.preds), max=max(explainer.preds), 
+                                step=np.float_power(10, -round),
+                                value=[min(explainer.preds), max(explainer.preds)], 
+                                marks={min(explainer.preds):str(np.round(min(explainer.preds), round)),
+                                        max(explainer.preds):str(np.round(max(explainer.preds), round))}, 
+                                allowCross=False,
+                                tooltip = {'always_visible' : False}
+                            )
+
+                        ], style={'margin-bottom':25})
+                        
+                    ]),  
+                ], style={'margin-bottom':25}),
             ])
 
     return dbc.Container([
@@ -113,26 +131,30 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             index_choice_form,
             dbc.Button("Random Index", color="primary", id='index-button'),
             dcc.Store(id='index-store'),
-        ], width=4),
+        ], width=6),
  
         dbc.Col([
              dcc.Loading(id="loading-model-prediction", 
                          children=[dcc.Markdown(id='model-prediction')]),      
-        ], width=4),
+        ], width=6),
         
-    ], align="center", justify="between"),
+    ], align="start", justify="between"),
 
     dbc.Row([
         dbc.Col([
             html.H3('Contributions to prediction'),
             dbc.Label('Number of features to display:', html_for='contributions-size'),
-            dcc.Slider(id='contributions-size', 
-                min = 1, max = len(explainer.columns), 
-                marks={int(i) : str(int(i)) 
-                            for i in np.linspace(
-                                    1, len(explainer.columns), 6)},
-                step = 1, value=min(n_features, len(explainer.columns)),
+            html.Div([
+                dcc.Slider(id='contributions-size', 
+                    min = 1, max = len(explainer.columns), 
+                    marks={int(i) : str(int(i)) 
+                                for i in np.linspace(
+                                        1, len(explainer.columns), 6)},
+                    step = 1, value=min(n_features, len(explainer.columns)),
+                    tooltip = {'always_visible' : False}
                 ),
+            ], style={'margin-bottom':25}),
+            
             dbc.Label('(click on a bar to display pdp graph)'),
             dcc.Loading(id="loading-contributions-graph", 
                         children=[dcc.Graph(id='contributions-graph')]),
@@ -200,12 +222,13 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     else:
         @app.callback(
             Output('input-index', 'value'),
-            [Input('index-button', 'n_clicks')]
+            [Input('index-button', 'n_clicks')],
+            [State('prediction-range-slider', 'value')]
         )
-        def update_input_index(n_clicks):
+        def update_input_index(n_clicks, slider_range,):
             y = None
             return_str = True if explainer.idxs is not None else False
-            idx = explainer.random_index(return_str=return_str)
+            idx = explainer.random_index(pred_min=slider_range[0], pred_max=slider_range[1], return_str=return_str)
             if idx is not None:
                 return idx
             raise PreventUpdate
@@ -241,6 +264,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     def update_output_div(index, topx, pos_label):
         if index is None:
             raise PreventUpdate
+        explainer.pos_label = pos_label #needed in case of multiple workers
         int_idx = explainer.get_int_idx(index)
         if explainer.is_classifier:
             def display_probas(pred_probas_raw, labels, round=2):
@@ -258,7 +282,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
                 isinstance(explainer.y[0], np.int64)):
                 model_prediction += f"##### Actual Outcome: {explainer.labels[explainer.y[int_idx]]}\n\n"
 
-            model_prediction += f'##### In top {np.round(100*(1-explainer.ranks[int_idx]))}% prediction {explainer.pos_label_str}'
+            model_prediction += f'##### In top {np.round(100*(1-explainer.ranks[int_idx]))}% percentile probability {explainer.pos_label_str}'
         
         else:
             model_prediction = f"# Prediction for {index}:\n" \
@@ -266,7 +290,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
             model_prediction += f"##### Actual Outcome: {np.round(explainer.y[int_idx], round)}"
 
         plot = explainer.plot_shap_contributions(index, topx=topx, round=round)
-        summary_table = explainer.contrib_summary_df(index, topx=topx, round=round).to_dict('records')
+        summary_table = explainer.contrib_summary_df(index, round=round).to_dict('records')
         return (model_prediction, plot, summary_table)
 
     @app.callback(
@@ -285,4 +309,5 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
          Input('label-store', 'data')]
     )
     def update_pdp_graph(idx, col, pos_label):
+        explainer.pos_label = pos_label #needed in case of multiple workers
         return explainer.plot_pdp(col, idx, sample=100)
