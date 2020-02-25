@@ -14,9 +14,9 @@ This includes:
 - For Random Forests: what is the prediction of each *individual decision tree*, and what is the path through each tree? (using `dtreeviz`)
 - Plus for classifiers: precision plots, confusion matrix, ROC AUC plot, PR AUC plot, etc, and for regression models fit plots, residual plots, etc. 
 
-The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by *explainerdashboard*, so that you can focus on the logic of the interactions of the dashboard. 
+The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by *explainerdashboard*, so that you can focus on the layout, logic of the interactions, and project specific textual explanations of the dashboard. (i.e. design it so that it will be interpretable for business users in your organization, not just data scientists)
 
-Alternatively, there is a built-in standard dashboard with pre-built tabs that you can select individually. Fitting a model, building the explainer object, building the dashboard, and running it, is as simple as:
+Alternatively, there is a built-in standard dashboard with pre-built tabs that you can select individually. Fitting a model, building the explainer object, building the dashboard, and then running it is as simple as:
 
 ```
 from sklearn.ensemble import RandomForestClassifier
@@ -121,7 +121,9 @@ db = ExplainerDashboard(explainer, 'Titanic Explainer`,
 
 You then start the dashboard on a particular port with `db.run(port=8050)`. 
 
-If you wish to use e.g. unicorn to deploy the dashboard you should add `server = db.app.server` to your code to expose the Flask server. It may take some time to calculate all the properties of the ExplainerBunch (especially shap interaction values). However all properties get calculated lazily, so they are only calculated when you call a plot or table that depends on them. To save startup time you can save the ExplainerBunch to disk with e.g. joblib and then load the ExplainerBunch with pre-calculated properties whenever you wish to start the dashboard. 
+If you wish to use e.g. gunicorn to deploy the dashboard you should add `server = db.app.server` to your code to expose the Flask server. You can then start the server with e.g. `gunicorn dashboard:server` (assuming the file you defined the dashboard in was called `dashboard.py`). 
+
+It may take some time to calculate all the properties of the ExplainerBunch (especially shap interaction values). However all properties get calculated lazily, so they are only calculated when you call a plot or table that depends on them. To save startup time you can save the ExplainerBunch to disk with e.g. joblib and then load the ExplainerBunch with pre-calculated properties whenever you wish to start the dashboard. 
 
 See [dashboard_examples.ipynb](dashboard_examples.ipynb)
 
