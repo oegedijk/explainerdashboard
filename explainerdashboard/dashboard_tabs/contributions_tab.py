@@ -10,6 +10,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 import numpy as np
+import pandas as pd
 
 from .dashboard_methods import *
 
@@ -184,6 +185,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                 style_cell={'fontSize':20, 'font-family':'sans-serif'},
                 columns=[{'id': c, 'name': c} 
                             for c in ['Reason', 'Effect']],
+                      
             ),    
         ], width=10),
     ]),
@@ -250,7 +252,8 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
         [Output('model-prediction', 'children'),
          Output('contributions-graph', 'figure'),
-         Output('contributions_table', 'data')],
+         Output('contributions_table', 'data'),
+         Output('contributions_table', 'tooltip_data')],
         [Input('index-store', 'data'),
          Input('contributions-size', 'value'),
          Input('label-store', 'data')]
@@ -260,8 +263,9 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
             raise PreventUpdate
         prediction_result_md = explainer.prediction_result_markdown(index)
         plot = explainer.plot_shap_contributions(index, topx=topx, round=round)
-        summary_table = explainer.contrib_summary_df(index, round=round).to_dict('records')
-        return (prediction_result_md, plot, summary_table)
+        summary_table = explainer.contrib_summary_df(index, round=round)
+        tooltip_data = [{'Reason': desc} for desc in explainer.description_list(explainer.contrib_df(index)['col'])]
+        return (prediction_result_md, plot, summary_table.to_dict('records'), tooltip_data)
 
     @app.callback(
         Output('pdp-col', 'value'),

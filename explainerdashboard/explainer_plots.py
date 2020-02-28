@@ -803,7 +803,7 @@ def plotly_pdp(pdp_result,
     return fig
 
 
-def plotly_importances_plot(importance_df, round=3):
+def plotly_importances_plot(importance_df, descriptions=None, round=3):
     
     importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     longest_feature_name = importance_df['Feature'].str.len().max()
@@ -818,9 +818,10 @@ def plotly_importances_plot(importance_df, round=3):
     data = [go.Bar(
                 y=feature_names,
                 x=importance_values,
-                text=importance_values.round(round),
-                textposition='inside',
-                insidetextanchor='end',
+                #text=importance_values.round(round),
+                text=descriptions[::-1], #don't know why, but order needs to be reversed
+                #textposition='inside',
+                #insidetextanchor='end',
                 hoverinfo="text",
                 orientation='h')]
 

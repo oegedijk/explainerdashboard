@@ -19,7 +19,7 @@ class BaseExplainerBunch(ABC):
     But does not yet have a defined shap_explainer.
     """
     def __init__(self, model, X, y=None, shap="tree", metric=r2_score,
-                    cats=None, idxs=None, permutation_cv=None, na_fill=-999):
+                    cats=None, idxs=None, descriptions=None, permutation_cv=None, na_fill=-999):
         """init
 
         :param model: a model with a scikit-learn compatible .fit and .predict method
@@ -63,7 +63,7 @@ class BaseExplainerBunch(ABC):
             self.idxs = list(X.index.astype(str))
         else:
             self.idxs = [str(i) for i in range(len(X))]
-
+        self.descriptions = {} if descriptions is None else descriptions
         self.permutation_cv = permutation_cv
         self.na_fill=na_fill
         self.columns = self.X.columns.tolist()
@@ -217,14 +217,27 @@ class BaseExplainerBunch(ABC):
             maintaining column selection)
         """
         if col in self.columns_cats:
-            new_col = get_feature_dict(self.columns, self.cats)[col][0]
-        else:
-            new_col = [k for k, v in get_feature_dict(self.columns, self.cats).items() if col in v][0]
-        return new_col
+            # first onehot-encoded columns
+            return get_feature_dict(self.columns, self.cats)[col][0]
+        elif col in self.columns:
+            # the cat that the col belongs to
+            return [k for k, v in get_feature_dict(self.columns, self.cats).items() if col in v][0]
+        return None
+
+    def description(self, col):
+        """returns the written out description of what feature col means."""
+        if col in self.descriptions.keys():
+            return self.descriptions[col]
+        elif self.equivalent_col(col) in  self.descriptions.keys():
+            return self.descriptions[self.equivalent_col(col)]
+        return ""
+
+    def description_list(self, cols):
+        return [self.description(col) for col in cols]
 
     def get_col(self, col):
         """returns either the column values if col in self.columns,
-        or induce the categorical value from the onehotencoding if col in self.cats
+        or induces the categorical values from the onehotencoding if col in self.cats
         """
         assert col in self.columns or col in self.cats, \
             f"{col} not in columns!"
@@ -521,7 +534,7 @@ class BaseExplainerBunch(ABC):
                                     self.X.iloc[[idx]], topx, cutoff)
 
     def contrib_summary_df(self, index, cats=True,
-                            topx=None, cutoff=None, round=round):
+                            topx=None, cutoff=None, round=2):
         """Takes a contrib_df, and formats it to a more human readable format"""
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff),
@@ -713,7 +726,12 @@ class BaseExplainerBunch(ABC):
         :rtype: plotly.fig
         """
         importances_df = self.importances_df(kind=kind, topx=topx, cats=cats)
-        return plotly_importances_plot(importances_df, round=round)
+        if self.descriptions is not None:
+            descriptions = self.description_list(importances_df.Feature)
+            return plotly_importances_plot(importances_df, descriptions, round=round)
+        else:
+            return plotly_importances_plot(importances_df, round=round)
+
 
     def plot_interactions(self, col, cats=False, topx=None):
         interactions_df = self.interactions_df(col, cats=cats, topx=topx)
@@ -1007,7 +1025,8 @@ class ClassifierBunch(BaseExplainerBunch):
     such as a precision plot, confusion matrix, roc auc curve and pr auc curve.
     """
     def __init__(self, model,  X, y=None, shap='tree', metric=roc_auc_score, 
-                    cats=None, idxs=None, permutation_cv=None, na_fill=-999,
+                    cats=None, idxs=None, descriptions=None,
+                    permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
         """Combared to BaseExplainerBunch defines two additional parameters:
         :param labels: list of str labels for the different classes, defaults to e.g. ['0', '1'] for a binary classification
@@ -1015,7 +1034,7 @@ class ClassifierBunch(BaseExplainerBunch):
         :param pos_label: class that should be used as the positive class, defaults to 1
         :type pos_label: int or str (if str, needs to be in labels), optional
         """
-        super().__init__(model, X, y, shap, metric, cats, idxs, permutation_cv, na_fill)
+        super().__init__(model, X, y, shap, metric, cats, idxs, descriptions, permutation_cv, na_fill)
 
         if labels is not None:
             self.labels = labels
@@ -1372,14 +1391,15 @@ class RegressionBunch(BaseExplainerBunch):
     such as a predicted vs actual and residual plots.
     """
     def __init__(self, model,  X, y=None, shap="tree", metric=roc_auc_score,
-                    cats=None, idxs=None, permutation_cv=None, na_fill=-999,
+                    cats=None, idxs=None, descriptions=None, 
+                    permutation_cv=None, na_fill=-999,
                     units=""):
         """Combared to BaseExplainerBunch defines two additional parameters:
         :param units: units to display for regression quantity
         :type units: str, optional
 
         """
-        super().__init__(model, X, y, shap, metric, cats, idxs, permutation_cv, na_fill)
+        super().__init__(model, X, y, shap, metric, cats, idxs, descriptions, permutation_cv, na_fill)
         self.units = units
         self.is_regression = True
     
