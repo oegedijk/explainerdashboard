@@ -18,7 +18,7 @@ class BaseExplainerBunch(ABC):
     """Abstract Base Class. Defines the basic functionality of an ExplainerBunch
     But does not yet have a defined shap_explainer.
     """
-    def __init__(self, model, X, y=None, metric=r2_score,
+    def __init__(self, model, X, y=None, shap="tree", metric=r2_score,
                     cats=None, idxs=None, permutation_cv=None, na_fill=-999):
         """init
 
@@ -49,6 +49,8 @@ class BaseExplainerBunch(ABC):
             self.y = pd.Series(y).reset_index(drop=True)
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
+        
+        self.shap = shap
         self.metric = metric
 
         self.cats = cats
@@ -71,10 +73,12 @@ class BaseExplainerBunch(ABC):
     @classmethod
     def from_ModelBunch(cls, model_bunch, raw_data, metric,
                         index_column=None, permutation_cv=None, na_fill=-999,
-                        *args, **kwargs):
+                        **kwargs):
         """create an ExplainerBunch from a ModelBunch. A ModelBunch is a class
         containing a model, data transformer, target name and used columns, with
         both a .transform() and a .predict() method.
+
+        Assumes model is tree based.
 
         :param model_bunch: ModelBunch
         :type model_bunch: [type]
@@ -100,12 +104,55 @@ class BaseExplainerBunch(ABC):
             idxs = raw_data[index_column].astype(str).values.tolist()
         else:
             idxs = None
-        return cls(model_bunch.model, X, y, metric,
-                    cats, idxs, permutation_cv, na_fill,
-                    *args, **kwargs)
+        return cls(model_bunch.model, X, y, shap="tree", metric=metric,
+                    cats=cats, idxs=idxs, permutation_cv=permutation_cv, na_fill=na_fill,
+                    **kwargs)
 
     def __len__(self):
         return len(self.X)
+
+    def __contains__(self, index):
+        if self.get_int_idx(index) is not None:
+            return True
+        return False
+
+    @property
+    def shap_explainer(self):
+        if not hasattr(self, '_shap_explainer'):
+            print("Generating shap TreeExplainer...")
+            if self.shap == 'tree':
+                if str(type(self.model))[-15:-2]=='XGBClassifier':
+                    warnings.warn("Warning: shap values for XGBoost models get calculated"
+                        "against the background data X, not against the data the"
+                        "model was trained on!")
+                    self._shap_explainer = shap.TreeExplainer(
+                                                self.model, self.X,
+                                                model_output="probability",
+                                                feature_dependence= "independent")
+                else:
+                    self._shap_explainer = shap.TreeExplainer(self.model)
+            elif self.shap=='linear':
+                self._shap_explainer = shap.LinearExplainer(self.model)
+            elif self.shap=='deep':
+                self._shap_explainer = shap.DeepExplainer(self.model)
+            elif self.shap=='kernel': 
+                self._shap_explainer = shap.KernelExplainer(self.model)
+        return self._shap_explainer
+
+    def get_int_idx(self, index):
+        """
+        Always returns an int index.
+        If index is already int, simply return directly
+        if index is str, lookup corresponding int index and return
+        if index not found, return None
+        """
+        if isinstance(index, int):
+            if index >= 0 and index < len(self):
+                return index
+        elif isinstance(index, str):
+            if self.idxs is not None and index in self.idxs:
+                return self.idxs.index(index)
+        return None
 
     def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, return_str=False):
         """
@@ -135,26 +182,6 @@ class BaseExplainerBunch(ABC):
             return self.idxs[idx]
         return idx
 
-    def __contains__(self, index):
-        if self.get_int_idx(index) is not None:
-            return True
-        return False
-
-    def get_int_idx(self, index):
-        """
-        Always returns an int index.
-        If index is already int, simply return directly
-        if index is str, lookup corresponding int index and return
-        if index not found, return None
-        """
-        if isinstance(index, int):
-            if index >= 0 and index < len(self):
-                return index
-        elif isinstance(index, str):
-            if self.idxs is not None and index in self.idxs:
-                return self.idxs.index(index)
-        return None
-
     @property
     def preds(self):
         """model predictions"""
@@ -165,25 +192,30 @@ class BaseExplainerBunch(ABC):
         return self._preds
 
     @property
-    def ranks(self):
-        if not hasattr(self, '_ranks'):
-            print("Calculating ranks...")
-            self._ranks = (pd.Series(self.preds)
+    def pred_percentiles(self):
+        if not hasattr(self, '_pred_percentiles'):
+            print("Calculating prediction percentiles...")
+            self._pred_percentiles = (pd.Series(self.preds)
                                 .rank(method='min')
                                 .divide(len(self.preds))
                                 .values)
-        return self._ranks
+        return self._pred_percentiles
 
-    def columns_ranked(self, cats=False):
+    def columns_ranked_by_shap(self, cats=False):
         if cats:
             return self.mean_abs_shap_cats.Feature.tolist()
         else:
             return self.mean_abs_shap.Feature.tolist()
 
-    def inverse_cats(self, col):
+    def equivalent_col(self, col):
         """if col in self.columns, return equivalent col in self.columns_cats,
-           if col in self.columns_cats, return equivalent in self.columns
-        11"""
+                e.g. equivalent_col('Gender_Male') -> 'Gender'
+           if col in self.columns_cats, return first one hot encoded col, 
+                e.g. equivalent_col('Gender') -> 'Gender_Male'
+
+            (useful for switching between cats=True and cats=False, while
+            maintaining column selection)
+        """
         if col in self.columns_cats:
             new_col = get_feature_dict(self.columns, self.cats)[col][0]
         else:
@@ -191,6 +223,9 @@ class BaseExplainerBunch(ABC):
         return new_col
 
     def get_col(self, col):
+        """returns either the column values if col in self.columns,
+        or induce the categorical value from the onehotencoding if col in self.cats
+        """
         assert col in self.columns or col in self.cats, \
             f"{col} not in columns!"
 
@@ -200,7 +235,8 @@ class BaseExplainerBunch(ABC):
             return retrieve_onehot_value(self.X, col)
         
     def get_col_value_plus_prediction(self, index, col):
-        """return value of col and prediction for index"""
+        """return value of col and prediction for index
+        helper function for get_pdp()"""
         assert index in self, f"index {index} not found"
         assert (col in self.X.columns) or (col in self.cats),\
             f"{col} not in columns of dataset"
@@ -255,13 +291,6 @@ class BaseExplainerBunch(ABC):
         if not hasattr(self, '_columns_cats'):
             self._columns_cats = self.X_cats.columns.tolist()
         return self._columns_cats
-
-    @property
-    @abstractmethod
-    def shap_explainer(self):
-        """this property will be supplied by the inheriting classes individually
-        e.g. using KernelExplainer, TreeExplainer, DeepExplainer, etc"""
-        raise NotImplementedError()
 
     @property
     def shap_base_value(self):
@@ -348,9 +377,12 @@ class BaseExplainerBunch(ABC):
 
     @abstractmethod
     def metrics(self, **kwargs):
+        """returns a dict of metrics. Implemented by either ClassifierBunch
+        or RegressionBunch"""
         raise NotImplementedError()
 
     def metrics_markdown(self, round=2, **kwargs):
+        """markdown makeup of self.metrics() dict"""
         metrics_dict = self.metrics(**kwargs)
         
         metrics_markdown = "# Model Summary: \n\n"
@@ -848,68 +880,7 @@ class BaseExplainerBunch(ABC):
                         num_grid_lines=min(num_grid_lines, sample, len(self.X)))
 
 
-class TreeExplainerBunch(BaseExplainerBunch):
-    """Defines an explainer bunch for tree based models (random forests, xgboost,etc).
-
-    Generates a self.shap_explainer based on shap.TreeExplainer
-    """
-    @property
-    def shap_explainer(self):
-        if not hasattr(self, '_shap_explainer'):
-            print("Generating shap TreeExplainer...")
-            if str(type(self.model))[-15:-2]=='XGBClassifier':
-                warnings.warn("Warning: shap values for XGBoost models get calcaulated"
-                    "against the background data X, not against the data the"
-                    "model was trained on.")
-                self._shap_explainer = shap.TreeExplainer(
-                                            self.model, self.X,
-                                            model_output="probability",
-                                            feature_dependence= "independent")
-            else:
-                self._shap_explainer = shap.TreeExplainer(self.model)
-        return self._shap_explainer
-
-
-
-class LinearExplainerBunch(BaseExplainerBunch):
-    """Defines an explainer bunch for linear models.
-
-    Generates a self.shap_explainer based on shap.LinearExplainer
-    """
-    @property
-    def shap_explainer(self):
-        if not hasattr(self, '_shap_explainer'):
-            print("Generating shap LinearExplainer...")
-            self._shap_explainer = shap.LinearExplainer(self.model)
-        return self._shap_explainer
-
-class DeepExplainerBunch(BaseExplainerBunch):
-    """Defines an explainer bunch for Deep Learning neural nets.
-
-    Generates a self.shap_explainer based on shap.DeepExplainer
-    """
-    @property
-    def shap_explainer(self):
-        if not hasattr(self, '_shap_explainer'):
-            print("Generating shap DeepExplainer...")
-            self._shap_explainer = shap.DeepExplainer(self.model)
-        return self._shap_explainer
-
-
-class KernelExplainerBunch(BaseExplainerBunch):
-    """Defines an explainer bunch for any type of model.
-
-    Generates a self.shap_explainer based on shap.KernelExplainer
-    """
-    @property
-    def shap_explainer(self):
-        if not hasattr(self, '_shap_explainer'):
-            print("Generating shap TreeExplainer...")
-            self._shap_explainer = shap.KernelExplainer(self.model)
-        return self._shap_explainer
-
-
-class RandomForestExplainerBunch(TreeExplainerBunch):
+class RandomForestExplainerBunch(BaseExplainerBunch):
     """
     RandomForestBunch allows for the analysis of individual DecisionTrees that
     make up the RandomForest.
@@ -1035,7 +1006,7 @@ class ClassifierBunch(BaseExplainerBunch):
     In addition defines a number of plots specific to classification problems
     such as a precision plot, confusion matrix, roc auc curve and pr auc curve.
     """
-    def __init__(self, model,  X, y=None, metric=roc_auc_score,
+    def __init__(self, model,  X, y=None, shap='tree', metric=roc_auc_score, 
                     cats=None, idxs=None, permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
         """Combared to BaseExplainerBunch defines two additional parameters:
@@ -1044,7 +1015,7 @@ class ClassifierBunch(BaseExplainerBunch):
         :param pos_label: class that should be used as the positive class, defaults to 1
         :type pos_label: int or str (if str, needs to be in labels), optional
         """
-        super().__init__(model, X, y, metric, cats, idxs, permutation_cv, na_fill)
+        super().__init__(model, X, y, shap, metric, cats, idxs, permutation_cv, na_fill)
 
         if labels is not None:
             self.labels = labels
@@ -1089,9 +1060,9 @@ class ClassifierBunch(BaseExplainerBunch):
         return self.pred_probas_raw[:, self.pos_label]
 
     @property
-    def ranks(self):
+    def pred_percentiles(self):
         """returns ranks for pos_label class"""
-        return self.ranks_raw[:, self.pos_label]
+        return self.pred_percentiles_raw[:, self.pos_label]
 
     @property
     def pred_probas_raw(self):
@@ -1104,14 +1075,14 @@ class ClassifierBunch(BaseExplainerBunch):
         return self._pred_probas
 
     @property
-    def ranks_raw(self):
-        if not hasattr(self, '_ranks_raw'):
-            print("Calculating ranks...")
-            self._ranks_raw = (pd.DataFrame(self.pred_probas_raw)
+    def pred_percentiles_raw(self):
+        if not hasattr(self, '_pred_percentiles_raw'):
+            print("Calculating pred_percentiles...")
+            self._pred_percentiles_raw = (pd.DataFrame(self.pred_probas_raw)
                                 .rank(method='min')
                                 .divide(len(self.pred_probas_raw))
                                 .values)
-        return self._ranks_raw
+        return self._pred_percentiles_raw
 
     @property
     def permutation_importances(self):
@@ -1230,7 +1201,7 @@ class ClassifierBunch(BaseExplainerBunch):
 
     def get_pdp_result(self, col, index=None, drop_na=True,
                         sample=1000, num_grid_points=20):
-        pdp_result = super(ClassifierBunch, self).get_pdp_result(
+        pdp_result = super().get_pdp_result(
                                 col, index, drop_na, sample, num_grid_points)
         if len(self.labels)==2:
             # for binary classifer PDPBox only gives pdp for the positive class.
@@ -1245,7 +1216,7 @@ class ClassifierBunch(BaseExplainerBunch):
 
     def random_index(self, y_values=None, return_str=False,
                     pred_proba_min=None, pred_proba_max=None,
-                    rank_min=None, rank_max=None):
+                    pred_percentile_min=None, pred_percentile_max=None):
         """
         Return a random index from dataset.
         if y_values is given select an index for which y in y_values
@@ -1254,26 +1225,26 @@ class ClassifierBunch(BaseExplainerBunch):
         if pred_proba_min(max) is given, return an index with at least a predicted
         probabiity of positive class of pred_proba_min(max)
 
-        if rank_min(max) is given, return an index with at least a predicted
-        rank of probabiity of positive class of rank_min(max)
+        if pred_percentile_min(max) is given, return an index with at least a predicted
+        percentile of probabiity of positive class of pred_percentile_min(max)
         """
         if (y_values is None 
             and pred_proba_min is None and pred_proba_max is None
-            and rank_min is None and rank_max is None):
+            and pred_percentile_min is None and pred_percentile_max is None):
             potential_idxs = self.y.index
         else:
             if y_values is None: y_values = self.y.unique().tolist()
             if not isinstance(y_values, list): y_values = [y_values]
             if pred_proba_min is None: pred_proba_min = self.pred_probas.min()
             if pred_proba_max is None: pred_proba_max = self.pred_probas.max()
-            if rank_min is None: rank_min = 0.0
-            if rank_max is None: rank_max = 1.0
+            if pred_percentile_min is None: pred_percentile_min = 0.0
+            if pred_percentile_max is None: pred_percentile_max = 1.0
             
             potential_idxs = self.y[(self.y.isin(y_values)) &
                             (self.pred_probas >= pred_proba_min) &
                             (self.pred_probas <= pred_proba_max) &
-                            (self.ranks > rank_min) &
-                            (self.ranks <= rank_max)].index
+                            (self.pred_percentiles > pred_percentile_min) &
+                            (self.pred_percentiles <= pred_percentile_max)].index
         if not potential_idxs.empty:
             idx = np.random.choice(potential_idxs)
         else:
@@ -1327,7 +1298,7 @@ class ClassifierBunch(BaseExplainerBunch):
             isinstance(self.y[0], np.int64)):
             model_prediction += f"##### Actual Outcome: {self.labels[self.y[int_idx]]}\n\n"
         if include_percentile:
-            model_prediction += f'##### In top {np.round(100*(1-self.ranks[int_idx]))}% percentile probability {self.pos_label_str}'
+            model_prediction += f'##### In top {np.round(100*(1-self.pred_percentiles[int_idx]))}% percentile probability {self.pos_label_str}'
         return model_prediction
 
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5, multiclass=False):
@@ -1400,7 +1371,7 @@ class RegressionBunch(BaseExplainerBunch):
     In addition defines a number of plots specific to regression problems
     such as a predicted vs actual and residual plots.
     """
-    def __init__(self, model,  X, y=None, metric=roc_auc_score,
+    def __init__(self, model,  X, y=None, shap="tree", metric=roc_auc_score,
                     cats=None, idxs=None, permutation_cv=None, na_fill=-999,
                     units=""):
         """Combared to BaseExplainerBunch defines two additional parameters:
@@ -1408,7 +1379,7 @@ class RegressionBunch(BaseExplainerBunch):
         :type units: str, optional
 
         """
-        super().__init__(model, X, y, metric, cats, idxs, permutation_cv, na_fill)
+        super().__init__(model, X, y, shap, metric, cats, idxs, permutation_cv, na_fill)
         self.units = units
         self.is_regression = True
     
@@ -1450,60 +1421,9 @@ class RegressionBunch(BaseExplainerBunch):
                                        ratio=ratio, units=self.units, round=round)
     
 
-
-class TreeClassifierBunch(TreeExplainerBunch, ClassifierBunch):
-    """TreeModelClassifierBunch inherits from both TreeModelBunch and
-    ClassifierBunch.
-    """
-
-
-class DeepClassifierBunch(DeepExplainerBunch, ClassifierBunch):
-    """DeepClassifierBunch inherits from both DeepExplainerBunch and
-    ClassifierBunch.
-    """
-
-
-class LinearClassifierBunch(LinearExplainerBunch, ClassifierBunch):
-    """LinearClassifierBunch inherits from both LinearExplainerBunch and
-    ClassifierBunch.
-    """
-
-
-class KernelClassifierBunch(KernelExplainerBunch, ClassifierBunch):
-    """KernelClassifierBunch inherits from both KernelExplainerBunch and
-    ClassifierBunch.
-    """
-
-
 class RandomForestClassifierBunch(RandomForestExplainerBunch, ClassifierBunch):
     """RandomForestClassifierBunch inherits from both RandomForestBunch and
     ClassifierBunch.
-    """
-
-
-class TreeRegressionBunch(TreeExplainerBunch, RegressionBunch):
-    """TreeRegressionBunch inherits from both TreeExplainertBunch and
-    RegressionBunch.
-    """
-
-
-class LinearRegressionBunch(LinearExplainerBunch, RegressionBunch):
-    """LinearRegressionBunch inherits from both LinearExplainerBunch and
-    RegressionBunch.
-    """
-
-
-
-class DeepRegressionBunch(DeepExplainerBunch, RegressionBunch):
-    """DeepRegressionBunch inherits from both DeepExplainerBunch and
-    RegressionBunch.
-    """
-
-
-
-class KernelRegressionBunch(KernelExplainerBunch, RegressionBunch):
-    """KernelRegressionBunch inherits from both KernelExplainerBunch and
-    RegressionBunch.
     """
 
 
