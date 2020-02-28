@@ -376,7 +376,8 @@ class BaseExplainerBunch(ABC):
 
         if topx is None: topx = len(shap_df)
         if cutoff is None: cutoff = shap_df['MEAN_ABS_SHAP'].min()
-        return shap_df[shap_df['MEAN_ABS_SHAP'] >= cutoff].head(topx)
+        return (shap_df[shap_df['MEAN_ABS_SHAP'] >= cutoff]
+                    .sort_values('MEAN_ABS_SHAP', ascending=False).head(topx))
 
     def shap_top_interactions(self, col, topx=None, cats=False):
         """returns the features that interact with feature col in descending order.
@@ -455,11 +456,12 @@ class BaseExplainerBunch(ABC):
         if cutoff is None: cutoff = importance_df.Importance.min()
         return importance_df[importance_df.Importance > cutoff].head(topx)
 
-    def importances_df(self, type="permutation", topx=None, cutoff=None, cats=False):
+    def importances_df(self, kind="shap", topx=None, cutoff=None, cats=False):
         """wrapper function for mean_abs_shap_df() and permutation_importance_df()"""
-        if type=='permutation':
+        assert kind=='shap' or kind=='permutation', "kind should either be 'shap' or 'permutation'!"
+        if kind=='permutation':
             return self.permutation_importances_df(topx, cutoff, cats)
-        elif type=='shap':
+        elif kind=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats)
 
     def contrib_df(self, index, cats=True, topx=None, cutoff=None):
@@ -504,11 +506,10 @@ class BaseExplainerBunch(ABC):
         return importance_df[importance_df.MEAN_ABS_SHAP > cutoff].head(topx)
     
     def formatted_contrib_df(self, index, round=None, lang='en'):
-        """Out PowerBI specialist wanted this the contrib_df in a certain format in order
+        """Our PowerBI specialist wanted this the contrib_df in a certain format in order
         to conventiently build powerbi dashboards from the output of get_dfs.
 
         Additional language option for output in Dutch (lang='nl')
-
 
         :param index: index to return contrib_df for
         :type index: str or int
@@ -666,7 +667,7 @@ class BaseExplainerBunch(ABC):
         contribs_df.to_sql(con=conn, schema=schema, name=name+"_CONTRIB",
                         if_exists=if_exists, index=False)
 
-    def plot_importances(self, type='shap', topx=None, cats=False):
+    def plot_importances(self, kind='shap', topx=None, cats=False, round=3):
         """return Plotly fig with barchart of importances in descending order.
 
         :param type: 'shap' for mean absolute shap values, 'permutation' for
@@ -679,8 +680,8 @@ class BaseExplainerBunch(ABC):
         :return: fig
         :rtype: plotly.fig
         """
-        importances_df = self.importances_df(type=type, topx=topx, cats=cats)
-        return plotly_importances_plot(importances_df)
+        importances_df = self.importances_df(kind=kind, topx=topx, cats=cats)
+        return plotly_importances_plot(importances_df, round=round)
 
     def plot_interactions(self, col, cats=False, topx=None):
         interactions_df = self.interactions_df(col, cats=cats, topx=topx)
@@ -780,7 +781,7 @@ class BaseExplainerBunch(ABC):
                                             highlight_idx=highlight_idx,
                                             na_fill=self.na_fill)
 
-    def plot_shap_interaction_dependence(self, col, interact_col,
+    def plot_shap_interaction(self, col, interact_col,
                                             highlight_idx=None, cats=False):
         """plots a dependence plot for shap interaction effects
 

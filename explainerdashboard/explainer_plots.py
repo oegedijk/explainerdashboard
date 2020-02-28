@@ -803,23 +803,27 @@ def plotly_pdp(pdp_result,
     return fig
 
 
-def plotly_importances_plot(importance_df):
+def plotly_importances_plot(importance_df, round=3):
     
-    importance_name = importance_df.columns[1]
+    importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     longest_feature_name = importance_df['Feature'].str.len().max()
     
     imp = importance_df.sort_values(importance_name)
 
-    trace0 = go.Bar(
-                y=imp.iloc[:,0],
-                x=imp.iloc[:,1],
-                text=imp.iloc[:,1].round(4),
+    feature_names = [str(len(imp)-i)+". "+col 
+            for i, col in enumerate(imp.iloc[:, 0].astype(str).values.tolist())]
+
+    importance_values = imp.iloc[:,1]
+
+    data = [go.Bar(
+                y=feature_names,
+                x=importance_values,
+                text=importance_values.round(round),
                 textposition='inside',
                 insidetextanchor='end',
                 hoverinfo="text",
-                orientation='h')
+                orientation='h')]
 
-    data = [trace0]
     layout = go.Layout(
         title=importance_name,
         plot_bgcolor = '#fff',
@@ -935,8 +939,6 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, normalized=True):
                     )]
     layout = go.Layout(
             title="Confusion Matrix",
-            # width=450,
-            # height=450,
             xaxis=dict(side='top', constrain="domain"),
             yaxis=dict(autorange="reversed", side='left',
                         scaleanchor='x', scaleratio=1),
@@ -948,13 +950,14 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, normalized=True):
         for y in range(cm.shape[1]):
             text= str(cm[x,y]) + '%' if normalized else str(cm[x,y])
             annotations.append(
-                go.layout.Annotation(x=fig.data[0].x[y], 
-                                    y=fig.data[0].y[x], 
-                                    text=text, 
-                                    showarrow=False,
-                                    font=dict(
-                                        size=20
-                                    ),))
+                go.layout.Annotation(
+                    x=fig.data[0].x[y], 
+                    y=fig.data[0].y[x], 
+                    text=text, 
+                    showarrow=False,
+                    font=dict(size=20)
+                )
+            )
 
     fig.update_layout(annotations=annotations)  
     return fig
