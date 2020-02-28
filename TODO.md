@@ -11,7 +11,7 @@
 - Classification plot: add percentage in totals plot, add totals in percentage plot
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot
-- figure out why roc_auc, pr_auc, confusion plots don't scale
+- figure out why roc_auc, pr_auc, confusion plots don't scale (probably to do with being forced square?)
 - rename plotly_ from all plotting functions?
 - Add Altair (vega) plots for easy inclusion in websites
 
