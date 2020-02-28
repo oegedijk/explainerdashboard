@@ -139,7 +139,7 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         if ctx.triggered:
             if summary_type=='aggregate':
                 plot = explainer.plot_importances(
-                        type='shap', topx=depth, cats=cats)
+                        kind='shap', topx=depth, cats=cats)
             elif summary_type=='detailed':
                 plot = explainer.plot_shap_summary(topx=depth, cats=cats)
 

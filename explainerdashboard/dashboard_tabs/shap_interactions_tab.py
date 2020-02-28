@@ -210,8 +210,8 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
     def update_dependence_graph(interact_col, index, pos_label, col, cats):
         if interact_col is not None:
             explainer.pos_label = pos_label #needed in case of multiple workers
-            return (explainer.plot_shap_interaction_dependence(
+            return (explainer.plot_shap_interaction(
                         col, interact_col, highlight_idx=index, cats=cats),
-                    explainer.plot_shap_interaction_dependence(
+                    explainer.plot_shap_interaction(
                         interact_col, col, highlight_idx=index, cats=cats))
         raise PreventUpdate

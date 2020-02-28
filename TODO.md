@@ -1,36 +1,34 @@
 
 # TODO:
 
-
-
 ## Layout:
 
+## dfs:
+
+
 ## Plots:
-- add multiclass confusion matrix
+- Classification plot: add percentage in totals plot, add totals in percentage plot
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot
-- rename plot_shap_importances()
-- rename plot_shap_summary() ?
-- rename plotly_ from all plotting functionsr
+- figure out why roc_auc, pr_auc, confusion plots don't scale
+- rename plotly_ from all plotting functions?
+- Add Altair (vega) plots for easy inclusion in websites
 
 ### Regression plots:
 
 ## Explainers:
-- add `get_metrics_dict()` function
+
 
 ## Dashboard:
-- FIX NOT LOADING UNTIL CLICKED ON CONTRIBUTIONS TAB BUG!
 - add option for vertical contributions?
 - reformat contributions table
 - add final prediction to contributions table
-- 
 
 ## Methods:
-
 - Multiprocessing shap summary graph 
 - Move pdp function to explainer_methods.py
-- add feature explanations
-
+- add feature explanations (i.e. explanation of what feature is doing)
+- Add LIME, Shaabas values for completeness?
 
 ## Library level:
 - fix jupyter reload pdp bug

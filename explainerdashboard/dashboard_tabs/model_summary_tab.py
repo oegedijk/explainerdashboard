@@ -128,7 +128,7 @@ class ImportancesStats:
         def update_importances(tablesize, cats, permutation_shap, pos_label, tab): 
             self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_importances(
-                        type=permutation_shap, topx=tablesize, cats=cats)
+                        kind=permutation_shap, topx=tablesize, cats=cats)
 
 class ClassifierModelStats:
     def __init__(self, explainer, bin_size=0.1, quantiles=10, cutoff=0.5):
@@ -140,25 +140,6 @@ class ClassifierModelStats:
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
 
             dbc.Row([
-                dbc.Col([
-                    html.Div([
-                        dcc.Loading(id="loading-lift-curve", 
-                                children=[dcc.Graph(id='lift-curve-graph')]),
-                    ], style={'margin': 0}),
-                    dbc.FormGroup([
-                        dbc.RadioButton(
-                            id="lift-curve-percentage", 
-                            className="form-check-input", 
-                            checked=True
-                        ),
-                        dbc.Label(
-                            "Display percentages",
-                            html_for="lift-curve-percentage",
-                            className="form-check-label",
-                        ),
-                    ], check=True),          
-                ], width=4, align="start"),
-
                 dbc.Col([
                     html.Div([
                         dcc.Loading(id="loading-precision-graph", 
@@ -207,27 +188,35 @@ class ClassifierModelStats:
                                     className="form-check-label",
                                 ),
                             ], check=True),
-                ], width=4, align="start"),
-
+                ], md=6, align="start"),
                 dbc.Col([
-                    html.Div([
-                                dcc.Loading(id="loading-classification-graph", 
-                                            children=[dcc.Graph(id='classification-graph')]),
-                    ], style={'margin': 0}),
-
+                    dcc.Loading(id="loading-confusionmatrix-graph", 
+                                children=[dcc.Graph(id='confusionmatrix-graph')]),
                     dbc.FormGroup([
                                 dbc.RadioButton(
-                                    id="classification-percentage", 
+                                    id='confusionmatrix-percentage', 
                                     className="form-check-input", 
                                     checked=True
                                 ),
                                 dbc.Label(
                                     "Display percentages",
-                                    html_for="classification-percentage",
+                                    html_for="confusionmatrix-percentage",
                                     className="form-check-label",
                                 ),
                     ], check=True),
-                ], width=4, align="start"),
+                    dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id="confusionmatrix-binary", 
+                                    className="form-check-input", 
+                                    checked=True
+                                ),
+                                dbc.Label(
+                                    "Binary (use cutoff for positive vs not positive)",
+                                    html_for="confusionmatrix-binary",
+                                    className="form-check-label",
+                                ),
+                    ], check=True),
+                ], md=6, align="start"),              
             ]),
             dbc.Row([
                     dbc.Col([
@@ -257,29 +246,52 @@ class ClassifierModelStats:
                 ]),
             dbc.Row([
                 dbc.Col([
-                    dcc.Loading(id="loading-confusionmatrix-graph", 
-                                children=[dcc.Graph(id='confusionmatrix-graph')]),
+                    html.Div([
+                        dcc.Loading(id="loading-lift-curve", 
+                                children=[dcc.Graph(id='lift-curve-graph')]),
+                    ], style={'margin': 0}),
+                    dbc.FormGroup([
+                        dbc.RadioButton(
+                            id="lift-curve-percentage", 
+                            className="form-check-input", 
+                            checked=True
+                        ),
+                        dbc.Label(
+                            "Display percentages",
+                            html_for="lift-curve-percentage",
+                            className="form-check-label",
+                        ),
+                    ], check=True),          
+                ], md=6, align="start"),
+                dbc.Col([
+                    html.Div([
+                                dcc.Loading(id="loading-classification-graph", 
+                                            children=[dcc.Graph(id='classification-graph')]),
+                    ], style={'margin': 0}),
+
                     dbc.FormGroup([
                                 dbc.RadioButton(
-                                    id='confusionmatrix-percentage', 
+                                    id="classification-percentage", 
                                     className="form-check-input", 
                                     checked=True
                                 ),
                                 dbc.Label(
                                     "Display percentages",
-                                    html_for="confusionmatrix-percentage",
+                                    html_for="classification-percentage",
                                     className="form-check-label",
                                 ),
                     ], check=True),
-                ], width=4),
+                ], md=6, align="start"),
+            ]),
+            dbc.Row([    
                 dbc.Col([
                     dcc.Loading(id="loading-roc-auc-graph", 
                                 children=[dcc.Graph(id='roc-auc-graph')]),
-                ], width=4),
+                ], md=6),
                 dbc.Col([
                     dcc.Loading(id="loading-pr-auc-graph", 
                                 children=[dcc.Graph(id='pr-auc-graph')]),
-                ], width=4),
+                ], md=6),
             ]),
         ], fluid=True)
 
@@ -343,13 +355,14 @@ class ClassifierModelStats:
              Output('confusionmatrix-graph', 'figure'),
             [Input('precision-cutoff', 'value'),
              Input('confusionmatrix-percentage', 'checked'),
+             Input('confusionmatrix-binary', 'checked'),
              Input('label-store', 'data')],
             [State('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, percentage, pos_label, tab):
+        def update_precision_graph(cutoff, normalized, binary, pos_label, tab):
             self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_confusion_matrix(
-                                cutoff=cutoff, normalized=percentage)
+                        cutoff=cutoff, normalized=normalized, binary=binary)
 
         @app.callback(
             Output('roc-auc-graph', 'figure'),
