@@ -19,7 +19,7 @@ from .dashboard_tabs.model_summary_tab import *
 from .dashboard_tabs.contributions_tab import *
 from .dashboard_tabs.shap_dependence_tab import *
 from .dashboard_tabs.shap_interactions_tab import *
-from .dashboard_tabs.shadow_trees_tab import *
+from .dashboard_tabs.decision_trees_tab import *
 
 
 class ExplainerDashboard:
@@ -32,7 +32,7 @@ class ExplainerDashboard:
                 contributions=False,
                 shap_dependence=False,
                 shap_interaction=False,
-                shadow_trees=False,
+                decision_trees=False,
                 plotly_template="none",
                 **kwargs):
         """Constructs an ExplainerDashboard.
@@ -46,8 +46,10 @@ class ExplainerDashboard:
         :type contributions: bool, optional
         :param shap_dependence: display shap dependence tab or not, defaults to True
         :type shap_dependence: bool, optional
-        :param shap_interaction: display tab interaction tab or not. Note: shap interaction values can take a long time to compute, so therefore this tab defaults to False, defaults to False
+        :param shap_interaction: display tab interaction tab or not. 
         :type shap_interaction: bool, optional
+        :param decision_trees: display tab with individual decision tree of random forest, defaults to False
+        :type decision_trees: bool, optional
         """
         self.explainer=explainer
         self.title = title
@@ -55,7 +57,7 @@ class ExplainerDashboard:
         self.contributions = contributions
         self.shap_dependence = shap_dependence
         self.shap_interaction = shap_interaction
-        self.shadow_trees = shadow_trees
+        self.decision_trees = decision_trees
         self.plotly_template = plotly_template
         self.kwargs = kwargs
 
@@ -74,11 +76,10 @@ class ExplainerDashboard:
             _ = explainer.shap_interaction_values
             if explainer.cats is not None:
                 _ = explainer.shap_interaction_values_cats
-        if shadow_trees:
+        if decision_trees:
             _ = explainer.graphviz_available
-            _ = explainer.shadow_trees
+            _ = explainer.decision_trees
             
-
         self.app = dash.Dash(__name__)
         self.app.config['suppress_callback_exceptions']=True
         self.app.css.config.serve_locally = True
@@ -117,11 +118,11 @@ class ExplainerDashboard:
             self.tabs.append(ShapDependenceTab(self.explainer, **self.kwargs))
         if self.shap_interaction:
             self.tabs.append(ShapInteractionsTab(self.explainer, **self.kwargs))
-        if self.shadow_trees:
-            assert hasattr(self.explainer, 'shadow_trees'), \
+        if self.decision_trees:
+            assert hasattr(self.explainer, 'decision_trees'), \
                 """the explainer object has no shadow_trees property. This tab 
                 only works with a RandomForestClassifierBunch or RandomForestRegressionBunch""" 
-            self.tabs.append(ShadowTreesTab(self.explainer, **self.kwargs))
+            self.tabs.append(DecisionTreesTab(self.explainer, **self.kwargs))
         
     def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port

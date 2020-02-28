@@ -248,12 +248,6 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
         raise PreventUpdate
 
     @app.callback(
-        Output('contributions-size-display', 'children'),
-        [Input('contributions-size', 'value')])
-    def display_value(contributions_size):
-        return f"Displaying top {contributions_size} features."
-
-    @app.callback(
         [Output('model-prediction', 'children'),
          Output('contributions-graph', 'figure'),
          Output('contributions_table', 'data')],
@@ -264,34 +258,10 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     def update_output_div(index, topx, pos_label):
         if index is None:
             raise PreventUpdate
-        explainer.pos_label = pos_label #needed in case of multiple workers
-        int_idx = explainer.get_int_idx(index)
-        if explainer.is_classifier:
-            def display_probas(pred_probas_raw, labels, round=2):
-                assert (len(pred_probas_raw.shape)==1 
-                        and len(pred_probas_raw) ==len(labels))
-                for i in range(len(labels)):
-                    yield '##### ' + labels[i] + ': ' + str(np.round(100*pred_probas_raw[i], round)) + '%\n'
-
-            model_prediction = f"# Prediction for {index}:\n" 
-            for pred in display_probas(
-                    explainer.pred_probas_raw[int_idx], 
-                    explainer.labels, round):
-                model_prediction += pred
-            if (isinstance(explainer.y[0], int) or 
-                isinstance(explainer.y[0], np.int64)):
-                model_prediction += f"##### Actual Outcome: {explainer.labels[explainer.y[int_idx]]}\n\n"
-
-            model_prediction += f'##### In top {np.round(100*(1-explainer.ranks[int_idx]))}% percentile probability {explainer.pos_label_str}'
-        
-        else:
-            model_prediction = f"# Prediction for {index}:\n" \
-                                + f"##### Prediction: {np.round(explainer.preds[int_idx], round)}\n"
-            model_prediction += f"##### Actual Outcome: {np.round(explainer.y[int_idx], round)}"
-
+        prediction_result_md = explainer.prediction_result_markdown(index)
         plot = explainer.plot_shap_contributions(index, topx=topx, round=round)
         summary_table = explainer.contrib_summary_df(index, round=round).to_dict('records')
-        return (model_prediction, plot, summary_table)
+        return (prediction_result_md, plot, summary_table)
 
     @app.callback(
         Output('pdp-col', 'value'),

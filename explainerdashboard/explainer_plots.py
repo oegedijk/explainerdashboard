@@ -912,11 +912,10 @@ def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, po
 
 
 
-def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5, 
-                            labels = None, normalized=True):
+def plotly_confusion_matrix(y_true, y_preds, labels = None, normalized=True):
 
-    cm = confusion_matrix(y_true, np.where(pred_probas>cutoff,1,0))
-    cm_labels = np.array([['TN', 'FP'],['FN', 'TP']])
+    cm = confusion_matrix(y_true, y_preds)
+
     if labels is None:
         labels = [str(i) for i in range(cm.shape[0])] 
 
@@ -934,7 +933,6 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                         zmin=0, zmax=zmax, colorscale='Blues',
                         showscale=False,
                     )]
-    #     annotations = [go.layout.Annotation()]
     layout = go.Layout(
             title="Confusion Matrix",
             # width=450,
@@ -945,9 +943,7 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
             plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
-
     annotations = []
-
     for x in range(cm.shape[0]):
         for y in range(cm.shape[1]):
             text= str(cm[x,y]) + '%' if normalized else str(cm[x,y])
@@ -959,18 +955,6 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                                     font=dict(
                                         size=20
                                     ),))
-            annotations.append(
-                go.layout.Annotation(x=fig.data[0].x[y], 
-                                    y=fig.data[0].y[x], 
-                                    text=cm_labels[x,y], 
-                                    showarrow=False,
-                                    font=dict(
-                                        family= "Old Standard TT, Bold", 
-                                        size=90,
-                                        color="black"
-                                    ),
-                                    opacity=0.05,
-                                    ))
 
     fig.update_layout(annotations=annotations)  
     return fig

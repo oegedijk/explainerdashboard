@@ -1,23 +1,17 @@
 
 # TODO:
-- model summary markdown
-- metrics (classifier + regression)
-- cutoff_fraction -> rename cutoff_from_percentile
-- shadowtree_df_summary only return df
-- plot_shap_importances()
-- plot_shap_summary() ?
-- rename columns_ranked
-- rename shadow trees -> individual trees
-- rename plotly_ from all plotting functions
+
 
 
 ## Layout:
 
 ## Plots:
 - add multiclass confusion matrix
-- individual trees: highlight selected tree
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot
+- rename plot_shap_importances()
+- rename plot_shap_summary() ?
+- rename plotly_ from all plotting functionsr
 
 ### Regression plots:
 

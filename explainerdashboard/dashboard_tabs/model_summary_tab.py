@@ -245,8 +245,8 @@ class ClassifierModelStats:
             dbc.Row([
                     dbc.Col([
                         html.Div([
-                            html.Label('Cutoff fraction of samples:'),
-                            dcc.Slider(id='fraction-cutoff', 
+                            html.Label('Cutoff percentile of samples:'),
+                            dcc.Slider(id='percentile-cutoff', 
                                         min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                         marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                 0.75: '0.75', 0.99: '0.99'}, 
@@ -373,10 +373,10 @@ class ClassifierModelStats:
 
         @app.callback(
             Output('precision-cutoff', 'value'),
-            [Input('fraction-cutoff', 'value')]
+            [Input('percentile-cutoff', 'value')]
         )
-        def update_cutoff(fraction):
-            return np.round(self.explainer.cutoff_fraction(fraction), 2)
+        def update_cutoff(percentile):
+            return np.round(self.explainer.cutoff_from_percentile(percentile), 2)
 
 class RegressionModelStats:
     def __init__(self, explainer, round=2, logs=False, vs_actual=False, ratio=False):
@@ -466,18 +466,7 @@ class RegressionModelStats:
         )
         def update_model_summary(pos_label, tab):
             self.explainer.pos_label = pos_label #needed in case of multiple workers
-            rmse = np.round(np.sqrt(mean_squared_error(self.explainer.y, self.explainer.preds)), 2)
-            mae = np.round(mean_absolute_error(self.explainer.y, self.explainer.preds), 2)
-            r2 = np.round(r2_score(self.explainer.y, self.explainer.preds), 2)
-            summary = f"""
-            # Model Summary 
-
-            ### RMSE: {rmse}
-            ### MAE: {mae}
-            ### R^2: {r2}
-            """
-
-            return summary
+            return self.explainer.metrics_markdown()
 
         Output('model-prediction', 'children')
         @app.callback(

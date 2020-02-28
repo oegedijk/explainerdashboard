@@ -7,7 +7,8 @@ from pdpbox import pdp
 import shap
 from dtreeviz.trees import *
 
-from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score, recall_score, log_loss
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from .explainer_methods import *
 from .explainer_plots import *
@@ -345,6 +346,18 @@ class BaseExplainerBunch(ABC):
             if self.cats is not None:
                 _ = self.shap_interaction_values_cats
 
+    @abstractmethod
+    def metrics(self, **kwargs):
+        raise NotImplementedError()
+
+    def metrics_markdown(self, round=2, **kwargs):
+        metrics_dict = self.metrics(**kwargs)
+        
+        metrics_markdown = "# Model Summary: \n\n"
+        for k, v in metrics_dict.items():
+            metrics_markdown += f"### {k}: {np.round(v, round)}\n"
+        return metrics_markdown
+    
     def mean_abs_shap_df(self, topx=None, cutoff=None, cats=False):
         """returns a pd.DataFrame with the mean absolute shap values per features,
         sorted rom highest to lowest.
@@ -922,31 +935,31 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
         return self._graphviz_available
 
     @property
-    def shadow_trees(self):
-        if not hasattr(self, '_shadow_trees'):
-            print("Generating shadow trees...")
-            self._shadow_trees = get_shadow_trees(self.model, self.X, self.y)
-        return self._shadow_trees
+    def decision_trees(self):
+        if not hasattr(self, '_decision_trees'):
+            print("Generating ShadowDecTree for each individual decision tree...")
+            self._decision_trees = get_decision_trees(self.model, self.X, self.y)
+        return self._decision_trees
 
-    def shadowtree_df(self, tree_idx, index):
+    def decisiontree_df(self, tree_idx, index):
         """returns a pd.DataFrame with all decision nodes of a particular
                         tree (indexed by tree_idx) for a particular observation
                         (indexed by index)"""
-        assert tree_idx >= 0 and tree_idx < len(self.shadow_trees), \
-            f"tree index {tree_idx} outside 0 and number of trees ({len(self.shadow_trees)}) range"
+        assert tree_idx >= 0 and tree_idx < len(self.decision_trees), \
+            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
         idx=self.get_int_idx(index)
         assert idx >= 0 and idx < len(self.X), \
             f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
         if self.is_classifier:
-            return get_shadowtree_df(self.shadow_trees[tree_idx], self.X.iloc[idx],
+            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx],
                     pos_label=self.pos_label)
         else:
-            return get_shadowtree_df(self.shadow_trees[tree_idx], self.X.iloc[idx])
+            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
 
-    def shadowtree_df_summary(self, tree_idx, index, round=2):
-        """formats shadowtree_df in a slightly more human readable format."""
+    def decisiontree_df_summary(self, tree_idx, index, round=2):
+        """formats decisiontree_df in a slightly more human readable format."""
         idx=self.get_int_idx(index)
-        return shadowtree_df_summary(self.shadowtree_df(tree_idx, idx),
+        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx),
                     classifier=self.is_classifier, round=round)
 
     def decision_path_file(self, tree_idx, index):
@@ -1008,7 +1021,7 @@ class RandomForestExplainerBunch(TreeExplainerBunch):
                         highlight_tree=highlight_tree, round=round)
 
     def calculate_properties(self, include_interactions=True):
-        _ = self.shadow_trees
+        _ = self.decision_trees
         super().calculate_properties(include_interactions)
 
 
@@ -1078,8 +1091,6 @@ class ClassifierBunch(BaseExplainerBunch):
     def ranks(self):
         """returns ranks for pos_label class"""
         return self.ranks_raw[:, self.pos_label]
-
-
 
     @property
     def pred_probas_raw(self):
@@ -1198,12 +1209,23 @@ class ClassifierBunch(BaseExplainerBunch):
                                 self.columns, sv, self.cats) for sv in self._shap_values]
         return self._mean_abs_shap_cats[self.pos_label]
 
-    def cutoff_fraction(self, fraction, pos_label=None):
+    def cutoff_from_percentile(self, percentile, pos_label=None):
         if pos_label is None:
-            return pd.Series(self.pred_probas).nlargest(int((1-fraction)*len(self))).min()
+            return pd.Series(self.pred_probas).nlargest(int((1-percentile)*len(self))).min()
         else:
-            return pd.Series(self.pred_probas_raw[:, pos_label]).nlargest(int((1-fraction)*len(self))).min()
+            return pd.Series(self.pred_probas_raw[:, pos_label]).nlargest(int((1-percentile)*len(self))).min()
 
+    def metrics(self, cutoff=0.5):
+        metrics_dict = {
+            'accuracy' : accuracy_score(self.y_binary, np.where(self.pred_probas > cutoff, 1, 0)),
+            'precision' : precision_score(self.y_binary, np.where(self.pred_probas > cutoff, 1, 0)),
+            'recall' : recall_score(self.y_binary, np.where(self.pred_probas > cutoff, 1, 0)),
+            'f1' : f1_score(self.y_binary, np.where(self.pred_probas > cutoff, 1, 0)),
+            'roc_auc_score' : roc_auc_score(self.y_binary, self.pred_probas),
+            'pr_auc_score' : average_precision_score(self.y_binary, self.pred_probas),
+            'log_loss' : log_loss(self.y_binary, self.pred_probas)
+        }
+        return metrics_dict
 
     def get_pdp_result(self, col, index=None, drop_na=True,
                         sample=1000, num_grid_points=20):
@@ -1286,6 +1308,27 @@ class ClassifierBunch(BaseExplainerBunch):
     def lift_curve_df(self):
         return get_lift_curve_df(self.pred_probas, self.y, self.pos_label)
 
+    def prediction_result_markdown(self, index, include_percentile=True, round=2, **kwargs):
+        int_idx = self.get_int_idx(index)
+        
+        def display_probas(pred_probas_raw, labels, round=2):
+            assert (len(pred_probas_raw.shape)==1 
+                    and len(pred_probas_raw) ==len(labels))
+            for i in range(len(labels)):
+                yield '##### ' + labels[i] + ': ' + str(np.round(100*pred_probas_raw[i], round)) + '%\n'
+
+        model_prediction = f"# Prediction for {index}:\n" 
+        for pred in display_probas(
+                self.pred_probas_raw[int_idx], 
+                self.labels, round):
+            model_prediction += pred
+        if (isinstance(self.y[0], int) or 
+            isinstance(self.y[0], np.int64)):
+            model_prediction += f"##### Actual Outcome: {self.labels[self.y[int_idx]]}\n\n"
+        if include_percentile:
+            model_prediction += f'##### In top {np.round(100*(1-self.ranks[int_idx]))}% percentile probability {self.pos_label_str}'
+        return model_prediction
+
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5, multiclass=False):
         """plots predicted probability on the x-axis
         binned by bin_size, and observed precision (fraction of actual positive
@@ -1302,21 +1345,27 @@ class ClassifierBunch(BaseExplainerBunch):
         return plotly_cumulative_precision_plot(
                     self.lift_curve_df(), self.labels, self.pos_label)
 
-    def plot_confusion_matrix(self, cutoff=0.5, normalized=False):
+    def plot_confusion_matrix(self, cutoff=0.5, normalized=False, binary=False):
         """plots a standard 2d confusion
         matrix, depending on model cutoff. If normalized display percentage
         otherwise counts."""
-        if len(self.labels)==2:
-            def order_binary_labels(labels, pos_label):
-                pos_index = labels.index(pos_label)
-                return [labels[1-pos_index], labels[pos_index]]
-            labels = order_binary_labels(self.labels, self.pos_label_str)
+        
+        if binary:
+            if len(self.labels)==2:
+                def order_binary_labels(labels, pos_label):
+                    pos_index = labels.index(pos_label)
+                    return [labels[1-pos_index], labels[pos_index]]
+                labels = order_binary_labels(self.labels, self.pos_label_str)
+            else:
+                labels = ['Not ' + self.pos_label_str, self.pos_label_str]
+
+            return plotly_confusion_matrix(
+                    self.y_binary, np.where(self.pred_probas > cutoff, 1, 0),
+                    normalized=normalized, labels=labels)
         else:
-            labels = ['Not ' + self.pos_label_str, self.pos_label_str]
-        return plotly_confusion_matrix(
-                self.y_binary, self.pred_probas,
-                cutoff=cutoff, normalized=normalized,
-                labels=labels)
+            return plotly_confusion_matrix(
+                self.y, self.pred_probas_raw.argmax(axis=1),
+                normalized=normalized, labels=self.labels)
 
     def plot_lift_curve(self, cutoff=None, percentage=False, round=2):
         return plotly_lift_curve(self.lift_curve_df(), cutoff, percentage, round)
@@ -1368,6 +1417,22 @@ class RegressionBunch(BaseExplainerBunch):
             print("Calculating residuals...")
             self._residuals =  self.preds-self.y
         return self._residuals
+
+    def prediction_result_markdown(self, index, round=2, **kwargs):
+        int_idx = self.get_int_idx(index)
+
+        model_prediction = f"# Prediction for {index}:\n" \
+                            + f"##### Prediction: {np.round(self.preds[int_idx], round)}\n"
+        model_prediction += f"##### Actual Outcome: {np.round(self.y[int_idx], round)}"
+        return model_prediction
+
+    def metrics(self):
+        metrics_dict = {
+            'rmse' : np.sqrt(mean_squared_error(self.y, self.preds)),
+            'mae' : mean_absolute_error(self.y, self.preds),
+            'R2' : r2_score(self.y, self.preds),
+        }
+        return metrics_dict
 
     def plot_predicted_vs_actual(self, round=2, logs=False):
         return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, round=round, logs=logs)
