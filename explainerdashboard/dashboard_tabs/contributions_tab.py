@@ -213,7 +213,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
                     return_str=return_str)
             elif preds_or_ranks == 'ranks':
                 idx = explainer.random_index(
-                    y_values=y, rank_min=slider_range[0], rank_max=slider_range[1],
+                    y_values=y, pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1],
                     return_str=return_str)
 
             if idx is not None:

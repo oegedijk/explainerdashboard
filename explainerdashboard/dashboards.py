@@ -63,7 +63,7 @@ class ExplainerDashboard:
 
         # calculate lazily loaded properties before starting dashboard:
         if shap_dependence or contributions or model_summary:
-            _ = explainer.shap_values, explainer.preds, explainer.ranks
+            _ = explainer.shap_values, explainer.preds, explainer.pred_percentiles
             if explainer.cats is not None:
                 _ = explainer.shap_values_cats
             if explainer.is_classifier:

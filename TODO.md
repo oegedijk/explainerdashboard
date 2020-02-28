@@ -1,5 +1,6 @@
 
 # TODO:
+- fix hit enter on input field reloads page
 
 ## Layout:
 
@@ -31,7 +32,6 @@
 - Add LIME, Shaabas values for completeness?
 
 ## Library level:
-- fix jupyter reload pdp bug
 - submit pull request to dtreeviz to accept shadowtree as parameter
 - just add shap='tree', 'linear', 'deep', etc instead of separate classes
 - add long description to pypi: https://packaging.python.org/guides/making-a-pypi-friendly-readme/

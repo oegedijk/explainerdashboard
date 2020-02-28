@@ -68,15 +68,15 @@ def shap_interactions_layout(explainer,
                     dbc.Label("Feature"),
                     dcc.Dropdown(id='interaction-col', 
                         options=[{'label': col, 'value': col} 
-                                    for col in explainer.columns_ranked(cats)],
-                        value=explainer.columns_ranked(cats)[0])],
+                                    for col in explainer.columns_ranked_by_shap(cats)],
+                        value=explainer.columns_ranked_by_shap(cats)[0])],
                     width=4), 
                 dbc.Col([
                     dbc.Label("Depth:"),
                     dcc.Dropdown(id='interaction-summary-depth',
                         options = [{'label': str(i+1), 'value':i+1} 
-                                        for i in range(len(explainer.columns_ranked(cats))-1)],
-                        value=min(n_features, len(explainer.columns_ranked(cats))-1))],
+                                        for i in range(len(explainer.columns_ranked_by_shap(cats))-1)],
+                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats))-1))],
                     width=2), 
                 dbc.Col([
                     dbc.FormGroup(
@@ -119,8 +119,8 @@ def shap_interactions_layout(explainer,
                     dbc.Label("Interaction Feature"),
                     dcc.Dropdown(id='interaction-interact-col', 
                         options=[{'label': col, 'value':col} 
-                                    for col in explainer.columns_ranked(cats)],
-                        value=explainer.shap_top_interactions(explainer.columns_ranked(cats)[0], cats=cats)[1]
+                                    for col in explainer.columns_ranked_by_shap(cats)],
+                        value=explainer.shap_top_interactions(explainer.columns_ranked_by_shap(cats)[0], cats=cats)[1]
                     ),
                 ], width=8), 
                 dbc.Col([
@@ -150,7 +150,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         [State('interaction-col', 'value'),
          State('tabs', 'value')])
     def update_col_options(cats, col, tab):
-        cols = explainer.columns_ranked(cats)
+        cols = explainer.columns_ranked_by_shap(cats)
         col_options = [{'label': col, 'value': col} for col in cols] 
         if col not in cols:
             # if currently selected col is not in new col options (i.e. because
@@ -173,7 +173,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         if col is not None:
             explainer.pos_label = pos_label #needed in case of multiple workers
             if depth is None: 
-                depth = len(explainer.columns_ranked(cats))-1 
+                depth = len(explainer.columns_ranked_by_shap(cats))-1 
             if summary_type=='aggregate':
                 plot = explainer.plot_interactions(col, topx=depth, cats=cats)
             elif summary_type=='detailed':

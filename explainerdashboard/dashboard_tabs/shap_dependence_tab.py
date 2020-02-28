@@ -52,8 +52,8 @@ def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
                     dbc.Label("Depth:"),
                     dcc.Dropdown(id='dependence-scatter-depth',
                         options = [{'label': str(i+1), 'value':i+1} 
-                                        for i in range(len(explainer.columns_ranked(cats))-1)],
-                        value=min(n_features, len(explainer.columns_ranked(cats))-1))],
+                                        for i in range(len(explainer.columns_ranked_by_shap(cats)) - 1)],
+                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats))-1))],
                     width=3), 
                 dbc.Col([
                     dbc.FormGroup(
@@ -97,15 +97,15 @@ def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
                     html.Label('Plot dependence for column:'),
                     dcc.Dropdown(id='dependence-col', 
                         options=[{'label': col, 'value':col} 
-                                    for col in explainer.columns_ranked(cats)],
-                        value=explainer.columns_ranked(cats)[0])],
+                                    for col in explainer.columns_ranked_by_shap(cats)],
+                        value=explainer.columns_ranked_by_shap(cats)[0])],
                     width=5), 
                 dbc.Col([
                      html.Label('Color observation by column:'),
                     dcc.Dropdown(id='dependence-color-col', 
                         options=[{'label': col, 'value':col} 
-                                    for col in explainer.columns_ranked(cats)],
-                        value=explainer.columns_ranked(cats)[1])],
+                                    for col in explainer.columns_ranked_by_shap(cats)],
+                        value=explainer.columns_ranked_by_shap(cats)[1])],
                     width=5), 
                 dbc.Col([
                     html.Label('Highlight:'),
