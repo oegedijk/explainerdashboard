@@ -726,7 +726,7 @@ class BaseExplainerBunch(ABC):
         :rtype: plotly.fig
         """
         importances_df = self.importances_df(kind=kind, topx=topx, cats=cats)
-        if self.descriptions is not None:
+        if self.descriptions:
             descriptions = self.description_list(importances_df.Feature)
             return plotly_importances_plot(importances_df, descriptions, round=round)
         else:
