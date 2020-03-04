@@ -49,7 +49,7 @@ Some example code::
                             shadow_trees=True)
     db.run(port=8050)
 
-The result can be viewed on `this dashboard deployed to heroku <titanicexplainer.herokuapp.com>`_
+The result can be viewed on `this dashboard deployed to heroku <http://titanicexplainer.herokuapp.com>`_
 
 
 
