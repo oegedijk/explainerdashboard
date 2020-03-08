@@ -819,7 +819,7 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3):
                 y=feature_names,
                 x=importance_values,
                 #text=importance_values.round(round),
-                text=descriptions[::-1], #don't know why, but order needs to be reversed
+                text=descriptions[::-1] if descriptions is not None else None, #don't know why, but order needs to be reversed
                 #textposition='inside',
                 #insidetextanchor='end',
                 hoverinfo="text",
