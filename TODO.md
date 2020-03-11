@@ -1,6 +1,8 @@
 
 # TODO:
 - fix hit enter on input field reloads page
+- fix dtreeviz for regression on test set not workings
+- find a way to plot individual xgboost trees
 
 ## Layout:
 
@@ -9,16 +11,17 @@
 
 ## Plots:
 - Classification plot: add percentage in totals plot, add totals in percentage plot
+- regression plots: only take log of x-axis or y-axis
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot
 - figure out why roc_auc, pr_auc, confusion plots don't scale (probably to do with being forced square?)
-- rename plotly_ from all plotting functions?
+- rename plotly_ from all plotting functions? or not if we're going to add altair?
 - Add Altair (vega) plots for easy inclusion in websites
 
 ### Regression plots:
 
 ## Explainers:
-
+- add get_random_index with min/max residual for regression
 
 ## Dashboard:
 - add option for vertical contributions?
@@ -33,7 +36,6 @@
 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter
-- just add shap='tree', 'linear', 'deep', etc instead of separate classes
 - add long description to pypi: https://packaging.python.org/guides/making-a-pypi-friendly-readme/
 - Add more tests!
 - Test with lightgbm, catboost, extratrees

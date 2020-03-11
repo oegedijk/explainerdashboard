@@ -195,7 +195,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
                 col = clickdata['points'][0]['text'].split('=')[0]                             
                 return (idx, col)
             elif  isinstance(clickdata['points'][0]['y'], str): # aggregate
-                col = clickdata['points'][0]['y']
+                col = clickdata['points'][0]['y'].split(' ')[1]
                 return (dash.no_update, col) 
         raise PreventUpdate
 

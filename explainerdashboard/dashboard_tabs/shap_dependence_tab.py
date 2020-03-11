@@ -177,7 +177,7 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
                 return (idx, col)
             elif isinstance(clickdata['points'][0]['y'], str): # aggregate
                 # in aggregate clickdata returns col name -> type==str
-                col = clickdata['points'][0]['y']
+                col = clickdata['points'][0]['y'].split(' ')[1]
                 return (dash.no_update, col) 
         raise PreventUpdate
 
