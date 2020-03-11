@@ -40,7 +40,7 @@ class ShapDependenceTab:
         shap_dependence_callbacks(self.explainer, app)
 
 
-def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
+def shap_dependence_layout(explainer, n_features=None, cats=True, **kwargs):
 
     cats_display = 'none' if explainer.cats is None else 'inline-block'
     return dbc.Container([
@@ -51,10 +51,10 @@ def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
                 dbc.Col([
                     dbc.Label("Depth:"),
                     dcc.Dropdown(id='dependence-scatter-depth',
-                        options = [{'label': str(i+1), 'value':i+1} 
-                                        for i in range(len(explainer.columns_ranked_by_shap(cats)) - 1)],
-                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats))-1))],
-                    width=3), 
+                        options=[{'label': str(i+1), 'value': i+1} 
+                                        for i in range(len(explainer.columns_ranked_by_shap(cats)))],
+                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats))))],
+                    md=3), 
                 dbc.Col([
                     dbc.FormGroup(
                         [
@@ -70,7 +70,7 @@ def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
                             ),
                         ]
                     )
-                ], width=3),
+                ], md=3),
                 dbc.Col([
                     dbc.Label("Grouping:"),
                     dbc.FormGroup(
@@ -83,13 +83,13 @@ def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
                                 html_for='dependence-group-categoricals',
                                 className="form-check-label"),
                     ], check=True)],
-                    width=3),
+                    md=3),
                 ], form=True, justify="between"),
 
             dbc.Label('(Click on a dot to display dependece graph)'),
             dcc.Loading(id="loading-dependence-shap-summary", 
                     children=[dcc.Graph(id='dependence-shap-summary-graph')])
-        ], width=6),
+        ], md=6),
         dbc.Col([
             html.H3('Shap Dependence Plot'),
             dbc.Row([
@@ -99,25 +99,25 @@ def shap_dependence_layout(explainer, n_features=10, cats=True, **kwargs):
                         options=[{'label': col, 'value':col} 
                                     for col in explainer.columns_ranked_by_shap(cats)],
                         value=explainer.columns_ranked_by_shap(cats)[0])],
-                    width=5), 
+                    md=5), 
                 dbc.Col([
                      html.Label('Color observation by column:'),
                     dcc.Dropdown(id='dependence-color-col', 
                         options=[{'label': col, 'value':col} 
                                     for col in explainer.columns_ranked_by_shap(cats)],
                         value=explainer.columns_ranked_by_shap(cats)[1])],
-                    width=5), 
+                    md=5), 
                 dbc.Col([
                     html.Label('Highlight:'),
                     dbc.Input(id='dependence-highlight-index', 
                             placeholder="Highlight index...",
                             debounce=True)]
-                    , width=2) 
+                    , md=2) 
                 ], form=True),
             
             dcc.Loading(id="loading-dependence-graph", 
                          children=[dcc.Graph(id='dependence-graph')]),
-        ], width=6),
+        ], md=6),
         ]),
     ],  fluid=True)
 
