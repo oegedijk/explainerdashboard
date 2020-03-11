@@ -9,18 +9,9 @@ ExplainersBunches
 The abstract base class **BaseExplainerBunch** defines most of the functionality 
 such as feature importances (both SHAP and permutation based), SHAP values, SHAP interaction values
 partial dependences, individual contributions, etc. Along with a number of convenient
-plotting methods The derived classes that you would actually instantiate specify what kind of 
-ShapExplainer to use to calculate the SHAP values.
+plotting methods 
 
-e.g.:
-
-**TreeExplainerBunch**(model, X, y): uses shap.TreeExplainer
-**LinearExplainerBunch**(model, X, y): uses shap.LinearExplainer
-**DeepExplainerBunch**(model, X, y): uses shap.DeepExplainer
-**KernelExplainerBunch**(model, X, y): uses shap.KernelExplainer
-
-These Explainer objects calculate shap values, feature importances, partial dependences, etc
-and provide a number of convenient plotting methods:
+The BaseExplainerBunch already provides a number of convenient plotting methods:
 
 - plot_importances()
 - plot_shap_contributions()
@@ -32,7 +23,7 @@ and provide a number of convenient plotting methods:
 
 example code::
 
-    explainer = TreeExplainerBunch(model, X, y)
+    explainer = BaseExplainerBunch(model, X, y)
     explainer.plot_importances()
     explainer.plot_shap_contributions(index=0)
 
@@ -41,7 +32,7 @@ ClassifierBunch
 ===============
 
 For classification models where we try to predict the probability of each class
-we have a MixIn class called ClassifierBunch.
+we have a derived class called ClassifierBunch.
 
 You can pass an additional parameter to __init__ with a list label names. For
 multilabel classifier you can set the positive class with e.g. *explainer.pos_label=1*.
@@ -51,23 +42,18 @@ of that label.You an also pass a string label if you pased *labels* to the const
 ClassifierBunch defines a number of additional plotting methods:
 
 - plot_precision()
+- plot_cumulative_precision()
+- plot_classification()
 - plot_confusion_matrix()
+- plot_lift_curve()
 - plot_roc_auc()
 - plot_pr_auc()
 
-You would instantiate an Explainer class for a specific type of model, e.g.:
-
-**TreeClassifierBunch**(model, X, y)
-**LinearClassifierBunch**(model, X, y)
-**DeepClassifierBunch**(model, X, y)
-**KernelClassifierBunch**(model, X, y)
-**RandomForestClassifierBunch**(model, X, y)
 
 
 example code::
-
-    explainer = TreeExplainerBunch(model, X, y, labels=['Not Survived', 'Survived'])
-    explainer.plot_confusion_matrix()
+    explainer = ClassifierBunch(model, X, y, labels=['Not Survived', 'Survived'])
+    explainer.plot_confusion_matrix(cutoff=0.6)
     explainer.plot_roc_auc()
 
 RegressionBunch
@@ -83,19 +69,9 @@ RegressionBunch defines a number of additional plotting methods:
 -  plot_residuals(self, vs_actual=False, round=2, ratio=False):
 -  plot_residuals_vs_feature(self, col)
 
-You would instantiate an Explainer class for a specific type of model, e.g.:
-
-
-**TreeRegressionBunch**(model, X, y)
-**LinearRegressionBunch**(model, X, y)
-**DeepRegressionBunch**(model, X, y)
-**KernelRegressionBunch**(model, X, y)
-**RandomForestRegressionBunch**(model, X, y)
-
-
 example code::
 
-    explainer = TreeRegressionBunch(model, X, y, units='dollars')
+    explainer = RegressionBunch(model, X, y, units='dollars')
     explainer.plot_predicted_vs_actual()
     explainer.plot_residuals()
 
@@ -114,6 +90,11 @@ You can also plot the individual prediction of each individual tree.
 
 - shadowtree_df(tree_idx, index)
 - plot_trees(index)
+
+And for dtreeviz visualization of individual decision trees (svg format):
+- decision_path()
+- decision_path_file()
+- decision_path_encoded()
 
 This also works with classifiers and regression models:
 
@@ -137,58 +118,37 @@ ClassifierBunch
 
 For the plotting methods see classifier_plots_
 
-TreeExplainerBunch
-==================
+RegressionBunch
+===============
 
-.. autoclass:: explainerdashboard.explainers.TreeExplainerBunch
+.. autoclass:: explainerdashboard.explainers.RegressionBunch
+   :members: random_index, residuals, metrics, prediction_result_markdown
    :member-order: bysource
-   :exclude-members: __init__
 
-
-LinearExplainerBunch
-====================
-
-.. autoclass:: explainerdashboard.explainers.LinearExplainerBunch
-   :member-order: bysource
-   :exclude-members: __init__
-
-
-DeepExplainerBunch
-==================
-
-.. autoclass:: explainerdashboard.explainers.DeepExplainerBunch
-   :member-order: bysource
-   :exclude-members: __init__
-
-
-KernelExplainerBunch
-====================
-
-.. autoclass:: explainerdashboard.explainers.KernelExplainerBunch
-   :member-order: bysource
-   :exclude-members: __init__
+For the plotting methods see regression_plots_
 
 
 RandomForestExplainerBunch
 ==========================
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainerBunch
-   :members: shadowtree_df, shadowtree_df_summary, plot_trees
+   :members: decisiontree_df, decisiontree_df_summary, plot_trees
    :member-order: bysource
    :exclude-members: __init__
 
-
-TreeClassifierBunch
-===================
-
-.. autoclass:: explainerdashboard.explainers.TreeClassifierBunch
-   :member-order: bysource
-   :exclude-members: __init__
 
 RandomForestClassifierBunch
 ===========================
 
 .. autoclass:: explainerdashboard.explainers.RandomForestClassifierBunch
+   :member-order: bysource
+   :exclude-members: __init__
+
+
+RandomForestClassifierBunch
+===========================
+
+.. autoclass:: explainerdashboard.explainers.RandomForestRegressionBunch
    :member-order: bysource
    :exclude-members: __init__
 

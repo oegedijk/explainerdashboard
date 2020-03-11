@@ -92,11 +92,11 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
         [Output('tree-predictions-table', 'data'),
          Output('tree-predictions-table', 'columns')],
         [Input('tree-predictions-graph', 'clickData')],
-         # Input('label-store', 'data')], #this causes issues for some reason, only on this tab??
+         # Input('label-store', 'data')], # this causes issues for some reason, only on this tab??
         [State('tree-index-store', 'data'),
          State('tabs', 'value')])
     def display_tree_click_data(clickdata, index, tab):
-        if clickdata is not None and idx is not None:
+        if clickdata is not None and index is not None:
             tree_idx = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else 0
             _, _, decisiontree_df = explainer.decisiontree_df_summary(tree_idx, index, round=round)
             columns = [{'id': c, 'name': c} for c in  decisiontree_df.columns.tolist()]
@@ -111,7 +111,7 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
         [State('tree-index-store', 'data'),
          State('tabs', 'value')])
     def display_click_data(clickData, index, tab):
-        if clickData is not None and idx is not None and explainer.graphviz_available:
+        if clickData is not None and index is not None and explainer.graphviz_available and explainer.is_classifier:
             tree_idx = int(clickData['points'][0]['text'].split('tree no ')[1].split(':')[0]) 
             svg_encoded = explainer.decision_path_encoded(tree_idx, index)
             return svg_encoded
