@@ -132,12 +132,12 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             index_choice_form,
             dbc.Button("Random Index", color="primary", id='index-button'),
             dcc.Store(id='index-store'),
-        ], width=6),
+        ], md=6),
  
         dbc.Col([
              dcc.Loading(id="loading-model-prediction", 
                          children=[dcc.Markdown(id='model-prediction')]),      
-        ], width=6),
+        ], md=6),
         
     ], align="start", justify="between"),
 
@@ -148,10 +148,10 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             html.Div([
                 dcc.Slider(id='contributions-size', 
                     min = 1, max = len(explainer.columns), 
-                    marks={int(i) : str(int(i)) 
+                    marks = {int(i) : str(int(i)) 
                                 for i in np.linspace(
-                                        1, len(explainer.columns), 6)},
-                    step = 1, value=min(n_features, len(explainer.columns)),
+                                        1, len(explainer.columns_cats), 6)},
+                    step = 1, value=min(n_features, len(explainer.columns_cats)),
                     tooltip = {'always_visible' : False}
                 ),
             ], style={'margin-bottom':25}),
@@ -162,7 +162,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             
             html.Div(id='contributions-size-display', style={'margin-top': 20}),
             html.Div(id='contributions-clickdata'),
-        ], width=6),
+        ], md=6),
 
         dbc.Col([
             html.H3('Partial Dependence Plot'),
@@ -174,7 +174,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                 value=explainer.mean_abs_shap_df(cats=True).Feature[0]),
             dcc.Loading(id="loading-pdp-graph", 
                     children=[dcc.Graph(id='pdp-graph')]),
-        ], width=6)
+        ], md=6)
     ]),
     dbc.Row([
         dbc.Col([
@@ -187,7 +187,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                             for c in ['Reason', 'Effect']],
                       
             ),    
-        ], width=10),
+        ], md=6),
     ]),
     ], fluid=True)
 

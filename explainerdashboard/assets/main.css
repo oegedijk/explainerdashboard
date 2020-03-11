@@ -254,7 +254,7 @@ tbody tr:hover {
     left: 30px;
     top: 0;
   }
-  table tbody tr td:nth-child(1):before {
+  /*table tbody tr td:nth-child(1):before {
     content: "Date";
   }
   table tbody tr td:nth-child(2):before {
@@ -271,7 +271,7 @@ tbody tr:hover {
   }
   table tbody tr td:nth-child(6):before {
     content: "Total";
-  }
+  } */
 
   .column4,
   .column5,

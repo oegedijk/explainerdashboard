@@ -70,14 +70,14 @@ def shap_interactions_layout(explainer,
                         options=[{'label': col, 'value': col} 
                                     for col in explainer.columns_ranked_by_shap(cats)],
                         value=explainer.columns_ranked_by_shap(cats)[0])],
-                    width=4), 
+                    md=4), 
                 dbc.Col([
                     dbc.Label("Depth:"),
                     dcc.Dropdown(id='interaction-summary-depth',
                         options = [{'label': str(i+1), 'value':i+1} 
                                         for i in range(len(explainer.columns_ranked_by_shap(cats))-1)],
                         value=min(n_features, len(explainer.columns_ranked_by_shap(cats))-1))],
-                    width=2), 
+                    md=2), 
                 dbc.Col([
                     dbc.FormGroup(
                         [
@@ -93,7 +93,7 @@ def shap_interactions_layout(explainer,
                             ),
                         ]
                     )
-                ], width=3),
+                ], md=3),
                 dbc.Col([
                     dbc.Label("Grouping:"),
                     dbc.FormGroup(
@@ -106,12 +106,12 @@ def shap_interactions_layout(explainer,
                                 html_for='interaction-group-categoricals',
                                 className="form-check-label"),
                     ], check=True)],
-                    width=3),
+                    md=3),
                 ], form=True),
             dbc.Label('(Click on a dot to display interaction graph)'),
             dcc.Loading(id="loading-interaction-summary-scatter", 
                          children=[dcc.Graph(id='interaction-shap-summary-graph')])
-        ], width=6),
+        ], md=6),
         dbc.Col([
             html.H3('Shap Interaction Plots'),
             dbc.Row([
@@ -122,19 +122,19 @@ def shap_interactions_layout(explainer,
                                     for col in explainer.columns_ranked_by_shap(cats)],
                         value=explainer.shap_top_interactions(explainer.columns_ranked_by_shap(cats)[0], cats=cats)[1]
                     ),
-                ], width=8), 
+                ], md=8), 
                 dbc.Col([
                     dbc.Label("Highlight index:"),
                     dbc.Input(id='interaction-highlight-index', 
                         placeholder="Highlight index...", debounce=True)],
-                    width=4), 
+                    md=4), 
                 ], form=True),
             
             dcc.Loading(id="loading-interaction-graph", 
                          children=[dcc.Graph(id='interaction-graph')]),
             dcc.Loading(id="loading-reverse-interaction-graph", 
                          children=[dcc.Graph(id='reverse-interaction-graph')]),
-        ], width=6)
+        ], md=6)
     ]), 
     ], fluid=True)
 
