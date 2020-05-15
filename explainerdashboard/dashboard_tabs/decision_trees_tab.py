@@ -57,8 +57,9 @@ def decision_trees_layout(explainer, round=2, **kwargs):
                             ],
                             className="mr-3",
                         ),
-                        dbc.Button("Random Index", color="primary", id='tree-index-button'),
-                    ], inline=True),
+                        
+                    ], inline=True),    
+                dbc.Button("Random Index", color="primary", id='tree-index-button'),
                 dcc.Store(id='tree-index-store'),
                 html.H4('(click on a prediction to see decision path)'),
                # dcc.Loading(id="loading-trees-graph", 

@@ -1,16 +1,22 @@
 
 # TODO:
-- fix hit enter on input field reloads page
+- fix hit enter on input field reloads page on decision tree tab
 - fix dtreeviz for regression on test set not workings
 - find a way to plot individual xgboost trees
 
 ## Layout:
+- Find a proper frontender to help :)
 
 ## dfs:
+- wrap shap values in DataFrames
+- wrap predictions in Series
 
 
 ## Plots:
+- Add options sorting contributions plot from most negative to most positive
 - Classification plot: add percentage in totals plot, add totals in percentage plot
+- plot_precision: default no cutoff
+- plot_precision: round percentages
 - regression plots: only take log of x-axis or y-axis
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot

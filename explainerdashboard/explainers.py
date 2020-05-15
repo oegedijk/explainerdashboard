@@ -185,7 +185,7 @@ class BaseExplainerBunch(ABC):
             assert self.idxs is not None, \
                 "no self.idxs property found..."
             return self.idxs[idx]
-        return idx
+        return int(idx)
 
     @property
     def preds(self):
@@ -399,11 +399,10 @@ class BaseExplainerBunch(ABC):
             if self.cats is not None:
                 _ = self.shap_interaction_values_cats
 
-    @abstractmethod
     def metrics(self, **kwargs):
         """returns a dict of metrics. Implemented by either ClassifierBunch
         or RegressionBunch"""
-        raise NotImplementedError()
+        return {}
 
     def metrics_markdown(self, round=2, **kwargs):
         """markdown makeup of self.metrics() dict"""
@@ -1327,7 +1326,7 @@ class ClassifierBunch(BaseExplainerBunch):
             assert self.idxs is not None, \
                 "no self.idxs property found..."
             return self.idxs[idx]
-        return idx
+        return int(idx)
 
     def precision_df(self, bin_size=None, quantiles=None, multiclass=False):
         """returns a pd.DataFrame with predicted probabilities and actually
@@ -1452,10 +1451,6 @@ class ClassifierBunch(BaseExplainerBunch):
 
     def plot_lift_curve(self, cutoff=None, percentage=False, round=2):
         return plotly_lift_curve(self.lift_curve_df(), cutoff, percentage, round)
-
-    def plot_cumulative_precision(self):
-        return plotly_cumulative_precision_plot(self.lift_curve_df(), 
-                labels=self.labels, pos_label=self.pos_label)
 
     def plot_classification(self, cutoff=0.5, percentage=True):
         return plotly_classification_plot(self.pred_probas, self.y, self.labels, cutoff, percentage=percentage)
