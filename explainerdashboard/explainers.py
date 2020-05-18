@@ -1060,7 +1060,7 @@ class RandomForestExplainerBunch(BaseExplainerBunch):
 
     def calculate_properties(self, include_interactions=True):
         _ = self.decision_trees
-        super().calculate_properties(include_interactions)
+        super().calculate_properties(include_interactions=include_interactions)
 
 
 class ClassifierBunch(BaseExplainerBunch):

@@ -8,7 +8,7 @@ from sklearn.metrics import roc_auc_score
 
 import plotly.graph_objects as go
 
-from explainerdashboard.explainers import RandomForestClassifierBunch
+from explainerdashboard.explainers import ClassifierBunch
 from explainerdashboard.datasets import titanic_survive, titanic_names
 
 
@@ -30,16 +30,16 @@ class ClassifierBunchTests(unittest.TestCase):
     def test_pos_label(self):
         self.explainer.pos_label = 1
         self.explainer.pos_label = "Not survived"
-        self.asssertIsInstance(self.explainer.pos_label, int)
-        self.asssertIsInstance(self.explainer.pos_label_str, str)
+        self.assertIsInstance(self.explainer.pos_label, int)
+        self.assertIsInstance(self.explainer.pos_label_str, str)
         self.assertEquals(self.explainer.pos_label, 0)
         self.assertEquals(self.explainer.pos_label_str, "Not survived")
 
     def test_get_prop_for_label(self):
         self.explainer.pos_label = 1
-        tmp = self.pred_percentiles
+        tmp = self.explainer.pred_percentiles
         self.explainer.pos_label = 0
-        self.assertEqual(tmp, self.explainer.get_prop_for_label("pred_percentiles", 1))
+        self.assertTrue(np.alltrue(self.explainer.get_prop_for_label("pred_percentiles", 1)==tmp))
 
     def test_pred_probas(self):
         self.assertIsInstance(self.explainer.pred_probas, np.ndarray)
@@ -58,7 +58,7 @@ class ClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
 
     def test_prediction_result_markdown(self):
-        self.assertIsInstance(self.explainer.test_prediction_result_markdown(), str)
+        self.assertIsInstance(self.explainer.prediction_result_markdown(0), str)
 
     def test_calculate_properties(self):
         self.explainer.calculate_properties()
