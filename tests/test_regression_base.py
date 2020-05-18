@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import r2_score
 
 import pdpbox
 import plotly.graph_objects as go
@@ -16,22 +16,25 @@ from explainerdashboard.datasets import titanic_fare, titanic_names
 class RegressionBaseExplainerTests(unittest.TestCase):
     def setUp(self):
         X_train, y_train, X_test, y_test = titanic_fare()
+        self.test_len = len(X_test)
+
         train_names, test_names = titanic_names()
+        _, self.names = titanic_names()
 
         model = RandomForestRegressor(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
         self.explainer = RegressionBunch(
-                            model, X_test, y_test, roc_auc_score, 
+                            model, X_test, y_test, r2_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names)
 
     def test_explainer_len(self):
-        self.assertEqual(len(self.explainer), len(titanic_survive()[2]))
+        self.assertEqual(len(self.explainer), self.test_len)
 
     def test_int_idx(self):
-        self.assertEqual(self.explainer.get_int_idx(titanic_names()[1][0]), 0)
+        self.assertEqual(self.explainer.get_int_idx(self.names[0]), 0)
 
     def test_random_index(self):
         self.assertIsInstance(self.explainer.random_index(), int)

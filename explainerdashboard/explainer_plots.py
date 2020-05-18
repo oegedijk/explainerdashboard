@@ -807,7 +807,7 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3):
     
     importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     longest_feature_name = importance_df['Feature'].str.len().max()
-    
+
     imp = importance_df.sort_values(importance_name)
 
     feature_names = [str(len(imp)-i)+". "+col 
@@ -833,9 +833,14 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3):
     fig = go.Figure(data=data, layout=layout)
     fig.update_yaxes(automargin=True)
     fig.update_xaxes(automargin=True)
+
+    left_margin = longest_feature_name*7
+    if np.isnan(left_margin):
+        left_margin = 100
+
     fig.update_layout(height=200+len(importance_df)*20,
                       margin=go.layout.Margin(
-                                l=longest_feature_name*7,
+                                l=left_margin,
                                 r=50,
                                 b=50,
                                 t=50,

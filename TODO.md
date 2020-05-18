@@ -3,6 +3,7 @@
 - fix hit enter on input field reloads page on decision tree tab
 - fix dtreeviz for regression on test set not workings
 - find a way to plot individual xgboost trees
+- let plots autodetect categorical input
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -17,12 +18,14 @@
 - Classification plot: add percentage in totals plot, add totals in percentage plot
 - plot_precision: default no cutoff
 - plot_precision: round percentages
+- add cats option (violin plots?) to plot_residuals_vs_feature
 - regression plots: only take log of x-axis or y-axis
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot
 - figure out why roc_auc, pr_auc, confusion plots don't scale (probably to do with being forced square?)
 - rename plotly_ from all plotting functions? or not if we're going to add altair?
 - Add Altair (vega) plots for easy inclusion in websites
+
 
 ### Regression plots:
 
