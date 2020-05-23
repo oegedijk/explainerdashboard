@@ -543,7 +543,7 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     return siv
 
 
-def get_shadow_trees(rf_model, X, y):
+def get_decision_trees(rf_model, X, y):
     """
     Returns a list of ShadowDecTree from the dtreeviz package
 
@@ -551,27 +551,27 @@ def get_shadow_trees(rf_model, X, y):
     assert hasattr(rf_model, 'estimators_'), \
         """The model does not have an estimators_ attribute, so probably not
         actually a sklearn compatible random forest?"""
-    shadow_trees = [ShadowDecTree(decision_tree,
+    decision_trees = [ShadowDecTree(decision_tree,
                                   X,
                                   y,
                                   feature_names=X.columns.tolist(),
                                   class_names = ['Neg', 'Pos'])
                         for decision_tree in rf_model.estimators_]
-    return shadow_trees
+    return decision_trees
 
 
-def get_shadowtree_df(shadow_tree, observation, pos_label=1):
-    _, nodes = shadow_tree.predict(observation)
+def get_decisiontree_df(decision_tree, observation, pos_label=1):
+    _, nodes = decision_tree.predict(observation)
 
-    shadowtree_df = pd.DataFrame(columns=['node_id', 'average', 'feature',
+    decisiontree_df = pd.DataFrame(columns=['node_id', 'average', 'feature',
                                      'value', 'split', 'direction',
                                      'left', 'right', 'diff'])
-    if shadow_tree.isclassifier()[0]:
+    if decision_tree.isclassifier()[0]:
         def node_pred_proba(node):
             return node.class_counts()[pos_label]/ sum(node.class_counts())
         for node in nodes:
             if not node.isleaf():
-                shadowtree_df = shadowtree_df.append({
+                decisiontree_df = decisiontree_df.append({
                     'node_id' : node.id,
                     'average' : node_pred_proba(node),
                     'feature' : node.feature_name(),
@@ -587,10 +587,10 @@ def get_shadowtree_df(shadow_tree, observation, pos_label=1):
 
     else:
         def node_mean(node):
-            return shadow_tree.tree_model.tree_.value[node.id].item()
+            return decision_tree.tree_model.tree_.value[node.id].item()
         for node in nodes:
             if not node.isleaf():
-                shadowtree_df = shadowtree_df.append({
+                decisiontree_df = decisiontree_df.append({
                     'node_id' : node.id,
                     'average' : node_mean(node),
                     'feature' : node.feature_name(),
@@ -603,36 +603,36 @@ def get_shadowtree_df(shadow_tree, observation, pos_label=1):
                                 if observation[node.feature_name()] < node.split() \
                                 else node_mean(node.right) - node_mean(node)
                 }, ignore_index=True)
-    return shadowtree_df
+    return decisiontree_df
 
 
-def shadowtree_df_summary(shadow_df, classifier=False, round=2):
+def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
     if classifier:
-        base_value = np.round(100*shadow_df.iloc[[0]]['average'].item(), round)
-        prediction = np.round(100*(shadow_df.iloc[[-1]]['average'].item() \
-                                + shadow_df.iloc[[-1]]['diff'].item()), round)
+        base_value = np.round(100*decisiontree_df.iloc[[0]]['average'].item(), round)
+        prediction = np.round(100*(decisiontree_df.iloc[[-1]]['average'].item() \
+                                + decisiontree_df.iloc[[-1]]['diff'].item()), round)
     else:
-        base_value = np.round(shadow_df.iloc[[0]]['average'].item(), round)
-        prediction = np.round(shadow_df.iloc[[-1]]['average'].item() \
-                                + shadow_df.iloc[[-1]]['diff'].item(), round)
+        base_value = np.round(decisiontree_df.iloc[[0]]['average'].item(), round)
+        prediction = np.round(decisiontree_df.iloc[[-1]]['average'].item() \
+                                + decisiontree_df.iloc[[-1]]['diff'].item(), round)
 
 
-    shadow_summary_df = pd.DataFrame(columns=['value', 'condition', 'change', 'prediction'])
+    decisiontree_summary_df = pd.DataFrame(columns=['value', 'condition', 'change', 'prediction'])
 
-    for _, row in shadow_df.iterrows():
+    for _, row in decisiontree_df.iterrows():
         if classifier:
-            shadow_summary_df = shadow_summary_df.append({
+            decisiontree_summary_df = decisiontree_summary_df.append({
                             'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
                             'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
                             'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(100*row['diff'], round)) +'%',
                             'prediction' : str(np.round(100*(row['average']+row['diff']), round)) + '%'
                         }, ignore_index=True)
         else:
-            shadow_summary_df = shadow_summary_df.append({
+            decisiontree_summary_df = decisiontree_summary_df.append({
                             'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
                             'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
                             'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
                             'prediction' : str(np.round((row['average']+row['diff']), round))
                         }, ignore_index=True)
 
-    return base_value, prediction, shadow_summary_df
+    return base_value, prediction, decisiontree_summary_df

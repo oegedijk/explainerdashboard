@@ -17,6 +17,9 @@ shap dependence plots, pdp plots, etc.
 You then pass this ExplainerBunch object to an ExplainerDashboard to start an interactive
 analytical web app to inspect the workings and performance of your model.
 
+Or you can use the primitives provided by the ExplainerBunch to construct your own
+project-specific dashboard using plotly dash. 
+
 Example
 =======
 
@@ -49,7 +52,7 @@ Some example code::
                             shadow_trees=True)
     db.run(port=8050)
 
-The result can be viewed on `this dashboard deployed to heroku <titanicexplainer.herokuapp.com>`_
+The result can be viewed on `this dashboard deployed to heroku <http://titanicexplainer.herokuapp.com>`_
 
 
 
