@@ -803,23 +803,28 @@ def plotly_pdp(pdp_result,
     return fig
 
 
-def plotly_importances_plot(importance_df):
+def plotly_importances_plot(importance_df, descriptions=None, round=3):
     
-    importance_name = importance_df.columns[1]
+    importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     longest_feature_name = importance_df['Feature'].str.len().max()
-    
+
     imp = importance_df.sort_values(importance_name)
 
-    trace0 = go.Bar(
-                y=imp.iloc[:,0],
-                x=imp.iloc[:,1],
-                text=imp.iloc[:,1].round(4),
-                textposition='inside',
-                insidetextanchor='end',
-                hoverinfo="text",
-                orientation='h')
+    feature_names = [str(len(imp)-i)+". "+col 
+            for i, col in enumerate(imp.iloc[:, 0].astype(str).values.tolist())]
 
-    data = [trace0]
+    importance_values = imp.iloc[:,1]
+
+    data = [go.Bar(
+                y=feature_names,
+                x=importance_values,
+                #text=importance_values.round(round),
+                text=descriptions[::-1] if descriptions is not None else None, #don't know why, but order needs to be reversed
+                #textposition='inside',
+                #insidetextanchor='end',
+                hoverinfo="text",
+                orientation='h')]
+
     layout = go.Layout(
         title=importance_name,
         plot_bgcolor = '#fff',
@@ -828,9 +833,14 @@ def plotly_importances_plot(importance_df):
     fig = go.Figure(data=data, layout=layout)
     fig.update_yaxes(automargin=True)
     fig.update_xaxes(automargin=True)
+
+    left_margin = longest_feature_name*7
+    if np.isnan(left_margin):
+        left_margin = 100
+
     fig.update_layout(height=200+len(importance_df)*20,
                       margin=go.layout.Margin(
-                                l=longest_feature_name*7,
+                                l=left_margin,
                                 r=50,
                                 b=50,
                                 t=50,
@@ -839,32 +849,46 @@ def plotly_importances_plot(importance_df):
     return fig
 
 
-def plotly_tree_predictions(model, observation, round=2, pos_label=1):
+def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, pos_label=1):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
     """
-    #print('plotly call', pos_label)
-    #print('plotly call', observation)
-    if model.estimators_[0].classes_ is not None: #if classifier
-        preds_df = pd.DataFrame({
+    assert (str(type(model)).endswith("RandomForestClassifier'>") 
+            or str(type(model)).endswith("RandomForestRegressor'>")), \
+        f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
+    
+    colors = ['blue'] * len(model.estimators_) 
+    if highlight_tree is not None:
+        assert highlight_tree >= 0 and highlight_tree <= len(model.estimators_), \
+            f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
+        colors[highlight_tree] = 'red'
+        
+    if model.estimators_[0].classes_[0] is not None: #if classifier
+        preds_df = (
+            pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
                 'prediction' : [
                         np.round(100*m.predict_proba(observation)[0, pos_label], round) 
-                                    for m in model.estimators_]
-            })\
+                                    for m in model.estimators_],
+                'color' : colors
+            })
             .sort_values('prediction')\
-            .reset_index(drop=True)
+            .reset_index(drop=True))
     else:
-        preds_df = pd.DataFrame({
-            'model' : range(len(model.estimators_)), 
-            'prediction' : [np.round(m.predict(observation)[0] , round)
-                                for m in model.estimators_]})\
+        preds_df = (
+            pd.DataFrame({
+                'model' : range(len(model.estimators_)), 
+                'prediction' : [np.round(m.predict(observation)[0] , round)
+                                    for m in model.estimators_],
+                'color' : colors
+            })
             .sort_values('prediction')\
-            .reset_index(drop=True)
-        
+            .reset_index(drop=True))
+      
     trace0 = go.Bar(x=preds_df.index, 
                     y=preds_df.prediction, 
+                    marker_color=preds_df.color,
                     text=[f"tree no {t}:<br> prediction={p}<br> click for detailed info"
                              for (t, p) in zip(preds_df.model.values, preds_df.prediction.values)],
                     hoverinfo="text")
@@ -875,18 +899,18 @@ def plotly_tree_predictions(model, observation, round=2, pos_label=1):
             )
     fig = go.Figure(data = [trace0], layout=layout)
     shapes = [dict(
-                        type='line',
-                        xref='x',
-                        yref='y',
-                        x0=0,
-                        x1=preds_df.model.max(),
-                        y0=preds_df.prediction.mean(),
-                        y1=preds_df.prediction.mean(),
-                        line=dict(
-                            color="darkslategray",
-                            width=4,
-                            dash="dot"),
-                        )]
+                type='line',
+                xref='x',
+                yref='y',
+                x0=0,
+                x1=preds_df.model.max(),
+                y0=preds_df.prediction.mean(),
+                y1=preds_df.prediction.mean(),
+                line=dict(
+                    color="darkslategray",
+                    width=4,
+                    dash="dot"),
+                )]
     
     annotations = [go.layout.Annotation(x=preds_df.model.mean(), 
                                          y=preds_df.prediction.mean(),
@@ -898,11 +922,10 @@ def plotly_tree_predictions(model, observation, round=2, pos_label=1):
 
 
 
-def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5, 
-                            labels = None, normalized=True):
+def plotly_confusion_matrix(y_true, y_preds, labels = None, normalized=True):
 
-    cm = confusion_matrix(y_true, np.where(pred_probas>cutoff,1,0))
-    cm_labels = np.array([['TN', 'FP'],['FN', 'TP']])
+    cm = confusion_matrix(y_true, y_preds)
+
     if labels is None:
         labels = [str(i) for i in range(cm.shape[0])] 
 
@@ -920,43 +943,27 @@ def plotly_confusion_matrix(y_true, pred_probas, cutoff=0.5,
                         zmin=0, zmax=zmax, colorscale='Blues',
                         showscale=False,
                     )]
-    #     annotations = [go.layout.Annotation()]
     layout = go.Layout(
             title="Confusion Matrix",
-            # width=450,
-            # height=450,
             xaxis=dict(side='top', constrain="domain"),
             yaxis=dict(autorange="reversed", side='left',
                         scaleanchor='x', scaleratio=1),
             plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
-
     annotations = []
-
     for x in range(cm.shape[0]):
         for y in range(cm.shape[1]):
             text= str(cm[x,y]) + '%' if normalized else str(cm[x,y])
             annotations.append(
-                go.layout.Annotation(x=fig.data[0].x[y], 
-                                    y=fig.data[0].y[x], 
-                                    text=text, 
-                                    showarrow=False,
-                                    font=dict(
-                                        size=20
-                                    ),))
-            annotations.append(
-                go.layout.Annotation(x=fig.data[0].x[y], 
-                                    y=fig.data[0].y[x], 
-                                    text=cm_labels[x,y], 
-                                    showarrow=False,
-                                    font=dict(
-                                        family= "Old Standard TT, Bold", 
-                                        size=90,
-                                        color="black"
-                                    ),
-                                    opacity=0.05,
-                                    ))
+                go.layout.Annotation(
+                    x=fig.data[0].x[y], 
+                    y=fig.data[0].y[x], 
+                    text=text, 
+                    showarrow=False,
+                    font=dict(size=20)
+                )
+            )
 
     fig.update_layout(annotations=annotations)  
     return fig

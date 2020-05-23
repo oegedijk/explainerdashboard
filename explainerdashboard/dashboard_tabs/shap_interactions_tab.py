@@ -68,16 +68,16 @@ def shap_interactions_layout(explainer,
                     dbc.Label("Feature"),
                     dcc.Dropdown(id='interaction-col', 
                         options=[{'label': col, 'value': col} 
-                                    for col in explainer.columns_ranked(cats)],
-                        value=explainer.columns_ranked(cats)[0])],
-                    width=4), 
+                                    for col in explainer.columns_ranked_by_shap(cats)],
+                        value=explainer.columns_ranked_by_shap(cats)[0])],
+                    md=4), 
                 dbc.Col([
                     dbc.Label("Depth:"),
                     dcc.Dropdown(id='interaction-summary-depth',
                         options = [{'label': str(i+1), 'value':i+1} 
-                                        for i in range(len(explainer.columns_ranked(cats))-1)],
-                        value=min(n_features, len(explainer.columns_ranked(cats))-1))],
-                    width=2), 
+                                        for i in range(len(explainer.columns_ranked_by_shap(cats))-1)],
+                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats))-1))],
+                    md=2), 
                 dbc.Col([
                     dbc.FormGroup(
                         [
@@ -93,7 +93,7 @@ def shap_interactions_layout(explainer,
                             ),
                         ]
                     )
-                ], width=3),
+                ], md=3),
                 dbc.Col([
                     dbc.Label("Grouping:"),
                     dbc.FormGroup(
@@ -106,12 +106,12 @@ def shap_interactions_layout(explainer,
                                 html_for='interaction-group-categoricals',
                                 className="form-check-label"),
                     ], check=True)],
-                    width=3),
+                    md=3),
                 ], form=True),
             dbc.Label('(Click on a dot to display interaction graph)'),
             dcc.Loading(id="loading-interaction-summary-scatter", 
                          children=[dcc.Graph(id='interaction-shap-summary-graph')])
-        ], width=6),
+        ], md=6),
         dbc.Col([
             html.H3('Shap Interaction Plots'),
             dbc.Row([
@@ -119,24 +119,24 @@ def shap_interactions_layout(explainer,
                     dbc.Label("Interaction Feature"),
                     dcc.Dropdown(id='interaction-interact-col', 
                         options=[{'label': col, 'value':col} 
-                                    for col in explainer.columns_ranked(cats)],
-                        value=explainer.shap_top_interactions(explainer.columns_ranked(cats)[0], cats=cats)[1]
+                                    for col in explainer.columns_ranked_by_shap(cats)],
+                        value=explainer.shap_top_interactions(explainer.columns_ranked_by_shap(cats)[0], cats=cats)[1]
                     ),
-                ], width=8), 
+                ], md=8), 
                 dbc.Col([
                     dbc.Label("Highlight index:"),
                     dbc.Input(id='interaction-highlight-index', 
                         placeholder="Highlight index...", debounce=True)],
-                    width=4), 
+                    md=4), 
                 ], form=True),
             
             dcc.Loading(id="loading-interaction-graph", 
                          children=[dcc.Graph(id='interaction-graph')]),
             dcc.Loading(id="loading-reverse-interaction-graph", 
                          children=[dcc.Graph(id='reverse-interaction-graph')]),
-        ], width=6)
+        ], md=6)
     ]), 
-    ],  fluid=True)
+    ], fluid=True)
 
 
 def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10, **kwargs):
@@ -150,9 +150,12 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         [State('interaction-col', 'value'),
          State('tabs', 'value')])
     def update_col_options(cats, col, tab):
-        cols = explainer.columns_ranked(cats)
+        cols = explainer.columns_ranked_by_shap(cats)
         col_options = [{'label': col, 'value': col} for col in cols] 
         if col not in cols:
+            # if currently selected col is not in new col options (i.e. because
+            # grouped cat and switched to onehot or reverse), get the equivalent
+            # col
             col = explainer.inverse_cats(col)
         depth_options = [{'label': str(i+1), 'value': i+1} for i in range(len(cols))]
         depth = len(cols)-1
@@ -170,7 +173,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         if col is not None:
             explainer.pos_label = pos_label #needed in case of multiple workers
             if depth is None: 
-                depth = len(explainer.columns_ranked(cats))-1 
+                depth = len(explainer.columns_ranked_by_shap(cats))-1 
             if summary_type=='aggregate':
                 plot = explainer.plot_interactions(col, topx=depth, cats=cats)
             elif summary_type=='detailed':
@@ -192,7 +195,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
                 col = clickdata['points'][0]['text'].split('=')[0]                             
                 return (idx, col)
             elif  isinstance(clickdata['points'][0]['y'], str): # aggregate
-                col = clickdata['points'][0]['y']
+                col = clickdata['points'][0]['y'].split(' ')[1]
                 return (dash.no_update, col) 
         raise PreventUpdate
 
@@ -207,8 +210,8 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
     def update_dependence_graph(interact_col, index, pos_label, col, cats):
         if interact_col is not None:
             explainer.pos_label = pos_label #needed in case of multiple workers
-            return (explainer.plot_shap_interaction_dependence(
+            return (explainer.plot_shap_interaction(
                         col, interact_col, highlight_idx=index, cats=cats),
-                    explainer.plot_shap_interaction_dependence(
+                    explainer.plot_shap_interaction(
                         interact_col, col, highlight_idx=index, cats=cats))
         raise PreventUpdate

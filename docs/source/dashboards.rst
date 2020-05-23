@@ -57,10 +57,10 @@ When clicked shows the shap interactions value plotted versus the feature value.
 
 .. autoclass:: explainerdashboard.dashboard_tabs.shap_interactions_tab.ShapInteractionsTab
 
-Shadow Trees tab (shadow_trees=True)
-------------------------------------
+Decision Trees tab (decision_trees=True)
+----------------------------------------
 
 Shows the distributions of predictions of individual decision trees inside your
 random forest.
 
-.. autoclass:: explainerdashboard.dashboard_tabs.shadow_trees_tab.ShadowTreesTab
+.. autoclass:: explainerdashboard.dashboard_tabs.decision_trees_tab.DecisionTreesTab

@@ -10,6 +10,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 import numpy as np
+import pandas as pd
 
 from .dashboard_methods import *
 
@@ -131,12 +132,12 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             index_choice_form,
             dbc.Button("Random Index", color="primary", id='index-button'),
             dcc.Store(id='index-store'),
-        ], width=6),
+        ], md=6),
  
         dbc.Col([
              dcc.Loading(id="loading-model-prediction", 
                          children=[dcc.Markdown(id='model-prediction')]),      
-        ], width=6),
+        ], md=6),
         
     ], align="start", justify="between"),
 
@@ -147,10 +148,10 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             html.Div([
                 dcc.Slider(id='contributions-size', 
                     min = 1, max = len(explainer.columns), 
-                    marks={int(i) : str(int(i)) 
+                    marks = {int(i) : str(int(i)) 
                                 for i in np.linspace(
-                                        1, len(explainer.columns), 6)},
-                    step = 1, value=min(n_features, len(explainer.columns)),
+                                        1, len(explainer.columns_cats), 6)},
+                    step = 1, value=min(n_features, len(explainer.columns_cats)),
                     tooltip = {'always_visible' : False}
                 ),
             ], style={'margin-bottom':25}),
@@ -161,7 +162,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
             
             html.Div(id='contributions-size-display', style={'margin-top': 20}),
             html.Div(id='contributions-clickdata'),
-        ], width=6),
+        ], md=6),
 
         dbc.Col([
             html.H3('Partial Dependence Plot'),
@@ -173,7 +174,7 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                 value=explainer.mean_abs_shap_df(cats=True).Feature[0]),
             dcc.Loading(id="loading-pdp-graph", 
                     children=[dcc.Graph(id='pdp-graph')]),
-        ], width=6)
+        ], md=6)
     ]),
     dbc.Row([
         dbc.Col([
@@ -184,8 +185,9 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
                 style_cell={'fontSize':20, 'font-family':'sans-serif'},
                 columns=[{'id': c, 'name': c} 
                             for c in ['Reason', 'Effect']],
+                      
             ),    
-        ], width=10),
+        ], md=6),
     ]),
     ], fluid=True)
 
@@ -213,7 +215,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
                     return_str=return_str)
             elif preds_or_ranks == 'ranks':
                 idx = explainer.random_index(
-                    y_values=y, rank_min=slider_range[0], rank_max=slider_range[1],
+                    y_values=y, pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1],
                     return_str=return_str)
 
             if idx is not None:
@@ -248,15 +250,10 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
         raise PreventUpdate
 
     @app.callback(
-        Output('contributions-size-display', 'children'),
-        [Input('contributions-size', 'value')])
-    def display_value(contributions_size):
-        return f"Displaying top {contributions_size} features."
-
-    @app.callback(
         [Output('model-prediction', 'children'),
          Output('contributions-graph', 'figure'),
-         Output('contributions_table', 'data')],
+         Output('contributions_table', 'data'),
+         Output('contributions_table', 'tooltip_data')],
         [Input('index-store', 'data'),
          Input('contributions-size', 'value'),
          Input('label-store', 'data')]
@@ -264,34 +261,11 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     def update_output_div(index, topx, pos_label):
         if index is None:
             raise PreventUpdate
-        explainer.pos_label = pos_label #needed in case of multiple workers
-        int_idx = explainer.get_int_idx(index)
-        if explainer.is_classifier:
-            def display_probas(pred_probas_raw, labels, round=2):
-                assert (len(pred_probas_raw.shape)==1 
-                        and len(pred_probas_raw) ==len(labels))
-                for i in range(len(labels)):
-                    yield '##### ' + labels[i] + ': ' + str(np.round(100*pred_probas_raw[i], round)) + '%\n'
-
-            model_prediction = f"# Prediction for {index}:\n" 
-            for pred in display_probas(
-                    explainer.pred_probas_raw[int_idx], 
-                    explainer.labels, round):
-                model_prediction += pred
-            if (isinstance(explainer.y[0], int) or 
-                isinstance(explainer.y[0], np.int64)):
-                model_prediction += f"##### Actual Outcome: {explainer.labels[explainer.y[int_idx]]}\n\n"
-
-            model_prediction += f'##### In top {np.round(100*(1-explainer.ranks[int_idx]))}% percentile probability {explainer.pos_label_str}'
-        
-        else:
-            model_prediction = f"# Prediction for {index}:\n" \
-                                + f"##### Prediction: {np.round(explainer.preds[int_idx], round)}\n"
-            model_prediction += f"##### Actual Outcome: {np.round(explainer.y[int_idx], round)}"
-
+        prediction_result_md = explainer.prediction_result_markdown(index)
         plot = explainer.plot_shap_contributions(index, topx=topx, round=round)
-        summary_table = explainer.contrib_summary_df(index, round=round).to_dict('records')
-        return (model_prediction, plot, summary_table)
+        summary_table = explainer.contrib_summary_df(index, round=round)
+        tooltip_data = [{'Reason': desc} for desc in explainer.description_list(explainer.contrib_df(index)['col'])]
+        return (prediction_result_md, plot, summary_table.to_dict('records'), tooltip_data)
 
     @app.callback(
         Output('pdp-col', 'value'),
