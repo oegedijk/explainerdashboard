@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\ProgramData\\Anaconda3\\envs\\ww_env2\\python.exe",
+    "python.pythonPath": "venv/bin/python",
     "python.testing.unittestArgs": [
         "-v",
         "-s",
