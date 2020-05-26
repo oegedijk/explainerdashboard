@@ -28,13 +28,13 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'explainerdashboard'
-copyright = '2019, Oege Dijk'
+copyright = '2020, Oege Dijk'
 author = 'Oege Dijk'
 
 # The short X.Y version
 version = '0.1'
 # The full version, including alpha/beta/rc tags
-release = '0.1.6.1'
+release = '0.1.9.2'
 
 
 # -- General configuration ---------------------------------------------------
