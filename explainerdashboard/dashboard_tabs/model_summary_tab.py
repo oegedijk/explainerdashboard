@@ -137,7 +137,7 @@ class ClassifierModelStats:
 
     def layout(self):
         return dbc.Container([
-            dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
+            dbc.Row([dbc.Col([html.H2('Model Performance --test--:')])]),
 
             dbc.Row([
                 dbc.Col([
@@ -317,8 +317,8 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
-            return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage)
+            #self.explainer.pos_label = pos_label #needed in case of multiple workers
+            return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
         @app.callback(
             Output('precision-graph', 'figure'),
@@ -331,13 +331,13 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
+            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             if bins=='bin_size':
                 return self.explainer.plot_precision(
-                    bin_size=bin_size, cutoff=cutoff, multiclass=multiclass)
+                    bin_size=bin_size, cutoff=cutoff, multiclass=multiclass, pos_label=pos_label)
             elif bins=='quantiles':
                 return self.explainer.plot_precision(
-                    quantiles=quantiles, cutoff=cutoff, multiclass=multiclass)
+                    quantiles=quantiles, cutoff=cutoff, multiclass=multiclass, pos_label=pos_label)
             raise PreventUpdate
 
         @app.callback(
@@ -348,8 +348,8 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
-            return self.explainer.plot_classification(cutoff=cutoff, percentage=percentage)
+            #self.explainer.pos_label = pos_label #needed in case of multiple workers
+            return self.explainer.plot_classification(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
         @app.callback(
              Output('confusionmatrix-graph', 'figure'),
@@ -360,9 +360,9 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, normalized, binary, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
+            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_confusion_matrix(
-                        cutoff=cutoff, normalized=normalized, binary=binary)
+                        cutoff=cutoff, normalized=normalized, binary=binary, pos_label=pos_label)
 
         @app.callback(
             Output('roc-auc-graph', 'figure'),
@@ -371,8 +371,8 @@ class ClassifierModelStats:
              Input('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
-            return self.explainer.plot_roc_auc(cutoff=cutoff)
+            #self.explainer.pos_label = pos_label #needed in case of multiple workers
+            return self.explainer.plot_roc_auc(cutoff=cutoff, pos_label=pos_label)
 
         @app.callback(
             Output('pr-auc-graph', 'figure'),
@@ -381,15 +381,16 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
-            return self.explainer.plot_pr_auc(cutoff=cutoff)
+            #self.explainer.pos_label = pos_label #needed in case of multiple workers
+            return self.explainer.plot_pr_auc(cutoff=cutoff, pos_label=pos_label)
 
         @app.callback(
             Output('precision-cutoff', 'value'),
-            [Input('percentile-cutoff', 'value')]
+            [Input('percentile-cutoff', 'value'),
+             Input('label-store', 'data')]
         )
-        def update_cutoff(percentile):
-            return np.round(self.explainer.cutoff_from_percentile(percentile), 2)
+        def update_cutoff(percentile, pos_label):
+            return np.round(self.explainer.cutoff_from_percentile(percentile, pos_label=pos_label), 2)
 
 class RegressionModelStats:
     def __init__(self, explainer, round=2, logs=False, vs_actual=False, ratio=False):

@@ -79,9 +79,9 @@ class TitleAndLabelSelector:
                     dbc.Col([
                             dcc.Dropdown(
                                 id='pos-label-selector',
-                                options = [{'label': label, 'value': label} 
-                                                for label in self.explainer.labels],
-                                value = self.explainer.pos_label_str
+                                options = [{'label': label, 'value': i} 
+                                                for i, label in enumerate(self.explainer.labels)],
+                                value = self.explainer.pos_label
                             )
                     ], width=2),
                     dcc.Store(id='label-store')
@@ -99,6 +99,6 @@ class TitleAndLabelSelector:
             )
             def change_positive_label(pos_label):
                 if pos_label is not None:
-                    self.explainer.pos_label = pos_label
+                    #self.explainer.pos_label = pos_label
                     return pos_label
                 return self.explainer.pos_label
