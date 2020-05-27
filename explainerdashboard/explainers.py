@@ -1015,8 +1015,9 @@ class RandomForestExplainerBunch(BaseExplainerBunch):
         idx = self.get_int_idx(index)
         assert idx >= 0 and idx < len(self.X), \
             f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
-        if pos_label is None: pos_label = self.pos_label
+        
         if self.is_classifier:
+            if pos_label is None: pos_label = self.pos_label
             return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx],
                     pos_label=pos_label)
         else:
