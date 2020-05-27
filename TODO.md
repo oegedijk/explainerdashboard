@@ -22,9 +22,8 @@
 - regression plots: only take log of x-axis or y-axis
 - Add feature names to waterfall plot
 - fix percentages difference bug lift plot vs classification plot
-- figure out why roc_auc, pr_auc, confusion plots don't scale (probably to do with being forced square?)
-- rename plotly_ from all plotting functions? or not if we're going to add altair?
 - Add Altair (vega) plots for easy inclusion in websites
+- rename plotly_ from all plotting functions? or not if we're going to add altair?
 
 
 ### Regression plots:
@@ -40,7 +39,6 @@
 ## Methods:
 - Multiprocessing shap summary graph 
 - Move pdp function to explainer_methods.py
-- add feature explanations (i.e. explanation of what feature is doing)
 - Add LIME, Shaabas values for completeness?
 
 ## Library level:
@@ -49,5 +47,5 @@
 - Add more tests!
 - Test with lightgbm, catboost, extratrees
 - turn all docstrings into sphynx compatible
-- Fix numpy mock import in readthedocs compile
+- Fix numpy mock import in readthedocs compile -- seems fixed now (although I changed nothing??)
 
