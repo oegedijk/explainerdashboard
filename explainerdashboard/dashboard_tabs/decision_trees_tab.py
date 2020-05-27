@@ -92,14 +92,14 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
         [Output('tree-predictions-table', 'data'),
          Output('tree-predictions-table', 'columns')],
-        [Input('tree-predictions-graph', 'clickData')],
-         # Input('label-store', 'data')], # this causes issues for some reason, only on this tab??
+        [Input('tree-predictions-graph', 'clickData'),
+         Input('label-store', 'data')], # this causes issues for some reason, only on this tab??
         [State('tree-index-store', 'data'),
          State('tabs', 'value')])
-    def display_tree_click_data(clickdata, index, tab):
+    def display_tree_click_data(clickdata, pos_label, index, tab):
         if clickdata is not None and index is not None:
             tree_idx = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else 0
-            _, _, decisiontree_df = explainer.decisiontree_df_summary(tree_idx, index, round=round)
+            _, _, decisiontree_df = explainer.decisiontree_df_summary(tree_idx, index, round=round, pos_label=pos_label)
             columns = [{'id': c, 'name': c} for c in  decisiontree_df.columns.tolist()]
             return (decisiontree_df.to_dict('records'), columns)
         raise PreventUpdate
@@ -128,7 +128,7 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
     def update_tree_graph(index, pos_label, clickdata, tab):
         if index is not None:
             highlight_tree = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else None
-            return explainer.plot_trees(index, highlight_tree=highlight_tree, round=round)
+            return explainer.plot_trees(index, highlight_tree=highlight_tree, round=round, pos_label=pos_label)
         return {}
 
     @app.callback(

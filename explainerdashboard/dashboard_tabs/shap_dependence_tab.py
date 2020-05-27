@@ -139,9 +139,9 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         if ctx.triggered:
             if summary_type=='aggregate':
                 plot = explainer.plot_importances(
-                        kind='shap', topx=depth, cats=cats)
+                        kind='shap', topx=depth, cats=cats, pos_label=pos_label)
             elif summary_type=='detailed':
-                plot = explainer.plot_shap_summary(topx=depth, cats=cats)
+                plot = explainer.plot_shap_summary(topx=depth, cats=cats, pos_label=pos_label)
 
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -167,8 +167,9 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         [Output('dependence-highlight-index', 'value'),
          Output('dependence-col', 'value')],
         [Input('dependence-shap-summary-graph', 'clickData')],
-        [State('dependence-group-categoricals', 'checked')])
-    def display_scatter_click_data(clickdata, cats):
+        [State('dependence-group-categoricals', 'checked'),
+         State('label-store', 'data')])
+    def display_scatter_click_data(clickdata, cats, pos_label):
         if clickdata is not None and clickdata['points'][0] is not None:
             if isinstance(clickdata['points'][0]['y'], float): # detailed
                 # if detailed, clickdata returns scatter marker location -> type==float
@@ -185,9 +186,10 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         [Output('dependence-color-col', 'options'),
          Output('dependence-color-col', 'value')],
         [Input('dependence-col', 'value')],
-        [State('dependence-group-categoricals', 'checked')])
-    def set_color_col_dropdown(col, cats):
-        sorted_interact_cols = explainer.shap_top_interactions(col, cats=cats)
+        [State('dependence-group-categoricals', 'checked'),
+         State('label-store', 'data')])
+    def set_color_col_dropdown(col, cats, pos_label):
+        sorted_interact_cols = explainer.shap_top_interactions(col, cats=cats, pos_label=pos_label)
         options = [{'label': col, 'value':col} 
                                     for col in sorted_interact_cols]
         value = sorted_interact_cols[1]                                
@@ -205,5 +207,5 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         explainer.pos_label = pos_label #needed in case of multiple workers
         if color_col is not None:
             return explainer.plot_shap_dependence(
-                        col, color_col, highlight_idx=idx, cats=cats)
+                        col, color_col, highlight_idx=idx, cats=cats, pos_label=pos_label)
         raise PreventUpdate

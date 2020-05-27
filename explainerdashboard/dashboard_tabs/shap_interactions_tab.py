@@ -171,15 +171,14 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         [State('interaction-group-categoricals', 'checked')])
     def update_interaction_scatter_graph(summary_type, col, depth, pos_label, cats):
         if col is not None:
-            explainer.pos_label = pos_label #needed in case of multiple workers
             if depth is None: 
-                depth = len(explainer.columns_ranked_by_shap(cats))-1 
+                depth = len(explainer.columns_ranked_by_shap(cats, pos_label=pos_label))-1 
             if summary_type=='aggregate':
-                plot = explainer.plot_interactions(col, topx=depth, cats=cats)
+                plot = explainer.plot_interactions(col, topx=depth, cats=cats, pos_label=pos_label)
             elif summary_type=='detailed':
-                plot = explainer.plot_shap_interaction_summary(col, topx=depth, cats=cats)
+                plot = explainer.plot_shap_interaction_summary(col, topx=depth, cats=cats, pos_label=pos_label)
 
-            interact_cols = explainer.shap_top_interactions(col, cats=cats)
+            interact_cols = explainer.shap_top_interactions(col, cats=cats, pos_label=pos_label)
             interact_col_options = [{'label': col, 'value':col} for col in interact_cols]
             return plot, interact_col_options
         return None, None
@@ -209,9 +208,8 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
          State('interaction-group-categoricals', 'checked')])
     def update_dependence_graph(interact_col, index, pos_label, col, cats):
         if interact_col is not None:
-            explainer.pos_label = pos_label #needed in case of multiple workers
             return (explainer.plot_shap_interaction(
-                        col, interact_col, highlight_idx=index, cats=cats),
+                        col, interact_col, highlight_idx=index, cats=cats, pos_label=pos_label),
                     explainer.plot_shap_interaction(
-                        interact_col, col, highlight_idx=index, cats=cats))
+                        interact_col, col, highlight_idx=index, cats=cats, pos_label=pos_label))
         raise PreventUpdate

@@ -261,9 +261,9 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     def update_output_div(index, topx, pos_label):
         if index is None:
             raise PreventUpdate
-        prediction_result_md = explainer.prediction_result_markdown(index)
-        plot = explainer.plot_shap_contributions(index, topx=topx, round=round)
-        summary_table = explainer.contrib_summary_df(index, round=round)
+        prediction_result_md = explainer.prediction_result_markdown(index, pos_label=pos_label)
+        plot = explainer.plot_shap_contributions(index, topx=topx, round=round, pos_label=pos_label)
+        summary_table = explainer.contrib_summary_df(index, round=round, pos_label=pos_label)
         tooltip_data = [{'Reason': desc} for desc in explainer.description_list(explainer.contrib_df(index)['col'])]
         return (prediction_result_md, plot, summary_table.to_dict('records'), tooltip_data)
 
@@ -284,4 +284,4 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
     )
     def update_pdp_graph(idx, col, pos_label):
         explainer.pos_label = pos_label #needed in case of multiple workers
-        return explainer.plot_pdp(col, idx, sample=100)
+        return explainer.plot_pdp(col, idx, sample=100, pos_label=pos_label)

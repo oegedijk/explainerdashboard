@@ -1,7 +1,7 @@
 
 # TODO:
 - fix hit enter on input field reloads page on decision tree tab
-- fix dtreeviz for regression on test set not workings
+- find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
 - let plots autodetect categorical input
 
@@ -11,7 +11,6 @@
 ## dfs:
 - wrap shap values in DataFrames
 - wrap predictions in Series
-
 
 ## Plots:
 - Add options sorting contributions plot from most negative to most positive

@@ -1006,25 +1006,26 @@ class RandomForestExplainerBunch(BaseExplainerBunch):
             self._decision_trees = get_decision_trees(self.model, self.X, self.y)
         return self._decision_trees
 
-    def decisiontree_df(self, tree_idx, index):
+    def decisiontree_df(self, tree_idx, index, pos_label=None):
         """returns a pd.DataFrame with all decision nodes of a particular
                         tree (indexed by tree_idx) for a particular observation
                         (indexed by index)"""
         assert tree_idx >= 0 and tree_idx < len(self.decision_trees), \
             f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
-        idx=self.get_int_idx(index)
+        idx = self.get_int_idx(index)
         assert idx >= 0 and idx < len(self.X), \
             f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
+        if pos_label is None: pos_label = self.pos_label
         if self.is_classifier:
             return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx],
-                    pos_label=self.pos_label)
+                    pos_label=pos_label)
         else:
             return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
 
-    def decisiontree_df_summary(self, tree_idx, index, round=2):
+    def decisiontree_df_summary(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format."""
         idx=self.get_int_idx(index)
-        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx),
+        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
                     classifier=self.is_classifier, round=round)
 
     def decision_path_file(self, tree_idx, index):
@@ -1085,14 +1086,16 @@ class RandomForestExplainerBunch(BaseExplainerBunch):
         return svg_encoded
 
 
-    def plot_trees(self, index, highlight_tree=None, round=2):
+    def plot_trees(self, index, highlight_tree=None, round=2, pos_label=None):
         """returns a plotly barchart with the values of the predictions
                 of each individual tree for observation idx
         """
         #print('explainer call')
         idx=self.get_int_idx(index)
         assert idx is not None, 'invalid index'
+        
         if self.is_classifier:
+            if pos_label is None: pos_label = self.pos_label
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
                         highlight_tree=highlight_tree, round=round, pos_label=self.pos_label)
         else:
