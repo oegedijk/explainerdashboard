@@ -137,7 +137,7 @@ class ClassifierModelStats:
 
     def layout(self):
         return dbc.Container([
-            dbc.Row([dbc.Col([html.H2('Model Performance --test--:')])]),
+            dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
 
             dbc.Row([
                 dbc.Col([
