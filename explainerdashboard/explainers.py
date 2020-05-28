@@ -14,6 +14,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from .explainer_methods import *
 from .explainer_plots import *
+from .make_callables import make_callable, default_list, default_2darray
 
 
 class BaseExplainerBunch(ABC):
@@ -195,8 +196,9 @@ class BaseExplainerBunch(ABC):
             self._preds = self.model.predict(self.X)
             
         return self._preds
-
-    def get_pred_percentiles(self, *args, **kwargs):
+    
+    @property
+    def pred_percentiles(self):
         """returns percentile rank of model predictions""" 
         if not hasattr(self, '_pred_percentiles'):
             print("Calculating prediction percentiles...")
@@ -204,19 +206,15 @@ class BaseExplainerBunch(ABC):
                                 .rank(method='min')
                                 .divide(len(self.preds))
                                 .values)
-        return self._pred_percentiles
-    
-    @property
-    def pred_percentiles(self):
-        return self.get_pred_percentiles()
+        return make_callable(self._pred_percentiles)
 
     def columns_ranked_by_shap(self, cats=False, pos_label=None):
         """returns the columns of X, ranked by mean abs shap value,
         - cats: if True group categorical features together""" 
         if cats:
-            return self.get_mean_abs_shap_cats(pos_label).Feature.tolist()
+            return self.mean_abs_shap_cats(pos_label).Feature.tolist()
         else:
-            return self.get_mean_abs_shap(pos_label).Feature.tolist()
+            return self.mean_abs_shap(pos_label).Feature.tolist()
 
     def equivalent_col(self, col):
         """if col in self.columns, return equivalent col in self.columns_cats,
@@ -279,7 +277,8 @@ class BaseExplainerBunch(ABC):
 
         return col_value, prediction
 
-    def get_permutation_importances(self, *args, **kwargs):
+    @property
+    def permutation_importances(self):
         """return the permutation importances of the model features"""
         if not hasattr(self, '_perm_imps'):
             print("Calculating importances...")
@@ -287,26 +286,17 @@ class BaseExplainerBunch(ABC):
                             self.model, self.X, self.y, self.metric,
                             cv=self.permutation_cv,
                             needs_proba=self.is_classifier)
-        return self._perm_imps
+        return make_callable(self._perm_imps)
 
     @property
-    def permutation_importances(self):
-        """return the permatuation importances of the model features"""
-        return self.get_permutation_importances()
-
-    def get_permutation_importances_cats(self, *args, **kwargs):
+    def permutation_importances_cats(self):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
             self._perm_imps_cats = cv_permutation_importances(
                             self.model, self.X, self.y, self.metric, self.cats,
                             cv=self.permutation_cv,
                             needs_proba=self.is_classifier)
-        return self._perm_imps_cats
-
-    @property
-    def permutation_importances_cats(self):
-        """permutation importances with categoricals grouped"""
-        return self.get_permutation_importances_cats()
+        return make_callable(self._perm_imps_cats)
 
     @property
     def X_cats(self):
@@ -324,7 +314,8 @@ class BaseExplainerBunch(ABC):
             self._columns_cats = self.X_cats.columns.tolist()
         return self._columns_cats
 
-    def get_shap_base_value(self, *args, **kwargs):
+    @property
+    def shap_base_value(self):
         """the intercept for the shap values. (i.e. 'what would the prediction be
         if we knew none of the features?')"""
         if not hasattr(self, '_shap_base_value'):
@@ -332,93 +323,61 @@ class BaseExplainerBunch(ABC):
             if isinstance(self._shap_base_value, np.ndarray):
                 # newer version of shap library returns an array instead of float
                 self._shap_base_value = self._shap_base_value.item()
-        return self._shap_base_value
-
-    @property
-    def shap_base_value(self):
-        """the intercept for the shap values. (i.e. 'what would the prediction be
-        if we knew none of the features?')"""
-        return self.get_shap_base_value()
-
-    def get_shap_values(self, *args, **kwargs):
-        """SHAP values calculated using the shap library"""
-        if not hasattr(self, '_shap_values'):
-            print("Calculating shap values...")
-            self._shap_values = self.shap_explainer.shap_values(self.X)
-        return self._shap_values
+        return make_callable(self._shap_base_value)
 
     @property
     def shap_values(self):
         """SHAP values calculated using the shap library"""
-        return self.get_shap_values()
-
-    def get_shap_values_cats(self, *args, **kwargs):
+        if not hasattr(self, '_shap_values'):
+            print("Calculating shap values...")
+            self._shap_values = self.shap_explainer.shap_values(self.X)
+        return make_callable(self._shap_values)
+    
+    @property
+    def shap_values_cats(self):
         """SHAP values when categorical features have been grouped"""
         if not hasattr(self, '_shap_values_cats'):
             print("Calculating shap values...")
             self._shap_values_cats = merge_categorical_shap_values(
                     self.X, self.shap_values, self.cats)
-        return self._shap_values_cats
-    
-    @property
-    def shap_values_cats(self):
-        """SHAP values when categorical features have been grouped"""
-        return self.get_shap_values_cats()
+        return make_callable(self._shap_values_cats)
 
-    def get_shap_interaction_values(self, *args, **kwargs):
+    @property
+    def shap_interaction_values(self):
         """SHAP interaction values calculated using shap library"""
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...")
             self._shap_interaction_values = \
                 self.shap_explainer.shap_interaction_values(self.X)
-        return self._shap_interaction_values
+        return make_callable(self._shap_interaction_values)
 
     @property
-    def shap_interaction_values(self):
-        """SHAP interaction values calculated using shap library"""
-        return self.get_shap_interaction_values()
-
-    def get_shap_interaction_values_cats(self, *args, **kwargs):
+    def shap_interaction_values_cats(self):
         """SHAP interaction values with categorical features grouped"""
         if not hasattr(self, '_shap_interaction_values_cats'):
             print("Calculating shap interaction values...")
             self._shap_interaction_values_cats = \
                 merge_categorical_shap_interaction_values(
                     self.X, self.X_cats, self.shap_interaction_values)
-        return self._shap_interaction_values_cats
-
-    @property
-    def shap_interaction_values_cats(self):
-        """SHAP interaction values with categorical features grouped"""
-        return self.get_shap_interaction_values_cats()
-
-    def get_mean_abs_shap(self,  *args, **kwargs):
-        """Mean absolute SHAP values per feature. Gives indication of overall
-        importance of feature for predictions of model."""
-        if not hasattr(self, '_mean_abs_shap'):
-            self._mean_abs_shap = mean_absolute_shap_values(
-                                self.columns, self.shap_values)
-        return self._mean_abs_shap
+        return make_callable(self._shap_interaction_values_cats)
 
     @property
     def mean_abs_shap(self):
         """Mean absolute SHAP values per feature. Gives indication of overall
         importance of feature for predictions of model."""
-        return self.get_mean_abs_shap()
-
-    def get_mean_abs_shap_cats(self, *args, **kwargs):
-        """Mean absolute SHAP values per feature with categorical features grouped.
-        Gives indication of overall importance of feature for predictions of model."""
-        if not hasattr(self, '_mean_abs_shap_cats'):
-            self._mean_abs_shap_cats = mean_absolute_shap_values(
-                                self.columns, self.shap_values, self.cats)
-        return self._mean_abs_shap_cats
+        if not hasattr(self, '_mean_abs_shap'):
+            self._mean_abs_shap = mean_absolute_shap_values(
+                                self.columns, self.shap_values)
+        return make_callable(self._mean_abs_shap)
 
     @property
     def mean_abs_shap_cats(self):
         """Mean absolute SHAP values per feature with categorical features grouped.
         Gives indication of overall importance of feature for predictions of model."""
-        return self.get_mean_abs_shap_cats()
+        if not hasattr(self, '_mean_abs_shap_cats'):
+            self._mean_abs_shap_cats = mean_absolute_shap_values(
+                                self.columns, self.shap_values, self.cats)
+        return make_callable(self._mean_abs_shap_cats)
 
     def calculate_properties(self, include_interactions=True):
         """Explicitely calculates all lazily calculated properties. Can be useful
@@ -469,8 +428,8 @@ class BaseExplainerBunch(ABC):
         :rtype pd.DataFrame
 
         """
-        shap_df = self.get_mean_abs_shap_cats(pos_label) if cats \
-                        else self.get_mean_abs_shap(pos_label)
+        shap_df = self.mean_abs_shap_cats(pos_label) if cats \
+                        else self.mean_abs_shap(pos_label)
 
         if topx is None: topx = len(shap_df)
         if cutoff is None: cutoff = shap_df['MEAN_ABS_SHAP'].min()
@@ -497,9 +456,9 @@ class BaseExplainerBunch(ABC):
             if hasattr(self, '_shap_interaction_values'):
                 col_idx = self.X_cats.columns.get_loc(col)
                 top_interactions = self.X_cats.columns[np.argsort(-np.abs(
-                        self.get_shap_interaction_values_cats(pos_label)[:, col_idx, :]).mean(0))].tolist()
+                        self.shap_interaction_values_cats(pos_label)[:, col_idx, :]).mean(0))].tolist()
             else:
-                top_interactions = self.get_mean_abs_shap_cats(pos_label).Feature.values.tolist()
+                top_interactions = self.mean_abs_shap_cats(pos_label).Feature.values.tolist()
                 top_interactions.insert(0, top_interactions.pop(
                     top_interactions.index(col))) #put col first
 
@@ -509,10 +468,10 @@ class BaseExplainerBunch(ABC):
             if hasattr(self, '_shap_interaction_values'):
                 col_idx = self.X.columns.get_loc(col)
                 top_interactions = self.X.columns[np.argsort(-np.abs(
-                            self.get_shap_interaction_values(pos_label)[:, col_idx, :]).mean(0))].tolist()
+                            self.shap_interaction_values(pos_label)[:, col_idx, :]).mean(0))].tolist()
             else:
                 interaction_idxs = shap.common.approximate_interactions(
-                    col, self.get_shap_values(pos_label), self.X)
+                    col, self.shap_values(pos_label), self.X)
                 top_interactions = self.X.columns[interaction_idxs].tolist()
                 top_interactions.insert(0, top_interactions.pop(-1)) #put col first
 
@@ -531,10 +490,10 @@ class BaseExplainerBunch(ABC):
         :rtype: np.array(N,N)
         """
         if cats:
-            return self.get_shap_interaction_values_cats(pos_label)[:,
+            return self.shap_interaction_values_cats(pos_label)[:,
                         self.X_cats.columns.get_loc(col), :]
         else:
-            return self.get_shap_interaction_values(pos_label)[:,
+            return self.shap_interaction_values(pos_label)[:,
                         self.X.columns.get_loc(col), :]
 
     def permutation_importances_df(self, topx=None, cutoff=None, cats=False, pos_label=None):
@@ -550,8 +509,8 @@ class BaseExplainerBunch(ABC):
         :return: importance_df
         :rtype: pd.DataFrame
         """
-        importance_df = self.get_permutation_importances_cats(pos_label).reset_index() if cats \
-                                else self.get_permutation_importances(pos_label).reset_index()
+        importance_df = self.permutation_importances_cats(pos_label).reset_index() if cats \
+                                else self.permutation_importances(pos_label).reset_index()
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.Importance.min()
@@ -583,12 +542,12 @@ class BaseExplainerBunch(ABC):
         """
         idx = self.get_int_idx(index)
         if cats:
-            return get_contrib_df(self.get_shap_base_value(pos_label), 
-                                    self.get_shap_values_cats(pos_label)[idx],
+            return get_contrib_df(self.shap_base_value(pos_label), 
+                                    self.shap_values_cats(pos_label)[idx],
                                     self.X_cats.iloc[[idx]], topx, cutoff)
         else:
-            return get_contrib_df(self.get_shap_base_value(pos_label), 
-                                    self.get_shap_values(pos_label)[idx],
+            return get_contrib_df(self.shap_base_value(pos_label), 
+                                    self.shap_values(pos_label)[idx],
                                     self.X.iloc[[idx]], topx, cutoff)
 
     def contrib_summary_df(self, index, cats=True,
@@ -722,10 +681,10 @@ class BaseExplainerBunch(ABC):
         """
         if cats:
             cols_df = self.X_cats.copy()
-            shap_df = pd.DataFrame(self.get_shap_values_cats(pos_label), columns = self.X_cats.columns)
+            shap_df = pd.DataFrame(self.shap_values_cats(pos_label), columns = self.X_cats.columns)
         else:
             cols_df = self.X.copy()
-            shap_df = pd.DataFrame(self.get_shap_values(pos_label), columns = self.X.columns)
+            shap_df = pd.DataFrame(self.shap_values(pos_label), columns = self.X.columns)
 
         actual_str = 'Uitkomst' if lang == 'nl' else 'Actual'
         prediction_str = 'Voorspelling' if lang == 'nl' else 'Prediction'
@@ -851,13 +810,13 @@ class BaseExplainerBunch(ABC):
         """
         if cats:
             return plotly_shap_scatter_plot(
-                                self.get_shap_values_cats(pos_label),
+                                self.shap_values_cats(pos_label),
                                 self.X_cats,
                                 self.importances_df(kind='shap', topx=topx, cats=True, pos_label=pos_label)\
                                         ['Feature'].values.tolist())
         else:
             return plotly_shap_scatter_plot(
-                                self.get_shap_values(pos_label),
+                                self.shap_values(pos_label),
                                 self.X,
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
                                         ['Feature'].values.tolist())
@@ -894,14 +853,14 @@ class BaseExplainerBunch(ABC):
         """
         if cats:
             if col in self.cats:
-                return plotly_shap_violin_plot(self.X_cats, self.get_shap_values_cats(pos_label), col, color_col)
+                return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats(pos_label), col, color_col)
             else:
-                return plotly_dependence_plot(self.X_cats, self.get_shap_values_cats(pos_label),
+                return plotly_dependence_plot(self.X_cats, self.shap_values_cats(pos_label),
                                                 col, color_col,
                                                 highlight_idx=highlight_idx,
                                                 na_fill=self.na_fill)
         else:
-            return plotly_dependence_plot(self.X, self.get_shap_values(pos_label),
+            return plotly_dependence_plot(self.X, self.shap_values(pos_label),
                                             col, color_col,
                                             highlight_idx=highlight_idx,
                                             na_fill=self.na_fill)
@@ -1169,25 +1128,10 @@ class ClassifierBunch(BaseExplainerBunch):
 
     @property
     def y_binary(self):
-        return self.get_y_binary(self.pos_label)
-
-    def get_pred_probas(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
-        return self.pred_probas_raw[:, pos_label]
-
-    @property
-    def pred_probas(self):
-        """returns pred_proba for pos_label class"""
-        return self.get_pred_probas(self.pos_label)
-
-    def get_pred_percentiles(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
-        return self.pred_percentiles_raw[:, pos_label]
-
-    @property
-    def pred_percentiles(self):
-        """returns ranks for pos_label class"""
-        return self.get_pred_percentiles(self.pos_label)
+        if not hasattr(self, '_y_binaries'):
+            self._y_binaries = [np.where(self.y.values==i, 1, 0)
+                        for i in range(self.y.nunique())]
+        return default_list(self._y_binaries, self.pos_label)
 
     @property
     def pred_probas_raw(self):
@@ -1209,9 +1153,19 @@ class ClassifierBunch(BaseExplainerBunch):
                                 .values)
         return self._pred_percentiles_raw
 
-    def get_permutation_importances(self, pos_label=None):
+    @property
+    def pred_probas(self):
+        """returns pred_proba for pos_label class"""
+        return default_2darray(self.pred_probas_raw, self.pos_label)
+
+    @property
+    def pred_percentiles(self):
+        """returns ranks for pos_label class"""
+        return default_2darray(self.pred_percentiles_raw, self.pos_label)
+
+    @property
+    def permutation_importances(self):
         """return the permatuation importances of the model features"""
-        if pos_label is None: pos_label = self.pos_label
         if not hasattr(self, '_perm_imps'):
             print("Calculating importances...")
             self._perm_imps = [cv_permutation_importances(
@@ -1219,31 +1173,21 @@ class ClassifierBunch(BaseExplainerBunch):
                             cv=self.permutation_cv,
                             needs_proba=self.is_classifier,
                             pos_label=label) for label in range(len(self.labels))]
-        return self._perm_imps[pos_label]
+        return default_list(self._perm_imps, self.pos_label)
 
     @property
-    def permutation_importances(self):
-        """return the permatuation importances of the model features"""
-        return self.get_permutation_importances(self.pos_label)
-
-    def get_permutation_importances_cats(self, pos_label=None):
+    def permutation_importances_cats(self):
         """permutation importances with categoricals grouped"""
-        if pos_label is None: pos_label = self.pos_label
         if not hasattr(self, '_perm_imps_cats'):
             self._perm_imps_cats = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric, self.cats,
                             cv=self.permutation_cv,
                             needs_proba=self.is_classifier,
                             pos_label=label) for label in range(len(self.labels))]
-        return self._perm_imps_cats[pos_label]
+        return default_list(self._perm_imps_cats, self.pos_label)
 
     @property
-    def permutation_importances_cats(self):
-        """permutation importances with categoricals grouped"""
-        return self.get_permutation_importances_cats(self.pos_label)
-
-    def get_shap_base_value(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def shap_base_value(self):
         if not hasattr(self, '_shap_base_value'):
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
@@ -1253,14 +1197,10 @@ class ClassifierBunch(BaseExplainerBunch):
             assert len(self._shap_base_value)==len(self.labels),\
                 f"len(shap_explainer.expected_value)={len(self._shap_base_value)}"\
                  + "and len(labels)={len(self.labels)} do not match!"
-        return self._shap_base_value[pos_label]
+        return default_list(self._shap_base_value, self.pos_label)
 
     @property
-    def shap_base_value(self):
-        return self.get_shap_base_value(self.pos_label)
-
-    def get_shap_values(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def shap_values(self):
         if not hasattr(self, '_shap_values'):
             print("Calculating shap values...")
             self._shap_values = self.shap_explainer.shap_values(self.X)
@@ -1270,27 +1210,19 @@ class ClassifierBunch(BaseExplainerBunch):
             assert len(self._shap_values)==len(self.labels),\
                 f"len(shap_values)={len(self._shap_values)}"\
                  + f"and len(labels)={len(self.labels)} do not match!"
-        return self._shap_values[pos_label]
+        return default_list(self._shap_values, self.pos_label)
 
     @property
-    def shap_values(self):
-        return self.get_shap_values(self.pos_label)
-
-    def get_shap_values_cats(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def shap_values_cats(self):
         if not hasattr(self, '_shap_values_cats'):
             _ = self.shap_values
             self._shap_values_cats = [
                 merge_categorical_shap_values(
                     self.X, sv, self.cats) for sv in self._shap_values]
-        return self._shap_values_cats[pos_label]
+        return default_list(self._shap_values_cats, self.pos_label)
 
     @property
-    def shap_values_cats(self):
-        return self.get_shap_values_cats(self.pos_label)
-
-    def get_shap_interaction_values(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def shap_interaction_values(self):
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...")
             _ = self.shap_values #make sure shap values have been calculated
@@ -1301,48 +1233,32 @@ class ClassifierBunch(BaseExplainerBunch):
             self._shap_interaction_values = [
                 normalize_shap_interaction_values(siv, self.shap_values)
                     for siv, sv in zip(self._shap_interaction_values, self._shap_values)]
-        return self._shap_interaction_values[pos_label]
+        return default_list(self._shap_interaction_values, self.pos_label)
 
     @property
-    def shap_interaction_values(self):
-        return self.get_shap_interaction_values(self.pos_label)
-
-    def get_shap_interaction_values_cats(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def shap_interaction_values_cats(self):
         if not hasattr(self, '_shap_interaction_values_cats'):
             _ = self.shap_interaction_values
             self._shap_interaction_values_cats = [
                 merge_categorical_shap_interaction_values(
                     self.X, self.X_cats, siv) for siv in self._shap_interaction_values]
-        return self._shap_interaction_values_cats[pos_label]
+        return default_list(self._shap_interaction_values_cats, self.pos_label)
 
     @property
-    def shap_interaction_values_cats(self):
-        return self.get_shap_interaction_values_cats(self.pos_label)
-
-    def get_mean_abs_shap(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def mean_abs_shap(self):
         if not hasattr(self, '_mean_abs_shap'):
             _ = self.shap_values
             self._mean_abs_shap = [mean_absolute_shap_values(
                                 self.columns, sv) for sv in self._shap_values]
-        return self._mean_abs_shap[pos_label]
+        return default_list(self._mean_abs_shap, self.pos_label)
 
     @property
-    def mean_abs_shap(self):
-        return self.get_mean_abs_shap(self.pos_label)
-
-    def get_mean_abs_shap_cats(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
+    def mean_abs_shap_cats(self):
         if not hasattr(self, '_mean_abs_shap_cats'):
             _ = self.shap_values
             self._mean_abs_shap_cats = [mean_absolute_shap_values(
                                 self.columns, sv, self.cats) for sv in self._shap_values]
-        return self._mean_abs_shap_cats[pos_label]
-
-    @property
-    def mean_abs_shap_cats(self):
-        return self.get_mean_abs_shap_cats(self.pos_label)
+        return default_list(self._mean_abs_shap_cats, self.pos_label)
 
     def cutoff_from_percentile(self, percentile, pos_label=None):
         if pos_label is None:
@@ -1356,13 +1272,13 @@ class ClassifierBunch(BaseExplainerBunch):
             """
         if pos_label is None: pos_label = self.pos_label
         metrics_dict = {
-            'accuracy' : accuracy_score(self.get_y_binary(pos_label), np.where(self.get_pred_probas(pos_label) > cutoff, 1, 0)),
-            'precision' : precision_score(self.get_y_binary(pos_label), np.where(self.get_pred_probas(pos_label) > cutoff, 1, 0)),
-            'recall' : recall_score(self.get_y_binary(pos_label), np.where(self.get_pred_probas(pos_label) > cutoff, 1, 0)),
-            'f1' : f1_score(self.get_y_binary(pos_label), np.where(self.get_pred_probas(pos_label) > cutoff, 1, 0)),
-            'roc_auc_score' : roc_auc_score(self.get_y_binary(pos_label), self.get_pred_probas(pos_label)),
-            'pr_auc_score' : average_precision_score(self.get_y_binary(pos_label), self.get_pred_probas(pos_label)),
-            'log_loss' : log_loss(self.get_y_binary(pos_label), self.get_pred_probas(pos_label))
+            'accuracy' : accuracy_score(self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0)),
+            'precision' : precision_score(self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0)),
+            'recall' : recall_score(self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0)),
+            'f1' : f1_score(self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0)),
+            'roc_auc_score' : roc_auc_score(self.y_binary(pos_label), self.pred_probas(pos_label)),
+            'pr_auc_score' : average_precision_score(self.y_binary(pos_label), self.pred_probas(pos_label)),
+            'log_loss' : log_loss(self.y_binary(pos_label), self.pred_probas(pos_label))
         }
         return metrics_dict
 
@@ -1398,7 +1314,7 @@ class ClassifierBunch(BaseExplainerBunch):
         if pred_percentile_min(max) is given, return an index with at least a predicted
         percentile of probabiity of positive class of pred_percentile_min(max)
         """
-        if pos_label is None: pos_label = self.pos_label
+       # if pos_label is None: pos_label = self.pos_label
         if (y_values is None 
             and pred_proba_min is None and pred_proba_max is None
             and pred_percentile_min is None and pred_percentile_max is None):
@@ -1406,16 +1322,16 @@ class ClassifierBunch(BaseExplainerBunch):
         else:
             if y_values is None: y_values = self.y.unique().tolist()
             if not isinstance(y_values, list): y_values = [y_values]
-            if pred_proba_min is None: pred_proba_min = self.get_pred_probas(pos_label).min()
-            if pred_proba_max is None: pred_proba_max = self.get_pred_probas(pos_label).max()
+            if pred_proba_min is None: pred_proba_min = self.pred_probas(pos_label).min()
+            if pred_proba_max is None: pred_proba_max = self.pred_probas(pos_label).max()
             if pred_percentile_min is None: pred_percentile_min = 0.0
             if pred_percentile_max is None: pred_percentile_max = 1.0
             
             potential_idxs = self.y[(self.y.isin(y_values)) &
-                            (self.get_pred_probas(pos_label) >= pred_proba_min) &
-                            (self.get_pred_probas(pos_label) <= pred_proba_max) &
-                            (self.get_pred_percentiles(pos_label) > pred_percentile_min) &
-                            (self.get_pred_percentiles(pos_label) <= pred_percentile_max)].index
+                            (self.pred_probas(pos_label) >= pred_proba_min) &
+                            (self.pred_probas(pos_label) <= pred_proba_max) &
+                            (self.pred_percentiles(pos_label) > pred_percentile_min) &
+                            (self.pred_percentiles(pos_label) <= pred_percentile_max)].index
         if not potential_idxs.empty:
             idx = np.random.choice(potential_idxs)
         else:
@@ -1449,13 +1365,13 @@ class ClassifierBunch(BaseExplainerBunch):
             return get_precision_df(self.pred_probas_raw, self.y,
                                 bin_size, quantiles, pos_label=pos_label)
         else:
-            return get_precision_df(self.get_pred_probas(pos_label), self.get_y_binary(pos_label), 
+            return get_precision_df(self.pred_probas(pos_label), self.y_binary(pos_label), 
                                     bin_size, quantiles)
 
     def lift_curve_df(self, pos_label=None):
         """returns a pd.DataFrame with data needed to build a lift curve"""
         if pos_label is None: pos_label = self.pos_label
-        return get_lift_curve_df(self.get_pred_probas(pos_label), self.y, pos_label)
+        return get_lift_curve_df(self.pred_probas(pos_label), self.y, pos_label)
 
     def prediction_result_markdown(self, index, include_percentile=True, round=2, pos_label=None, **kwargs):
         """returns a string with markdown syntax with the essential result of a prediction
@@ -1488,7 +1404,7 @@ class ClassifierBunch(BaseExplainerBunch):
             isinstance(self.y[0], np.int64)):
             model_prediction += f"##### Actual Outcome: {self.labels[self.y[int_idx]]}\n\n"
         if include_percentile:
-            model_prediction += f'##### In top {np.round(100*(1-self.get_pred_percentiles(pos_label)[int_idx]))}% percentile probability {self.labels[pos_label]}'
+            model_prediction += f'##### In top {np.round(100*(1-self.pred_percentiles(pos_label)[int_idx]))}% percentile probability {self.labels[pos_label]}'
         return model_prediction
 
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5, multiclass=False, pos_label=None):
@@ -1549,7 +1465,7 @@ class ClassifierBunch(BaseExplainerBunch):
                 labels = ['Not ' + pos_label_str, pos_label_str]
 
             return plotly_confusion_matrix(
-                    self.get_y_binary(pos_label), np.where(self.get_pred_probas(pos_label) > cutoff, 1, 0),
+                    self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0),
                     normalized=normalized, labels=labels)
         else:
             return plotly_confusion_matrix(
@@ -1560,20 +1476,17 @@ class ClassifierBunch(BaseExplainerBunch):
         return plotly_lift_curve(self.lift_curve_df(pos_label), cutoff, percentage, round)
 
     def plot_classification(self, cutoff=0.5, percentage=True, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
-        return plotly_classification_plot(self.get_pred_probas(pos_label), self.y, self.labels, cutoff, percentage=percentage)
+        return plotly_classification_plot(self.pred_probas(pos_label), self.y, self.labels, cutoff, percentage=percentage)
 
     def plot_roc_auc(self, cutoff=0.5, pos_label=None):
         """plots ROC_AUC curve. The TPR and FPR of a particular
             cutoff is displayed in crosshairs."""
-        if pos_label is None: pos_label = self.pos_label
-        return plotly_roc_auc_curve(self.get_y_binary(pos_label), self.get_pred_probas(pos_label), cutoff=cutoff)
+        return plotly_roc_auc_curve(self.y_binary(pos_label), self.pred_probas(pos_label), cutoff=cutoff)
 
     def plot_pr_auc(self, cutoff=0.5, pos_label=None):
         """plots PR_AUC curve. the precision and recall of particular
             cutoff is displayed in crosshairs."""
-        if pos_label is None: pos_label = self.pos_label
-        return plotly_pr_auc_curve(self.get_y_binary(pos_label), self.get_pred_probas(pos_label), cutoff=cutoff)
+        return plotly_pr_auc_curve(self.y_binary(pos_label), self.pred_probas(pos_label), cutoff=cutoff)
 
     def calculate_properties(self, include_interactions=True):
         _ = self.pred_probas
