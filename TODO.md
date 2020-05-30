@@ -1,5 +1,7 @@
 
 # TODO:
+- fix shap summary not displaying on page load Shap dependence
+    - plus:  fix name of figure MEAN_ABS_SHAP
 - fix hit enter on input field reloads page on decision tree tab
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees

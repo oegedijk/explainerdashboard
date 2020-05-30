@@ -127,9 +127,9 @@ class BaseExplainerBunch(ABC):
             print("Generating shap TreeExplainer...")
             if self.shap == 'tree':
                 if str(type(self.model))[-15:-2]=='XGBClassifier':
-                    warnings.warn("Warning: shap values for XGBoost models get calculated"
-                        "against the background data X, not against the data the"
-                        "model was trained on!")
+                    print("Warning: shap values for XGBoost models get calculated"
+                        "against the background data X, which may not be the"
+                        "data the model was trained on!")
                     self._shap_explainer = shap.TreeExplainer(
                                                 self.model, self.X,
                                                 model_output="probability",
@@ -137,7 +137,10 @@ class BaseExplainerBunch(ABC):
                 else:
                     self._shap_explainer = shap.TreeExplainer(self.model)
             elif self.shap=='linear':
-                self._shap_explainer = shap.LinearExplainer(self.model)
+                print("Warning: shap values for shap.LinearExplainer get calculated"
+                        "against the background data X, which may not be the"
+                        "data the model was trained on!")
+                self._shap_explainer = shap.LinearExplainer(self.model, self.X)
             elif self.shap=='deep':
                 self._shap_explainer = shap.DeepExplainer(self.model)
             elif self.shap=='kernel': 
@@ -345,6 +348,7 @@ class BaseExplainerBunch(ABC):
     @property
     def shap_interaction_values(self):
         """SHAP interaction values calculated using shap library"""
+        assert self.shap != 'linear', "Unfortunately shap.LinearExplainer does not provide shap interaction values! So no interactions tab!"
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...")
             self._shap_interaction_values = \
@@ -391,7 +395,7 @@ class BaseExplainerBunch(ABC):
         """
         _ = (self.preds, self.permutation_importances,
                 self.shap_base_value, self.shap_values,
-                self.shap_interaction_values, self.mean_abs_shap)
+                self.mean_abs_shap)
         if self.cats is not None:
             _ = (self.mean_abs_shap_cats, self.X_cats,
                     self.shap_values_cats)

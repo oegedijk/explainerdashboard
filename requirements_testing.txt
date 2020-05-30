@@ -1,0 +1,11 @@
+dash>=1.8.0
+dash-bootstrap-components
+dtreeviz
+numpy
+pandas
+PDPbox
+scikit-learn
+shap
+catboost
+lightgbm
+xgboost==0.90
