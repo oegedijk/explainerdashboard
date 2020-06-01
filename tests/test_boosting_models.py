@@ -47,10 +47,10 @@ class XGBRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    @unittest.expectedFailure
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+    # @unittest.expectedFailure
+    # def test_shap_interaction_values(self):
+    #     self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
+    #     self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
@@ -339,10 +339,10 @@ class CatBoostCLassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    @unittest.expectedFailure
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+    # @unittest.expectedFailure
+    # def test_shap_interaction_values(self):
+    #     self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
+    #     self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
