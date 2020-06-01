@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "venv/bin/python",
+    "python.pythonPath": "/Users/oegedijk/opt/anaconda3/bin/python",
     "python.testing.unittestArgs": [
         "-v",
         "-s",
