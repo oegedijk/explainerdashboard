@@ -47,7 +47,7 @@ class XGBRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    @unittest.skip("skipping XGBClassifier interaction values test as not supported yet for output probabilities...")
+    @unittest.expectedFailure
     def test_shap_interaction_values(self):
         self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
@@ -122,7 +122,7 @@ class CatBoostRegressionTests(unittest.TestCase):
         train_names, test_names = titanic_names()
         _, self.names = titanic_names()
 
-        model = CatBoostRegressor(iterations=50, learning_rate=0.1, verbose=0)
+        model = CatBoostRegressor(iterations=100, learning_rate=0.1, verbose=0)
         model.fit(X_train, y_train)
 
         self.explainer = RegressionBunch(model, X_test, y_test, r2_score, 
@@ -309,7 +309,7 @@ class CatBoostCLassifierTests(unittest.TestCase):
         X_train, y_train, X_test, y_test = titanic_survive()
         train_names, test_names = titanic_names()
 
-        model = CatBoostClassifier(iterations=50, learning_rate=0.1, verbose=0)
+        model = CatBoostClassifier(iterations=100, learning_rate=0.1, verbose=0)
         model.fit(X_train, y_train)
 
         self.explainer = ClassifierBunch(

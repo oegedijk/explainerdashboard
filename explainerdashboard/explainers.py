@@ -333,6 +333,7 @@ class BaseExplainerBunch(ABC):
         """the intercept for the shap values. (i.e. 'what would the prediction be
         if we knew none of the features?')"""
         if not hasattr(self, '_shap_base_value'):
+            _ = self.shap_values() # CatBoost needs shap values calculated before expected value
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
                 # newer version of shap library returns an array instead of float
@@ -1204,6 +1205,7 @@ class ClassifierBunch(BaseExplainerBunch):
     @property
     def shap_base_value(self):
         if not hasattr(self, '_shap_base_value'):
+            _ = self.shap_values() # CatBoost needs to have shap values calculated before expected value for some reason
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
                 self._shap_base_value = list(self._shap_base_value)
