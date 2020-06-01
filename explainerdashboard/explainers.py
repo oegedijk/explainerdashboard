@@ -127,13 +127,24 @@ class BaseExplainerBunch(ABC):
             print("Generating shap TreeExplainer...")
             if self.shap == 'tree':
                 if str(type(self.model))[-15:-2]=='XGBClassifier':
-                    print("Warning: shap values for XGBoost models get calculated"
-                        "against the background data X, which may not be the"
-                        "data the model was trained on!")
+                    print("Warning: shap values for XGBClassifier models get calculated "
+                        "against the background data X, which may not be the "
+                        "data the model was trained on! "
+                        "passing parameters model_output='probability' "
+                        "and feature_dependece='independent' to shap.TreeExplainer()")
                     self._shap_explainer = shap.TreeExplainer(
                                                 self.model, self.X,
                                                 model_output="probability",
                                                 feature_dependence= "independent")
+                elif str(type(self.model))[-16:-2]=='LGBMClassifier':
+                    print("Warning: shap values for LGBMClassifier models get calculated "
+                        "against the background data X, which may not be the "
+                        "data the model was trained on! "
+                        "passing parameters model_output='probability' "
+                        "to shap.TreeExplainer()")
+                    self._shap_explainer = shap.TreeExplainer(
+                                                self.model, self.X,
+                                                model_output="probability",)
                 else:
                     self._shap_explainer = shap.TreeExplainer(self.model)
             elif self.shap=='linear':
@@ -1494,7 +1505,7 @@ class ClassifierBunch(BaseExplainerBunch):
 
     def calculate_properties(self, include_interactions=True):
         _ = self.pred_probas
-        super().calculate_properties(include_interactions)
+        super().calculate_properties(include_interactions=include_interactions)
 
 
 class RegressionBunch(BaseExplainerBunch):

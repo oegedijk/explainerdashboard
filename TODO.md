@@ -3,6 +3,7 @@
 - fix shap summary not displaying on page load Shap dependence
     - plus:  fix name of figure MEAN_ABS_SHAP
 - fix hit enter on input field reloads page on decision tree tab
+- better error messages for interaction values for XGBoostlassifier and LGBMClassifier
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
 - let plots autodetect categorical input
@@ -42,11 +43,16 @@
 - Move pdp function to explainer_methods.py
 - Add LIME, Shaabas values for completeness?
 
+## Tests:
+
+- add individual dashboard tests
+- add ExplainerDashboard intergration test
+- Add tests for decisiontrees, extratrees
+- 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter
 - add long description to pypi: https://packaging.python.org/guides/making-a-pypi-friendly-readme/
-- Add more tests!
-- Test with lightgbm, catboost, extratrees
+
 - turn all docstrings into sphynx compatible
 - Fix numpy mock import in readthedocs compile -- seems fixed now (although I changed nothing??)
 
