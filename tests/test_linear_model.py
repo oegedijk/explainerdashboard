@@ -112,6 +112,7 @@ class LogisticRegressionTests(unittest.TestCase):
                             model, X_test, y_test, roc_auc_score, 
                             shap='linear',
                             cats=['Sex', 'Cabin', 'Embarked'],
+                            labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
     def test_preds(self):
