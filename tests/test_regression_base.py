@@ -9,7 +9,7 @@ from sklearn.metrics import r2_score
 import pdpbox
 import plotly.graph_objects as go
 
-from explainerdashboard.explainers import RegressionBunch
+from explainerdashboard.explainers import RegressionExplainer
 from explainerdashboard.datasets import titanic_fare, titanic_names
 
 
@@ -24,7 +24,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         model = RandomForestRegressor(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
-        self.explainer = RegressionBunch(
+        self.explainer = RegressionExplainer(
                             model, X_test, y_test, r2_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],

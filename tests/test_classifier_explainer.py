@@ -8,7 +8,7 @@ from sklearn.metrics import roc_auc_score
 
 import plotly.graph_objects as go
 
-from explainerdashboard.explainers import ClassifierBunch
+from explainerdashboard.explainers import ClassifierExplainer
 from explainerdashboard.datasets import titanic_survive, titanic_names
 
 
@@ -20,7 +20,7 @@ class ClassifierBunchTests(unittest.TestCase):
         model = RandomForestClassifier(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
-        self.explainer = ClassifierBunch(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],

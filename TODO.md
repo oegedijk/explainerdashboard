@@ -3,6 +3,7 @@
 - fix shap summary not displaying on page load Shap dependence
     - plus:  fix name of figure MEAN_ABS_SHAP
 - fix hit enter on input field reloads page on decision tree tab
+- implement logodds as well as probability space for classifiers
 - better error messages for interaction values for XGBoostlassifier and LGBMClassifier
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
@@ -42,12 +43,20 @@
 - Multiprocessing shap summary graph 
 - Move pdp function to explainer_methods.py
 - Add LIME, Shaabas values for completeness?
+- refactor for loop in contrib_df_summary
 
 ## Tests:
-
+- add multiclass classifier tests
 - add individual dashboard tests
 - add ExplainerDashboard intergration test
 - Add tests for decisiontrees, extratrees
+
+# Docs:
+- document X_background
+- document properties with prop(pos_label)
+- document shap_output
+
+
 - 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter

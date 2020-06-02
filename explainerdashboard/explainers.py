@@ -17,11 +17,11 @@ from .explainer_plots import *
 from .make_callables import make_callable, default_list, default_2darray
 
 
-class BaseExplainerBunch(ABC):
+class BaseExplainer(ABC):
     """Abstract Base Class. Defines the basic functionality of an ExplainerBunch
     But does not yet have a defined shap_explainer.
     """
-    def __init__(self, model, X, y=None, metric=r2_score, shap="tree", 
+    def __init__(self, model, X, y=None, metric=r2_score, shap="tree", X_background=None,
                     cats=None, idxs=None, descriptions=None, permutation_cv=None, na_fill=-999):
         """init
 
@@ -50,6 +50,7 @@ class BaseExplainerBunch(ABC):
         """
         self.model  = model
         self.X = X.reset_index(drop=True)
+        self.X_background = X_background
         if y is not None:
             self.y = pd.Series(y).reset_index(drop=True)
         else:
@@ -126,32 +127,13 @@ class BaseExplainerBunch(ABC):
         if not hasattr(self, '_shap_explainer'):
             print("Generating shap TreeExplainer...")
             if self.shap == 'tree':
-                if str(type(self.model))[-15:-2]=='XGBClassifier':
-                    print("Warning: shap values for XGBClassifier models get calculated "
-                        "against the background data X, which may not be the "
-                        "data the model was trained on! "
-                        "passing parameters model_output='probability' "
-                        "and feature_dependece='independent' to shap.TreeExplainer()")
-                    self._shap_explainer = shap.TreeExplainer(
-                                                self.model, self.X,
-                                                model_output="probability",
-                                                feature_dependence= "independent")
-                elif str(type(self.model))[-16:-2]=='LGBMClassifier':
-                    print("Warning: shap values for LGBMClassifier models get calculated "
-                        "against the background data X, which may not be the "
-                        "data the model was trained on! "
-                        "passing parameters model_output='probability' "
-                        "to shap.TreeExplainer()")
-                    self._shap_explainer = shap.TreeExplainer(
-                                                self.model, self.X,
-                                                model_output="probability",)
-                else:
-                    self._shap_explainer = shap.TreeExplainer(self.model)
+                self._shap_explainer = shap.TreeExplainer(self.model)
             elif self.shap=='linear':
-                print("Warning: shap values for shap.LinearExplainer get calculated"
-                        "against the background data X, which may not be the"
-                        "data the model was trained on!")
-                self._shap_explainer = shap.LinearExplainer(self.model, self.X)
+                if self.X_background is None:
+                    print("Warning: shap values for shap.LinearExplainer get calculated"
+                        "against X_background, but paramater X_background=None, so using X instead")
+                self._shap_explainer = shap.LinearExplainer(self.model, 
+                                            self.X_background if self.X_background is not None else self.X)
             elif self.shap=='deep':
                 self._shap_explainer = shap.DeepExplainer(self.model)
             elif self.shap=='kernel': 
@@ -570,9 +552,7 @@ class BaseExplainerBunch(ABC):
                             topx=None, cutoff=None, round=2, pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format"""
         idx = self.get_int_idx(index) # if passed str convert to int index
-        return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label),
-                                        classification=self.is_classifier,
-                                        round=round)
+        return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label), round=round)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, pos_label=None):
         importance_df = mean_absolute_shap_values(
@@ -810,8 +790,7 @@ class BaseExplainerBunch(ABC):
         :rtype: plotly.Fig
         """
         contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, pos_label)
-        return plotly_contribution_plot(contrib_df,
-                    classification=self.is_classifier, round=round)
+        return plotly_contribution_plot(contrib_df, round=round)
 
     def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
         """Displays all individual shap value for each feature in a horizontal
@@ -948,7 +927,7 @@ class BaseExplainerBunch(ABC):
                         num_grid_lines=min(num_grid_lines, sample, len(self.X)))
 
 
-class RandomForestExplainerBunch(BaseExplainerBunch):
+class RandomForestExplainer(BaseExplainer):
     """
     RandomForestBunch allows for the analysis of individual DecisionTrees that
     make up the RandomForest.
@@ -1083,7 +1062,7 @@ class RandomForestExplainerBunch(BaseExplainerBunch):
         super().calculate_properties(include_interactions=include_interactions)
 
 
-class ClassifierBunch(BaseExplainerBunch):
+class ClassifierExplainer(BaseExplainer):
     """
     ExplainerBunch for classification models. Defines the shap values for
     each possible class in the classifications.
@@ -1093,17 +1072,17 @@ class ClassifierBunch(BaseExplainerBunch):
     In addition defines a number of plots specific to classification problems
     such as a precision plot, confusion matrix, roc auc curve and pr auc curve.
     """
-    def __init__(self, model,  X, y=None,  metric=roc_auc_score, shap='tree',
+    def __init__(self, model,  X, y=None,  metric=roc_auc_score, shap='tree', X_background=None,
                     cats=None, idxs=None, descriptions=None,
                     permutation_cv=None, na_fill=-999,
-                    labels=None, pos_label=1):
-        """Compared to BaseExplainerBunch defines two additional parameters:
+                    labels=None, pos_label=1, model_output="probability"):
+        """Compared to BaseExplainer defines two additional parameters:
         :param labels: list of str labels for the different classes, defaults to e.g. ['0', '1'] for a binary classification
         :type labels: list of str, optional
         :param pos_label: class that should be used as the positive class, defaults to 1
         :type pos_label: int or str (if str, needs to be in labels), optional
         """
-        super().__init__(model, X, y, metric, shap, cats, idxs, descriptions, permutation_cv, na_fill)
+        super().__init__(model, X, y, metric, shap, X_background, cats, idxs, descriptions, permutation_cv, na_fill)
 
         if labels is not None:
             self.labels = labels
@@ -1112,7 +1091,72 @@ class ClassifierBunch(BaseExplainerBunch):
         else:
             self.labels = [str(i) for i in range(self.y.nunique())]
         self.pos_label = pos_label
+        self.model_output = model_output
         self.is_classifier = True
+
+    @property
+    def shap_explainer(self):
+        if not hasattr(self, '_shap_explainer'):
+            print("Generating shap TreeExplainer...")
+            if self.shap == 'tree':
+                if (str(type(self.model)).endswith("XGBClassifier'>") or
+                    str(type(self.model)).endswith("LGBMClassifier'>") or
+                    str(type(self.model)).endswith("CatBoostClassifier'>")):
+                    
+                    if self.model_output == "probability": 
+                        print(
+                            "Warning: model_output='probability', so using feature_perturbance='interventional' "
+                            "and using background data to estimate shap values in probability space. "
+                            "Shap interaction values will not be available.")
+                        if self.X_background is None:
+                            print(
+                                "Warning: shap values in probability space get calculated against "
+                                "X_background, but paramater X_background=None, so using X instead")
+                        self._shap_explainer = shap.TreeExplainer(
+                                                    self.model, 
+                                                    self.X_background if self.X_background is not None else self.X,
+                                                    model_output="probability",
+                                                    feature_perturbation="interventional")
+                    else:
+                        self.model_output = "logodds"
+                        self._shap_explainer = shap.TreeExplainer(self.model)
+                else:
+                    if self.model_output == "probability":
+                        print(f"Warning: Assuming that shap output of {str(type(self.model))} is probability...")
+                    self._shap_explainer = shap.TreeExplainer(self.model)
+
+
+            elif self.shap=='linear':
+                if self.model_output == "probability":
+                    print(
+                        "Warning: model_output='probability' is currently not supported for linear classifiation "
+                        "models with shap. So defaulting to model_output='logodds' "
+                        "If you really need probability outputs use shap='kernel' instead."
+                    )
+                    self.model_output = "logodds"
+                if self.X_background is None:
+                    print(
+                        "Warning: shap values for shap='linear' get calculated against "
+                        "X_background, but paramater X_background=None, so using X instead...")
+                self._shap_explainer = shap.LinearExplainer(self.model, 
+                                            self.X_background if self.X_background is not None else self.X)
+            elif self.shap=='deep':
+                self._shap_explainer = shap.DeepExplainer(self.model)
+            elif self.shap=='kernel': 
+                if self.X_background is None:
+                    print(
+                        "Warning: shap values for shap='kernel' get calculated against "
+                        "X_background, but paramater X_background=None, so using X instead...")
+                if self.model_output != "probability":
+                    print(
+                        "Warning: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
+                    )
+                    self.model_output = 'probability'
+                self._shap_explainer = shap.KernelExplainer(model.predict_proba, 
+                                            self.X_background if self.X_background is not None else self.X,
+                                            link="identity")
+                
+        return self._shap_explainer
 
     @property
     def pos_label(self):
@@ -1210,7 +1254,10 @@ class ClassifierBunch(BaseExplainerBunch):
             if isinstance(self._shap_base_value, np.ndarray):
                 self._shap_base_value = list(self._shap_base_value)
             if len(self.labels)==2 and isinstance(self._shap_base_value, (np.floating, float)):
-                self._shap_base_value = [1-self._shap_base_value, self._shap_base_value]
+                if self.model_output == 'probability':
+                    self._shap_base_value = [1-self._shap_base_value, self._shap_base_value]
+                else: # assume logodds
+                    self._shap_base_value = [-self._shap_base_value, self._shap_base_value]
             assert len(self._shap_base_value)==len(self.labels),\
                 f"len(shap_explainer.expected_value)={len(self._shap_base_value)}"\
                  + "and len(labels)={len(self.labels)} do not match!"
@@ -1221,12 +1268,16 @@ class ClassifierBunch(BaseExplainerBunch):
         if not hasattr(self, '_shap_values'):
             print("Calculating shap values...")
             self._shap_values = self.shap_explainer.shap_values(self.X)
+            
             if not isinstance(self._shap_values, list) and len(self.labels)==2:
-                self._shap_values = [1-self._shap_values, self._shap_values]
+                if self.model_output=='probability':
+                    self._shap_values = [1-self._shap_values, self._shap_values]
+                else: #assume logodds
+                    self._shap_values = [-self._shap_values, self._shap_values]
 
             assert len(self._shap_values)==len(self.labels),\
                 f"len(shap_values)={len(self._shap_values)}"\
-                 + f"and len(labels)={len(self.labels)} do not match!"
+                + f"and len(labels)={len(self.labels)} do not match!"
         return default_list(self._shap_values, self.pos_label)
 
     @property
@@ -1234,9 +1285,11 @@ class ClassifierBunch(BaseExplainerBunch):
         if not hasattr(self, '_shap_values_cats'):
             _ = self.shap_values
             self._shap_values_cats = [
-                merge_categorical_shap_values(
-                    self.X, sv, self.cats) for sv in self._shap_values]
+                    merge_categorical_shap_values(
+                        self.X, sv, self.cats) for sv in self._shap_values]
+            
         return default_list(self._shap_values_cats, self.pos_label)
+
 
     @property
     def shap_interaction_values(self):
@@ -1244,9 +1297,15 @@ class ClassifierBunch(BaseExplainerBunch):
             print("Calculating shap interaction values...")
             _ = self.shap_values #make sure shap values have been calculated
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(self.X)
+            
             if not isinstance(self._shap_interaction_values, list) and len(self.labels)==2:
-                self._shap_interaction_values = [1-self._shap_interaction_values,
-                                                    self._shap_interaction_values]
+                if self.model_output == "probability":
+                    self._shap_interaction_values = [1-self._shap_interaction_values,
+                                                        self._shap_interaction_values]
+                else: # assume logodds so logodds of negative class is -logodds of positive class
+                    self._shap_interaction_values = [-self._shap_interaction_values,
+                                                        self._shap_interaction_values]
+
             self._shap_interaction_values = [
                 normalize_shap_interaction_values(siv, self.shap_values)
                     for siv, sv in zip(self._shap_interaction_values, self._shap_values)]
@@ -1359,6 +1418,13 @@ class ClassifierBunch(BaseExplainerBunch):
             return self.idxs[idx]
         return int(idx)
 
+    def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
+                            round=2, pos_label=None):
+        """Takes a contrib_df, and formats it to a more human readable format"""
+        idx = self.get_int_idx(index) # if passed str convert to int index
+        return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label), 
+                                            model_output = self.model_output, round=round)
+
     def precision_df(self, bin_size=None, quantiles=None, multiclass=False, pos_label=None):
         """returns a pd.DataFrame with predicted probabilities and actually
         observed number of positive cases (i.e. precision)
@@ -1423,6 +1489,27 @@ class ClassifierBunch(BaseExplainerBunch):
         if include_percentile:
             model_prediction += f'##### In top {np.round(100*(1-self.pred_percentiles(pos_label)[int_idx]))}% percentile probability {self.labels[pos_label]}'
         return model_prediction
+
+    def plot_shap_contributions(self, index, cats=True,
+                                    topx=None, cutoff=None, round=2, pos_label=None):
+        """reutn Plotly fig with waterfall plot of shap value contributions
+        to the model prediction for index.
+
+        :param index: index for which to display prediction
+        :type index: int or str
+        :param cats: Group categoricals, defaults to True
+        :type cats: bool, optional
+        :param topx: Only display topx features, defaults to None
+        :type topx: int, optional
+        :param cutoff: Only display features with at least cutoff contribution, defaults to None
+        :type cutoff: float, optional
+        :param round: round contributions to round precision, defaults to 2
+        :type round: int, optional
+        :return: fig
+        :rtype: plotly.Fig
+        """
+        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, pos_label)
+        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round)
 
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5, multiclass=False, pos_label=None):
         """plots predicted probability on the x-axis and observed precision (fraction of actual positive
@@ -1510,14 +1597,14 @@ class ClassifierBunch(BaseExplainerBunch):
         super().calculate_properties(include_interactions=include_interactions)
 
 
-class RegressionBunch(BaseExplainerBunch):
+class RegressionExplainer(BaseExplainer):
     """
      ExplainerBunch for regression models.
 
     In addition defines a number of plots specific to regression problems
     such as a predicted vs actual and residual plots.
     """
-    def __init__(self, model,  X, y=None, metric=roc_auc_score, shap="tree",
+    def __init__(self, model,  X, y=None, metric=roc_auc_score, shap="tree", X_background=None,
                     cats=None, idxs=None, descriptions=None, 
                     permutation_cv=None, na_fill=-999,
                     units=""):
@@ -1526,7 +1613,7 @@ class RegressionBunch(BaseExplainerBunch):
         :type units: str, optional
 
         """
-        super().__init__(model, X, y, metric, shap, cats, idxs, descriptions, permutation_cv, na_fill)
+        super().__init__(model, X, y, metric, shap, X_background, cats, idxs, descriptions, permutation_cv, na_fill)
         self.units = units
         self.is_regression = True
     
@@ -1600,16 +1687,39 @@ class RegressionBunch(BaseExplainerBunch):
                                        ratio=ratio, units=self.units, round=round)
     
 
-class RandomForestClassifierBunch(RandomForestExplainerBunch, ClassifierBunch):
+class RandomForestClassifierExplainer(RandomForestExplainer, ClassifierExplainer):
     """RandomForestClassifierBunch inherits from both RandomForestBunch and
     ClassifierBunch.
     """
 
 
-class RandomForestRegressionBunch(RandomForestExplainerBunch, RegressionBunch):
+class RandomForestRegressionExplainer(RandomForestExplainer, RegressionExplainer):
     """RandomForestClassifierBunch inherits from both RandomForestBunch and
     RegressionBunch.
     """
+
+
+
+class ClassifierBunch:
+    def __init__(self, *args, **kwargs):
+        raise ValueError("ClassifierBunch has been deprecated, use ClassifierExplainer instead...")
+
+class RegressionBunch:
+    def __init__(self, *args, **kwargs):
+        raise ValueError("RegressionBunch has been deprecated, use RegressionrExplainer instead...")
+
+class RandomForestExplainerBunch:
+    def __init__(self, *args, **kwargs):
+        raise ValueError("RandomForestExplainerBunch has been deprecated, use RandomForestExplainer instead...")
+
+class RandomForestClassifierBunch:
+    def __init__(self, *args, **kwargs):
+        raise ValueError("RandomForestClassifierBunch has been deprecated, use RandomForestClassifierExplainer instead...")
+
+class RandomForestRegressionBunch:
+    def __init__(self, *args, **kwargs):
+        raise ValueError("RandomForestRegressionBunch has been deprecated, use RandomForestRegressionExplainer instead...")
+
 
 
 
