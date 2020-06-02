@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from explainerdashboard.explainers import RegressionBunch, ClassifierBunch
+from explainerdashboard.explainers import RegressionExplainer, ClassifierExplainer
 from explainerdashboard.datasets import titanic_fare, titanic_survive, titanic_names
 
 
@@ -25,10 +25,9 @@ class LinearRegressionTests(unittest.TestCase):
 
         model = LinearRegression()
         model.fit(X_train, y_train)
-        self.explainer = RegressionBunch(model, X_test, y_test, r2_score, 
-                                        shap='linear', 
-                                    cats=['Sex', 'Deck', 'Embarked'],
-                                    idxs=test_names, units="$")
+        self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
+                                        shap='linear', cats=['Sex', 'Deck', 'Embarked'],
+                                        idxs=test_names, units="$")
 
     def test_explainer_len(self):
         self.assertEqual(len(self.explainer), self.test_len)
@@ -108,7 +107,7 @@ class LogisticRegressionTests(unittest.TestCase):
         model = LogisticRegression()
         model.fit(X_train, y_train)
 
-        self.explainer = ClassifierBunch(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='linear',
                             cats=['Sex', 'Cabin', 'Embarked'],

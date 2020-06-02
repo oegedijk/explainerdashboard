@@ -9,8 +9,8 @@ from sklearn.metrics import r2_score, roc_auc_score
 import plotly.graph_objects as go
 import dtreeviz 
 
-from explainerdashboard.explainers import RandomForestRegressionBunch
-from explainerdashboard.explainers import RandomForestClassifierBunch
+from explainerdashboard.explainers import RandomForestRegressionExplainer
+from explainerdashboard.explainers import RandomForestClassifierExplainer
 from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names
 
 
@@ -23,7 +23,7 @@ class ClassifierBunchTests(unittest.TestCase):
         model = RandomForestClassifier(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
-        self.explainer = RandomForestClassifierBunch(
+        self.explainer = RandomForestClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
@@ -70,7 +70,7 @@ class RegressionBunchTests(unittest.TestCase):
         model = RandomForestRegressor(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
-        self.explainer = RandomForestRegressionBunch(
+        self.explainer = RandomForestRegressionExplainer(
                             model, X_test, y_test, r2_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],

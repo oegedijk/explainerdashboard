@@ -179,7 +179,6 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
     dbc.Row([
         dbc.Col([
             html.H3('Contributions to prediction'),
-            dbc.Label('(table format)'),
             dash_table.DataTable(
                 id='contributions_table',
                 style_cell={'fontSize':20, 'font-family':'sans-serif'},

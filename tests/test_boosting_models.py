@@ -11,7 +11,7 @@ from xgboost import XGBClassifier, XGBRegressor
 from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
 from catboost import CatBoostClassifier, CatBoostRegressor
 
-from explainerdashboard.explainers import RegressionBunch, ClassifierBunch
+from explainerdashboard.explainers import RegressionExplainer, ClassifierExplainer
 from explainerdashboard.datasets import titanic_fare, titanic_survive, titanic_names
 
 
@@ -25,7 +25,7 @@ class XGBRegressionTests(unittest.TestCase):
 
         model = XGBRegressor()
         model.fit(X_train, y_train)
-        self.explainer = RegressionBunch(model, X_test, y_test, r2_score, 
+        self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
                                         shap='tree', 
                                         cats=['Sex', 'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
@@ -75,7 +75,7 @@ class LGBMRegressionTests(unittest.TestCase):
 
         model = LGBMRegressor()
         model.fit(X_train, y_train)
-        self.explainer = RegressionBunch(model, X_test, y_test, r2_score, 
+        self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
                                         shap='tree', 
                                         cats=['Sex', 'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
@@ -97,9 +97,9 @@ class LGBMRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+    # def test_shap_interaction_values(self):
+    #     self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
+    #     self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
@@ -125,7 +125,7 @@ class CatBoostRegressionTests(unittest.TestCase):
         model = CatBoostRegressor(iterations=100, learning_rate=0.1, verbose=0)
         model.fit(X_train, y_train)
 
-        self.explainer = RegressionBunch(model, X_test, y_test, r2_score, 
+        self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
                                         shap='tree', 
                                         cats=['Sex', 'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
@@ -147,10 +147,10 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    @unittest.expectedFailure
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+    # @unittest.expectedFailure
+    # def test_shap_interaction_values(self):
+    #     self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
+    #     self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
@@ -174,7 +174,7 @@ class XGBCLassifierTests(unittest.TestCase):
         model = XGBClassifier()
         model.fit(X_train, y_train)
 
-        self.explainer = ClassifierBunch(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
@@ -201,10 +201,15 @@ class XGBCLassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    @unittest.expectedFailure
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+    def test_shap_values_all_probabilities(self):
+        self.assertTrue(self.explainer.shap_base_value >= 0)
+        self.assertTrue(self.explainer.shap_base_value <= 1)
+        self.assertTrue(np.all(self.explainer.shap_values.sum(axis=1) + self.explainer.shap_base_value >= 0))
+        self.assertTrue(np.all(self.explainer.shap_values.sum(axis=1) + self.explainer.shap_base_value <= 1))
+
+    # def test_shap_interaction_values(self):
+    #     self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
+    #     self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
@@ -243,7 +248,7 @@ class LGBMClassifierTests(unittest.TestCase):
         model = LGBMClassifier()
         model.fit(X_train, y_train)
 
-        self.explainer = ClassifierBunch(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
@@ -270,10 +275,16 @@ class LGBMClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    @unittest.expectedFailure
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+    # @unittest.expectedFailure
+    # def test_shap_interaction_values(self):
+    #     self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
+    #     self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+
+    def test_shap_values_all_probabilities(self):
+        self.assertTrue(self.explainer.shap_base_value >= 0)
+        self.assertTrue(self.explainer.shap_base_value <= 1)
+        self.assertTrue(np.all(self.explainer.shap_values.sum(axis=1) + self.explainer.shap_base_value >= 0))
+        self.assertTrue(np.all(self.explainer.shap_values.sum(axis=1) + self.explainer.shap_base_value <= 1))
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
@@ -304,7 +315,7 @@ class LGBMClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.prediction_result_markdown(0), str)
 
 
-class CatBoostCLassifierTests(unittest.TestCase):
+class CatBoostClassifierTests(unittest.TestCase):
     def setUp(self):
         X_train, y_train, X_test, y_test = titanic_survive()
         train_names, test_names = titanic_names()
@@ -312,7 +323,7 @@ class CatBoostCLassifierTests(unittest.TestCase):
         model = CatBoostClassifier(iterations=100, learning_rate=0.1, verbose=0)
         model.fit(X_train, y_train)
 
-        self.explainer = ClassifierBunch(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
@@ -331,6 +342,12 @@ class CatBoostCLassifierTests(unittest.TestCase):
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
+
+    def test_shap_values_all_probabilities(self):
+        self.assertTrue(self.explainer.shap_base_value >= 0)
+        self.assertTrue(self.explainer.shap_base_value <= 1)
+        self.assertTrue(np.all(self.explainer.shap_values.sum(axis=1) + self.explainer.shap_base_value >= 0))
+        self.assertTrue(np.all(self.explainer.shap_values.sum(axis=1) + self.explainer.shap_base_value <= 1))
 
     def test_shap_values_shape(self):
         self.assertTrue(self.explainer.shap_values.shape == (len(self.explainer), len(self.explainer.columns)))

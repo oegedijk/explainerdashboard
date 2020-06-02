@@ -479,10 +479,13 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
     return contrib_df
 
 
-def get_contrib_summary_df(contrib_df, classification=False, round=2):
+def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
     """
     returns a DataFrame that summarizes a contrib_df as a pair of
     Reasons+Effect.
+
+    :param model_output: 'raw' or 'probability'
+    :param round: rounding of contribution
     """
     contrib_summary_df = pd.DataFrame(columns=['Reason', 'Effect'])
 
@@ -492,7 +495,7 @@ def get_contrib_summary_df(contrib_df, classification=False, round=2):
         else:
             reason = f"{row['col']} = {row['value']}"
         effect = f"{'+' if row['contribution'] >= 0 else ''}"
-        if classification:
+        if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
         else:
             effect +=  str(np.round(row['contribution'], round))

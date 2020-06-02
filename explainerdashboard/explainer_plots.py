@@ -11,7 +11,7 @@ from sklearn.metrics import (classification_report, confusion_matrix,
 
 
 def plotly_contribution_plot(contrib_df, target="target", 
-                         classification=False, higher_is_better=False,
+                         model_output="raw", higher_is_better=False,
                          include_base_value=True, round=2):
     """
     Takes in a DataFrame contrib_df with columns
@@ -22,9 +22,11 @@ def plotly_contribution_plot(contrib_df, target="target",
 
     Outputs a bar chart displaying the contribution of each individual
     column to the final prediction. 
+
+    :param model_out 'raw' or 'probability' or 'logodds'
     """ 
     contrib_df = contrib_df.copy()
-    multiplier = 100 if classification else 1
+    multiplier = 100 if model_output=='probability' else 1
     contrib_df['base'] = np.round(multiplier * contrib_df['base'], round)
     contrib_df['cumulative'] = np.round(multiplier * contrib_df['cumulative'], round)
     contrib_df['contribution'] = np.round(multiplier * contrib_df['contribution'], round)
@@ -80,8 +82,10 @@ def plotly_contribution_plot(contrib_df, target="target",
         )
     )
     
-    if classification:
+    if model_output == "probability":
         title = f'Contribution to prediction probability = {prediction}%'
+    elif model_output == "logodds":
+        title = f'Contribution to prediction logodds = {prediction}'
     else:
         title = f'Contribution to prediction {target} = {prediction}'
 
@@ -102,7 +106,7 @@ def plotly_contribution_plot(contrib_df, target="target",
                                 t=50,
                                 pad=4
                             ))
-    if classification:
+    if model_output=="probability":
         fig.update_yaxes(title_text='Prediction %')
     else:
         fig.update_yaxes(title_text='Prediction')
