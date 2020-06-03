@@ -83,7 +83,7 @@ class DefaultDfList(pd.DataFrame):
     dfl = DefaultDfList(df1)
     dfl.source_list = [df1, df2]
     """
-    _internal_names = pd.DataFrame._internal_names + ['source_list']
+    _internal_names = list(pd.DataFrame._internal_names) + ['source_list']
     _internal_names_set = set(_internal_names)
 
     def __call__(self, index=None):
@@ -98,7 +98,7 @@ class DefaultDfList(pd.DataFrame):
 
 
 class DefaultSeriesList(pd.Series):
-    _internal_names = pd.Series._internal_names + ['source_list']
+    _internal_names = list(pd.Series._internal_names) + ['source_list']
     _internal_names_set = set(_internal_names)
 
     def __call__(self, index=None):

@@ -48,12 +48,12 @@ master_doc = 'index'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'sphinx.ext.autodoc', 'sphinxcontrib.fulltoc'
 ]
 
 autodoc_mock_imports = ['matplotlib', 'np', 'dash', 'dash_bootstrap_components',
                     'dash_html_components', 'dash_table', 'dash_core_components',
-                    'dtreeviz', 'numpy', 'pandas',  'pdpbox', 
+                    'dtreeviz', 'numpy', 'pandas', 'pd', 'pdpbox', 
                     'sklearn', 'shap',  'plotly']
 
 
