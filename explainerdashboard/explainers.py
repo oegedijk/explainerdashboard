@@ -1,3 +1,14 @@
+__all__ = ['BaseExplainer', 
+            'ClassifierExplainer', 
+            'RegressionExplainer', 
+            'RandomForestClassifierExplainer',
+            'RandomForestRegressionExplainer',
+            'ClassifierBunch', # deprecated
+            'RegressionBunch', # deprecated
+            'RandomForestClassifierBunch', # deprecated
+            'RandomForestRegressionBunch', # deprecated
+            ]
+
 from abc import ABC, abstractmethod
 import warnings
 import base64
