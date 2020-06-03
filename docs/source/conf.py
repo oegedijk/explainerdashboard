@@ -34,7 +34,7 @@ author = 'Oege Dijk'
 # The short X.Y version
 version = '0.1'
 # The full version, including alpha/beta/rc tags
-release = '0.1.9.2'
+release = '0.1.10.0'
 
 
 # -- General configuration ---------------------------------------------------

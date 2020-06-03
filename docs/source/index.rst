@@ -10,14 +10,14 @@ of a (scikit-learn compatible) machine learning models.
 It combines shap values, permutation importances, partial dependence plots,
 and the visualisation of individual trees of random forests into a single package.
 
-You can easily construct an ExplainerBunch object that computes all relevant
+You can easily construct an Explainer object that computes all relevant
 statistics behind the scenes and allows you to quickly plot feature importances,
 shap dependence plots, pdp plots, etc.
 
-You then pass this ExplainerBunch object to an ExplainerDashboard to start an interactive
+You then pass this Explainer object to an ExplainerDashboard to start an interactive
 analytical web app to inspect the workings and performance of your model.
 
-Or you can use the primitives provided by the ExplainerBunch to construct your own
+Or you can use the primitives provided by the Explainer to construct your own
 project-specific dashboard using plotly dash. 
 
 Example
@@ -28,7 +28,7 @@ Some example code::
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import roc_auc_score
 
-    from explainerdashboard.explainers import RandomForestClassifierBunch
+    from explainerdashboard.explainers import RandomForestClassifierExplainer
     from explainerdashboard.dashboards import ExplainerDashboard
     from explainerdashboard.datasets import titanic_survive, titanic_names
 
@@ -38,7 +38,7 @@ Some example code::
     model = RandomForestClassifier(n_estimators=50, max_depth=5)
     model.fit(X_train, y_train)
 
-    explainer = RandomForestClassifierBunch(
+    explainer = RandomForestClassifierExplainer(
                     model, X_test, y_test, roc_auc_score,
                     cats=['Sex', 'Deck', 'Embarked'],
                     idxs=test_names,

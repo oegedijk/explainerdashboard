@@ -21,7 +21,8 @@ class BaseExplainer(ABC):
     """Abstract Base Class. Defines the basic functionality of an ExplainerBunch
     But does not yet have a defined shap_explainer.
     """
-    def __init__(self, model, X, y=None, metric=r2_score, shap="tree", X_background=None,
+    def __init__(self, model, X, y=None, metric=r2_score, 
+                    shap="tree", X_background=None, model_output="raw",
                     cats=None, idxs=None, descriptions=None, permutation_cv=None, na_fill=-999):
         """init
 
@@ -36,6 +37,10 @@ class BaseExplainer(ABC):
         :type metric: metric function, optional
         :param shap: type of shap_explainer to fit, defaults to 'tree'
         :type shap: str
+        :param X_background: background X to be used by shap explainer
+        :type X_background: pd.DataFrame
+        :param model_output: model_output of shap values, either 'raw', 'logodds' or 'probability'
+        :type model_output: str
         :param cats: list of variables that have been onehotencoded. Allows to 
             group categorical variables together in plots, defaults to None
         :type cats: list, optional
@@ -58,6 +63,7 @@ class BaseExplainer(ABC):
         
         self.metric = metric
         self.shap = shap
+        self.model_output = model_output
 
         self.cats = cats
         if idxs is not None:
@@ -75,6 +81,7 @@ class BaseExplainer(ABC):
         self.columns = self.X.columns.tolist()
         self.is_classifier = False
         self.is_regression = False
+        _ = self.shap_explainer
 
     @classmethod
     def from_ModelBunch(cls, model_bunch, raw_data, metric, shap='tree',
@@ -125,19 +132,30 @@ class BaseExplainer(ABC):
     @property
     def shap_explainer(self):
         if not hasattr(self, '_shap_explainer'):
-            print("Generating shap TreeExplainer...")
             if self.shap == 'tree':
-                self._shap_explainer = shap.TreeExplainer(self.model)
+                print(f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})")
+                print("You can monkeypatch self.shap_explainer if desired...")
+                self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
             elif self.shap=='linear':
                 if self.X_background is None:
                     print("Warning: shap values for shap.LinearExplainer get calculated"
                         "against X_background, but paramater X_background=None, so using X instead")
+                print(f"Generating self.shap_explainer = shap.LinearExplainer(model, {'X_background' if self.X_background is not None else 'X'})...")
+                print("You can monkeypatch self.shap_explainer if desired...")
                 self._shap_explainer = shap.LinearExplainer(self.model, 
                                             self.X_background if self.X_background is not None else self.X)
             elif self.shap=='deep':
+                print(f"Generating self.shap_explainer = shap.DeepExplainer(model{', X_background' if self.X_background is not None else ''})")
+                print("You can monkeypatch self.shap_explainer if desired...")
                 self._shap_explainer = shap.DeepExplainer(self.model)
             elif self.shap=='kernel': 
-                self._shap_explainer = shap.KernelExplainer(self.model)
+                if self.X_background is None:
+                    print("Warning: shap values for shap.LinearExplainer get calculated"
+                        "against X_background, but paramater X_background=None, so using X instead")
+                print("Generating self.shap_explainer = shap.KernelExplainer(model, {'X_background' if self.X_background is not None else 'X'})...")
+                print("You can monkeypatch self.shap_explainer if desired...")
+                self._shap_explainer = shap.KernelExplainer(self.model, 
+                                            self.X_background if self.X_background is not None else self.X)
         return self._shap_explainer
 
     def get_int_idx(self, index):
@@ -790,7 +808,7 @@ class BaseExplainer(ABC):
         :rtype: plotly.Fig
         """
         contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, pos_label)
-        return plotly_contribution_plot(contrib_df, round=round)
+        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round)
 
     def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
         """Displays all individual shap value for each feature in a horizontal
@@ -927,140 +945,6 @@ class BaseExplainer(ABC):
                         num_grid_lines=min(num_grid_lines, sample, len(self.X)))
 
 
-class RandomForestExplainer(BaseExplainer):
-    """
-    RandomForestBunch allows for the analysis of individual DecisionTrees that
-    make up the RandomForest.
-    """
-    
-    @property
-    def graphviz_available(self):
-        if not hasattr(self, '_graphviz_available'):
-            try:
-                import graphviz.backend as be
-                cmd = ["dot", "-V"]
-                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
-            except:
-                print("""
-                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
-                so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
-
-                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz 
-                for dtreeviz. 
-                """)
-                self._graphviz_available = False
-            else:
-                self._graphviz_available = True
-        return self._graphviz_available
-
-    @property
-    def decision_trees(self):
-        if not hasattr(self, '_decision_trees'):
-            print("Generating ShadowDecTree for each individual decision tree...")
-            self._decision_trees = get_decision_trees(self.model, self.X, self.y)
-        return self._decision_trees
-
-    def decisiontree_df(self, tree_idx, index, pos_label=None):
-        """returns a pd.DataFrame with all decision nodes of a particular
-                        tree (indexed by tree_idx) for a particular observation
-                        (indexed by index)"""
-        assert tree_idx >= 0 and tree_idx < len(self.decision_trees), \
-            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
-        idx = self.get_int_idx(index)
-        assert idx >= 0 and idx < len(self.X), \
-            f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
-        
-        if self.is_classifier:
-            if pos_label is None: pos_label = self.pos_label
-            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx],
-                    pos_label=pos_label)
-        else:
-            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
-
-    def decisiontree_df_summary(self, tree_idx, index, round=2, pos_label=None):
-        """formats decisiontree_df in a slightly more human readable format."""
-        idx=self.get_int_idx(index)
-        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
-                    classifier=self.is_classifier, round=round)
-
-    def decision_path_file(self, tree_idx, index):
-        """get a dtreeviz visualization of a particular tree in the random forest. 
-        - tree_idxs the n'th tree in the random forest
-        - index for row index
-        returns the path where the .svg file is stored."""
-        if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!") 
-            return None
-
-        idx = self.get_int_idx(index)
-        print(idx)
-        if self.is_regression:
-            viz = dtreeviz(self.model.estimators_[tree_idx],
-               self.X, self.y, 
-               target_name='Target',
-               #orientation ='LR',  # left-right orientation
-               feature_names=self.columns,
-               X=self.X.iloc[idx, :],)
-        elif self.is_classifier:
-            viz = dtreeviz(self.model.estimators_[tree_idx],
-               self.X, self.y, 
-               target_name='Target',
-               #orientation ='LR',  # left-right orientation
-               feature_names=self.columns,
-               class_names=self.labels,
-               X=self.X.iloc[idx, :]) 
-        return viz.save_svg()
-
-    def decision_path(self, tree_idx, index):
-        """get a dtreeviz visualization of a particular tree in the random forest. 
-        - tree_idxs the n'th tree in the random forest
-        - index for row index
-        returns the a IPython display SVG object for e.g. jupyter notebook."""
-        if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!") 
-            return None
-
-        from IPython.display import SVG
-        svg_file = self.decision_path_file(tree_idx, index)
-        return SVG(open(svg_file,'rb').read())
-
-    def decision_path_encoded(self, tree_idx, index):
-        """get a dtreeviz visualization of a particular tree in the random forest. 
-        - tree_idxs the n'th tree in the random forest
-        - index for row index
-        returns the a base64 encoded image, for inclusion in websites (e.g. dashboard)
-        """
-        if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!")
-            return None
-        
-        svg_file = self.decision_path_file(tree_idx, index)
-        encoded = base64.b64encode(open(svg_file,'rb').read()) 
-        #encoded = base64.b64encode(viz.svg()) 
-        svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
-        return svg_encoded
-
-
-    def plot_trees(self, index, highlight_tree=None, round=2, pos_label=None):
-        """returns a plotly barchart with the values of the predictions
-                of each individual tree for observation idx
-        """
-        #print('explainer call')
-        idx=self.get_int_idx(index)
-        assert idx is not None, 'invalid index'
-        
-        if self.is_classifier:
-            if pos_label is None: pos_label = self.pos_label
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
-                        highlight_tree=highlight_tree, round=round, pos_label=self.pos_label)
-        else:
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
-                        highlight_tree=highlight_tree, round=round)
-
-    def calculate_properties(self, include_interactions=True):
-        _ = self.decision_trees
-        super().calculate_properties(include_interactions=include_interactions)
-
 
 class ClassifierExplainer(BaseExplainer):
     """
@@ -1072,17 +956,20 @@ class ClassifierExplainer(BaseExplainer):
     In addition defines a number of plots specific to classification problems
     such as a precision plot, confusion matrix, roc auc curve and pr auc curve.
     """
-    def __init__(self, model,  X, y=None,  metric=roc_auc_score, shap='tree', X_background=None,
+    def __init__(self, model,  X, y=None,  metric=roc_auc_score, 
+                    shap='tree', X_background=None, model_output="probability",
                     cats=None, idxs=None, descriptions=None,
                     permutation_cv=None, na_fill=-999,
-                    labels=None, pos_label=1, model_output="probability"):
+                    labels=None, pos_label=1):
         """Compared to BaseExplainer defines two additional parameters:
         :param labels: list of str labels for the different classes, defaults to e.g. ['0', '1'] for a binary classification
         :type labels: list of str, optional
         :param pos_label: class that should be used as the positive class, defaults to 1
         :type pos_label: int or str (if str, needs to be in labels), optional
         """
-        super().__init__(model, X, y, metric, shap, X_background, cats, idxs, descriptions, permutation_cv, na_fill)
+        super().__init__(model, X, y, metric, 
+                            shap, X_background, model_output, 
+                            cats, idxs, descriptions, permutation_cv, na_fill)
 
         if labels is not None:
             self.labels = labels
@@ -1091,27 +978,29 @@ class ClassifierExplainer(BaseExplainer):
         else:
             self.labels = [str(i) for i in range(self.y.nunique())]
         self.pos_label = pos_label
-        self.model_output = model_output
         self.is_classifier = True
 
     @property
     def shap_explainer(self):
         if not hasattr(self, '_shap_explainer'):
-            print("Generating shap TreeExplainer...")
+            model_str = str(type(self.model)).replace("'", "").replace("<", "").replace(">", "").split(".")[-1]
             if self.shap == 'tree':
                 if (str(type(self.model)).endswith("XGBClassifier'>") or
                     str(type(self.model)).endswith("LGBMClassifier'>") or
                     str(type(self.model)).endswith("CatBoostClassifier'>")):
                     
                     if self.model_output == "probability": 
-                        print(
-                            "Warning: model_output='probability', so using feature_perturbance='interventional' "
-                            "and using background data to estimate shap values in probability space. "
-                            "Shap interaction values will not be available.")
                         if self.X_background is None:
                             print(
-                                "Warning: shap values in probability space get calculated against "
-                                "X_background, but paramater X_background=None, so using X instead")
+                                f"Warning: for {model_str} with model_output='probability' shap values normally get "
+                                "calculated against X_background, but paramater X_background=None, "
+                                "so using X instead")
+                        print("Generating self.shap_explainer = shap.TreeExplainer(model, "
+                             f"{'X_background' if self.X_background is not None else 'X'}"
+                             ", model_output='probability', feature_perturbation='interventional')...")
+                        print("Shap interaction values will not be available. "
+                              "If shap values in probability space are not necessary you can "
+                              "pass model_output='logodds' to get shap interation values back...")
                         self._shap_explainer = shap.TreeExplainer(
                                                     self.model, 
                                                     self.X_background if self.X_background is not None else self.X,
@@ -1119,17 +1008,19 @@ class ClassifierExplainer(BaseExplainer):
                                                     feature_perturbation="interventional")
                     else:
                         self.model_output = "logodds"
-                        self._shap_explainer = shap.TreeExplainer(self.model)
+                        print(f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})")
+                        self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
                 else:
                     if self.model_output == "probability":
-                        print(f"Warning: Assuming that shap output of {str(type(self.model))} is probability...")
-                    self._shap_explainer = shap.TreeExplainer(self.model)
+                        print(f"Warning: Assuming that shap output of {model_str} is probability...")
+                    print(f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})")
+                    self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
 
 
             elif self.shap=='linear':
                 if self.model_output == "probability":
                     print(
-                        "Warning: model_output='probability' is currently not supported for linear classifiation "
+                        "Warning: model_output='probability' is currently not supported for linear classifiers "
                         "models with shap. So defaulting to model_output='logodds' "
                         "If you really need probability outputs use shap='kernel' instead."
                     )
@@ -1138,24 +1029,32 @@ class ClassifierExplainer(BaseExplainer):
                     print(
                         "Warning: shap values for shap='linear' get calculated against "
                         "X_background, but paramater X_background=None, so using X instead...")
+                print("Generating self.shap_explainer = shap.LinearExplainer(model, "
+                             f"{'X_background' if self.X_background is not None else 'X'})...")
+                
                 self._shap_explainer = shap.LinearExplainer(self.model, 
                                             self.X_background if self.X_background is not None else self.X)
             elif self.shap=='deep':
-                self._shap_explainer = shap.DeepExplainer(self.model)
+                print("Generating self.shap_explainer = shap.DeepExplainer(model{', X_background' if self.X_background is not None else ''})")
+                self._shap_explainer = shap.DeepExplainer(self.model, self.X_background)
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
-                        "Warning: shap values for shap='kernel' get calculated against "
+                        "Warning: shap values for shap='kernel' normally get calculated against "
                         "X_background, but paramater X_background=None, so using X instead...")
                 if self.model_output != "probability":
                     print(
                         "Warning: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
                     )
                     self.model_output = 'probability'
+                print("Generating self.shap_explainer = shap.KernelExplainer(model, "
+                             f"{'X_background' if self.X_background is not None else 'X'}"
+                             ", link='identity')")
                 self._shap_explainer = shap.KernelExplainer(model.predict_proba, 
                                             self.X_background if self.X_background is not None else self.X,
                                             link="identity")
-                
+            print("You can always monkeypatch self.shap_explainer if desired...")
+               
         return self._shap_explainer
 
     @property
@@ -1472,11 +1371,16 @@ class ClassifierExplainer(BaseExplainer):
         int_idx = self.get_int_idx(index)
         if pos_label is None: pos_label = self.pos_label
         
-        def display_probas(pred_probas_raw, labels, round=2):
+        def display_probas(pred_probas_raw, labels, model_output='probability', round=2):
             assert (len(pred_probas_raw.shape)==1 
                     and len(pred_probas_raw) ==len(labels))
+            def log_odds(p, round=2):
+                return np.round(np.log(p / (1-p)), round)
+
             for i in range(len(labels)):
-                yield '##### ' + labels[i] + ': ' + str(np.round(100*pred_probas_raw[i], round)) + '%\n'
+                pred_proba_str = f"{labels[i]}: {np.round(100*pred_probas_raw[i], round)}"
+                log_odds_str = f"(logodds={log_odds(pred_probas_raw[i], round)})"
+                yield f"##### {pred_proba_str} {log_odds_str if model_output=='logodds' else ''}\n"
 
         model_prediction = f"# Prediction for {index}:\n" 
         for pred in display_probas(
@@ -1489,27 +1393,6 @@ class ClassifierExplainer(BaseExplainer):
         if include_percentile:
             model_prediction += f'##### In top {np.round(100*(1-self.pred_percentiles(pos_label)[int_idx]))}% percentile probability {self.labels[pos_label]}'
         return model_prediction
-
-    def plot_shap_contributions(self, index, cats=True,
-                                    topx=None, cutoff=None, round=2, pos_label=None):
-        """reutn Plotly fig with waterfall plot of shap value contributions
-        to the model prediction for index.
-
-        :param index: index for which to display prediction
-        :type index: int or str
-        :param cats: Group categoricals, defaults to True
-        :type cats: bool, optional
-        :param topx: Only display topx features, defaults to None
-        :type topx: int, optional
-        :param cutoff: Only display features with at least cutoff contribution, defaults to None
-        :type cutoff: float, optional
-        :param round: round contributions to round precision, defaults to 2
-        :type round: int, optional
-        :return: fig
-        :rtype: plotly.Fig
-        """
-        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, pos_label)
-        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round)
 
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5, multiclass=False, pos_label=None):
         """plots predicted probability on the x-axis and observed precision (fraction of actual positive
@@ -1604,7 +1487,8 @@ class RegressionExplainer(BaseExplainer):
     In addition defines a number of plots specific to regression problems
     such as a predicted vs actual and residual plots.
     """
-    def __init__(self, model,  X, y=None, metric=roc_auc_score, shap="tree", X_background=None,
+    def __init__(self, model,  X, y=None, metric=r2_score, 
+                    shap="tree", X_background=None, model_output="raw",
                     cats=None, idxs=None, descriptions=None, 
                     permutation_cv=None, na_fill=-999,
                     units=""):
@@ -1613,7 +1497,9 @@ class RegressionExplainer(BaseExplainer):
         :type units: str, optional
 
         """
-        super().__init__(model, X, y, metric, shap, X_background, cats, idxs, descriptions, permutation_cv, na_fill)
+        super().__init__(model, X, y, metric, 
+                            shap, X_background, model_output,
+                            cats, idxs, descriptions, permutation_cv, na_fill)
         self.units = units
         self.is_regression = True
     
@@ -1685,17 +1571,153 @@ class RegressionExplainer(BaseExplainer):
         na_mask = self.X[col] != self.na_fill if dropna else np.array([True]*len(self.X))
         return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], self.X[col][na_mask], 
                                        ratio=ratio, units=self.units, round=round)
+
+
+class RandomForestExplainer(BaseExplainer):
+    """
+    RandomForestBunch allows for the analysis of individual DecisionTrees that
+    make up the RandomForest.
+    """
     
+    @property
+    def graphviz_available(self):
+        if not hasattr(self, '_graphviz_available'):
+            try:
+                import graphviz.backend as be
+                cmd = ["dot", "-V"]
+                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
+            except:
+                print("""
+                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
+                so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
+
+                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz 
+                for dtreeviz. 
+                """)
+                self._graphviz_available = False
+            else:
+                self._graphviz_available = True
+        return self._graphviz_available
+
+    @property
+    def decision_trees(self):
+        if not hasattr(self, '_decision_trees'):
+            print("Generating ShadowDecTree for each individual decision tree...")
+            self._decision_trees = get_decision_trees(self.model, self.X, self.y)
+        return self._decision_trees
+
+    def decisiontree_df(self, tree_idx, index, pos_label=None):
+        """returns a pd.DataFrame with all decision nodes of a particular
+                        tree (indexed by tree_idx) for a particular observation
+                        (indexed by index)"""
+        assert tree_idx >= 0 and tree_idx < len(self.decision_trees), \
+            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        idx = self.get_int_idx(index)
+        assert idx >= 0 and idx < len(self.X), \
+            f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
+        
+        if self.is_classifier:
+            if pos_label is None: pos_label = self.pos_label
+            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx],
+                    pos_label=pos_label)
+        else:
+            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
+
+    def decisiontree_df_summary(self, tree_idx, index, round=2, pos_label=None):
+        """formats decisiontree_df in a slightly more human readable format."""
+        idx=self.get_int_idx(index)
+        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
+                    classifier=self.is_classifier, round=round)
+
+    def decision_path_file(self, tree_idx, index):
+        """get a dtreeviz visualization of a particular tree in the random forest. 
+        - tree_idxs the n'th tree in the random forest
+        - index for row index
+        returns the path where the .svg file is stored."""
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!") 
+            return None
+
+        idx = self.get_int_idx(index)
+        print(idx)
+        if self.is_regression:
+            viz = dtreeviz(self.model.estimators_[tree_idx],
+               self.X, self.y, 
+               target_name='Target',
+               #orientation ='LR',  # left-right orientation
+               feature_names=self.columns,
+               X=self.X.iloc[idx, :],)
+        elif self.is_classifier:
+            viz = dtreeviz(self.model.estimators_[tree_idx],
+               self.X, self.y, 
+               target_name='Target',
+               #orientation ='LR',  # left-right orientation
+               feature_names=self.columns,
+               class_names=self.labels,
+               X=self.X.iloc[idx, :]) 
+        return viz.save_svg()
+
+    def decision_path(self, tree_idx, index):
+        """get a dtreeviz visualization of a particular tree in the random forest. 
+        - tree_idxs the n'th tree in the random forest
+        - index for row index
+        returns the a IPython display SVG object for e.g. jupyter notebook."""
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!") 
+            return None
+
+        from IPython.display import SVG
+        svg_file = self.decision_path_file(tree_idx, index)
+        return SVG(open(svg_file,'rb').read())
+
+    def decision_path_encoded(self, tree_idx, index):
+        """get a dtreeviz visualization of a particular tree in the random forest. 
+        - tree_idxs the n'th tree in the random forest
+        - index for row index
+        returns the a base64 encoded image, for inclusion in websites (e.g. dashboard)
+        """
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!")
+            return None
+        
+        svg_file = self.decision_path_file(tree_idx, index)
+        encoded = base64.b64encode(open(svg_file,'rb').read()) 
+        #encoded = base64.b64encode(viz.svg()) 
+        svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
+        return svg_encoded
+
+
+    def plot_trees(self, index, highlight_tree=None, round=2, pos_label=None):
+        """returns a plotly barchart with the values of the predictions
+                of each individual tree for observation idx
+        """
+        #print('explainer call')
+        idx=self.get_int_idx(index)
+        assert idx is not None, 'invalid index'
+        
+        if self.is_classifier:
+            if pos_label is None: pos_label = self.pos_label
+            return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
+                        highlight_tree=highlight_tree, round=round, pos_label=self.pos_label)
+        else:
+            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
+                        highlight_tree=highlight_tree, round=round)
+
+    def calculate_properties(self, include_interactions=True):
+        _ = self.decision_trees
+        super().calculate_properties(include_interactions=include_interactions)
+
+
 
 class RandomForestClassifierExplainer(RandomForestExplainer, ClassifierExplainer):
-    """RandomForestClassifierBunch inherits from both RandomForestBunch and
-    ClassifierBunch.
+    """RandomForestClassifierBunch inherits from both RandomForestExplainer and
+    ClassifierExplainer.
     """
 
 
 class RandomForestRegressionExplainer(RandomForestExplainer, RegressionExplainer):
-    """RandomForestClassifierBunch inherits from both RandomForestBunch and
-    RegressionBunch.
+    """RandomForestClassifierBunch inherits from both RandomForestExplainer and
+    RegressionExplainer.
     """
 
 
