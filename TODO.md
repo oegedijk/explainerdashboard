@@ -58,5 +58,5 @@
 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter
-- turn all docstrings into sphynx compatible
+- turn all docstrings into sphinx-napolean google style
 
