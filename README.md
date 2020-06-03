@@ -45,10 +45,11 @@ model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
 # build the ExplainerBunch:
-explainer = RandomForestClassifierBunch(model, X_test, y_test, roc_auc_score, 
-                               cats=['Sex', 'Deck', 'Embarked'],
-                               idxs=test_names, 
-                               labels=['Not survived', 'Survived'])
+explainer = RandomForestClassifierExplainer(model, X_test, y_test, roc_auc_score, 
+                                shap='tree', 
+                                cats=['Sex', 'Deck', 'Embarked'],
+                                idxs=test_names, 
+                                labels=['Not survived', 'Survived'])
 
 # Constructing dashboard from ExplainerBunch and selecting which tabs to include:
 db = ExplainerDashboard(explainer,
@@ -71,7 +72,6 @@ You can install the package through pip:
 
 Documentation can be found at [explainerdashboard.readthedocs.io](https://explainerdashboard.readthedocs.io/en/latest/).
 
-(NOTE: at the moment some dependency issue is preventing sphinx from correctly rendering all the autodoc content)
 
 ## A simple demonstration
 
@@ -81,6 +81,9 @@ The package works by first constructing an ExplainerBunch object. You can then u
 
 In addition you can pass:
 - `metric`: permutation importances get calculated against a particular metric (for regression defaults to `r2_score` and for classification to `roc_auc_score`)
+- `shap`: type of shap explainer to use. e.g. 'tree' for `shap.TreeExplainer(...)`, or 'linear', 'kernel', etc
+- `X_background`: background data to use for shap explainer (most tree based models don't need this), if not given use `X` instead
+- `model_output`: for classification models either 'logodds' or 'probability', defaults to 'probability'
 - `cats`: a list of onehot encoded variables (e.g. if encoded as 'Gender_Female', 'Gender_Male' you would pass `cats=['Gender']`). This allows you to group the onehotencoded columns together in various plots with the argument `cats=True`. 
 - `idxs`: a list of indentifiers for each row in your dataset. This makes it easier to look up predictions for specific id's.
 - `labels`: for classifier models a list of labels for the classes of your model.
@@ -95,10 +98,11 @@ train_names, test_names = titanic_names()
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
-explainer = RandomForestClassifierBunch(model, X_test, y_test, roc_auc_score, 
-                               cats=['Sex', 'Deck', 'Embarked'],
-                               idxs=test_names, #names of passengers 
-                               labels=['Not survived', 'Survived'])
+explainer = RandomForestClassifierExplainer(model, X_test, y_test, roc_auc_score, 
+                                shap='tree', X_background=None, model_output='probability',
+                                cats=['Sex', 'Deck', 'Embarked'],
+                                idxs=test_names, #names of passengers 
+                                labels=['Not survived', 'Survived'])
 ```
 
 You can then easily inspect the model using various plot function, such as e.g.:
@@ -110,7 +114,7 @@ You can then easily inspect the model using various plot function, such as e.g.:
 See the [explainer_examples.ipynb](explainer_examples.ipynb) and [documentation](https://explainerdashboard.readthedocs.io/en/latest/) for more details and all the possible plots and tables you can generate. 
 
 ### Starting an ExplainerDashboard
-Once you have constructed an ExplainerBunch object, you can then pass this along to an
+Once you have constructed an Explainer object, you can then pass this along to an
 ExplainerDashboard that builds an interactive Plotly Dash analytical dashboard for 
 easily exploring the various plots and analysis mentioned earlier. 
 

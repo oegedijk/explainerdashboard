@@ -3,11 +3,11 @@
 - fix shap summary not displaying on page load Shap dependence
     - plus:  fix name of figure MEAN_ABS_SHAP
 - fix hit enter on input field reloads page on decision tree tab
-- implement logodds as well as probability space for classifiers
-- better error messages for interaction values for XGBoostlassifier and LGBMClassifier
+- autodetect (guess) shap type based on model
+- let plots autodetect if col in cats
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
-- let plots autodetect categorical input
+
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -27,7 +27,6 @@
 - fix percentages difference bug lift plot vs classification plot
 - Add Altair (vega) plots for easy inclusion in websites
 - rename plotly_ from all plotting functions? or not if we're going to add altair?
-
 
 ### Regression plots:
 
@@ -50,18 +49,14 @@
 - add individual dashboard tests
 - add ExplainerDashboard intergration test
 - Add tests for decisiontrees, extratrees
+- test model_output='probability' and 'raw' or 'logodds' seperately
 
 # Docs:
 - document X_background
 - document properties with prop(pos_label)
-- document shap_output
+- document model_output
 
-
-- 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter
-- add long description to pypi: https://packaging.python.org/guides/making-a-pypi-friendly-readme/
-
 - turn all docstrings into sphynx compatible
-- Fix numpy mock import in readthedocs compile -- seems fixed now (although I changed nothing??)
 
