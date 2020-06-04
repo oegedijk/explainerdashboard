@@ -1,13 +1,27 @@
 ExplainerDashboard
 ******************
 
-In order to start an **ExplainerDashboard** you first need to contruct an *ExplainerBunch*.
+In order to start an ``ExplainerDashboard`` you first need to contruct an ``Explainer`` instance.
 On the basis of this explainer you can then quickly start an interactive dashboard.
 
-You indicate which tabs to display using booleans in the constructor.
+You can switch off individual tabs to display using booleans in the constructor. 
+By default all tabs that are feasible will be displayed. Warning: the interactions tab can
+take quite some time to compute, so you may want to switch it off if you're not particularly 
+interested in interaction effects between features.
 
 The individual tabs also take arguments. If you pass these as kwargs in the
 constructor these will be passed down to the individual tabs.
+
+Some example code::
+
+    from explainerdashboard.dashboards import ExplainerDashboard
+
+    ExplainerDashboard(explainer, title="Titanic Explainer",
+                        model_summary=True,  
+                        contributions=True,
+                        shap_dependence=False,
+                        shap_interaction=False,
+                        decision_trees=False).run(port=8051)
 
 
 ExplainerDashboard

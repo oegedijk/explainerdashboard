@@ -4,7 +4,7 @@ explainerdashboard
 Summary
 =======
 
-**explainerdashboard** is a library for quickly analyzing and explaining the performance
+``explainerdashboard`` is a library for quickly analyzing and explaining the performance
 of a (scikit-learn compatible) machine learning models.
 
 It combines shap values, permutation importances, partial dependence plots,
@@ -26,7 +26,6 @@ Example
 Some example code::
 
     from sklearn.ensemble import RandomForestClassifier
-    from sklearn.metrics import roc_auc_score
 
     from explainerdashboard.explainers import RandomForestClassifierExplainer
     from explainerdashboard.dashboards import ExplainerDashboard
@@ -39,21 +38,16 @@ Some example code::
     model.fit(X_train, y_train)
 
     explainer = RandomForestClassifierExplainer(
-                    model, X_test, y_test, roc_auc_score,
+                    model, X_test, y_test, 
                     cats=['Sex', 'Deck', 'Embarked'],
                     idxs=test_names,
                     labels=['Not survived', 'Survived'])
 
-    db = ExplainerDashboard(explainer,
-                            model_summary=True,
-                            contributions=True,
-                            shap_dependence=True,
-                            shap_interaction=True,
-                            shadow_trees=True)
-    db.run(port=8050)
+    ExplainerDashboard(explainer).run()
 
-The result can be viewed on `this dashboard deployed to heroku <http://titanicexplainer.herokuapp.com>`_
+The result of the lines above can be viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
 
+More examples can be found in the `example notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_
 
 
 .. toctree::
