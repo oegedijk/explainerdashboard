@@ -28,11 +28,11 @@ class ExplainerDashboard:
     """
     def __init__(self, explainer, title='Model Explainer',   
                 tabs=None,
-                model_summary=False,  
-                contributions=False,
-                shap_dependence=False,
-                shap_interaction=False,
-                decision_trees=False,
+                model_summary=True,  
+                contributions=True,
+                shap_dependence=True,
+                shap_interaction=True,
+                decision_trees=True,
                 plotly_template="none",
                 **kwargs):
         """Constructs an ExplainerDashboard.
@@ -73,12 +73,19 @@ class ExplainerDashboard:
             if explainer.cats is not None:
                 _ = explainer.permutation_importances_cats
         if shap_interaction:
-            _ = explainer.shap_interaction_values
-            if explainer.cats is not None:
-                _ = explainer.shap_interaction_values_cats
+            try:
+                _ = explainer.shap_interaction_values
+                if explainer.cats is not None:
+                    _ = explainer.shap_interaction_values_cats
+            except:
+                print("Note: calculating shap interaction failed, so turning off interactions tab")
+                self.shap_interaction=False
         if decision_trees:
-            _ = explainer.graphviz_available
-            _ = explainer.decision_trees
+            if hasattr(self.explainer, 'decision_trees'):
+                _ = explainer.graphviz_available
+                _ = explainer.decision_trees
+            else:
+                self.decision_trees = False
             
         self.app = dash.Dash(__name__)
         self.app.config['suppress_callback_exceptions']=True

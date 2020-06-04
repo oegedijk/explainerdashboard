@@ -1,8 +1,5 @@
-__all__ = ['BaseExplainer', 
-            'ClassifierExplainer', 
-            'RegressionExplainer', 
-            'RandomForestClassifierExplainer',
-            'RandomForestRegressionExplainer',
+__all__ = ['BaseExplainer', 'ClassifierExplainer', 'RegressionExplainer', 
+            'RandomForestClassifierExplainer', 'RandomForestRegressionExplainer',
             'ClassifierBunch', # deprecated
             'RegressionBunch', # deprecated
             'RandomForestClassifierBunch', # deprecated
@@ -32,8 +29,8 @@ class BaseExplainer(ABC):
     """Abstract Base Class. Defines the basic functionality of an ExplainerBunch
     But does not yet have a defined shap_explainer.
     """
-    def __init__(self, model, X, y=None, metric=r2_score, 
-                    shap="tree", X_background=None, model_output="raw",
+    def __init__(self, model, X, y=None, permutation_metric=r2_score, 
+                    shap="guess", X_background=None, model_output="raw",
                     cats=None, idxs=None, descriptions=None, permutation_cv=None, na_fill=-999):
         """init
 
@@ -43,10 +40,10 @@ class BaseExplainer(ABC):
         :type X: pd.DataFrame
         :param y: Dependent variable of your model, defaults to None
         :type y: pd.Series, optional
-        :param metric: is a scikit-learn compatible metric function (or string), 
+        :param permutation_metric: is a scikit-learn compatible metric function (or string), 
             defaults to r2_score
-        :type metric: metric function, optional
-        :param shap: type of shap_explainer to fit, defaults to 'tree'
+        :type permutation_metric: metric function, optional
+        :param shap: type of shap_explainer to fit: 'tree', 'linear', 'kernel', defaults to 'guess'
         :type shap: str
         :param X_background: background X to be used by shap explainer
         :type X_background: pd.DataFrame
@@ -72,11 +69,25 @@ class BaseExplainer(ABC):
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
         
-        self.metric = metric
-        self.shap = shap
+        self.metric = permutation_metric
+
+        if shap == "guess":
+            shap_guess = guess_shap(model)
+            if shap_guess is not None:
+                model_str = str(type(self.model)).replace("'", "").replace("<", "").replace(">", "").split(".")[-1]
+                print(f"Note: shap=='guess' so guessing for {model_str} shap='{shap_guess}'...")
+                self.shap = shap_guess
+            else:
+                raise ValueError("Failed to guess the type of shap explainer to use. "
+                                "Please explicitly pass either shap='tree', 'linear', 'deep' or 'kernel'.")
+        else:
+            assert shap in ['tree', 'linear', 'deep', 'kernel'], \
+                "Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' allowed."
+            self.shap = shap
+
         self.model_output = model_output
 
-        self.cats = cats
+        self.cats = cats if cats is not None else []
         if idxs is not None:
             if isinstance(idxs, list):
                 self.idxs = [str(i) for i in idxs]
@@ -967,8 +978,8 @@ class ClassifierExplainer(BaseExplainer):
     In addition defines a number of plots specific to classification problems
     such as a precision plot, confusion matrix, roc auc curve and pr auc curve.
     """
-    def __init__(self, model,  X, y=None,  metric=roc_auc_score, 
-                    shap='tree', X_background=None, model_output="probability",
+    def __init__(self, model,  X, y=None,  permutation_metric=roc_auc_score, 
+                    shap='guess', X_background=None, model_output="probability",
                     cats=None, idxs=None, descriptions=None,
                     permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
@@ -978,14 +989,14 @@ class ClassifierExplainer(BaseExplainer):
         :param pos_label: class that should be used as the positive class, defaults to 1
         :type pos_label: int or str (if str, needs to be in labels), optional
         """
-        super().__init__(model, X, y, metric, 
+        super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
                             cats, idxs, descriptions, permutation_cv, na_fill)
 
         if labels is not None:
             self.labels = labels
         elif hasattr(self.model, 'classes_'):
-                self.labels = self.model.classes_
+                self.labels =  [str(cls) for cls in self.model.classes_]
         else:
             self.labels = [str(i) for i in range(self.y.nunique())]
         self.pos_label = pos_label
@@ -1003,13 +1014,13 @@ class ClassifierExplainer(BaseExplainer):
                     if self.model_output == "probability": 
                         if self.X_background is None:
                             print(
-                                f"Warning: for {model_str} with model_output='probability' shap values normally get "
+                                f"Note: model_output=='probability'. For {model_str} shap values normally get "
                                 "calculated against X_background, but paramater X_background=None, "
                                 "so using X instead")
                         print("Generating self.shap_explainer = shap.TreeExplainer(model, "
                              f"{'X_background' if self.X_background is not None else 'X'}"
                              ", model_output='probability', feature_perturbation='interventional')...")
-                        print("Shap interaction values will not be available. "
+                        print("Note: Shap interaction values will not be available. "
                               "If shap values in probability space are not necessary you can "
                               "pass model_output='logodds' to get shap interation values back...")
                         self._shap_explainer = shap.TreeExplainer(
@@ -1023,7 +1034,7 @@ class ClassifierExplainer(BaseExplainer):
                         self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
                 else:
                     if self.model_output == "probability":
-                        print(f"Warning: Assuming that shap output of {model_str} is probability...")
+                        print(f"Note: model_output=='probability', so assuming that raw shap output of {model_str} is in probability space...")
                     print(f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})")
                     self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
 
@@ -1031,14 +1042,14 @@ class ClassifierExplainer(BaseExplainer):
             elif self.shap=='linear':
                 if self.model_output == "probability":
                     print(
-                        "Warning: model_output='probability' is currently not supported for linear classifiers "
+                        "Note: model_output='probability' is currently not supported for linear classifiers "
                         "models with shap. So defaulting to model_output='logodds' "
                         "If you really need probability outputs use shap='kernel' instead."
                     )
                     self.model_output = "logodds"
                 if self.X_background is None:
                     print(
-                        "Warning: shap values for shap='linear' get calculated against "
+                        "Note: shap values for shap='linear' get calculated against "
                         "X_background, but paramater X_background=None, so using X instead...")
                 print("Generating self.shap_explainer = shap.LinearExplainer(model, "
                              f"{'X_background' if self.X_background is not None else 'X'})...")
@@ -1051,11 +1062,11 @@ class ClassifierExplainer(BaseExplainer):
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
-                        "Warning: shap values for shap='kernel' normally get calculated against "
+                        "Note: shap values for shap='kernel' normally get calculated against "
                         "X_background, but paramater X_background=None, so using X instead...")
                 if self.model_output != "probability":
                     print(
-                        "Warning: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
+                        "Note: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
                     )
                     self.model_output = 'probability'
                 print("Generating self.shap_explainer = shap.KernelExplainer(model, "
@@ -1064,7 +1075,7 @@ class ClassifierExplainer(BaseExplainer):
                 self._shap_explainer = shap.KernelExplainer(model.predict_proba, 
                                             self.X_background if self.X_background is not None else self.X,
                                             link="identity")
-            print("You can always monkeypatch self.shap_explainer if desired...")
+            print("Note: You can always monkeypatch self.shap_explainer if desired...")
                
         return self._shap_explainer
 
@@ -1498,8 +1509,8 @@ class RegressionExplainer(BaseExplainer):
     In addition defines a number of plots specific to regression problems
     such as a predicted vs actual and residual plots.
     """
-    def __init__(self, model,  X, y=None, metric=r2_score, 
-                    shap="tree", X_background=None, model_output="raw",
+    def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
+                    shap="guess", X_background=None, model_output="raw",
                     cats=None, idxs=None, descriptions=None, 
                     permutation_cv=None, na_fill=-999,
                     units=""):
@@ -1508,7 +1519,7 @@ class RegressionExplainer(BaseExplainer):
         :type units: str, optional
 
         """
-        super().__init__(model, X, y, metric, 
+        super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
                             cats, idxs, descriptions, permutation_cv, na_fill)
         self.units = units
