@@ -57,7 +57,7 @@ db = ExplainerDashboard(explainer,
                         contributions=True,
                         shap_dependence=True,
                         shap_interaction=True,
-                        shadow_trees=True)
+                        decision_trees=True)
 # Run the dashboard:
 db.run(port=8050)
 ```

@@ -11,6 +11,33 @@ from sklearn.base import clone
 from sklearn.model_selection import StratifiedKFold
 
 
+def guess_shap(model):
+    tree_models = ['RandomForestClassifier', 'RandomForestRegressor',
+                   'DecisionTreeClassifier', 'DecisionTreeRegressor',
+                   'ExtraTreesClassifier', 'ExtraTreesRegressor',
+                   'GradientBoostingClassifier', 'GradientBoostingRegressor', 
+                   'HistGradientBoostingClassifier', 'HistGradientBoostingRegressor', 
+                   'XGBClassifier', 'XGBRegressor',
+                   'LGBMClassifier', 'LGBMRegressor',
+                   'CatBoostClassifier', 'CatBoostRegressor',
+                   'NGClassifier', 'NGBRegressor', 
+                   'GBTClassifier', ' GBTRegressor',
+                   'IsolationForest'
+                  ]
+    linear_models = ['LinearRegression', 'LogisticRegression',
+                    'Ridge', 'Lasso', 'ElasticNet']
+    
+    for tree_model in tree_models:
+        if str(type(model)).endswith(tree_model + "'>"):
+            return 'tree'
+    
+    for lin_model in linear_models:
+        if str(type(model)).endswith(lin_model + "'>"):
+            return 'linear'
+    
+    return None
+
+
 def get_feature_dict(all_cols, cats=None):
     """
     This helper function makes it easy to loop though columns in a dataframe
