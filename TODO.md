@@ -57,6 +57,7 @@
 - document X_background
 - document properties with prop(pos_label)
 - document model_output
+- add deploying with flask/gunicorn section
 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter
