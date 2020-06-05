@@ -30,7 +30,6 @@ Alternatively, there is a built-in standard dashboard with pre-built tabs that y
 
 ```
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
 
 from explainerdashboard.explainers import *
 from explainerdashboard.dashboards import *
@@ -45,21 +44,14 @@ model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
 # build the ExplainerBunch:
-explainer = RandomForestClassifierExplainer(model, X_test, y_test, roc_auc_score, 
-                                shap='tree', 
+explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 
                                 labels=['Not survived', 'Survived'])
 
-# Constructing dashboard from ExplainerBunch and selecting which tabs to include:
-db = ExplainerDashboard(explainer,
-                        model_summary=True,
-                        contributions=True,
-                        shap_dependence=True,
-                        shap_interaction=True,
-                        decision_trees=True)
-# Run the dashboard:
-db.run(port=8050)
+# Constructing dashboard from ExplainerBunch and run it:
+ExplainerDashboard(explainer).run()
+
 ```
 
 ## Installation
@@ -111,7 +103,7 @@ You can then easily inspect the model using various plot function, such as e.g.:
 - `explainer.plot_pdp('PassengerClass', index=0)`
 - `explainer.plot_shap_dependence('Age')`, etc.
 
-See the [explainer_examples.ipynb](explainer_examples.ipynb) and [documentation](https://explainerdashboard.readthedocs.io/en/latest/) for more details and all the possible plots and tables you can generate. 
+See the [explainer_examples.ipynb](explainer_examples.ipynb), [dashboard_examples.ipynb](dashboard_examples.ipynb)and [documentation](https://explainerdashboard.readthedocs.io/en/latest/) for more details and all the possible plots and tables you can generate. 
 
 ### Starting an ExplainerDashboard
 Once you have constructed an Explainer object, you can then pass this along to an

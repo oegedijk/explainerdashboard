@@ -53,7 +53,6 @@
 - test model_output='probability' and 'raw' or 'logodds' seperately
 
 # Docs:
-- finish explainer_examples.ipynb
 - document X_background
 - document properties with prop(pos_label)
 - document model_output
