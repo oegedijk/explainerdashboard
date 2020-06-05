@@ -1668,7 +1668,7 @@ class RandomForestExplainer(BaseExplainer):
                target_name='Target',
                #orientation ='LR',  # left-right orientation
                feature_names=self.columns,
-               X=self.X.iloc[idx, :],)
+               X=self.X.iloc[idx, :])
         elif self.is_classifier:
             viz = dtreeviz(self.model.estimators_[tree_idx],
                self.X, self.y, 
