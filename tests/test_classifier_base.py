@@ -160,13 +160,13 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_interactions("Sex_female")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions("Age", cats=True)
+        fig = self.explainer.plot_interactions("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions("Sex", cats=True)
+        fig = self.explainer.plot_interactions("Sex")
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_interactions(self):
+    def test_plot_shap_contributions(self):
         fig = self.explainer.plot_shap_contributions(0)
         self.assertIsInstance(fig, go.Figure)
 
@@ -196,13 +196,13 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_interaction_summary("Age", topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_interaction_summary("Age", cats=True)
+        fig = self.explainer.plot_shap_interaction_summary("Age")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_interaction_summary("Sex_female", topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_interaction_summary("Sex", cats=True)
+        fig = self.explainer.plot_shap_interaction_summary("Sex")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_dependence(self):
@@ -212,7 +212,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Sex_female")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", "Sex_female")
+        fig = self.explainer.plot_shap_dependence("Age", "Sex")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
@@ -221,13 +221,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Age", highlight_idx=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex_female", highlight_idx=0)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_shap_dependence("Age", cats=True)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_shap_dependence("Sex", cats=True)
+        fig = self.explainer.plot_shap_dependence("Sex", highlight_idx=0)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_interaction(self):
@@ -237,7 +231,10 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex", "Age", cats=True)
+        fig = self.explainer.plot_shap_dependence("Sex", "Age")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Age", "Sex")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Age", "Sex_female", highlight_idx=0)

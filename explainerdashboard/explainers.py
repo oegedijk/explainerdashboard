@@ -881,6 +881,8 @@ class BaseExplainer(ABC):
         :return: fig
         :rtype: plotly.fig
         """
+        if col in self.cats:
+            cats = True
         interactions_df = self.interactions_df(col, cats=cats, topx=topx, pos_label=pos_label)
         return plotly_importances_plot(interactions_df)
 
@@ -929,7 +931,7 @@ class BaseExplainer(ABC):
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
                                         ['Feature'].values.tolist())
 
-    def plot_shap_interaction_summary(self, col, topx=None, pos_label=None):
+    def plot_shap_interaction_summary(self, col, topx=None, cats=False, pos_label=None):
         """Displays all individual shap interaction values for each feature in a
         horizontal scatter chart in descending order by mean absolute shap value.
 
@@ -940,7 +942,8 @@ class BaseExplainer(ABC):
         :return: [description]
         :rtype: [type]
         """
-        cats = self.check_cats(col)
+        if col in self.cats:
+            cats = True
         interact_cols = self.shap_top_interactions(col, cats=cats, pos_label=pos_label)
         if topx is None: topx = len(interact_cols)
 
