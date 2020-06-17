@@ -57,6 +57,7 @@
 - document properties with prop(pos_label)
 - document model_output
 - add deploying with flask/gunicorn section
+- convert to MyST for markdown friendly documentation?
 
 ## Library level:
 - submit pull request to dtreeviz to accept shadowtree as parameter
