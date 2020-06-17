@@ -162,10 +162,10 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_interactions("Sex_female")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions("Age", cats=True)
+        fig = self.explainer.plot_interactions("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions("Sex", cats=True)
+        fig = self.explainer.plot_interactions("Sex")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_interactions(self):
@@ -211,10 +211,10 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex_female")
+        fig = self.explainer.plot_shap_dependence("Sex")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", "Sex_female")
+        fig = self.explainer.plot_shap_dependence("Age", "Sex")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
@@ -223,13 +223,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Age", highlight_idx=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex_female", highlight_idx=0)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_shap_dependence("Age", cats=True)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_shap_dependence("Sex", cats=True)
+        fig = self.explainer.plot_shap_dependence("Sex", highlight_idx=0)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_interaction(self):
@@ -239,7 +233,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex", "Age", cats=True)
+        fig = self.explainer.plot_shap_dependence("Sex", "Age")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Age", "Sex_female", highlight_idx=0)
