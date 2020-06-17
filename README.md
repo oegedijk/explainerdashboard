@@ -71,6 +71,11 @@ You can install the package through pip:
 
 Documentation can be found at [explainerdashboard.readthedocs.io](https://explainerdashboard.readthedocs.io/en/latest/).
 
+Example notebook on how to launch dashboards for different model types here: [dashboard_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb).
+
+Example notebook on how to interact with the explainer object here: [explainer_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+
+Finally an example is deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com). (source code on github [here](https://github.com/oegedijk/explainingtitanic))
 
 ## A simple demonstration
 
