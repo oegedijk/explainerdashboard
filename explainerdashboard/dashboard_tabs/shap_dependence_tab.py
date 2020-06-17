@@ -134,33 +134,30 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
          Input('label-store', 'data')],
         [State('tabs', 'value')])
     def update_dependence_shap_scatter_graph(summary_type, cats, depth, pos_label, tab):
-        explainer.pos_label = pos_label #needed in case of multiple workers
         ctx = dash.callback_context
         if ctx.triggered:
-            if summary_type=='aggregate':
+            if summary_type == 'aggregate':
                 plot = explainer.plot_importances(
                         kind='shap', topx=depth, cats=cats, pos_label=pos_label)
-            elif summary_type=='detailed':
-                plot = explainer.plot_shap_summary(topx=depth, cats=cats, pos_label=pos_label)
+            elif summary_type == 'detailed':
+                plot = explainer.plot_shap_summary(
+                        topx=depth, cats=cats, pos_label=pos_label)
 
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-
-            if trigger=='dependence-group-categoricals':
+            if trigger == 'dependence-group-categoricals':
                 # if change to group cats, adjust columns and depth
                 if cats:
-                    col_options = [{'label':col, 'value':col} 
-                                for col in explainer.columns_cats]
+                    col_options = [{'label': col, 'value': col} 
+                                        for col in explainer.columns_cats]
                 else:
-                    col_options = [{'label':col, 'value':col} 
-                                for col in explainer.columns]
+                    col_options = [{'label': col, 'value': col} 
+                                        for col in explainer.columns]
 
-                depth_options = [{'label': str(i+1), 'value':i+1} 
-                            for i in range(len(col_options))]
+                depth_options = [{'label': str(i+1), 'value': i+1} 
+                                        for i in range(len(col_options))]
                 return (plot, col_options, depth_options)
-                
             else:
                 return (plot, dash.no_update, dash.no_update)
-                
         raise PreventUpdate
 
     @app.callback(
@@ -207,5 +204,5 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         explainer.pos_label = pos_label #needed in case of multiple workers
         if color_col is not None:
             return explainer.plot_shap_dependence(
-                        col, color_col, highlight_idx=idx, cats=cats, pos_label=pos_label)
+                        col, color_col, highlight_idx=idx, pos_label=pos_label)
         raise PreventUpdate
