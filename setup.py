@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.1.10.1',
+    version='0.1.11',
     description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.',
     long_description="""
 

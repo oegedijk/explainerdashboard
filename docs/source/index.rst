@@ -59,7 +59,11 @@ Or, as a one-liner::
 
 The result of the lines above can be viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
 
-More examples can be found in the `example notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_
+More examples of how to start dashboards for different types of models and with 
+different parameters can be found in the `dashboard_examples notebook in the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_
+
+For examples on how to interact with and get plots and dataframes out of the explainer
+object check out `explainer_examples notebook in the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
 
 
 .. toctree::
