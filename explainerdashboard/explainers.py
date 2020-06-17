@@ -985,8 +985,6 @@ class BaseExplainer(ABC):
         :type interact_col: str
         :param highlight_idx: idx that will be highlighted, defaults to None
         :type highlight_idx: int, optional
-        :param cats: group categorical features, defaults to False
-        :type cats: bool, optional
         :return: Plotly Fig
         :rtype: plotly.Fig
         """
@@ -1427,7 +1425,8 @@ class ClassifierExplainer(BaseExplainer):
         return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label), 
                                             model_output = self.model_output, round=round)
 
-    def precision_df(self, bin_size=None, quantiles=None, multiclass=False, pos_label=None):
+    def precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
+                        round=3, pos_label=None):
         """returns a pd.DataFrame with predicted probabilities and actually
         observed number of positive cases (i.e. precision)
 
@@ -1448,10 +1447,11 @@ class ClassifierExplainer(BaseExplainer):
             bin_size=0.1 # defaults to bin_size=0.1
         if multiclass:
             return get_precision_df(self.pred_probas_raw, self.y,
-                                bin_size, quantiles, pos_label=pos_label)
+                                bin_size, quantiles, 
+                                round=round, pos_label=pos_label)
         else:
             return get_precision_df(self.pred_probas(pos_label), self.y_binary(pos_label), 
-                                    bin_size, quantiles)
+                                    bin_size, quantiles, round=round)
 
     def lift_curve_df(self, pos_label=None):
         """returns a pd.DataFrame with data needed to build a lift curve"""
@@ -1497,7 +1497,7 @@ class ClassifierExplainer(BaseExplainer):
             model_prediction += f'##### In top {np.round(100*(1-self.pred_percentiles(pos_label)[int_idx]))}% percentile probability {self.labels[pos_label]}'
         return model_prediction
 
-    def plot_precision(self, bin_size=None, quantiles=None, cutoff=0.5, multiclass=False, pos_label=None):
+    def plot_precision(self, bin_size=None, quantiles=None, cutoff=None, multiclass=False, pos_label=None):
         """plots predicted probability on the x-axis and observed precision (fraction of actual positive
         cases) on the y-axis.
 

@@ -1,8 +1,7 @@
 
 # TODO:
 - fix hit enter on input field reloads page on decision tree tab
-- let plots autodetect if col in cats
-- Interaction feature stuck on one feature? (e.g. No_of_relatives onboard on heroku?)
+- Interaction feature stuck on one feature on heroku?
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
 
@@ -20,11 +19,8 @@
 - rename plotly_ from all plotting functions? or not if we're going to add altair?
 
 ### Classifier plots:
-- Classification plot: add percentage in totals plot, add totals in percentage plot
-- plot_precision: default no cutoff
-- plot_precision: round percentages
 - Add feature names to waterfall plot
-- fix percentages difference bug lift plot vs classification plot
+
 
 ### Regression plots:
 - regression plots: only take log of x-axis or y-axis

@@ -13,20 +13,24 @@ plotting methods. In practice you will usually use ``ClassifierExplainer`` or ``
 
 The BaseExplainer already provides a number of convenient plotting methods:
 
-- ``plot_importances(...)``
-- ``plot_shap_contributions(...)``
-- ``plot_shap_summary(...)``
-- ``plot_shap_interaction_summary(...)``
-- ``plot_shap_dependence(...)``
-- ``plot_shap_interaction_dependence(...)``
-- ``plot_pdp(...)``
+- ``plot_importances(kind='shap', topx=None, cats=False, round=3, pos_label=None)``
+- ``plot_shap_contributions(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)``
+- ``plot_shap_summary(topx=None, cats=False, pos_label=None)``
+- ``plot_shap_interaction_summary(col, topx=None, cats=False, pos_label=None)``
+- ``plot_shap_dependence(col, color_col=None, highlight_idx=None,pos_label=None)``
+- ``plot_shap_interaction(col, interact_col, highlight_idx=None, pos_label=None)``
+- ``plot_pdp(col, index=None, drop_na=True, sample=100, num_grid_lines=100, num_grid_points=10, pos_label=None)``
 
 example code::
 
     explainer = BaseExplainer(model, X, y)
-    explainer.plot_importances()
+    explainer.plot_importances(cats=True)
     explainer.plot_shap_contributions(index=0)
+    explainer.plot_shap_dependence("Fare")
+    explainer.plot_shap_interaction("Fare", "PassengerClass")
+    explainer.plot_pdp("Sex", index=0)
 
+`More examples in the notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
 
 ClassifierExplainer
 ===================
@@ -41,20 +45,26 @@ of that label.You an also pass a string label if you passed ``labels`` to the co
 
 ClassifierExplainer defines a number of additional plotting methods:
 
-- ``plot_precision(...)``
-- ``plot_cumulative_precision(...)``
-- ``plot_classification(...)``
-- ``plot_confusion_matrix(...)``
-- ``plot_lift_curve(...)``
-- ``plot_roc_auc(...)``
-- ``plot_pr_auc(...)``
-
+- ``plot_precision(bin_size=None, quantiles=None, cutoff=None, multiclass=False, pos_label=None)``
+- ``plot_cumulative_precision(pos_label=None)``
+- ``plot_classification(cutoff=0.5, percentage=True, pos_label=None)``
+- ``plot_confusion_matrix(cutoff=0.5, normalized=False, binary=False, pos_label=None)``
+- ``plot_lift_curve(cutoff=None, percentage=False, round=2, pos_label=None)``
+- ``plot_roc_auc(cutoff=0.5, pos_label=None)``
+- ``plot_pr_auc(cutoff=0.5, pos_label=None)``
 
 
 example code::
+
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
     explainer.plot_confusion_matrix(cutoff=0.6)
-    explainer.plot_roc_auc()
+    explainer.plot_precision(quantiles=10, cutoff=0.6, multiclass=True)
+    explainer.plot_lift_curve(percentage=True)
+    explainer.plot_roc_auc(cutoff=0.7)
+    explainer.plot_pr_auc(cutoff=0.3)
+
+`More examples in the notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+
 
 RegressionExplainer
 ===================
@@ -65,15 +75,17 @@ You can pass an additional parameter to ``__init__()`` with the units of the pre
 
 RegressionExplainer defines a number of additional plotting methods:
 
--  ``plot_predicted_vs_actual(self, round=2, logs=False)``
--  ``plot_residuals(self, vs_actual=False, round=2, ratio=False)``
--  ``plot_residuals_vs_feature(self, col)``
+-  ``plot_predicted_vs_actual(round=2, logs=False)``
+-  ``plot_residuals(vs_actual=False, round=2, ratio=False)``
+-  ``plot_residuals_vs_feature(col)``
 
 example code::
 
     explainer = RegressionExplainer(model, X, y, units='dollars')
     explainer.plot_predicted_vs_actual()
     explainer.plot_residuals()
+
+`More examples in the notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
 
 
 RandomForestExplainerExplainer
@@ -83,7 +95,7 @@ There is an additional mixin class specifically for sklearn RandomForests
 that defines additional methods and plots to investigate and visualize 
 individual decision trees within the random forest.
 
-- ``RandomForestExplainer``: uses ``shap.TreeExplainer`` plus ``dtreeviz`` library to visualize individual decision trees.
+- ``RandomForestExplainer``: uses ``dtreeviz`` library to visualize individual decision trees.
 
 You can get a pd.DataFrame summary of the path that a specific index took through a specific tree.
 You can also plot the individual prediction of each individual tree. 
@@ -93,9 +105,9 @@ You can also plot the individual prediction of each individual tree.
 - ``plot_trees(index)``
 
 And for dtreeviz visualization of individual decision trees (svg format):
-- ``decision_path()``
-- ``decision_path_file()``
-- ``decision_path_encoded()``
+- ``decision_path(tree_idx, index)``
+- ``decision_path_file(tree_idx, index)``
+- ``decision_path_encoded(tree_idx, index)``
 
 This also works with classifiers and regression models:
 
