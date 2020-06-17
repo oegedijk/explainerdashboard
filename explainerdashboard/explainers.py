@@ -1,5 +1,8 @@
-__all__ = ['BaseExplainer', 'ClassifierExplainer', 'RegressionExplainer', 
-            'RandomForestClassifierExplainer', 'RandomForestRegressionExplainer',
+__all__ = ['BaseExplainer', 
+            'ClassifierExplainer', 
+            'RegressionExplainer', 
+            'RandomForestClassifierExplainer', 
+            'RandomForestRegressionExplainer',
             'ClassifierBunch', # deprecated
             'RegressionBunch', # deprecated
             'RandomForestClassifierBunch', # deprecated
@@ -17,7 +20,8 @@ from pdpbox import pdp
 import shap
 from dtreeviz.trees import *
 
-from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score, recall_score, log_loss
+from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
+from sklearn.metrics import precision_score, recall_score, log_loss
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from .explainer_methods import *
@@ -31,7 +35,8 @@ class BaseExplainer(ABC):
     """
     def __init__(self, model, X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, permutation_cv=None, na_fill=-999):
+                    cats=None, idxs=None, descriptions=None, 
+                    permutation_cv=None, na_fill=-999):
         """init
 
         :param model: a model with a scikit-learn compatible .fit and .predict method
@@ -74,12 +79,17 @@ class BaseExplainer(ABC):
         if shap == "guess":
             shap_guess = guess_shap(model)
             if shap_guess is not None:
-                model_str = str(type(self.model)).replace("'", "").replace("<", "").replace(">", "").split(".")[-1]
-                print(f"Note: shap=='guess' so guessing for {model_str} shap='{shap_guess}'...")
+                model_str = str(type(self.model))\
+                    .replace("'", "").replace("<", "").replace(">", "")\
+                    .split(".")[-1]
+                print(f"Note: shap=='guess' so guessing for {model_str}"
+                      f" shap='{shap_guess}'...")
                 self.shap = shap_guess
             else:
-                raise ValueError("Failed to guess the type of shap explainer to use. "
-                                "Please explicitly pass either shap='tree', 'linear', 'deep' or 'kernel'.")
+                raise ValueError(
+                    "Failed to guess the type of shap explainer to use. "
+                    "Please explicitly pass either shap='tree', 'linear', "
+                    "deep' or 'kernel'.")
         else:
             assert shap in ['tree', 'linear', 'deep', 'kernel'], \
                 "Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' allowed."
@@ -140,8 +150,8 @@ class BaseExplainer(ABC):
         else:
             idxs = None
         return cls(model_bunch.model, X, y,  metric=metric, shap=shap,
-                    cats=cats, idxs=idxs, permutation_cv=permutation_cv, na_fill=na_fill,
-                    **kwargs)
+                    cats=cats, idxs=idxs, permutation_cv=permutation_cv, 
+                    na_fill=na_fill, **kwargs)
 
     def __len__(self):
         return len(self.X)
@@ -151,33 +161,62 @@ class BaseExplainer(ABC):
             return True
         return False
 
+    def check_cats(self, col1, col2=None):
+        if col2 is None:
+            if col1 in self.columns:
+                return False
+            elif col1 in self.columns_cats:
+                return True
+            raise ValueError(f"Can't find {col1}.")
+        
+        if col1 not in self.columns and col1 not in self.columns_cats:
+            raise ValueError(f"Can't find {col1}.")
+        if col2 not in self.columns and col2 not in self.columns_cats:
+            raise ValueError(f"Can't find {col2}.")
+        
+        if col1 in self.columns and col2 in self.columns:
+            return False
+        if col1 in self.columns_cats and col2 in self.columns_cats:
+            return True
+        if col1 in self.columns_cats and not col2 in self.columns_cats:
+            raise ValueError(
+                f"{col1} is categorical but {col2} is not in columns_cats")
+        if col2 in self.columns_cats and not col1 in self.columns_cats:
+            raise ValueError(
+                f"{col2} is categorical but {col1} is not in columns_cats")
+
     @property
     def shap_explainer(self):
         if not hasattr(self, '_shap_explainer'):
+            X_str = ", X_background" if self.X_background is not None else 'X'
+            NoX_str = ", X_background" if self.X_background is not None else ''
             if self.shap == 'tree':
-                print(f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})")
-                print("You can monkeypatch self.shap_explainer if desired...")
+                print("Generating self.shap_explainer = "
+                      f"shap.TreeExplainer(model{NoX_str})")
                 self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
             elif self.shap=='linear':
                 if self.X_background is None:
-                    print("Warning: shap values for shap.LinearExplainer get calculated"
-                        "against X_background, but paramater X_background=None, so using X instead")
-                print(f"Generating self.shap_explainer = shap.LinearExplainer(model, {'X_background' if self.X_background is not None else 'X'})...")
-                print("You can monkeypatch self.shap_explainer if desired...")
+                    print(
+                        "Warning: shap values for shap.LinearExplainer get "
+                        "calculated against X_background, but paramater "
+                        "X_background=None, so using X instead")
+                print(f"Generating self.shap_explainer = shap.LinearExplainer(model, {X_str})...")
                 self._shap_explainer = shap.LinearExplainer(self.model, 
-                                            self.X_background if self.X_background is not None else self.X)
+                    self.X_background if self.X_background is not None else self.X)
             elif self.shap=='deep':
-                print(f"Generating self.shap_explainer = shap.DeepExplainer(model{', X_background' if self.X_background is not None else ''})")
-                print("You can monkeypatch self.shap_explainer if desired...")
+                print(f"Generating self.shap_explainer = "
+                      f"shap.DeepExplainer(model{NoX_str})")
                 self._shap_explainer = shap.DeepExplainer(self.model)
             elif self.shap=='kernel': 
                 if self.X_background is None:
-                    print("Warning: shap values for shap.LinearExplainer get calculated"
-                        "against X_background, but paramater X_background=None, so using X instead")
-                print("Generating self.shap_explainer = shap.KernelExplainer(model, {'X_background' if self.X_background is not None else 'X'})...")
-                print("You can monkeypatch self.shap_explainer if desired...")
+                    print(
+                        "Warning: shap values for shap.LinearExplainer get "
+                        "calculated against X_background, but paramater "
+                        "X_background=None, so using X instead")
+                print("Generating self.shap_explainer = "
+                        f"shap.KernelExplainer(model, {X_str})...")
                 self._shap_explainer = shap.KernelExplainer(self.model, 
-                                            self.X_background if self.X_background is not None else self.X)
+                    self.X_background if self.X_background is not None else self.X)
         return self._shap_explainer
 
     def get_int_idx(self, index):
@@ -195,8 +234,8 @@ class BaseExplainer(ABC):
                 return self.idxs.index(index)
         return None
 
-    def random_index(self, y_min=None, y_max=None, 
-                            pred_min=None, pred_max=None, return_str=False, **kwargs):
+    def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, 
+                        return_str=False, **kwargs):
         """
         Return a random index from dataset.
         if y_values is given select an index for which y in y_values
@@ -211,8 +250,10 @@ class BaseExplainer(ABC):
         if pred_max is None:
             pred_max = self.preds.max()
 
-        potential_idxs = self.y[(self.y>=y_min) & (self.y <= y_max) & 
-                                (self.preds>=pred_min) & (self.preds <= pred_max)].index
+        potential_idxs = self.y[(self.y>=y_min) & 
+                                (self.y <= y_max) & 
+                                (self.preds>=pred_min) & 
+                                (self.preds <= pred_max)].index
 
         if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
@@ -266,7 +307,9 @@ class BaseExplainer(ABC):
             return get_feature_dict(self.columns, self.cats)[col][0]
         elif col in self.columns:
             # the cat that the col belongs to
-            return [k for k, v in get_feature_dict(self.columns, self.cats).items() if col in v][0]
+            return [k for k, v 
+                        in get_feature_dict(self.columns, self.cats).items() 
+                            if col in v][0]
         return None
 
     def description(self, col):
@@ -281,8 +324,8 @@ class BaseExplainer(ABC):
         return [self.description(col) for col in cols]
 
     def get_col(self, col):
-        """returns either the column values if col in self.columns,
-        or induces the categorical values from the onehotencoding if col in self.cats
+        """returns either the column values if col in self.columns, or induces 
+        the categorical values from the onehotencoding if col in self.cats
         """
         assert col in self.columns or col in self.cats, \
             f"{col} not in columns!"
@@ -336,8 +379,8 @@ class BaseExplainer(ABC):
 
     @property
     def X_cats(self):
-        """return model features DataFrame with onehot encoded categorical features
-        reverse encoded to original state"""
+        """return model features DataFrame with onehot encoded categorical 
+        features reverse encoded to original state"""
         if not hasattr(self, '_X_cats'):
             self._X_cats = merge_categorical_columns(self.X, self.cats)
         return self._X_cats
@@ -355,10 +398,11 @@ class BaseExplainer(ABC):
         """the intercept for the shap values. (i.e. 'what would the prediction be
         if we knew none of the features?')"""
         if not hasattr(self, '_shap_base_value'):
-            _ = self.shap_values() # CatBoost needs shap values calculated before expected value
+            # CatBoost needs shap values calculated before expected value
+            _ = self.shap_values() 
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
-                # newer version of shap library returns an array instead of float
+                # shap library now returns an array instead of float
                 self._shap_base_value = self._shap_base_value.item()
         return make_callable(self._shap_base_value)
 
@@ -382,7 +426,9 @@ class BaseExplainer(ABC):
     @property
     def shap_interaction_values(self):
         """SHAP interaction values calculated using shap library"""
-        assert self.shap != 'linear', "Unfortunately shap.LinearExplainer does not provide shap interaction values! So no interactions tab!"
+        assert self.shap != 'linear', \
+            "Unfortunately shap.LinearExplainer does not provide " \
+            "shap interaction values! So no interactions tab!"
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...")
             self._shap_interaction_values = \
@@ -410,21 +456,22 @@ class BaseExplainer(ABC):
 
     @property
     def mean_abs_shap_cats(self):
-        """Mean absolute SHAP values per feature with categorical features grouped.
-        Gives indication of overall importance of feature for predictions of model."""
+        """Mean absolute SHAP values per feature with categorical features 
+        grouped. Gives indication of overall importance of feature for 
+        predictions of model."""
         if not hasattr(self, '_mean_abs_shap_cats'):
             self._mean_abs_shap_cats = mean_absolute_shap_values(
                                 self.columns, self.shap_values, self.cats)
         return make_callable(self._mean_abs_shap_cats)
 
     def calculate_properties(self, include_interactions=True):
-        """Explicitely calculates all lazily calculated properties. Can be useful
-        to call before saving ExplainerBunch to disk so that no need
+        """Explicitely calculates all lazily calculated properties. Can be 
+        useful to call before saving ExplainerBunch to disk so that no need
         to calculate these properties when for example starting a Dashboard.
 
-        :param include_interactions: shap interaction values can take a long time
-        to compute for larger datasets with more features. Therefore you can choose
-        not to calculate these, defaults to True
+        :param include_interactions: shap interaction values can take a long 
+        time to compute for larger datasets with more features. Therefore you 
+        can choose not to calculate these, defaults to True
         :type include_interactions: bool, optional
         """
         _ = (self.preds, self.permutation_importances,
@@ -458,7 +505,8 @@ class BaseExplainer(ABC):
 
         :param topx: Only return topx most importance features, defaults to None
         :type topx: int, optional
-        :param cutoff: Only return features with mean abs shap of at least cutoff, defaults to None
+        :param cutoff: Only return features with mean abs shap of at least 
+                        cutoff, defaults to None
         :type cutoff: float, optional
         :param cats: group categorical variables, defaults to False
         :type cats: bool, optional
@@ -475,7 +523,8 @@ class BaseExplainer(ABC):
                     .sort_values('MEAN_ABS_SHAP', ascending=False).head(topx))
 
     def shap_top_interactions(self, col, topx=None, cats=False, pos_label=None):
-        """returns the features that interact with feature col in descending order.
+        """returns the features that interact with feature col in descending 
+        order.
 
         if shap interaction values have already been calculated, use those. 
         Otherwise use shap approximate_interactions or simply shap importance.
@@ -493,10 +542,13 @@ class BaseExplainer(ABC):
         if cats:
             if hasattr(self, '_shap_interaction_values'):
                 col_idx = self.X_cats.columns.get_loc(col)
-                top_interactions = self.X_cats.columns[np.argsort(-np.abs(
-                        self.shap_interaction_values_cats(pos_label)[:, col_idx, :]).mean(0))].tolist()
+                top_interactions = self.X_cats.columns[
+                    np.argsort(
+                        -np.abs(self.shap_interaction_values_cats(
+                            pos_label)[:, col_idx, :]).mean(0))].tolist()
             else:
-                top_interactions = self.mean_abs_shap_cats(pos_label).Feature.values.tolist()
+                top_interactions = self.mean_abs_shap_cats(pos_label)\
+                                        .Feature.values.tolist()
                 top_interactions.insert(0, top_interactions.pop(
                     top_interactions.index(col))) #put col first
 
@@ -506,12 +558,14 @@ class BaseExplainer(ABC):
             if hasattr(self, '_shap_interaction_values'):
                 col_idx = self.X.columns.get_loc(col)
                 top_interactions = self.X.columns[np.argsort(-np.abs(
-                            self.shap_interaction_values(pos_label)[:, col_idx, :]).mean(0))].tolist()
+                            self.shap_interaction_values(
+                                pos_label)[:, col_idx, :]).mean(0))].tolist()
             else:
                 interaction_idxs = shap.common.approximate_interactions(
                     col, self.shap_values(pos_label), self.X)
                 top_interactions = self.X.columns[interaction_idxs].tolist()
-                top_interactions.insert(0, top_interactions.pop(-1)) #put col first
+                #put col first
+                top_interactions.insert(0, top_interactions.pop(-1)) 
 
             if topx is None: topx = len(top_interactions)
             return top_interactions[:topx]
@@ -534,35 +588,47 @@ class BaseExplainer(ABC):
             return self.shap_interaction_values(pos_label)[:,
                         self.X.columns.get_loc(col), :]
 
-    def permutation_importances_df(self, topx=None, cutoff=None, cats=False, pos_label=None):
+    def permutation_importances_df(self, topx=None, cutoff=None, cats=False, 
+                                    pos_label=None):
         """Returns pd.DataFrame with features ordered by permutation importance.
-        For more about permutation importances see https://explained.ai/rf-importance/index.html
+        For more about permutation importances.
+        
+        see https://explained.ai/rf-importance/index.html
 
         :param topx: only return topx most important features, defaults to None
         :type topx: int, optional
-        :param cutoff: only return features with importance of at least cutoff, defaults to None
+        :param cutoff: only return features with importance of at least cutoff, 
+                        defaults to None
         :type cutoff: float, optional
         :param cats: Group categoricals, defaults to False
         :type cats: bool, optional
         :return: importance_df
         :rtype: pd.DataFrame
         """
-        importance_df = self.permutation_importances_cats(pos_label).reset_index() if cats \
-                                else self.permutation_importances(pos_label).reset_index()
+        if cats:
+            importance_df = (self.permutation_importances_cats(pos_label)
+                                .reset_index()) 
+        else:
+            importance_df = (self.permutation_importances(pos_label)
+                                .reset_index())
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.Importance.min()
         return importance_df[importance_df.Importance > cutoff].head(topx)
 
-    def importances_df(self, kind="shap", topx=None, cutoff=None, cats=False, pos_label=None):
-        """wrapper function for mean_abs_shap_df() and permutation_importance_df()"""
-        assert kind=='shap' or kind=='permutation', "kind should either be 'shap' or 'permutation'!"
+    def importances_df(self, kind="shap", topx=None, cutoff=None, cats=False, 
+                        pos_label=None):
+        """wrapper function for mean_abs_shap_df() and 
+        permutation_importance_df()"""
+        assert kind=='shap' or kind=='permutation', \
+                "kind should either be 'shap' or 'permutation'!"
         if kind=='permutation':
             return self.permutation_importances_df(topx, cutoff, cats, pos_label)
         elif kind=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats, pos_label)
 
-    def contrib_df(self, index, cats=True, topx=None, cutoff=None, pos_label=None):
+    def contrib_df(self, index, cats=True, topx=None, cutoff=None, 
+                    pos_label=None):
         """returns a contrib_df pd.DataFrame with the shap value contributions
         to the prediction for index. Used as input for the plot_contributions()
         method.
@@ -571,9 +637,11 @@ class BaseExplainer(ABC):
         :type index: int or str
         :param cats: Group categoricals, defaults to True
         :type cats: bool, optional
-        :param topx: Only return topx features, remainder called REST, defaults to None
+        :param topx: Only return topx features, remainder called REST, 
+                        defaults to None
         :type topx: int, optional
-        :param cutoff: only return features with at least cutoff contributions, defaults to None
+        :param cutoff: only return features with at least cutoff contributions, 
+                        defaults to None
         :type cutoff: float, optional
         :return: contrib_df
         :rtype: pd.DataFrame
@@ -592,20 +660,25 @@ class BaseExplainer(ABC):
                             topx=None, cutoff=None, round=2, pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format"""
         idx = self.get_int_idx(index) # if passed str convert to int index
-        return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label), round=round)
+        return get_contrib_summary_df(
+                    self.contrib_df(idx, cats, topx, cutoff, pos_label), 
+                    round=round)
 
-    def interactions_df(self, col, cats=False, topx=None, cutoff=None, pos_label=None):
+    def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
+                            pos_label=None):
         importance_df = mean_absolute_shap_values(
-                            self.columns_cats if cats else self.columns, 
-                            self.shap_interaction_values_by_col(col, cats, pos_label))
+            self.columns_cats if cats else self.columns, 
+            self.shap_interaction_values_by_col(col, cats, pos_label))
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.MEAN_ABS_SHAP.min()
         return importance_df[importance_df.MEAN_ABS_SHAP > cutoff].head(topx)
     
-    def formatted_contrib_df(self, index, round=None, lang='en', pos_label=None):
-        """Our PowerBI specialist wanted this the contrib_df in a certain format in order
-        to conventiently build powerbi dashboards from the output of get_dfs.
+    def formatted_contrib_df(self, index, round=None, lang='en', 
+                                pos_label=None):
+        """Our PowerBI specialist wanted this the contrib_df in a certain 
+        format in order to conventiently build powerbi dashboards from the 
+        output of get_dfs.
 
         Additional language option for output in Dutch (lang='nl')
 
@@ -653,7 +726,7 @@ class BaseExplainer(ABC):
         :type drop_na: bool, optional
         :param sample: Number of rows to sample for plot, defaults to 500
         :type sample: int, optional
-        :param num_grid_points: Number of grid points to calculate, defaults to 20
+        :param num_grid_points: Number of grid points to calculate, default 20
         :type num_grid_points: int, optional
         :return: pdp_result
         :rtype: PDPBox.pdp_result
@@ -856,7 +929,7 @@ class BaseExplainer(ABC):
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
                                         ['Feature'].values.tolist())
 
-    def plot_shap_interaction_summary(self, col, topx=None, cats=False, pos_label=None):
+    def plot_shap_interaction_summary(self, col, topx=None, pos_label=None):
         """Displays all individual shap interaction values for each feature in a
         horizontal scatter chart in descending order by mean absolute shap value.
 
@@ -864,11 +937,10 @@ class BaseExplainer(ABC):
         :type col: [type]
         :param topx: [description], defaults to 10
         :type topx: int, optional
-        :param cats: [description], defaults to False
-        :type cats: bool, optional
         :return: [description]
         :rtype: [type]
         """
+        cats = self.check_cats(col)
         interact_cols = self.shap_top_interactions(col, cats=cats, pos_label=pos_label)
         if topx is None: topx = len(interact_cols)
 
@@ -876,7 +948,7 @@ class BaseExplainer(ABC):
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
                 self.X_cats if cats else self.X, interact_cols[:topx])
 
-    def plot_shap_dependence(self, col, color_col=None, highlight_idx=None, cats=False, pos_label=None):
+    def plot_shap_dependence(self, col, color_col=None, highlight_idx=None,pos_label=None):
         """
         Plots a shap dependence plot:
             - on the x axis the possible values of the feature `col`
@@ -884,8 +956,8 @@ class BaseExplainer(ABC):
 
         :param color_col: if color_col provided then shap values colored (blue-red) according to feature color_col
         :param highlight_idx: individual observation to be highlighed in the plot.
-        :param cats: group categorical variables
         """
+        cats = self.check_cats(col, color_col)
         if cats:
             if col in self.cats:
                 return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats(pos_label), col, color_col)
@@ -901,7 +973,7 @@ class BaseExplainer(ABC):
                                             na_fill=self.na_fill)
 
     def plot_shap_interaction(self, col, interact_col, highlight_idx=None, 
-                                cats=False, pos_label=None):
+                                pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         :param col: feature for which to find interaction values
@@ -915,6 +987,7 @@ class BaseExplainer(ABC):
         :return: Plotly Fig
         :rtype: plotly.Fig
         """
+        cats = self.check_cats(col, interact_col)
         if cats and interact_col in self.cats:
             return plotly_shap_violin_plot(
                 self.X_cats, 
@@ -1095,6 +1168,11 @@ class ClassifierExplainer(BaseExplainer):
     @property
     def pos_label_str(self):
         return self.labels[self.pos_label]
+
+    def get_pos_label_index(self, pos_label_str):
+        assert pos_label_str in self.labels, \
+            f"Unknown pos_label. {pos_label_str} not in self.labels!" 
+        return self.labels.index(pos_label_str)
 
     def get_prop_for_label(self, prop:str, label):
         tmp = self.pos_label
@@ -1661,7 +1739,6 @@ class RandomForestExplainer(BaseExplainer):
             return None
 
         idx = self.get_int_idx(index)
-        print(idx)
         if self.is_regression:
             viz = dtreeviz(self.model.estimators_[tree_idx],
                self.X, self.y, 
