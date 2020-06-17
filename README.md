@@ -26,7 +26,14 @@ The library includes:
 
 The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by `explainerdashboard`, so that you can focus on the layout, logic of the interactions, and project specific textual explanations of the dashboard. (i.e. design it so that it will be interpretable for business users in your organization, not just data scientists)
 
-Alternatively, there is a built-in standard dashboard with pre-built tabs that you can select individually. Fitting a model, building the explainer object, building the dashboard, and then running it is as simple as:
+Alternatively, there is a built-in standard dashboard with pre-built tabs that you can select individually. Fitting a model, building the explainer object, building the dashboard, and then running it can be as simple as:
+
+`` 
+ExplainerDashboard(ClassifierExplainer(RandomForestClassifier().fit(X_train, y_train), X_test, y_test)).run()
+`` 
+
+Or a slightly more explicit example with some extra parameters to group categorical variables,
+show proper names for row indexes, and display classification labels:
 
 ```
 from sklearn.ensemble import RandomForestClassifier
@@ -44,13 +51,13 @@ model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
 # build the ExplainerBunch:
-explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
+explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 
                                 labels=['Not survived', 'Survived'])
 
 # Constructing dashboard from ExplainerBunch and run it:
-ExplainerDashboard(explainer).run()
+ExplainerDashboard(explainer).run(port=8051)
 
 ```
 
