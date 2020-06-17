@@ -20,9 +20,7 @@ class ClassifierBunchTests(unittest.TestCase):
         model = RandomForestClassifier(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
-        self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
+        self.explainer = ClassifierExplainer(model, X_test, y_test,  
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names, 
                             labels=['Not survived', 'Survived'])
@@ -67,6 +65,9 @@ class ClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_precision(multiclass=True)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_precision(quantiles=10, cutoff=0.5)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_cumulutive_precision(self):
