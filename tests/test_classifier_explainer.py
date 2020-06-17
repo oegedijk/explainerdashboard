@@ -60,6 +60,7 @@ class ClassifierBunchTests(unittest.TestCase):
 
     def test_calculate_properties(self):
         self.explainer.calculate_properties()
+        
     def test_plot_precision(self):
         fig = self.explainer.plot_precision()
         self.assertIsInstance(fig, go.Figure)
