@@ -4,7 +4,7 @@ by: Oege Dijk
 This package makes it convenient to quickly explain the workings of a (scikit-learn compatible)
 fitted machine learning model using either interactive plots in e.g. Jupyter Notebook or 
 deploying an interactive dashboard (based on Flask/Dash) that allows you to quickly explore
-the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](explainerdashboard.readthedocs.io).
+the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](explainerdashboard.readthedocs.io), example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
 
 In a lot of organizations, especially governmental, but with the GDPR also increasingly in private sector, it is becoming more and more important to be able to explain the inner workings of your machine learning algorithms. Customers have to some extent a right to an explanation why they were selected, and more and more internal and external regulators require it. With recent innovations in explainable AI (e.g. SHAP values) the old black box trope is nog longer valid, but it can still take quite a bit of data wrangling and plot manipulation to get the explanations out of a model. This library aims to make this easy.
 
@@ -24,7 +24,7 @@ The library includes:
 - Plus for classifiers: precision plots, confusion matrix, ROC AUC plot, PR AUC plot, etc
 - For regression models: goodness-of-fit plots, residual plots, etc. 
 
-The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by *explainerdashboard*, so that you can focus on the layout, logic of the interactions, and project specific textual explanations of the dashboard. (i.e. design it so that it will be interpretable for business users in your organization, not just data scientists)
+The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by `explainerdashboard`, so that you can focus on the layout, logic of the interactions, and project specific textual explanations of the dashboard. (i.e. design it so that it will be interpretable for business users in your organization, not just data scientists)
 
 Alternatively, there is a built-in standard dashboard with pre-built tabs that you can select individually. Fitting a model, building the explainer object, building the dashboard, and then running it is as simple as:
 
@@ -39,7 +39,7 @@ from explainerdashboard.datasets import *
 X_train, y_train, X_test, y_test = titanic_survive()
 train_names, test_names = titanic_names()
 
-# fit the mode:
+# fit the model:
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
@@ -69,7 +69,10 @@ Documentation can be found at [explainerdashboard.readthedocs.io](https://explai
 
 ### Constructing an ExplainerBunch
 
-The package works by first constructing an ExplainerBunch object. You can then use this ExplainerBunch to manually call different plots, or to start the dashboard. You construct the ExplainerBunch instancefrom your fitted `model`, a feature matrix `X`, and optionally the corresponding target values `y`. 
+The package works by first constructing an `Explainer` object. You can then use 
+this `Explainer` to manually call different plots, or pass it on to an `ExplainerDashboard` 
+object. You construct the  `Explainer` instancefrom your fitted `model`, a feature matrix `X`, 
+and optionally the corresponding target values `y`. 
 
 In addition you can pass:
 - `metric`: permutation importances get calculated against a particular metric (for regression defaults to `r2_score` and for classification to `roc_auc_score`)
@@ -78,6 +81,7 @@ In addition you can pass:
 - `model_output`: for classification models either 'logodds' or 'probability', defaults to 'probability'
 - `cats`: a list of onehot encoded variables (e.g. if encoded as 'Gender_Female', 'Gender_Male' you would pass `cats=['Gender']`). This allows you to group the onehotencoded columns together in various plots with the argument `cats=True`. 
 - `idxs`: a list of indentifiers for each row in your dataset. This makes it easier to look up predictions for specific id's.
+- `descriptions`: a dictionary of descriptions of the meaning of individual variables.
 - `labels`: for classifier models a list of labels for the classes of your model.
 - `na_fill`: Value used to fill in missing values (default to -999)
 
@@ -90,8 +94,8 @@ train_names, test_names = titanic_names()
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
-explainer = RandomForestClassifierExplainer(model, X_test, y_test, roc_auc_score, 
-                                shap='tree', X_background=None, model_output='probability',
+explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
+                                X_background=None, model_output='probability',
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, #names of passengers 
                                 labels=['Not survived', 'Survived'])
@@ -130,8 +134,6 @@ You then start the dashboard on a particular port with `db.run(port=8050)`.
 If you wish to use e.g. gunicorn to deploy the dashboard you should add `server = db.app.server` to your code to expose the Flask server. You can then start the server with e.g. `gunicorn dashboard:server` (assuming the file you defined the dashboard in was called `dashboard.py`). 
 
 It may take some time to calculate all the properties of the ExplainerBunch (especially shap interaction values). However all properties get calculated lazily, so they are only calculated when you call a plot or table that depends on them. To save startup time you can save the ExplainerBunch to disk with e.g. joblib and then load the ExplainerBunch with pre-calculated properties whenever you wish to start the dashboard. 
-
-See [dashboard_examples.ipynb](dashboard_examples.ipynb)
 
 
 ## Deployed example:
