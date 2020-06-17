@@ -404,13 +404,13 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None,
             new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns)
             precision_df = pd.concat([precision_df, new_row_df])
             last_p_max = preds.max()
-    
-    precision_df['p_avg'] = np.round(precision_df['p_avg'], round)
-    precision_df['precision'] = np.round(precision_df['precision'], round)
+
+    precision_df[['p_avg', 'precision']] = precision_df[['p_avg', 'precision']]\
+                .astype(float).apply(partial(np.round, decimals=round))
     if n_classes > 1:
-        for i in range(n_classes):
-            precision_df['precision_' + str(i)] = \
-                    np.round(precision_df['precision_' + str(i)], round)
+        precision_cols = ['precision_' + str(i) for i in range(n_classes)]
+        precision_df[precision_cols] = precision_df[precision_cols]\
+                .astype(float).apply(partial(np.round, decimals=round))
     return precision_df
 
 
