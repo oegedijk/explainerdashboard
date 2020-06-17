@@ -114,7 +114,7 @@ def plotly_contribution_plot(contrib_df, target="target",
 
 
 
-def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None):
+def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None):
     """
     returns a plotly figure with bar plots for counts of observations for a 
     certain pred_proba bin,
@@ -125,8 +125,6 @@ def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None)
     """
     label = labels[pos_label] if labels is not None and pos_label is not None else 'positive'
     
-    
-
     precision_df = precision_df.copy()
 
     spacing = 0.1 /  len(precision_df)
@@ -225,7 +223,8 @@ def plotly_precision_plot(precision_df, cutoff=0.5, labels=None, pos_label=None)
     return fig
 
 
-def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, pos_label=1, percentage=False):
+def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, 
+                                pos_label=1, percentage=False):
     if len(pred_probas.shape) == 2:
         below = (pred_probas[:, pos_label] < cutoff)
     else:
@@ -237,15 +236,19 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, po
     
     fig = go.Figure()
     for i, label in enumerate(labels):
+        text = [f"<b>{sum(below_threshold[1]==i)}</b> ({np.round(100*np.mean(below_threshold[1]==i), 2)}%)",
+                f"<b>{sum(above_threshold[1]==i)}</b> ({np.round(100*np.mean(above_threshold[1]==i), 2)}%)", 
+                f"<b>{sum(targets==i)}</b> ({np.round(100*np.mean(targets==i), 2)}%)"]
         if percentage:
             fig.add_trace(go.Bar(
                 x=x, 
                 y=[100*np.mean(below_threshold[1]==i),
                     100*np.mean(above_threshold[1]==i), 
                     100*np.mean(targets==i)], 
-                text=[str(np.round(100*np.mean(below_threshold[1]==i), 2)) + '%',
-                      str(np.round(100*np.mean(above_threshold[1]==i), 2)) + '%', 
-                      str(np.round(100*np.mean(targets==i), 2)) + '%'],
+                # text=[str(np.round(100*np.mean(below_threshold[1]==i), 2)) + '%',
+                #       str(np.round(100*np.mean(above_threshold[1]==i), 2)) + '%', 
+                #       str(np.round(100*np.mean(targets==i), 2)) + '%'],
+                text=text,
                 textposition='auto',
                 hoverinfo="text",
                 name=label))
@@ -256,9 +259,10 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, po
                 y=[sum(below_threshold[1]==i),
                     sum(above_threshold[1]==i), 
                     sum(targets==i)], 
-                text = [sum(below_threshold[1]==i),
-                    sum(above_threshold[1]==i), 
-                    sum(targets==i)], 
+                # text = [sum(below_threshold[1]==i),
+                #     sum(above_threshold[1]==i), 
+                #     sum(targets==i)], 
+                text=text,
                 textposition='auto',
                 hoverinfo="text",
                 name=label))
@@ -344,7 +348,8 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
     fig.update_layout(legend=dict(xanchor="center", y=0.9, x=0.1))
     
     if cutoff is not None:
-        cutoff_idx = (np.abs(lift_curve_df.pred_proba - cutoff)).argmin()
+        #cutoff_idx = max(0, (np.abs(lift_curve_df.pred_proba - cutoff)).argmin() - 1)
+        cutoff_idx = max(0, len(lift_curve_df[lift_curve_df.pred_proba >= cutoff])-1)
         if percentage:
             cutoff_x = lift_curve_df['index_percentage'].iloc[cutoff_idx]
         else:

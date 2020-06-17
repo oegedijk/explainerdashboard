@@ -20,6 +20,9 @@ analytical web app to inspect the workings and performance of your model.
 Or you can use the primitives provided by the ``Explainer`` to construct your own
 project-specific dashboard using plotly dash. 
 
+Supports all scikit-learn compatible models (that are compatible with the shap library), 
+including LogisticRegression, RandomForest, XGBoost, LightGBM and CatBoost.
+
 Example
 =======
 
@@ -37,13 +40,22 @@ Some example code::
     model = RandomForestClassifier(n_estimators=50, max_depth=5)
     model.fit(X_train, y_train)
 
-    explainer = RandomForestClassifierExplainer(
+    explainer = ClassifierExplainer(
                     model, X_test, y_test, 
                     cats=['Sex', 'Deck', 'Embarked'],
                     idxs=test_names,
                     labels=['Not survived', 'Survived'])
 
     ExplainerDashboard(explainer).run()
+
+Or, as a one-liner::
+
+    ExplainerDashboard(
+        ClassifierExplainer(
+            RandomForestClassifier().fit(X_train, y_train), 
+            X_test, y_test
+        )
+    ).run()
 
 The result of the lines above can be viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
 

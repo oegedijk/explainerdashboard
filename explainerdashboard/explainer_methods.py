@@ -279,7 +279,8 @@ def mean_absolute_shap_values(columns, shap_values, cats=None):
     return shap_df
 
 
-def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, pos_label=1):
+def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, 
+                        round=3, pos_label=1):
     """
     returns a pd.DataFrame with the predicted probabilities and
     the observed frequency per bin_size.
@@ -404,6 +405,12 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, pos_lab
             precision_df = pd.concat([precision_df, new_row_df])
             last_p_max = preds.max()
     
+    precision_df['p_avg'] = np.round(precision_df['p_avg'], round)
+    precision_df['precision'] = np.round(precision_df['precision'], round)
+    if n_classes > 1:
+        for i in range(n_classes):
+            precision_df['precision_' + str(i)] = \
+                    np.round(precision_df['precision_' + str(i)], round)
     return precision_df
 
 
