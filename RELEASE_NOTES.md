@@ -1,5 +1,27 @@
 # Release Notes
 
+## Version 0.1.13
+
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.1.12
 
 ### Breaking Changes
@@ -14,19 +36,6 @@ Jupyter notebooks, adding the following dashboard classes:
 - `JupyterExplainerDashboard`
 - `JupyterExplainerTab`
 - `InlineExplainer`
-
-### Bug Fixes
--
--
-
-### Improvements
--
--
-
-### Other Changes
--
--
-
 
 ## Template:
 ### Breaking Changes
