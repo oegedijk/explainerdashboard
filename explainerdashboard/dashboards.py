@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ['ExplainerDashboard', 'ExplainerDashboardStandaloneTab',
-            'ModelSummaryTab']
+__all__ = ['ExplainerDashboard', 
+            'JupyterExplainerDashboard',
+            'ExplainerTab',
+            'JupyterExplainerTab',
+            'InlineExplainer',
+            'ModelSummaryTab', 
+            'ContributionsTab', 
+            'ShapDependenceTab',
+            'ShapInteractionsTab', 
+            'DecisionTreesTab']
 
 
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
-import dash_html_components as html
 
-from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
+from jupyter_dash import JupyterDash
 
 import plotly.io as pio
 
@@ -20,11 +26,12 @@ from .dashboard_tabs.contributions_tab import *
 from .dashboard_tabs.shap_dependence_tab import *
 from .dashboard_tabs.shap_interactions_tab import *
 from .dashboard_tabs.decision_trees_tab import *
+from explainerdashboard.dashboard_tabs.model_summary_tab import ModelSummaryTab
 
 
 class ExplainerDashboard:
-    """Constructs a dashboard out of an ExplainerBunch object. You can indicate
-    which tabs to include, and pass kwargs to individual tabs.
+    """Constructs a dashboard out of an Explainer object. You can indicate
+    which tabs to include, and pass kwargs on to individual tabs.
     """
     def __init__(self, explainer, title='Model Explainer',   
                 tabs=None,
@@ -87,10 +94,7 @@ class ExplainerDashboard:
             else:
                 self.decision_trees = False
             
-        self.app = dash.Dash(__name__)
-        self.app.config['suppress_callback_exceptions']=True
-        self.app.css.config.serve_locally = True
-        self.app.scripts.config.serve_locally = True
+        self.app = self.get_dash_app()
         self.app.title = title
         
         pio.templates.default = self.plotly_template
@@ -115,6 +119,13 @@ class ExplainerDashboard:
         
         for tab in self.tabs:
             tab.register_callbacks(self.app)
+
+    def get_dash_app(self):
+        app = dash.Dash(__name__)
+        app.config['suppress_callback_exceptions']=True
+        app.css.config.serve_locally = True
+        app.scripts.config.serve_locally = True
+        return app
 
     def _insert_tabs(self):
         if self.model_summary:
@@ -142,37 +153,91 @@ class ExplainerDashboard:
         self.app.run_server(port=port, **kwargs)
 
 
-class ExplainerDashboardStandaloneTab:
-    """Constructs a dashboard out of an ExplainerBunch object. You can indicate
-    which tabs to include, and pass kwargs to individual tabs.
+class JupyterExplainerDashboard(ExplainerDashboard):
+    """
+    ExplainerDashboard that uses launches a JupyterDash app instead of a
+    default dash app.
+    """ 
+    def get_dash_app(self):
+        app = JupyterDash(__name__)
+        return app
+
+    def run(self, mode='inline', port=8050, width=800, height=650, **kwargs):
+        """Starts the dashboard using the built-in Flask server on localhost:port
+
+        :param mode: either 'inline', 'jupyterlab' or 'external'
+        :type mode: str, optional
+        :param port: the port to run the dashboard on, defaults to 8050
+        :type port: int, optional
+        :param width: width in pixels of inline iframe
+        :param height: height in pixels of inline iframe
+        """
+        pio.templates.default = self.plotly_template
+        if mode in ['inline', 'jupyterlab']:
+            self.app.run_server(mode=mode, width=width, height=height)
+        elif mode == 'external':
+             self.app.run_server(mode=mode, port=port, **kwargs)
+        else:
+            raise ValueError("mode should either be 'inline', 'jupyterlab'  or 'external'!")
+
+
+class ExplainerTab:
+    """Constructs a dashboard with a single tab out of an Explainer object. 
+    You either pass the class definition of the tab to include, or a string
+    identifier. 
     """
     def __init__(self, explainer, tab, title='Model Explainer', 
                     plotly_template="none", **kwargs):
         """Constructs an ExplainerDashboard.
         
         :param explainer: an ExplainerBunch object
+        :param tab: Tab or string identifier for tab to be displayed: 
+                    'model_summary', 'contributions', 'shap_dependence', 
+                    'shap_interaction', 'decision_trees'
+        :type tab: either an ExplainerTab or str
         :param title: Title of the dashboard, defaults to 'Model Explainer'
         :type title: str, optional
         :param tab: single tab to be run as dashboard
         """
+        
         self.explainer = explainer
         self.title = title
 
         self.plotly_template = plotly_template
         self.kwargs = kwargs
 
+        if isinstance(tab, str):
+            if tab == 'model_summary':
+                tab = ModelSummaryTab
+            elif tab == 'contributions':
+                tab = ContributionsTab
+            elif tab == 'shap_dependence':
+                tab = ShapDependenceTab
+            elif tab == 'shap_interaction':
+                tab = ShapInteractionsTab
+            elif tab == 'decision_trees':
+                tab = DecisionTreesTab
+            else:
+                raise ValueError("If tab is str then it should be in "
+                        "['model_summary', 'contributions', 'shap_dependence', "
+                        "'shap_interactions', 'decision_trees']")
+
         self.tab = tab(self.explainer, standalone=True, **self.kwargs)
 
-        self.app = dash.Dash(__name__)
-        self.app.config['suppress_callback_exceptions']=True
-        self.app.css.config.serve_locally = True
-        self.app.scripts.config.serve_locally = True
+        self.app = self.get_dash_app()
         self.app.title = title
         
         pio.templates.default = self.plotly_template
 
         self.app.layout = self.tab.layout()
         self.tab.register_callbacks(self.app)
+
+    def get_dash_app(self):
+        app = dash.Dash(__name__)
+        app.config['suppress_callback_exceptions']=True
+        app.css.config.serve_locally = True
+        app.scripts.config.serve_locally = True
+        return app
 
     def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
@@ -184,4 +249,96 @@ class ExplainerDashboardStandaloneTab:
         pio.templates.default = self.plotly_template
         self.app.run_server(port=port, **kwargs)
 
+
+class JupyterExplainerTab(ExplainerTab):
+    def get_dash_app(self):
+        app = JupyterDash(__name__)
+        return app
+
+    def run(self, mode='inline', port=8050, width=800, height=650, **kwargs):
+        """Starts the dashboard using the built-in Flask server on localhost:port
+        :param mode: either 'inline', 'jupyterlab' or 'external' 
+        :type mode: str, optional
+        :param port: the port to run the dashboard on, defaults to 8050
+        :type port: int, optional
+        :param width: width in pixels of inline iframe
+        :param height: height in pixels of inline iframe
+        """
+        pio.templates.default = self.plotly_template
+        if mode in ['inline', 'jupyterlab']:
+            self.app.run_server(mode=mode, width=width, height=height)
+        elif mode == 'jupyterlab':
+             self.app.run_server(mode=mode, port=port, **kwargs)
+        else:
+            raise ValueError("mode should either be 'inline', 'jupyterlab' or 'external'!")
+
+class InlineExplainerTab:
+    """
+    Run a single tab inline in a Jupyter notebook using specific method calls.
+    """
+    def __init__(self, explainer, mode='inline', width=800, height=650, 
+                    port=8050, plotly_template="none", **kwargs):
+        """
+        :param explainer: an Explainer object
+        :param mode: either 'inline', 'jupyterlab' or 'external' 
+        :type mode: str, optional
+        :param width: width in pixels of inline iframe
+        :param height: height in pixels of inline iframe
+        :param port: port to run if mode='external'
+        """
+        assert mode in ['inline', 'external', 'jupyterlab'], \
+            "mode should either be 'inline', 'external' or 'jupyterlab'!"
+        self.explainer = explainer
+        self.mode = mode
+        self.width = width
+        self.height = height
+        self.port = port
+        self.plotly_template = plotly_template
+        self.kwargs = kwargs
+
+    def _run_app(self, app, **kwargs):
+        """Starts the dashboard either inline or in a seperate tab
+
+        :param app: the JupyterDash app to be run
+        :type mode: JupyterDash app instance
+        """
+        pio.templates.default = self.plotly_template
+        if self.mode in ['inline', 'jupyterlab']:
+            app.run_server(mode=self.mode, width=self.width, height=self.height)
+        elif self.mode == 'external':
+             app.run_server(mode=self.mode, port=port, **self.kwargs)
+        else:
+            raise ValueError("mode should either be 'inline', 'jupyterlab'  or 'external'!")
+
+    def _run_tab(self, tab, title):
+        app = JupyterDash(__name__)
+        app.title = title
+        app.layout = tab.layout()
+        tab.register_callbacks(app)
+        self.run_app(app)
+
+    def model_summary(self, **kwargs):
+        """Runs model_summary tab inline in notebook"""
+        tab = ModelSummaryTab(self.explainer, standalone=True, **kwargs)
+        self._run_tab(tab, title)
+
+    def contributions(self,  title='Contributions', **kwargs):
+        """Runs contributions tab inline in notebook"""
+        tab = ContributionsTab(self.explainer, standalone=True, **kwargs)
+        self._run_tab(tab, title)
+
+    def shap_dependence(self, title='Shap Dependence', **kwargs):
+        """Runs shap_dependence tab inline in notebook"""
+        tab = ShapDependenceTab(self.explainer, standalone=True, **kwargs)
+        self._run_tab(tab, title)
+
+    def shap_interaction(self, title='Shap Interactions', **kwargs):
+        """Runs shap_interaction tab inline in notebook"""
+        tab = ShapInteractionsTab(self.explainer, standalone=True, **kwargs)
+        self._run_tab(tab, title)
+
+    def decision_trees(self, title='Decision Trees', **kwargs):
+        """Runs decision_trees tab inline in notebook"""
+        tab = DecisionTreesTab(self.explainer, standalone=True, **kwargs)
+        self._run_tab(tab, title)
 

@@ -505,8 +505,7 @@ class BaseExplainer(ABC):
 
         :param topx: Only return topx most importance features, defaults to None
         :type topx: int, optional
-        :param cutoff: Only return features with mean abs shap of at least 
-                        cutoff, defaults to None
+        :param cutoff: Only return features with mean abs shap of at least cutoff, defaults to None
         :type cutoff: float, optional
         :param cats: group categorical variables, defaults to False
         :type cats: bool, optional
@@ -1044,10 +1043,10 @@ class BaseExplainer(ABC):
 
 class ClassifierExplainer(BaseExplainer):
     """
-    ExplainerBunch for classification models. Defines the shap values for
-    each possible class in the classifications.
+    Explainer for classification models. Defines the shap values for
+    each possible class in the classification.
 
-    You assign the positive label class afterwards with e.g. .pos_label=0
+    You assign the positive label class afterwards with e.g. explainer.pos_label=0
 
     In addition defines a number of plots specific to classification problems
     such as a precision plot, confusion matrix, roc auc curve and pr auc curve.
@@ -1181,10 +1180,6 @@ class ClassifierExplainer(BaseExplainer):
         ret = getattr(self, prop)
         self.pos_label = tmp
         return ret
-
-    def get_y_binary(self, pos_label=None):
-        if pos_label is None: pos_label = self.pos_label
-        return np.where(self.y.values==pos_label, 1, 0)
 
     @property
     def y_binary(self):
@@ -1510,6 +1505,7 @@ class ClassifierExplainer(BaseExplainer):
         :type quantiles: int
         :param cutoff: cutoff of model to include in the plot
         :param multiclass: whether to display all classes or only positive class, defaults to False
+        :param pos_label: positive label to display, defaults to self.pos_label
         :return: Plotly fig
         """
         if pos_label is None: pos_label = self.pos_label
@@ -1524,6 +1520,7 @@ class ClassifierExplainer(BaseExplainer):
         """returns a cumulative precision plot, which is a slightly different 
         representation of a lift curve.
         
+        :param pos_label: positive label to display, defaults to self.pos_label
         :return: plotly fig
         """
         if pos_label is None: pos_label = self.pos_label
@@ -1539,8 +1536,8 @@ class ClassifierExplainer(BaseExplainer):
         :type normalized: bool, optional
         :param binary: if multiclass display one-vs-rest instead, defaults to False
         :type binary: bool, optional
-        :return: [description]
-        :rtype: [type]
+        :param pos_label: positive label to display, defaults to self.pos_label
+        :return: plotly fig
         """
         if pos_label is None: pos_label = self.pos_label
         pos_label_str = self.labels[pos_label]
@@ -1563,9 +1560,28 @@ class ClassifierExplainer(BaseExplainer):
                 normalized=normalized, labels=self.labels)
 
     def plot_lift_curve(self, cutoff=None, percentage=False, round=2, pos_label=None):
+        """returns a plot of a lift curve.
+        
+        :param cutoff: cutoff of positive class to calculate lift
+        :type cutoff: float, optional
+        :param percentage: display percentages instead of counts , defaults to False
+        :type percentage: bool, optional
+        :param round: number of digits to round to
+        :param pos_label: positive label to display, defaults to self.pos_label
+        :return: plotly fig
+        """
         return plotly_lift_curve(self.lift_curve_df(pos_label), cutoff, percentage, round)
 
     def plot_classification(self, cutoff=0.5, percentage=True, pos_label=None):
+        """returns a plot showing a barchart of the classification result for cutoff
+        
+        :param cutoff: cutoff of positive class to calculate lift
+        :type cutoff: float, optional
+        :param percentage: display percentages instead of counts , defaults to True
+        :type percentage: bool, optional
+        :param pos_label: positive label to display, defaults to self.pos_label
+        :return: plotly fig
+        """
         return plotly_classification_plot(self.pred_probas(pos_label), self.y, self.labels, cutoff, percentage=percentage)
 
     def plot_roc_auc(self, cutoff=0.5, pos_label=None):
@@ -1585,10 +1601,10 @@ class ClassifierExplainer(BaseExplainer):
 
 class RegressionExplainer(BaseExplainer):
     """
-     ExplainerBunch for regression models.
+     Explainer for regression models.
 
-    In addition defines a number of plots specific to regression problems
-    such as a predicted vs actual and residual plots.
+    In addition to BaseExplainer defines a number of plots specific to regression 
+    problems such as a predicted vs actual and residual plots.
     """
     def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",

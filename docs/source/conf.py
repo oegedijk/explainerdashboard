@@ -50,6 +50,7 @@ master_doc = 'index'
 extensions = [
     'sphinx.ext.autodoc', 
     #'sphinxcontrib.fulltoc',
+    'sphinx.ext.autosectionlabel',
     "sphinx_rtd_theme"
 ]
 

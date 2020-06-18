@@ -1,7 +1,7 @@
 Explainers
 **********
 
-In order to start an ``explainerdashboard`` you first need to construct an ``Explainer`` instance.
+In order to start an ``ExplainerDashboard`` you first need to construct an ``Explainer`` instance.
 
 
 Explainers
@@ -30,7 +30,14 @@ example code::
     explainer.plot_shap_interaction("Fare", "PassengerClass")
     explainer.plot_pdp("Sex", index=0)
 
-`More examples in the notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+
+.. autoclass:: explainerdashboard.explainers.BaseExplainer
+   :members: mean_abs_shap_df, permutation_importances_df, importances_df, contrib_df, to_sql 
+   :member-order: bysource
+
+For the plotting methods see :ref:`BaseExplainer Plots<BaseExplainer: Plots>`
+
 
 ClassifierExplainer
 ===================
@@ -63,8 +70,14 @@ example code::
     explainer.plot_roc_auc(cutoff=0.7)
     explainer.plot_pr_auc(cutoff=0.3)
 
-`More examples in the notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
 
+
+.. autoclass:: explainerdashboard.explainers.ClassifierExplainer
+   :members: random_index, precision_df
+   :member-order: bysource
+
+For the plotting methods see :ref:`ClassifierExplainer Plots<ClassifierExplainer: Plots>`
 
 RegressionExplainer
 ===================
@@ -85,11 +98,17 @@ example code::
     explainer.plot_predicted_vs_actual()
     explainer.plot_residuals()
 
-`More examples in the notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+
+.. autoclass:: explainerdashboard.explainers.RegressionExplainer
+   :members: random_index, residuals, metrics, prediction_result_markdown
+   :member-order: bysource
+
+For the plotting methods see :ref:`RegressionExplainer Plots<RegressionExplainer: Plots>`
 
 
-RandomForestExplainerExplainer
-==============================
+RandomForestExplainer
+=====================
 
 There is an additional mixin class specifically for sklearn RandomForests
 that defines additional methods and plots to investigate and visualize 
@@ -98,72 +117,40 @@ individual decision trees within the random forest.
 - ``RandomForestExplainer``: uses ``dtreeviz`` library to visualize individual decision trees.
 
 You can get a pd.DataFrame summary of the path that a specific index took through a specific tree.
-You can also plot the individual prediction of each individual tree. 
+You can also plot the individual prediction of each individual tree ``tree_idx`` for 
+specific row in your data indentified by ``index``::
 
-- ``decisiontree_df(tree_idx, index)``
-- ``decisiontree_df_summary(tree_idx, index)``
-- ``plot_trees(index)``
+    explainer.decisiontree_df(tree_idx, index)
+    explainer.decisiontree_df_summary(tree_idx, index)
+    explainer.plot_trees(index)
 
-And for dtreeviz visualization of individual decision trees (svg format):
-- ``decision_path(tree_idx, index)``
-- ``decision_path_file(tree_idx, index)``
-- ``decision_path_encoded(tree_idx, index)``
+And for dtreeviz visualization of individual decision trees (svg format)::
 
-This also works with classifiers and regression models:
+    explainer.decision_path(tree_idx, index)
+    explainer.decision_path_file(tree_idx, index)
+    explainer.decision_path_encoded(tree_idx, index)
 
-``explainer = RandomForestClassifierExplainer(model, X, y)``
+This also works with classifiers and regression models::
 
-``explainer = RandomForestRegressionExplainer(model, X, y)``
+    explainer = RandomForestClassifierExplainer(model, X, y)
+    explainer = RandomForestRegressionExplainer(model, X, y)
 
-BaseExplainer
-=============
-.. autoclass:: explainerdashboard.explainers.BaseExplainer
-   :members: mean_abs_shap_df, permutation_importances_df, importances_df, contrib_df, to_sql 
-   :member-order: bysource
-
-For the plotting methods see base_plots_
-
-ClassifierExplainer
-===================
-
-.. autoclass:: explainerdashboard.explainers.ClassifierExplainer
-   :members: random_index, precision_df
-   :member-order: bysource
-
-For the plotting methods see classifier_plots_
-
-RegressionExplainer
-===================
-
-.. autoclass:: explainerdashboard.explainers.RegressionExplainer
-   :members: random_index, residuals, metrics, prediction_result_markdown
-   :member-order: bysource
-
-For the plotting methods see regression_plots_
-
-
-RandomForestExplainer
-=====================
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer
    :members: decisiontree_df, decisiontree_df_summary, plot_trees
    :member-order: bysource
-   :exclude-members: __init__
+   :exclude-members: 
+   
+For the plotting methods see :ref:`RandomForestExplainer Plots<RandomForestExplainer: Plots>`
 
-
-RandomForestClassifierExplainer
-===============================
 
 .. autoclass:: explainerdashboard.explainers.RandomForestClassifierExplainer
    :member-order: bysource
    :exclude-members: __init__
 
-
-RandomForestRegressionExplainer
-===============================
-
 .. autoclass:: explainerdashboard.explainers.RandomForestRegressionExplainer
    :member-order: bysource
    :exclude-members: __init__
+
 
 
