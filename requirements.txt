@@ -1,6 +1,6 @@
 dash>=1.8.0
 dash-bootstrap-components
-jupyter-dash
+jupyter_dash
 dtreeviz
 numpy
 pandas
