@@ -315,7 +315,7 @@ class InlineExplainer:
         app.title = title
         app.layout = tab.layout()
         tab.register_callbacks(app)
-        self.run_app(app)
+        self._run_app(app)
 
     def model_summary(self, **kwargs):
         """Runs model_summary tab inline in notebook"""
