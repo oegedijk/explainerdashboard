@@ -174,7 +174,7 @@ class JupyterExplainerDashboard(ExplainerDashboard):
         """
         pio.templates.default = self.plotly_template
         if mode in ['inline', 'jupyterlab']:
-            self.app.run_server(mode=mode, width=width, height=height)
+            self.app.run_server(mode=mode, width=width, height=height, port=port)
         elif mode == 'external':
              self.app.run_server(mode=mode, port=port, **kwargs)
         else:
@@ -266,7 +266,7 @@ class JupyterExplainerTab(ExplainerTab):
         """
         pio.templates.default = self.plotly_template
         if mode in ['inline', 'jupyterlab']:
-            self.app.run_server(mode=mode, width=width, height=height)
+            self.app.run_server(mode=mode, width=width, height=height, port=port)
         elif mode == 'jupyterlab':
              self.app.run_server(mode=mode, port=port, **kwargs)
         else:
@@ -304,9 +304,9 @@ class InlineExplainer:
         """
         pio.templates.default = self.plotly_template
         if self.mode in ['inline', 'jupyterlab']:
-            app.run_server(mode=self.mode, width=self.width, height=self.height)
+            app.run_server(mode=self.mode, width=self.width, height=self.height, port=self.port)
         elif self.mode == 'external':
-             app.run_server(mode=self.mode, port=port, **self.kwargs)
+             app.run_server(mode=self.mode, port=self.port, **self.kwargs)
         else:
             raise ValueError("mode should either be 'inline', 'jupyterlab'  or 'external'!")
 
