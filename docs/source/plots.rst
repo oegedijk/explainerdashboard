@@ -1,47 +1,47 @@
 Plots
 *****
 
-The BaseExplainer class provides a number of useful analytical plots:
+The BaseExplainer class provides a number of useful analytical plots::
 
-- plot_importances()
-- plot_shap_contributions()
-- plot_shap_summary()
-- plot_shap_interaction_summary()
-- plot_shap_dependence()
-- plot_shap_interaction_dependence()
-- plot_pdp()
+    explainer.plot_importances(...)
+    explainer.plot_shap_contributions(...)
+    explainer.plot_shap_summary(...)
+    explainer.plot_shap_interaction_summary(...)
+    explainer.plot_shap_dependence(...)
+    explainer.plot_shap_interaction_dependence(...)
+    explainer.plot_pdp(...)
 
-For the derived ClassifierExplainer class some additional plots are available:
+For the derived ClassifierExplainer class some additional plots are available::
 
-- plot_precision()
-- plot_cumulative_precision()
-- plot_classification()
-- plot_confusion_matrix()
-- plot_lift_curve()
-- plot_roc_auc()
-- plot_pr_auc()
+    explainer.plot_precision(...)
+    explainer.plot_cumulative_precision(...)
+    explainer.plot_classification(...)
+    explainer.plot_confusion_matrix(...)
+    explainer.plot_lift_curve(...)
+    explainer.plot_roc_auc(...)
+    explainer.plot_pr_auc(...)
 
-For the derived RegressionExplainer class again some additional plots:
+For the derived RegressionExplainer class again some additional plots::
 
--  plot_predicted_vs_actual()
--  plot_residuals()
--  plot_residuals_vs_feature()
+    explainer.plot_predicted_vs_actual(...)
+    explainer.plot_residuals(...)
+    explainer.plot_residuals_vs_feature(...)
 
-Finally RandomForestExplainer provides:
+Finally RandomForestExplainer provides::
 
-- plot_trees()
-- decision_path(), decision_path_file(), decision_path_encoded()
+    explainer.plot_trees(...)
+    explainer.decision_path(...)
 
-.. _base_plots:
+
 BaseExplainer: Plots
 ====================
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
-   :members: plot_importances, plot_shap_contributions, plot_shap_summary, plot_shap_interaction_summary, plot_shap_dependence, plot_shap_interaction_dependence, plot_pdp
+   :members: plot_importances, plot_shap_contributions, plot_shap_summary, plot_shap_interaction_summary, plot_shap_dependence, plot_shap_interaction, plot_pdp
    :member-order: bysource
    :exclude-members: __init__
    :noindex: 
 
-.. _classifier_plots:
+
 ClassifierExplainer: Plots
 ==========================
 
@@ -51,7 +51,7 @@ ClassifierExplainer: Plots
    :exclude-members: __init__
    :noindex: 
 
-.. _regression_plots:
+
 RegressionExplainer: Plots
 ==========================
 
@@ -61,8 +61,8 @@ RegressionExplainer: Plots
    :exclude-members: __init__
    :noindex:
    
-.. _randomforest_plots:
-RandomForestExplainerExplainer: Plots
+
+RandomForestExplainer: Plots
 =====================================
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer

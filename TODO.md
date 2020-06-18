@@ -31,6 +31,7 @@
 - add get_random_index with min/max residual for regression
 
 ## Dashboard:
+- make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
 - reformat contributions table
 - add final prediction to contributions table
@@ -52,10 +53,13 @@
 - document X_background
 - document properties with prop(pos_label)
 - document model_output
+- document JupyterExplainerDashboard, InlineExplainer
 - add deploying with flask/gunicorn section
 - convert to MyST for markdown friendly documentation?
 
 ## Library level:
+- Make all DashboardTabs derive from ABC ExplainerTab
+- Add JupyterDash support
 - submit pull request to dtreeviz to accept shadowtree as parameter
 - turn all docstrings into sphinx-napolean google style
 

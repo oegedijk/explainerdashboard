@@ -24,11 +24,63 @@ Some example code::
                         decision_trees=False).run(port=8051)
 
 
+
+
 ExplainerDashboard
 ==================
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerDashboard
    :members: __init__, run
+
+JupyterExplainerDashboard
+=========================
+There is also an alternative ``JupyterExplainerDashboard`` that uses the ``JupyterDash`` 
+backend instead. You can either pass to ``run()`` ``mode='inline'`` or ``mode='jupyterlab'`` or 
+``mode='external'`` to start the dashboard inline in a notebook, in seperate pane 
+in jupyterlab, or in seperate browser tab respectively. 
+
+.. autoclass:: explainerdashboard.dashboards.JupyterExplainerDashboard
+   :members: __init__, run
+
+ExplainerTab
+============
+
+To run a single page of a particular tab there is ExplainerTab. You can either
+pass the appropriate tab class definition, or a string identifier::
+
+    ExplainerTab(explainer, "model_summary").run()
+    ExplainerTab(explainer, "shap_dependence").run(port=8051)
+    ExplainerTab(explainer, ShapInteractionsTab).run()
+
+
+.. autoclass:: explainerdashboard.dashboards.ExplainerTab
+   :members: __init__, run
+
+JupyterExplainerTab
+===================
+
+Equivalent to JupyterExplainerDashboard, runs a single tab using the
+JupyterDash() instead of dash.Dash(). You can either pass to ``run()`` 
+``mode='inline'`` or ``mode='jupyterlab'`` or ``mode='external'`` to start 
+the dashboard inline in a notebook, in seperate pane in jupyterlab, or in 
+seperate browser tab respectively. 
+
+.. autoclass:: explainerdashboard.dashboards.JupyterExplainerTab
+   :members: __init__, run
+
+InlineExplainerTab
+==================
+
+An alternative API to run a particular tab inline in a notebook.
+
+Examples::
+
+    InlineExplainer(explainer).shap_dependence()
+    InlineExplainer(explainer, width=1200, height=1000).shap_interaction()
+
+
+.. autoclass:: explainerdashboard.dashboards.InlineExplainerTab
+   :members: __init__, model_summary, contributions, shap_dependence, shap_interaction, decision_trees
 
 
 

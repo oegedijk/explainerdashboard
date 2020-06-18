@@ -72,8 +72,6 @@ object check out `explainer_examples notebook in the github repo. <https://githu
    explainers
    plots
    dashboards
-   explainer_methods
-   explainer_plots
    license
    help
 

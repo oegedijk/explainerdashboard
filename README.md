@@ -42,24 +42,32 @@ from explainerdashboard.explainers import *
 from explainerdashboard.dashboards import *
 from explainerdashboard.datasets import *
 
-# load the data:
 X_train, y_train, X_test, y_test = titanic_survive()
 train_names, test_names = titanic_names()
 
-# fit the model:
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
-# build the ExplainerBunch:
-explainer = ClassifierExplainer(model, X_test, y_test, 
+explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 
                                 labels=['Not survived', 'Survived'])
 
-# Constructing dashboard from ExplainerBunch and run it:
-ExplainerDashboard(explainer).run(port=8051)
+db = ExplainerDashboard(explainer, title="Titanic Explainer",
+                        model_summary=True,  # you can switch off individual tabs
+                        contributions=True,
+                        shap_dependence=True,
+                        shap_interaction=True,
+                        decision_trees=True)
+db.run(port=8051)
 
 ```
+
+When working inside jupyter you can use `JupyterExplainerDashboard()` instead
+to use `JupyterDash` instead of `dash.Dash()` to start the app.
+
+You can also use e.g. `InlineExplainer(explainer).shap_dependence()` to see a 
+single specific tab inline in your notebook. 
 
 ## Installation
 
