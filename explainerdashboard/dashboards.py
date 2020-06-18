@@ -272,7 +272,7 @@ class JupyterExplainerTab(ExplainerTab):
         else:
             raise ValueError("mode should either be 'inline', 'jupyterlab' or 'external'!")
 
-class InlineExplainerTab:
+class InlineExplainer:
     """
     Run a single tab inline in a Jupyter notebook using specific method calls.
     """
