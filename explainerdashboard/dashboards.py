@@ -162,13 +162,13 @@ class JupyterExplainerDashboard(ExplainerDashboard):
         app = JupyterDash(__name__)
         return app
 
-    def run(self, mode='inline', port=8050, width=800, height=650, **kwargs):
+    def run(self, port=8050, mode='inline', width=800, height=650, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
 
-        :param mode: either 'inline', 'jupyterlab' or 'external'
-        :type mode: str, optional
         :param port: the port to run the dashboard on, defaults to 8050
         :type port: int, optional
+        :param mode: either 'inline', 'jupyterlab' or 'external'
+        :type mode: str, optional
         :param width: width in pixels of inline iframe
         :param height: height in pixels of inline iframe
         """
@@ -255,12 +255,12 @@ class JupyterExplainerTab(ExplainerTab):
         app = JupyterDash(__name__)
         return app
 
-    def run(self, mode='inline', port=8050, width=800, height=650, **kwargs):
+    def run(self, port=8050, mode='inline', width=800, height=650, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
-        :param mode: either 'inline', 'jupyterlab' or 'external' 
-        :type mode: str, optional
         :param port: the port to run the dashboard on, defaults to 8050
         :type port: int, optional
+        :param mode: either 'inline', 'jupyterlab' or 'external' 
+        :type mode: str, optional
         :param width: width in pixels of inline iframe
         :param height: height in pixels of inline iframe
         """
