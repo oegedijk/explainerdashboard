@@ -31,6 +31,8 @@
 - add get_random_index with min/max residual for regression
 
 ## Dashboard:
+- Make all DashboardTabs derive from ABC BaseExplainerTab
+- Try to make a class decorator for title_and_label_selector?
 - make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
 - reformat contributions table
@@ -58,8 +60,7 @@
 - convert to MyST for markdown friendly documentation?
 
 ## Library level:
-- Make all DashboardTabs derive from ABC ExplainerTab
-- Add JupyterDash support
+- add badges to README: https://github.com/badges/shields
 - submit pull request to dtreeviz to accept shadowtree as parameter
 - turn all docstrings into sphinx-napolean google style
 
