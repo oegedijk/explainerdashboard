@@ -13,8 +13,10 @@ from .dashboard_methods import *
 
 
 class ShapInteractionsTab:
-    def __init__(self, explainer, standalone=False, tab_id="shap_interactions", title='Shap Interactions',
-                 n_features=10, cats=True, **kwargs):
+    def __init__(self, explainer, 
+                    standalone=False, hide_title=False,
+                    tab_id="shap_interactions", title='Shap Interactions',
+                    n_features=10, cats=True, **kwargs):
         self.explainer = explainer
         self.standalone = standalone
         self.tab_id = tab_id
@@ -25,19 +27,24 @@ class ShapInteractionsTab:
 
         self.kwargs = kwargs
         if self.standalone:
-            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+            # If standalone then no 'pos-label-selector' or 'tabs'
+            # component has been defined by overarching Dashboard.
+            # The callbacks expect these to be there, so we add them in here.
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            # No need to define anything, so just add empty dummy
+            self.label_selector = DummyComponent()
         
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout() if self.standalone else None,
-            # need to add dummy to make callbacks on tab change work:
-            html.Div(id='tabs') if self.standalone else None, 
+            self.label_selector.layout(),
             shap_interactions_layout(self.explainer, n_features=self.n_features, cats=self.cats, **self.kwargs)
         ], fluid=True)
     
     def register_callbacks(self, app):
-        if self.standalone:
-            self.label_selector.register_callbacks(app)
+        self.label_selector.register_callbacks(app)
         shap_interactions_callbacks(self.explainer, app)
 
 

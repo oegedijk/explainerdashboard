@@ -1,4 +1,11 @@
-__all__ = ['ModelSummaryTab']
+__all__ = [
+    'ModelSummaryTab', 
+    'ImportancesStats',
+    'ClassifierModelStats',
+    'RegressionModelStats',
+]
+
+
 import numpy as np
 
 import dash
@@ -15,10 +22,11 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 
 class ModelSummaryTab:
-    def __init__(self, explainer, standalone=False, tab_id="model_summary", title='Model Summary',
-                 bin_size=0.1, quantiles=10, cutoff=0.5, 
-                 round=2, logs=False, vs_actual=False, ratio=False,
-                 n_features=15, **kwargs):
+    def __init__(self, explainer, standalone=False, hide_title=False,
+                    tab_id="model_summary", title='Model Summary',
+                    bin_size=0.1, quantiles=10, cutoff=0.5, 
+                    round=2, logs=False, vs_actual=False, ratio=False,
+                    n_features=15, **kwargs):
         self.explainer = explainer
         self.standalone = standalone
         
@@ -26,22 +34,30 @@ class ModelSummaryTab:
         self.title = title
 
         if self.standalone:
-            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+            # If standalone then no 'pos-label-selector' or 'tabs'
+            # component has been defined by overarching Dashboard.
+            # The callbacks expect these to be there, so we add them in here.
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            # No need to define anything, so just add empty dummy
+            self.label_selector = DummyComponent()
 
         if self.explainer.is_classifier:
-            self.model_stats = ClassifierModelStats(explainer, bin_size, quantiles, cutoff) 
+            self.model_stats = ClassifierModelStats(explainer, 
+                bin_size=bin_size, quantiles=quantiles, cutoff=cutoff) 
         elif explainer.is_regression:
-            self.model_stats = RegressionModelStats(explainer, round, logs, vs_actual, ratio)
+            self.model_stats = RegressionModelStats(explainer,
+                round=round, logs=logs, vs_actual=vs_actual, ratio=ratio)
         else:
             self.model_stats =  EmptyLayout()
 
-        self.importances = ImportancesStats(explainer, n_features)
+        self.importances = ImportancesStats(explainer, n_features=n_features)
 
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout() if self.standalone else None,
-            # need to add dummy to make callbacks on tab change work:
-            html.Div(id='tabs') if self.standalone else None, 
+            self.label_selector.layout(),
             dcc.Store(id='testtest'),
             self.model_stats.layout(),
             self.importances.layout()
@@ -49,20 +65,30 @@ class ModelSummaryTab:
 
     
     def register_callbacks(self, app, **kwargs):
-        if self.standalone:
-            self.label_selector.register_callbacks(app)
+        self.label_selector.register_callbacks(app)
         self.model_stats.register_callbacks(app)
         self.importances.register_callbacks(app)
 
 
 class ImportancesStats:
-    def __init__(self, explainer, n_features=None):
+    def __init__(self, explainer, standalone=False, hide_title=False,
+                        title="Importances",
+                        n_features=None):
         self.explainer = explainer
         self.n_features = n_features
+        self.standalone = standalone
+        self.hide_title = hide_title
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            self.label_selector = DummyComponent()
     
     def layout(self):
         cats_display = 'none' if self.explainer.cats is None else None
         return dbc.Container([
+            self.label_selector.layout(),
             dbc.Row([dbc.Col([html.H2('Feature Importances:')])]),
             dbc.Row([
                 dbc.Col([
@@ -88,7 +114,7 @@ class ImportancesStats:
                     dcc.Dropdown(id='importance-tablesize',
                                         options = [{'label': str(i+1), 'value':i+1} 
                                                     for i in range(len(self.explainer.columns_cats))],
-                                        value=min(self.n_features, len(self.explainer.columns_cats)))
+                                        value=min(self.n_features, len(self.explainer.columns_cats)) if self.n_features is not None else None)
                 ]),
                 dbc.Col([
                     html.Div([
@@ -117,6 +143,8 @@ class ImportancesStats:
             ], fluid=True)
         
     def register_callbacks(self, app, **kwargs):
+        self.label_selector.register_callbacks(app)
+
         @app.callback(  
             Output('importances-graph', 'figure'),
             [Input('importance-tablesize', 'value'),
@@ -126,17 +154,29 @@ class ImportancesStats:
             [State('tabs', 'value')]
         )
         def update_importances(tablesize, cats, permutation_shap, pos_label, tab): 
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_importances(
-                        kind=permutation_shap, topx=tablesize, cats=cats)
+                        kind=permutation_shap, topx=tablesize, 
+                        cats=cats, pos_label=pos_label)
 
 class ClassifierModelStats:
-    def __init__(self, explainer, bin_size=0.1, quantiles=10, cutoff=0.5):
+    def __init__(self, explainer, title="Classification Stats", 
+                    standalone=False, hide_title=False,
+                    bin_size=0.1, quantiles=10, cutoff=0.5):
         self.explainer = explainer
+        self.standalone = standalone
+        self.hide_title = hide_title
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            self.label_selector = DummyComponent()
+
         self.bin_size, self.quantiles, self.cutoff = bin_size, quantiles, cutoff
 
     def layout(self):
         return dbc.Container([
+            self.label_selector.layout(),
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
 
             dbc.Row([
@@ -296,7 +336,7 @@ class ClassifierModelStats:
         ], fluid=True)
 
     def register_callbacks(self, app, **kwargs):
-
+        self.label_selector.register_callbacks(app)
         @app.callback(
             [Output('bin-size-div', 'style'),
              Output('quantiles-div', 'style')],
@@ -317,7 +357,6 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
-            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
         @app.callback(
@@ -331,7 +370,6 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, tab):
-            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             if bins=='bin_size':
                 return self.explainer.plot_precision(
                     bin_size=bin_size, cutoff=cutoff, multiclass=multiclass, pos_label=pos_label)
@@ -348,7 +386,6 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(percentage, cutoff, pos_label, tab):
-            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_classification(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
         @app.callback(
@@ -360,7 +397,6 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, normalized, binary, pos_label, tab):
-            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_confusion_matrix(
                         cutoff=cutoff, normalized=normalized, binary=binary, pos_label=pos_label)
 
@@ -371,7 +407,6 @@ class ClassifierModelStats:
              Input('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
-            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_roc_auc(cutoff=cutoff, pos_label=pos_label)
 
         @app.callback(
@@ -381,7 +416,6 @@ class ClassifierModelStats:
             [State('tabs', 'value')],
         )
         def update_precision_graph(cutoff, pos_label, tab):
-            #self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.plot_pr_auc(cutoff=cutoff, pos_label=pos_label)
 
         @app.callback(
@@ -393,12 +427,23 @@ class ClassifierModelStats:
             return np.round(self.explainer.cutoff_from_percentile(percentile, pos_label=pos_label), 2)
 
 class RegressionModelStats:
-    def __init__(self, explainer, round=2, logs=False, vs_actual=False, ratio=False):
-        self.explainer = explainer
+    def __init__(self, explainer, title="Regression Stats", 
+                    standalone=False, hide_title=False,
+                    round=2, logs=False, vs_actual=False, ratio=False):
+        self.explainer = explainer          
         self.round, self.logs, self.vs_actual, self. ratio  = round, logs, vs_actual, ratio
+        self.standalone = standalone
+
+        if self.standalone:
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            self.label_selector = DummyComponent()
 
     def layout(self):
         return dbc.Container([
+            self.label_selector.layout(),
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
             dbc.Row([
                 dbc.Col([
@@ -414,11 +459,11 @@ class RegressionModelStats:
                                 html_for='preds-vs-actual-logs',
                                 className="form-check-label"),
                     ], check=True),
-                    ], width=6),
+                ], md=6),
                 dbc.Col([
                     dcc.Loading(id="loading-model-summary", 
                                 children=[dcc.Markdown(id='model-summary')]),      
-                ], width=6),
+                ], md=6),
             ], align="start"),
             dbc.Row([
                 dbc.Col([
@@ -447,7 +492,7 @@ class RegressionModelStats:
                                 className="form-check-label"),
                     ], check=True),
 
-                ], width=6),
+                ], md=6),
                 dbc.Col([
                     dcc.Loading(id="loading-residuals-vs-col-graph", 
                                 children=[dcc.Graph(id='residuals-vs-col-graph')]),
@@ -467,53 +512,48 @@ class RegressionModelStats:
                                 html_for='residuals-vs-col-ratio',
                                 className="form-check-label"),
                     ], check=True),
-                ], width=6),
+                ], md=6),
             ])
         ], fluid=True)
         
 
     def register_callbacks(self, app, **kwargs):
+        self.label_selector.register_callbacks(app)
+
         @app.callback(
             Output('model-summary', 'children'),
             [Input('label-store', 'data')],
             [State('tabs', 'value')]
         )
         def update_model_summary(pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
             return self.explainer.metrics_markdown()
 
         Output('model-prediction', 'children')
         @app.callback(
             Output('predicted-vs-actual-graph', 'figure'),
-            [Input('preds-vs-actual-logs', 'checked'),
-             Input('label-store', 'data')],
+            [Input('preds-vs-actual-logs', 'checked')],
             [State('tabs', 'value')]
         )
-        def update_predicted_vs_actual_graph(logs, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
+        def update_predicted_vs_actual_graph(logs, tab):
             return self.explainer.plot_predicted_vs_actual(logs=logs)
 
         @app.callback(
             Output('residuals-graph', 'figure'),
             [Input('residuals-pred-or-actual', 'value'),
-             Input('residuals-ratio', 'checked'),
-             Input('label-store', 'data')],
+             Input('residuals-ratio', 'checked')],
             [State('tabs', 'value')],
         )
-        def update_residuals_graph(pred_or_actual, ratio, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
+        def update_residuals_graph(pred_or_actual, ratio, tab):
             vs_actual = pred_or_actual=='vs_actual'
             return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
 
         @app.callback(
             Output('residuals-vs-col-graph', 'figure'),
             [Input('residuals-col', 'value'),
-             Input('residuals-vs-col-ratio', 'checked'),
-             Input('label-store', 'data')],
+             Input('residuals-vs-col-ratio', 'checked')],
             [State('tabs', 'value')],
         )
-        def update_residuals_graph(col, ratio, pos_label, tab):
-            self.explainer.pos_label = pos_label #needed in case of multiple workers
+        def update_residuals_graph(col, ratio, gtab):
             return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
 
 

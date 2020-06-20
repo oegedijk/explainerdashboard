@@ -15,8 +15,10 @@ import pandas as pd
 from .dashboard_methods import *
 
 class ContributionsTab:
-    def __init__(self, explainer, standalone=False, tab_id="contributions", title='Contributions',
-                 n_features=15, round=2, **kwargs):
+    def __init__(self, explainer, 
+                    standalone=False, hide_title=False,
+                    tab_id="contributions", title='Contributions',
+                    n_features=15, round=2, **kwargs):
         self.explainer = explainer
         self.standalone = standalone
         self.tab_id = tab_id
@@ -26,21 +28,26 @@ class ContributionsTab:
         self.round = round
         self.kwargs = kwargs
         if self.standalone:
-            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+            # If standalone then no 'pos-label-selector' or 'tabs'
+            # component has been defined by overarching Dashboard.
+            # The callbacks expect these to be there, so we add them in here.
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            # No need to define anything, so just add empty dummy
+            self.label_selector = DummyComponent()
            
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout() if self.standalone else None,
-            # need to add dummy to make callbacks on tab change work:
-            html.Div(id='tabs') if self.standalone else None, 
+            self.label_selector.layout(),
             contributions_layout(self.explainer,  
                     n_features=self.n_features, round=self.round, **self.kwargs)
         ], fluid=True)
     
     def register_callbacks(self, app):
-        if self.standalone:
-            self.label_selector.register_callbacks(app)
-        contributions_callbacks(self.explainer, app, standalone=self.standalone)
+        self.label_selector.register_callbacks(app)
+        contributions_callbacks(self.explainer, app, round=self.round)
 
 
 def contributions_layout(explainer, n_features=15, round=2, **kwargs):
@@ -48,11 +55,6 @@ def contributions_layout(explainer, n_features=15, round=2, **kwargs):
     
     :param explainer: ExplainerBunch to build layout for
     :type explainer: ExplainerBunch
-    :type title: str
-    :param standalone: when standalone layout, include a a label_store, defaults to False
-    :type standalone: bool
-    :param hide_selector: if model is a classifier, optionally hide the positive label selector, defaults to False
-    :type hide_selector: bool
     :param n_features: Default number of features to display in contributions graph, defaults to 15
     :type n_features: int, optional
     :param round: Precision of floats to display, defaults to 2
@@ -282,5 +284,4 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
          Input('label-store', 'data')]
     )
     def update_pdp_graph(idx, col, pos_label):
-        explainer.pos_label = pos_label #needed in case of multiple workers
         return explainer.plot_pdp(col, idx, sample=100, pos_label=pos_label)

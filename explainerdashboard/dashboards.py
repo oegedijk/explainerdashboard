@@ -317,28 +317,52 @@ class InlineExplainer:
         tab.register_callbacks(app)
         self._run_app(app)
 
-    def model_summary(self, **kwargs):
+    def model_summary(self, title='Model Summary', 
+                        bin_size=0.1, quantiles=10, cutoff=0.5, 
+                        round=2, logs=False, vs_actual=False, ratio=False):
         """Runs model_summary tab inline in notebook"""
-        tab = ModelSummaryTab(self.explainer, standalone=True, **kwargs)
+        tab = ModelSummaryTab(self.explainer, standalone=True, hide_title=True,
+                    bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, 
+                    round=round, logs=logs, vs_actual=vs_actual, ratio=ratio)
+        self._run_tab(tab, title)
+
+    def importances(self, title='Importances', **kwargs):
+        """Runs model_summary tab inline in notebook"""
+        tab = ImportancesStats(self.explainer, 
+                standalone=True, hide_title=True, **kwargs)
+        self._run_tab(tab, title)
+
+    def model_stats(self, title='Models Stats', **kwargs):
+        """Runs model_stats inline in notebook"""
+        if self.explainer.is_classifier:
+            tab = ClassifierModelStats(self.explainer, 
+                standalone=True, hide_title=True, **kwargs)
+        elif self.explainer.is_regression:
+            tab = RegressionModelStats(self.explainer, 
+                standalone=True, hide_title=True, **kwargs)
         self._run_tab(tab, title)
 
     def contributions(self,  title='Contributions', **kwargs):
-        """Runs contributions tab inline in notebook"""
-        tab = ContributionsTab(self.explainer, standalone=True, **kwargs)
+        """Show contributions (permutation or shap) inline in notebook"""
+        tab = ContributionsTab(self.explainer, 
+                standalone=True, hide_title=True, **kwargs)
         self._run_tab(tab, title)
 
     def shap_dependence(self, title='Shap Dependence', **kwargs):
         """Runs shap_dependence tab inline in notebook"""
-        tab = ShapDependenceTab(self.explainer, standalone=True, **kwargs)
+        tab = ShapDependenceTab(self.explainer, 
+                standalone=True, hide_title=True, **kwargs)
         self._run_tab(tab, title)
 
     def shap_interaction(self, title='Shap Interactions', **kwargs):
         """Runs shap_interaction tab inline in notebook"""
-        tab = ShapInteractionsTab(self.explainer, standalone=True, **kwargs)
+        tab = ShapInteractionsTab(self.explainer, 
+            standalone=True, hide_title=True, **kwargs)
         self._run_tab(tab, title)
 
     def decision_trees(self, title='Decision Trees', **kwargs):
         """Runs decision_trees tab inline in notebook"""
-        tab = DecisionTreesTab(self.explainer, standalone=True, **kwargs)
+        tab = DecisionTreesTab(self.explainer, 
+                standalone=True, hide_title=True, **kwargs)
         self._run_tab(tab, title)
 
