@@ -80,7 +80,7 @@ Examples::
 
 
 .. autoclass:: explainerdashboard.dashboards.InlineExplainerTab
-   :members: __init__, model_summary, contributions, shap_dependence, shap_interaction, decision_trees
+   :members: __init__, model_summary, importances, model_stats, contributions, shap_dependence, shap_interaction, decision_trees
 
 
 

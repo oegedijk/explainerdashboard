@@ -15,7 +15,7 @@
 -
 
 ### Improvements
--
+- cleaned up standalone label selector code
 -
 
 ### Other Changes

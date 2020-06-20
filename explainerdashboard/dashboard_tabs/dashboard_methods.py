@@ -45,16 +45,33 @@ class EmptyLayout:
     def register_callbacks(self, app):
         pass
 
-class TitleAndLabelSelector:
-    def __init__(self, explainer, title="Explainer Dashboard", 
-                    title_only=False, label_store_only=False, dummy=False):
-        self.explainer = explainer
-        self.title = title
-        self.title_only, self.label_store_only = title_only, label_store_only
-        self.dummy = dummy
+class DummyComponent:
+    def __init__(self):
+        pass
 
     def layout(self):
-        if self.dummy: return None
+        return None
+
+    def register_callbacks(self, app):
+        pass
+
+class TitleAndLabelSelector:
+    def __init__(self, explainer, title="Explainer Dashboard", 
+                    title_only=False, hidden=False, 
+                    dummy_label_store=False, dummy_tabs=False):
+        self.explainer = explainer
+        self.title = title
+        self.title_only = title_only
+        self.hidden = hidden
+        self.dummy_label_store = dummy_label_store
+        self.dummy_tabs = dummy_tabs
+
+    def layout(self):
+        if self.hidden: 
+            return html.Div([
+                html.Div(id='tabs', style="none") if self.dummy_tabs else None,
+                dcc.Store(id='label-store'),
+            ], style="none")
     
         title_col = dbc.Col([html.H1(self.title)], width='auto')
     
@@ -62,17 +79,18 @@ class TitleAndLabelSelector:
             return dbc.Container([
                 dbc.Row([
                     title_col,
+                    html.Div(id='tabs', style="none") if self.dummy_tabs else None,
                 ], justify="start", align="center")
             ], fluid=True)
-        elif self.label_store_only or not self.explainer.is_classifier:
+        elif self.dummy_label_store or not self.explainer.is_classifier:
             return dbc.Container([
                 dbc.Row([
                     title_col,
+                    html.Div(id='tabs', style="none") if self.dummy_tabs else None,
                     dcc.Store(id='label-store')
                 ], justify="start", align="center")
             ], fluid=True)
         elif self.explainer.is_classifier: 
-            #classifier can show label selector, but still optionally hide it
             return dbc.Container([
                 dbc.Row([
                     title_col,
@@ -84,21 +102,23 @@ class TitleAndLabelSelector:
                                 value = self.explainer.pos_label
                             )
                     ], width=2),
+                    html.Div(id='tabs', style="none") if self.dummy_tabs else None,
                     dcc.Store(id='label-store')
                 ], justify="start", align="center")
             ], fluid=True)
         else:
             return None
  
-
     def register_callbacks(self, app, **kwargs):
-        if self.explainer.is_classifier and not self.label_store_only:
+        if (self.explainer.is_classifier and
+            not self.dummy_label_store and
+            not self.title_only and
+            not self.hidden):
             @app.callback(
                 Output("label-store", "data"),
                 [Input('pos-label-selector', 'value')]
             )
             def change_positive_label(pos_label):
                 if pos_label is not None:
-                    #self.explainer.pos_label = pos_label
                     return pos_label
                 return self.explainer.pos_label

@@ -13,8 +13,10 @@ from .dashboard_methods import *
 
 
 class DecisionTreesTab:
-    def __init__(self, explainer, standalone=False, tab_id="decision_trees", title='Decision Trees',
-                 round=2, **kwargs):
+    def __init__(self, explainer, 
+                    standalone=False, hide_title=False,
+                    tab_id="decision_trees", title='Decision Trees',
+                    round=2, **kwargs):
         self.explainer = explainer
         self.standalone = standalone
         self.tab_id = tab_id
@@ -24,20 +26,25 @@ class DecisionTreesTab:
         self.kwargs = kwargs
 
         if self.standalone:
-            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+            # If standalone then no 'pos-label-selector' or 'tabs'
+            # component has been defined by overarching Dashboard.
+            # The callbacks expect these to be there, so we add them in here.
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            # No need to define anything, so just add empty dummy
+            self.label_selector = DummyComponent()
         
         
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout() if self.standalone else None,
-            # need to add dummy to make callbacks on tab change work:
-            html.Div(id='tabs') if self.standalone else None, 
+            self.label_selector.layout(),
             decision_trees_layout(self.explainer, round=self.round)
         ], fluid=True)
         
     def register_callbacks(self, app):
-        if self.standalone:
-            self.label_selector.register_callbacks(app)
+        self.label_selector.register_callbacks(app)
         decision_trees_callbacks(self.explainer, app, round=self.round)
 
 

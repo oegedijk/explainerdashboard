@@ -12,8 +12,10 @@ from dash.exceptions import PreventUpdate
 from .dashboard_methods import *
 
 class ShapDependenceTab:
-    def __init__(self, explainer, standalone=False, tab_id="shap_dependence", title='Shap Dependence',
-                 n_features=10, **kwargs):
+    def __init__(self, explainer, 
+                    standalone=False, hide_title=False,
+                    tab_id="shap_dependence", title='Shap Dependence',
+                    n_features=None, **kwargs):
         self.explainer = explainer
         self.standalone = standalone
         self.tab_id = tab_id
@@ -23,26 +25,32 @@ class ShapDependenceTab:
         self.kwargs = kwargs
 
         if self.standalone:
-            self.label_selector = TitleAndLabelSelector(explainer, title=title)
+            # If standalone then no 'pos-label-selector' or 'tabs'
+            # component has been defined by overarching Dashboard.
+            # The callbacks expect these to be there, so we add them in here.
+            self.label_selector = TitleAndLabelSelector(
+                                    explainer, title=title, 
+                                    hidden=hide_title, dummy_tabs=True)
+        else:
+            # No need to define anything, so just add empty dummy
+            self.label_selector = DummyComponent()
              
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout() if self.standalone else None,
-            # need to add dummy to make callbacks on tab change work:
-            html.Div(id='tabs') if self.standalone else None, 
+            self.label_selector.layout(),
             shap_dependence_layout(self.explainer, n_features=self.n_features)
     
         ], fluid=True)
     
     def register_callbacks(self, app):
-        if self.standalone:
-            self.label_selector.register_callbacks(app)
+        self.label_selector.register_callbacks(app)
         shap_dependence_callbacks(self.explainer, app)
 
 
 def shap_dependence_layout(explainer, n_features=None, cats=True, **kwargs):
-
     cats_display = 'none' if explainer.cats is None else 'inline-block'
+    if n_features is None:
+        n_features = len(explainer.columns_ranked_by_shap(cats))
     return dbc.Container([
     dbc.Row([
         dbc.Col([
@@ -53,7 +61,8 @@ def shap_dependence_layout(explainer, n_features=None, cats=True, **kwargs):
                     dcc.Dropdown(id='dependence-scatter-depth',
                         options=[{'label': str(i+1), 'value': i+1} 
                                         for i in range(len(explainer.columns_ranked_by_shap(cats)))],
-                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats))))],
+                        value=min(n_features, len(explainer.columns_ranked_by_shap(cats)))
+                        )],
                     md=3), 
                 dbc.Col([
                     dbc.FormGroup(
@@ -134,31 +143,28 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
          Input('label-store', 'data')],
         [State('tabs', 'value')])
     def update_dependence_shap_scatter_graph(summary_type, cats, depth, pos_label, tab):
+        if summary_type == 'aggregate':
+            plot = explainer.plot_importances(
+                    kind='shap', topx=depth, cats=cats, pos_label=pos_label)
+        elif summary_type == 'detailed':
+            plot = explainer.plot_shap_summary(
+                    topx=depth, cats=cats, pos_label=pos_label)
         ctx = dash.callback_context
-        if ctx.triggered:
-            if summary_type == 'aggregate':
-                plot = explainer.plot_importances(
-                        kind='shap', topx=depth, cats=cats, pos_label=pos_label)
-            elif summary_type == 'detailed':
-                plot = explainer.plot_shap_summary(
-                        topx=depth, cats=cats, pos_label=pos_label)
-
-            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-            if trigger == 'dependence-group-categoricals':
-                # if change to group cats, adjust columns and depth
-                if cats:
-                    col_options = [{'label': col, 'value': col} 
-                                        for col in explainer.columns_cats]
-                else:
-                    col_options = [{'label': col, 'value': col} 
-                                        for col in explainer.columns]
-
-                depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(len(col_options))]
-                return (plot, col_options, depth_options)
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+        if trigger == 'dependence-group-categoricals':
+            # if change to group cats, adjust columns and depth
+            if cats:
+                col_options = [{'label': col, 'value': col} 
+                                    for col in explainer.columns_cats]
             else:
-                return (plot, dash.no_update, dash.no_update)
-        raise PreventUpdate
+                col_options = [{'label': col, 'value': col} 
+                                    for col in explainer.columns]
+
+            depth_options = [{'label': str(i+1), 'value': i+1} 
+                                    for i in range(len(col_options))]
+            return (plot, col_options, depth_options)
+        else:
+            return (plot, dash.no_update, dash.no_update)
 
     @app.callback(
         [Output('dependence-highlight-index', 'value'),
@@ -201,7 +207,6 @@ def shap_dependence_callbacks(explainer, app, **kwargs):
         [State('dependence-col', 'value'),
          State('dependence-group-categoricals', 'checked')])
     def update_dependence_graph(color_col, idx, pos_label, col, cats):
-        explainer.pos_label = pos_label #needed in case of multiple workers
         if color_col is not None:
             return explainer.plot_shap_dependence(
                         col, color_col, highlight_idx=idx, pos_label=pos_label)
