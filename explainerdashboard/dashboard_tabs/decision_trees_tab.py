@@ -14,37 +14,26 @@ from .dashboard_methods import *
 
 class DecisionTreesTab:
     def __init__(self, explainer, 
-                    standalone=False, hide_title=False,
                     tab_id="decision_trees", title='Decision Trees',
+                    header_mode="none",
                     round=2, **kwargs):
         self.explainer = explainer
-        self.standalone = standalone
         self.tab_id = tab_id
         self.title = title
 
         self.round = round
         self.kwargs = kwargs
-
-        if self.standalone:
-            # If standalone then no 'pos-label-selector' or 'tabs'
-            # component has been defined by overarching Dashboard.
-            # The callbacks expect these to be there, so we add them in here.
-            self.label_selector = TitleAndLabelSelector(
-                                    explainer, title=title, 
-                                    hidden=hide_title, dummy_tabs=True)
-        else:
-            # No need to define anything, so just add empty dummy
-            self.label_selector = DummyComponent()
+        
+        self.header = ExplainerHeader(explainer, title=title, mode=header_mode)
         
         
     def layout(self):
-        return dbc.Container([
-            self.label_selector.layout(),
+        return dbc.Container([ 
+            self.header.layout(),
             decision_trees_layout(self.explainer, round=self.round)
         ], fluid=True)
         
     def register_callbacks(self, app):
-        self.label_selector.register_callbacks(app)
         decision_trees_callbacks(self.explainer, app, round=self.round)
 
 
@@ -100,7 +89,7 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
         [Output('tree-predictions-table', 'data'),
          Output('tree-predictions-table', 'columns')],
         [Input('tree-predictions-graph', 'clickData'),
-         Input('label-store', 'data')], # this causes issues for some reason, only on this tab??
+         Input('pos-label', 'value')], # this causes issues for some reason, only on this tab??
         [State('tree-index-store', 'data'),
          State('tabs', 'value')])
     def display_tree_click_data(clickdata, pos_label, index, tab):
@@ -114,7 +103,7 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
         Output('dtreeviz-svg', 'src'),
         [Input('tree-predictions-graph', 'clickData'),
-         #Input('label-store', 'data')#this causes issues for some reason, only on this tab??
+         #Input('pos-label', 'value')#this causes issues for some reason, only on this tab??
          ],
         [State('tree-index-store', 'data'),
          State('tabs', 'value')])
@@ -128,7 +117,7 @@ def decision_trees_callbacks(explainer, app, round=2, **kwargs):
     @app.callback(
         Output('tree-predictions-graph', 'figure'),
         [Input('tree-index-store', 'data'),
-         Input('label-store', 'data'),
+         Input('pos-label', 'value'),
          Input('tree-predictions-graph', 'clickData')],
         [State('tabs', 'value')]
     )
