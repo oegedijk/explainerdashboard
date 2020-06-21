@@ -16,37 +16,26 @@ from .dashboard_methods import *
 
 class ContributionsTab:
     def __init__(self, explainer, 
-                    standalone=False, hide_title=False,
                     tab_id="contributions", title='Contributions',
+                    header_mode="none",
                     n_features=15, round=2, **kwargs):
         self.explainer = explainer
-        self.standalone = standalone
         self.tab_id = tab_id
         self.title = title
         
         self.n_features = n_features
         self.round = round
         self.kwargs = kwargs
-        if self.standalone:
-            # If standalone then no 'pos-label-selector' or 'tabs'
-            # component has been defined by overarching Dashboard.
-            # The callbacks expect these to be there, so we add them in here.
-            self.label_selector = TitleAndLabelSelector(
-                                    explainer, title=title, 
-                                    hidden=hide_title, dummy_tabs=True)
-        else:
-            # No need to define anything, so just add empty dummy
-            self.label_selector = DummyComponent()
+        self.header = ExplainerHeader(explainer, title=title, mode=header_mode)
            
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout(),
+            self.header.layout(),
             contributions_layout(self.explainer,  
                     n_features=self.n_features, round=self.round, **self.kwargs)
         ], fluid=True)
     
     def register_callbacks(self, app):
-        self.label_selector.register_callbacks(app)
         contributions_callbacks(self.explainer, app, round=self.round)
 
 
@@ -257,7 +246,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
          Output('contributions_table', 'tooltip_data')],
         [Input('index-store', 'data'),
          Input('contributions-size', 'value'),
-         Input('label-store', 'data')]
+         Input('pos-label', 'value')]
     )
     def update_output_div(index, topx, pos_label):
         if index is None:
@@ -281,7 +270,7 @@ def contributions_callbacks(explainer, app, round=2, **kwargs):
         Output('pdp-graph', 'figure'),
         [Input('index-store', 'data'),
          Input('pdp-col', 'value'),
-         Input('label-store', 'data')]
+         Input('pos-label', 'value')]
     )
     def update_pdp_graph(idx, col, pos_label):
         return explainer.plot_pdp(col, idx, sample=100, pos_label=pos_label)

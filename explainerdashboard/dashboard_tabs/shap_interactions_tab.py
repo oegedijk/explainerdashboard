@@ -14,11 +14,10 @@ from .dashboard_methods import *
 
 class ShapInteractionsTab:
     def __init__(self, explainer, 
-                    standalone=False, hide_title=False,
                     tab_id="shap_interactions", title='Shap Interactions',
+                    header_mode="none",
                     n_features=10, cats=True, **kwargs):
         self.explainer = explainer
-        self.standalone = standalone
         self.tab_id = tab_id
         self.title = title
 
@@ -26,25 +25,15 @@ class ShapInteractionsTab:
         self.cats = cats
 
         self.kwargs = kwargs
-        if self.standalone:
-            # If standalone then no 'pos-label-selector' or 'tabs'
-            # component has been defined by overarching Dashboard.
-            # The callbacks expect these to be there, so we add them in here.
-            self.label_selector = TitleAndLabelSelector(
-                                    explainer, title=title, 
-                                    hidden=hide_title, dummy_tabs=True)
-        else:
-            # No need to define anything, so just add empty dummy
-            self.label_selector = DummyComponent()
+        self.header = ExplainerHeader(explainer, title=title, mode=header_mode)
         
     def layout(self):
         return dbc.Container([
-            self.label_selector.layout(),
+            self.header.layout(),
             shap_interactions_layout(self.explainer, n_features=self.n_features, cats=self.cats, **self.kwargs)
         ], fluid=True)
     
     def register_callbacks(self, app):
-        self.label_selector.register_callbacks(app)
         shap_interactions_callbacks(self.explainer, app)
 
 
@@ -174,7 +163,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
         [Input('interaction-summary-type', 'value'),
          Input('interaction-col', 'value'),
          Input('interaction-summary-depth', 'value'),
-         Input('label-store', 'data')],
+         Input('pos-label', 'value')],
         [State('interaction-group-categoricals', 'checked')])
     def update_interaction_scatter_graph(summary_type, col, depth, pos_label, cats):
         if col is not None:
@@ -210,7 +199,7 @@ def shap_interactions_callbacks(explainer, app, standalone=False, n_features=10,
          Output('reverse-interaction-graph', 'figure')],
         [Input('interaction-interact-col', 'value'),
          Input('interaction-highlight-index', 'value'),
-         Input('label-store', 'data')],
+         Input('pos-label', 'value')],
         [State('interaction-col', 'value'),
          State('interaction-group-categoricals', 'checked')])
     def update_dependence_graph(interact_col, index, pos_label, col, cats):

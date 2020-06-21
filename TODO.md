@@ -20,6 +20,7 @@
 
 ### Classifier plots:
 - Add feature names to waterfall plot
+- remove group cats option when cats is empty (not just None)
 
 
 ### Regression plots:
