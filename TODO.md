@@ -29,6 +29,7 @@
 
 ## Explainers:
 - add get_random_index with min/max residual for regression
+- check all shap values >0 and <1 for model_output=probability
 
 ## Dashboard:
 - Make all DashboardTabs derive from ABC BaseExplainerTab
