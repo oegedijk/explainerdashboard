@@ -2,25 +2,15 @@
 
 ## Version 0.1.13
 
-### Breaking Changes
-- 
-- 
-
-### New Features
--
--
-
 ### Bug Fixes
--
--
+- Fixed bug with GradientBoostingClassifier where output format of shap.expected_value
+    was not not properly accounted for. 
+- 
 
 ### Improvements
-- cleaned up standalone label selector code
--
+- Cleaned up standalone label selector code
+- Added check for shap base values to be between between 0 and 1 for model_output=='probability' 
 
-### Other Changes
--
--
 
 ## Version 0.1.12
 

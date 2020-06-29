@@ -1082,7 +1082,10 @@ class ClassifierExplainer(BaseExplainer):
             if self.shap == 'tree':
                 if (str(type(self.model)).endswith("XGBClassifier'>") or
                     str(type(self.model)).endswith("LGBMClassifier'>") or
-                    str(type(self.model)).endswith("CatBoostClassifier'>")):
+                    str(type(self.model)).endswith("CatBoostClassifier'>") or
+                    str(type(self.model)).endswith("GradientBoostingClassifier'>") or
+                    str(type(self.model)).endswith("HistGradientBoostingClassifier'>")
+                    ):
                     
                     if self.model_output == "probability": 
                         if self.X_background is None:
@@ -1095,7 +1098,8 @@ class ClassifierExplainer(BaseExplainer):
                              ", model_output='probability', feature_perturbation='interventional')...")
                         print("Note: Shap interaction values will not be available. "
                               "If shap values in probability space are not necessary you can "
-                              "pass model_output='logodds' to get shap interation values back...")
+                              "pass model_output='logodds' to get shap values in logodds without the need for "
+                              "a background dataset and also working shap interaction values...")
                         self._shap_explainer = shap.TreeExplainer(
                                                     self.model, 
                                                     self.X_background if self.X_background is not None else self.X,
@@ -1148,7 +1152,7 @@ class ClassifierExplainer(BaseExplainer):
                 self._shap_explainer = shap.KernelExplainer(model.predict_proba, 
                                             self.X_background if self.X_background is not None else self.X,
                                             link="identity")
-            print("Note: You can always monkeypatch self.shap_explainer if desired...")
+            print("Final note: You can always monkeypatch self.shap_explainer if desired...")
                
         return self._shap_explainer
 
@@ -1246,16 +1250,21 @@ class ClassifierExplainer(BaseExplainer):
         if not hasattr(self, '_shap_base_value'):
             _ = self.shap_values() # CatBoost needs to have shap values calculated before expected value for some reason
             self._shap_base_value = self.shap_explainer.expected_value
+            if isinstance(self._shap_base_value, np.ndarray) and len(self._shap_base_value) == 1:
+                self._shap_base_value = self._shap_base_value[0]
             if isinstance(self._shap_base_value, np.ndarray):
                 self._shap_base_value = list(self._shap_base_value)
             if len(self.labels)==2 and isinstance(self._shap_base_value, (np.floating, float)):
                 if self.model_output == 'probability':
+                    assert self._shap_base_value >= 0.0 and self._shap_base_value <= 1.0, \
+                        (f"Shap base value does not look like a probability: {self._shap_base_value}. "
+                         "Try setting model_output='logodds'.")
                     self._shap_base_value = [1-self._shap_base_value, self._shap_base_value]
                 else: # assume logodds
                     self._shap_base_value = [-self._shap_base_value, self._shap_base_value]
             assert len(self._shap_base_value)==len(self.labels),\
                 f"len(shap_explainer.expected_value)={len(self._shap_base_value)}"\
-                 + "and len(labels)={len(self.labels)} do not match!"
+                 + f"and len(labels)={len(self.labels)} do not match!"
         return default_list(self._shap_base_value, self.pos_label)
 
     @property
