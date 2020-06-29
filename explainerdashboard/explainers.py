@@ -732,8 +732,10 @@ class BaseExplainer(ABC):
         """
         assert col in self.X.columns or col in self.cats, \
             f"{col} not in columns of dataset"
-
-        features = get_feature_dict(self.X.columns, self.cats)[col]
+        if col in self.columns and not col in self.columns_cats:
+            features = col
+        else:
+            features = get_feature_dict(self.X.columns, self.cats)[col]
 
         if index is not None:
             idx = self.get_int_idx(index)
@@ -1000,7 +1002,7 @@ class BaseExplainer(ABC):
                 interaction=True)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,
-                    num_grid_lines=100, num_grid_points=10, pos_label=None):
+                    gridlines=100, gridpoints=10, pos_label=None):
         """returns plotly fig for a partial dependence plot showing ice lines
         for num_grid_lines rows, average pdp based on sample of sample.
         If index is given, display pdp for this specific index.
@@ -1022,7 +1024,7 @@ class BaseExplainer(ABC):
         """
         pdp_result = self.get_pdp_result(col, index,
                             drop_na=drop_na, sample=sample,
-                            num_grid_points=num_grid_points)
+                            num_grid_points=gridpoints)
 
         if index is not None:
             try:
@@ -1031,13 +1033,13 @@ class BaseExplainer(ABC):
                                 display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
                                 index_feature_value=col_value, index_prediction=pred,
                                 feature_name=col,
-                                num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+                                num_grid_lines=min(gridlines, sample, len(self.X)))
             except:
                 return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+                        num_grid_lines=min(gridlines, sample, len(self.X)))
         else:
             return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+                        num_grid_lines=min(gridlines, sample, len(self.X)))
 
 
 
@@ -1393,6 +1395,7 @@ class ClassifierExplainer(BaseExplainer):
         else:
             if y_values is None: y_values = self.y.unique().tolist()
             if not isinstance(y_values, list): y_values = [y_values]
+            y_values = [y if isinstance(y, int) else self.labels.index(y) for y in y_values]
             if pred_proba_min is None: pred_proba_min = self.pred_probas(pos_label).min()
             if pred_proba_max is None: pred_proba_max = self.pred_probas(pos_label).max()
             if pred_percentile_min is None: pred_percentile_min = 0.0
@@ -1476,7 +1479,7 @@ class ClassifierExplainer(BaseExplainer):
                 return np.round(np.log(p / (1-p)), round)
 
             for i in range(len(labels)):
-                pred_proba_str = f"{labels[i]}: {np.round(100*pred_probas_raw[i], round)}"
+                pred_proba_str = f" {labels[i]}: {np.round(100*pred_probas_raw[i], round)}"
                 log_odds_str = f"(logodds={log_odds(pred_probas_raw[i], round)})"
                 yield f"##### {pred_proba_str} {log_odds_str if model_output=='logodds' else ''}\n"
 
