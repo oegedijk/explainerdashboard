@@ -1,4 +1,14 @@
-__all__ = ['ContributionsTab']
+__all__ = ['ContributionsTab',
+           'IndividualContributionsComponent',
+            #'IndexComponent',
+            #'RandomIndexComponent',
+            'ClassifierRandomIndexComponent',
+            #'RegressionRandomIndexComponent',
+            'PredictionSummaryComponent',
+            'ContributionsGraphComponent',
+            'ContributionsTableComponent',
+            'PdpComponent'
+            ]
 
 import dash
 import dash_core_components as dcc
@@ -14,173 +24,574 @@ import pandas as pd
 
 from .dashboard_methods import *
 
-class ContributionsTab:
-    def __init__(self, explainer, 
-                    tab_id="contributions", title='Contributions',
-                    header_mode="none",
-                    n_features=15, round=2, **kwargs):
-        self.explainer = explainer
-        self.tab_id = tab_id
-        self.title = title
-        
-        self.n_features = n_features
-        self.round = round
-        self.kwargs = kwargs
-        self.header = ExplainerHeader(explainer, title=title, mode=header_mode)
-           
-    def layout(self):
-        return dbc.Container([
-            self.header.layout(),
-            contributions_layout(self.explainer,  
-                    n_features=self.n_features, round=self.round, **self.kwargs)
-        ], fluid=True)
-    
-    def register_callbacks(self, app):
-        contributions_callbacks(self.explainer, app, round=self.round)
 
+class IndividualContributionsComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Individual Contributions",
+                        header_mode="none", name=None):
+        super().__init__(explainer, title, header_mode, name)
 
-def contributions_layout(explainer, n_features=15, round=2, **kwargs):
-    """returns layout for individual contributions tabs
-    
-    :param explainer: ExplainerBunch to build layout for
-    :type explainer: ExplainerBunch
-    :param n_features: Default number of features to display in contributions graph, defaults to 15
-    :type n_features: int, optional
-    :param round: Precision of floats to display, defaults to 2
-    :type round: int, optional
-    :rtype: [dbc.Container
-    """
+        self.index = ClassifierRandomIndexComponent(explainer)
+        self.summary = PredictionSummaryComponent(explainer)
+        self.contributions = ContributionsGraphComponent(explainer)
+        self.pdp = PdpComponent(explainer)
+        self.contributions_list = ContributionsTableComponent(explainer)
 
-    if explainer.is_classifier:
-        index_choice_form = dbc.Form([
+        self.index_connector = IndexConnector(self.index, 
+                [self.summary, self.contributions, self.pdp, self.contributions_list])
 
-                dbc.FormGroup([
-                    html.Div([
-                        dbc.Label('Range to select from (prediction probability or prediction percentile):', 
-                                    html_for='prediction-range-slider'),
-                        dcc.RangeSlider(
-                        id='prediction-range-slider',
-                        min=0.0, max=1.0, step=0.01,
-                        value=[0.5, 1.0],  allowCross=False,
-                        marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3', 
-                                0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7', 
-                                0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
-                        tooltip = {'always_visible' : False})
-                    ], style={'margin-bottom':25})
-                    
+        self.register_components(self.index, self.summary, self.contributions, self.pdp, self.contributions_list, self.index_connector)
+
+    def _layout(self):
+        return html.Div([
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col([
+                        self.index.layout()
+                    ]),
+                    dbc.Col([
+                        self.summary.layout()
+                    ]),
                 ]),
-                dbc.FormGroup([
-                    dbc.RadioItems(
-                        id='include-labels',
-                        options=[
-                            {'label': explainer.pos_label_str, 'value': 'pos'},
-                            {'label': 'Not ' + explainer.pos_label_str, 'value': 'neg'},
-                            {'label': 'Both/either', 'value': 'any'},
-                        ],
-                        value='any',
-                        inline=True),
-                    dbc.RadioItems(
-                        id='preds-or-ranks',
-                        options=[
-                            {'label': 'Use predictions', 'value': 'preds'},
-                            {'label': 'Use percentiles', 'value': 'ranks'},
-                        ],
-                        value='preds',
-                        inline=True)
-                ])        
-            ])
-    else:
-        index_choice_form =  dbc.Form([
-                dbc.FormGroup([
-                    html.Div([
+                dbc.Row([
+                    dbc.Col([
+                        self.contributions.layout()
+                    ]),
+                    dbc.Col([
+                        self.pdp.layout()
+                    ]),
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        self.contributions_list.layout()
+                    ]),
+                    dbc.Col([
+                        html.Div([]),
+
+                    ]),
+                ])
+            ], fluid=True),
+        ])
+
+
+class IndexConnector(ExplainerComponent):
+    def __init__(self, input_index, output_indexes):
+        self.input_index_name = self.index_name(input_index)
+        self.output_index_names = self.index_name(output_indexes, multi=True)
+
+    @staticmethod
+    def index_name(indexes, multi=False):
+            index_name_list = []
+            if isinstance(indexes, str):
+                index_name_list.append(indexes)
+            elif isinstance(indexes, ExplainerComponent) and hasattr(indexes, "index_name"):
+                index_name_list.append(indexes.index_name)
+            elif multi and hasattr(indexes, '__iter__'):
+                for index in indexes:
+                    if isinstance(index, str):
+                        index_name_list.append(index)
+                    elif isinstance(index, ExplainerComponent) and hasattr(index, "index_name"):
+                        index_name_list.append(index.index_name)
+                    else:
+                        raise ValueError("inputs/outputs should be either str or an ExplainerComponent with a .index_name property!"
+                                        f"{index} is neither!")
+
+            if multi:
+                return index_name_list
+            else:
+                return index_name_list[0]
+
+    def register_callbacks(self, app):
+        @app.callback(
+            [Output(index_name, 'value') for index_name in self.output_index_names],
+            [Input(self.input_index_name, 'value')]
+        )
+        def update_indexes(index):
+            return tuple(index for i in range(len(self.output_index_names)))
+
+
+class ClassifierRandomIndexComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Select Random Index",
+                        header_mode="none", name=None,
+                        hide_index=False, hide_slider=False, 
+                        hide_labels=False, hide_pred_or_perc=False,
+                        hide_button=False,
+                        index=None, slider= None, labels=None, 
+                        pred_or_perc='predictions'):
+        super().__init__(explainer,title, header_mode, name)
+
+        self.hide_index, self.hide_slider = hide_index, hide_slider
+        self.hide_labels, self.hide_pred_or_perc = hide_labels, hide_pred_or_perc
+        self.hide_button = hide_button
+
+        self.index, self.slider = index, slider
+        self.labels, self.pred_or_perc = labels, pred_or_perc
+
+        self.index_name = 'random-index-clas-index-'+self.name
+
+        if self.slider is None:
+            self.slider = [0.0, 1.0]
+
+        if self.labels is None:
+            self.labels = self.explainer.labels
+
+        assert (len(self.slider)==2 and 
+                self.slider[0]>=0 and self.slider[0]<=1 and 
+                self.slider[1]>=0.0 and self.slider[1]<=1.0 and 
+                self.slider[0]<=self.slider[1]), \
+                    "slider should be e.g. [0.5, 1.0]"
+
+        assert all([lab in self.explainer.labels for lab in self.labels]), \
+            f"These labels are not in explainer.labels: {[lab for lab in labs if lab not in explainer.labels]}!"
+
+        assert self.pred_or_perc in ['predictions', 'percentiles'], \
+            "pred_or_perc should either be `predictions` or `percentiles`!"
+
+    def _layout(self):
+        return html.Div([
+            html.H3("Select index:"),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                            #dbc.Label("Index:", html_for='random-index-clas-index-'+self.name),
+                            dcc.Dropdown(id='random-index-clas-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                        ]), hide=self.hide_index),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Button("Random Index", color="primary", id='random-index-clas-button-'+self.name, block=True)
+                    ], md=2), hide=self.hide_button),
+            ], form=True),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
                         html.Div([
-                            dbc.Label('Range of predicted outcomes to select from:', 
-                                    html_for='prediction-range-slider'),
+                            dbc.Label(id='random-index-clas-slider-label-'+self.name,
+                                children="Predictions range:", 
+                                html_for='prediction-range-slider-'+self.name,),
                             dcc.RangeSlider(
-                                id='prediction-range-slider',
-                                min=min(explainer.preds), max=max(explainer.preds), 
-                                step=np.float_power(10, -round),
-                                value=[min(explainer.preds), max(explainer.preds)], 
-                                marks={min(explainer.preds):str(np.round(min(explainer.preds), round)),
-                                        max(explainer.preds):str(np.round(max(explainer.preds), round))}, 
-                                allowCross=False,
-                                tooltip = {'always_visible' : False}
-                            )
-
+                                id='random-index-clas-slider-'+self.name,
+                                min=0.0, max=1.0, step=0.01,
+                                value=self.slider,  allowCross=False,
+                                marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3', 
+                                        0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7', 
+                                        0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
+                                tooltip = {'always_visible' : False})
                         ], style={'margin-bottom':25})
-                        
-                    ]),  
-                ], style={'margin-bottom':25}),
-            ])
+                    ], md=5), hide=self.hide_slider),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Include labels (y):"),
+                        dcc.Dropdown(
+                            id='random-index-clas-labels-'+self.name,
+                            options=[{'label': lab, 'value': lab} for lab in self.explainer.labels],
+                            multi=True,
+                            value=self.labels),
+                    ], md=4), hide=self.hide_labels),
+                make_hideable(
+                    dbc.Col([
+                        dbc.RadioItems(
+                            id='random-index-clas-pred-or-perc-'+self.name,
+                            options=[
+                                {'label': 'Use predictions', 'value': 'predictions'},
+                                {'label': 'Use percentiles', 'value': 'percentiles'},
+                            ],
+                            value=self.pred_or_perc,
+                            inline=True)
+                    ], md=3), hide=self.hide_pred_or_perc),
+            ], justify="start"),
 
-    return dbc.Container([
-    dbc.Row([
-        dbc.Col([
-            html.H2('Display prediction for:'),
-            dbc.Input(id='input-index', 
-                        placeholder="Fill in index here...",
-                        debounce=True),
-            index_choice_form,
-            dbc.Button("Random Index", color="primary", id='index-button'),
-            dcc.Store(id='index-store'),
-        ], md=6),
- 
-        dbc.Col([
-             dcc.Loading(id="loading-model-prediction", 
-                         children=[dcc.Markdown(id='model-prediction')]),      
-        ], md=6),
+        ])
+    
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('random-index-clas-index-'+self.name, 'value'),
+            [Input('random-index-clas-button-'+self.name, 'n_clicks')],
+            [State('random-index-clas-slider-'+self.name, 'value'),
+             State('random-index-clas-labels-'+self.name, 'value'),
+             State('random-index-clas-pred-or-perc-'+self.name, 'value'),
+             State('pos-label', 'value')])
+        def update_index(n_clicks, slider_range, labels, pred_or_perc, pos_label):
+
+            if pred_or_perc == 'predictions':
+                return self.explainer.random_index(y_values=labels, 
+                    pred_proba_min=slider_range[0], pred_proba_max=slider_range[1], 
+                    return_str=True, pos_label=pos_label)
+            elif pred_or_perc == 'percentiles':
+                return self.explainer.random_index(y_values=labels, 
+                    pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1], 
+                    return_str=True, pos_label=pos_label)
+
+        @app.callback(
+            Output('random-index-clas-slider-label-'+self.name, 'children'),
+            [Input('random-index-clas-pred-or-perc-'+self.name, 'value')]
+        )
+        def update_slider_label(pred_or_perc):
+            if pred_or_perc == 'predictions':
+                return "Predictions range:"
+            elif pred_or_perc == 'percentiles':
+                return "Percentiles range:"
+            raise PreventUpdate
+
+
+
         
-    ], align="start", justify="between"),
 
-    dbc.Row([
-        dbc.Col([
-            html.H3('Contributions to prediction'),
-            dbc.Label('Number of features to display:', html_for='contributions-size'),
-            html.Div([
-                dcc.Slider(id='contributions-size', 
-                    min = 1, max = len(explainer.columns), 
-                    marks = {int(i) : str(int(i)) 
-                                for i in np.linspace(
-                                        1, len(explainer.columns_cats), 6)},
-                    step = 1, value=min(n_features, len(explainer.columns_cats)),
-                    tooltip = {'always_visible' : False}
-                ),
-            ], style={'margin-bottom':25}),
+class PredictionSummaryComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Prediction Summary",
+                    header_mode="none", name=None,
+                    hide_index=False, hide_percentile=False,
+                    index=None, percentile=True):
+        super().__init__(explainer, title, header_mode, name)
+
+        self.hide_index, self.hide_percentile = hide_index, hide_percentile
+        self.index, self.percentile = index, percentile
+
+        self.index_name = 'modelprediction-index-'+self.name
+
+    def _layout(self):
+        return html.Div([
+            html.H3("Predictions summary:"),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Index:"),
+                        dcc.Dropdown(id='modelprediction-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=self.index)
+                    ]), hide=self.hide_index),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Show Percentile:"),
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioButton(
+                                id='modelprediction-percentile-'+self.name, 
+                                className="form-check-input",
+                                checked=self.percentile),
+                            dbc.Label("Show percentile",
+                                    html_for='modelprediction-percentile'+self.name, 
+                                    className="form-check-label"),
+                        ], check=True)
+                    ], md=3), hide=self.hide_percentile),
+            ]),
+
+            dcc.Loading(id='loading-modelprediction-'+self.name, 
+                         children=[dcc.Markdown(id='modelprediction-'+self.name)]),    
+        ])
+
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('modelprediction-'+self.name, 'children'),
+            [Input('modelprediction-index-'+self.name, 'value'),
+             Input('modelprediction-percentile-'+self.name, 'checked'),
+             Input('pos-label', 'value')])
+        def update_output_div(index, include_percentile, pos_label):
+            if index is not None:
+                return self.explainer.prediction_result_markdown(index, include_percentile=include_percentile, pos_label=pos_label)
+            raise PreventUpdate
+
+class ContributionsGraphComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Contributions",
+                    header_mode="none", name=None,
+                    hide_index=False, hide_depth=False, hide_cats=False,
+                    index=None, depth=None, cats=True):
+        super().__init__(explainer, title, header_mode, name)
+
+        self.hide_index, self.hide_depth, self.hide_cats = \
+            hide_index, hide_depth, hide_cats
+        self.index, self.depth, self.cats = index, depth, cats
+
+        self.index_name = 'contributions-graph-index-'+self.name
+
+        if self.depth is not None:
+            self.depth = min(self.depth, len(self.explainer.columns_ranked_by_shap(self.cats)))
+
+        self.register_dependencies('shap_values', 'shap_values_cats')
+
+    def _layout(self):
+        return html.Div([
+            html.H3("Contributions to prediction:"),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Index:"),
+                        dcc.Dropdown(id='contributions-graph-index-'+self.name, 
+                            options = [{'label': str(idx), 'value':idx} 
+                                            for idx in self.explainer.idxs],
+                            value=None)
+                    ], md=4), hide=self.hide_index), 
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Depth:"),
+                        dcc.Dropdown(id='contributions-graph-depth-'+self.name, 
+                            options = [{'label': str(i+1), 'value':i+1} 
+                                            for i in range(len(self.explainer.columns_ranked_by_shap(self.cats)))],
+                            value=self.depth)
+                    ], md=2), hide=self.hide_depth),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Grouping:"),
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioButton(
+                                id='contributions-graph-group-cats-'+self.name, 
+                                className="form-check-input",
+                                checked=self.cats),
+                            dbc.Label("Group Cats",
+                                    html_for='contributions-graph-group-cats-'+self.name, 
+                                    className="form-check-label"),
+                        ], check=True)
+                    ], md=3), hide=self.hide_cats),
+                ], form=True),
+            dbc.Row([
+                dbc.Col([
+                    dcc.Loading(id='loading-contributions-graph-'+self.name, 
+                        children=[dcc.Graph(id='contributions-graph-'+self.name)]),
+                ]),
+            ]),
+        ])
+        
+    def _register_callbacks(self, app):
+        @app.callback(
+            [Output('contributions-graph-'+self.name, 'figure'),
+             Output('contributions-graph-depth-'+self.name, 'options')],
+            [Input('contributions-graph-index-'+self.name, 'value'),
+             Input('contributions-graph-depth-'+self.name, 'value'),
+             Input('contributions-graph-group-cats-'+self.name, 'checked'),
+             Input('pos-label', 'value')])
+        def update_output_div(index, depth, cats, pos_label):
+            if index is None:
+                raise PreventUpdate
+
+            plot = self.explainer.plot_shap_contributions(index, topx=depth, cats=cats, pos_label=pos_label)
+            ctx = dash.callback_context
+            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+            if trigger == 'contributions-graph-group-cats-'+self.name:
+                depth_options = [{'label': str(i+1), 'value': i+1} 
+                                        for i in range(len(self.explainer.columns_ranked_by_shap(cats)))]
+                return (plot, depth_options)
+            else:
+                return (plot, dash.no_update)
+
+
+class ContributionsTableComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Contributions",
+                    header_mode="none", name=None,
+                    hide_index=False, hide_depth=False, hide_cats=False,
+                    index=None, depth=None, cats=True):
+        super().__init__(explainer, title, header_mode, name)
+
+        self.hide_index, self.hide_depth, self.hide_cats = \
+            hide_index, hide_depth, hide_cats
+        self.index, self.depth, self.cats = index, depth, cats
+
+        self.index_name = 'contributions-table-index-'+self.name
+
+        if self.depth is not None:
+            self.depth = min(self.depth, len(self.explainer.columns_ranked_by_shap(self.cats)))
+
+        self.register_dependencies('shap_values', 'shap_values_cats')
+
+    def _layout(self):
+        return html.Div([
+            html.H3("Contributions to prediction:"),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Display contributions for:"),
+                        dcc.Dropdown(id='contributions-table-index-'+self.name, 
+                            options = [{'label': str(idx), 'value':idx} 
+                                            for idx in self.explainer.idxs],
+                            value=None)
+                    ], md=4), hide=self.hide_index), 
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Depth:"),
+                        dcc.Dropdown(id='contributions-table-depth-'+self.name, 
+                            options = [{'label': str(i+1), 'value':i+1} 
+                                            for i in range(len(self.explainer.columns_ranked_by_shap(self.cats)))],
+                            value=self.depth)
+                    ], md=2), hide=self.hide_depth),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Grouping:"),
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioButton(
+                                id='contributions-table-group-cats-'+self.name, 
+                                className="form-check-input",
+                                checked=self.cats),
+                            dbc.Label("Group Cats",
+                                    html_for='contributions-table-group-cats-'+self.name, 
+                                    className="form-check-label"),
+                        ], check=True)
+                    ], md=3), hide=self.hide_cats),
+                ], form=True),
+            dbc.Row([
+                dbc.Col([
+                    dash_table.DataTable(
+                        id='contributions-table-'+self.name, 
+                        #style_cell={'fontSize':18, 'font-family':'sans-serif'},
+                        columns=[{'id': c, 'name': c} for c in ['Reason', 'Effect']],    
+                    ),    
+                ]),
+            ]),
+        ])
+        
+    def _register_callbacks(self, app):
+        @app.callback(
+            [Output('contributions-table-'+self.name, 'data'),
+             Output('contributions-table-'+self.name, 'tooltip_data'),
+             Output('contributions-table-depth-'+self.name, 'options')],
+            [Input('contributions-table-index-'+self.name, 'value'),
+             Input('contributions-table-depth-'+self.name, 'value'),
+             Input('contributions-table-group-cats-'+self.name, 'checked'),
+             Input('pos-label', 'value')])
+        def update_output_div(index, depth, cats, pos_label):
+            if index is None:
+                raise PreventUpdate
+
+            contributions_table = self.explainer.contrib_summary_df(index, cats=cats, topx=depth, pos_label=pos_label).to_dict('records')
+            tooltip_data = [{'Reason': desc} for desc in self.explainer.description_list(
+                                self.explainer.contrib_df(index, cats=cats, topx=depth)['col'])]
             
-            dbc.Label('(click on a bar to display pdp graph)'),
-            dcc.Loading(id="loading-contributions-graph", 
-                        children=[dcc.Graph(id='contributions-graph')]),
-            
-            html.Div(id='contributions-size-display', style={'margin-top': 20}),
-            html.Div(id='contributions-clickdata'),
-        ], md=6),
+            ctx = dash.callback_context
+            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+            if trigger == 'contributions-table-group-cats-'+self.name:
+                depth_options = [{'label': str(i+1), 'value': i+1} 
+                                        for i in range(len(self.explainer.columns_ranked_by_shap(cats)))]
+                return (contributions_table, tooltip_data, depth_options)
+            else:
+                return (contributions_table, tooltip_data, dash.no_update)
+  
 
-        dbc.Col([
-            html.H3('Partial Dependence Plot'),
-            dbc.Label("Plot partial dependence plot (\'what if?\') for column:", html_for='pdp-col'),
-            dcc.Dropdown(id='pdp-col', 
-                options=[{'label': col, 'value':col} 
-                            for col in explainer.mean_abs_shap_df(cats=True)\
-                                                        .Feature.tolist()],
-                value=explainer.mean_abs_shap_df(cats=True).Feature[0]),
-            dcc.Loading(id="loading-pdp-graph", 
-                    children=[dcc.Graph(id='pdp-graph')]),
-        ], md=6)
-    ]),
-    dbc.Row([
-        dbc.Col([
-            html.H3('Contributions to prediction'),
-            dash_table.DataTable(
-                id='contributions_table',
-                style_cell={'fontSize':20, 'font-family':'sans-serif'},
-                columns=[{'id': c, 'name': c} 
-                            for c in ['Reason', 'Effect']],
-                      
-            ),    
-        ], md=6),
-    ]),
-    ], fluid=True)
+class PdpComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Partial Dependence Plot",
+                    header_mode="none", name=None,
+                    hide_col=False, hide_index=False, hide_cats=False,
+                    hide_dropna=False, hide_sample=False, 
+                    hide_gridlines=False, hide_gridpoints=False,
+                    col=None, index=None, cats=True,
+                    dropna=True, sample=100, gridlines=50, gridpoints=10):
+        super().__init__(explainer, title, header_mode, name)
 
+        self.hide_col, self.hide_index, self.hide_cats = hide_col, hide_index, hide_cats
+        self.hide_dropna, self.hide_sample = hide_dropna, hide_sample
+        self.hide_gridlines, self.hide_gridpoints = hide_gridlines, hide_gridpoints
+
+        self.col, self.index, self.cats = col, index, cats
+        self.dropna, self.sample, self.gridlines, self.gridpoints = \
+            dropna, sample, gridlines, gridpoints
+
+        self.index_name = 'pdp-index-'+self.name
+
+        if self.col is None:
+            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+
+    def _layout(self):
+        return html.Div([
+                html.H3('Partial Dependence Plot:'),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Feature:", html_for='pdp-col'),
+                            dcc.Dropdown(id='pdp-col-'+self.name, 
+                                options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                value=self.col),
+                        ], md=4), hide=self.hide_col),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Index:"),
+                            dcc.Dropdown(id='pdp-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=None)
+                        ], md=4), hide=self.hide_index), 
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='pdp-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='pdp-group-cats-'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True)
+                        ], md=3), hide=self.hide_cats),
+                ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        dcc.Loading(id='loading-pdp-graph-'+self.name, 
+                            children=[dcc.Graph(id='pdp-graph-'+self.name)]),
+                    ])
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([ #
+                            dbc.Label("Drop na:"),
+                                dbc.FormGroup(
+                                [
+                                    dbc.RadioButton(
+                                        id='pdp-dropna-'+self.name, 
+                                        className="form-check-input",
+                                        checked=self.dropna),
+                                    dbc.Label("Drop na's",
+                                            html_for='pdp-dropna-'+self.name, 
+                                            className="form-check-label"),
+                                ], check=True)
+                        ]), hide=self.hide_dropna),
+                    make_hideable(
+                        dbc.Col([ 
+                            dbc.Label("pdp sample size"),
+                            dbc.Input(id='pdp-sample-'+self.name, value=self.sample,
+                                type="number", min=0, max=len(self.explainer), step=1),
+                        ]), hide=self.hide_sample),  
+                    make_hideable(   
+                        dbc.Col([ #gridlines
+                            dbc.Label("gridlines"),
+                            dbc.Input(id='pdp-gridlines-'+self.name, value=self.gridlines,
+                                    type="number", min=0, max=len(self.explainer), step=1),
+                        ]), hide=self.hide_gridlines),
+                    make_hideable(
+                        dbc.Col([ #gridpoints
+                            dbc.Label("gridpoints"),
+                            dbc.Input(id='pdp-gridpoints-'+self.name, value=self.gridpoints,
+                                type="number", min=0, max=100, step=1),
+                        ]), hide=self.hide_gridpoints),
+                ], form=True)
+        ])
+                
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('pdp-graph-'+self.name, 'figure'),
+            [Input('pdp-index-'+self.name, 'value'),
+             Input('pdp-col-'+self.name, 'value'),
+             Input('pdp-dropna-'+self.name, 'checked'),
+             Input('pdp-sample-'+self.name, 'value'),
+             Input('pdp-gridlines-'+self.name, 'value'),
+             Input('pdp-gridpoints-'+self.name, 'value'),
+             Input('pos-label', 'value')]
+        )
+        def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, pos_label):
+            return self.explainer.plot_pdp(col, index, 
+                drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
+                pos_label=pos_label)
+
+        @app.callback(
+            Output('pdp-col-'+self.name, 'options'),
+            [Input('pdp-group-cats-'+self.name, 'checked')]
+        )
+        def update_pdp_graph(cats):
+            col_options = [{'label': col, 'value':col} 
+                                for col in self.explainer.columns_ranked_by_shap(cats)]
+            return col_options
 
 def contributions_callbacks(explainer, app, round=2, **kwargs):
 

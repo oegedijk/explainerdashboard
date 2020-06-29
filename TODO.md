@@ -4,6 +4,8 @@
 - Interaction feature stuck on one feature on heroku?
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
+- replace custom permutation importances by sklearn permuation importances
+- add non-shap dependent len(cols) property
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -17,10 +19,12 @@
 - fix name of figure MEAN_ABS_SHAP
 - Add Altair (vega) plots for easy inclusion in websites
 - rename plotly_ from all plotting functions? or not if we're going to add altair?
+- highlight id in violin plots
 
 ### Classifier plots:
 - Add feature names to waterfall plot
 - remove group cats option when cats is empty (not just None)
+- confusion matrix: display both count and percentage
 
 
 ### Regression plots:
@@ -38,6 +42,10 @@
 - add option for vertical contributions?
 - reformat contributions table
 - add final prediction to contributions table
+- font size on index input larger
+
+### Components
+- add hide_title to all components
 
 ## Methods:
 - Multiprocessing shap summary graph 
@@ -47,10 +55,11 @@
 
 ## Tests:
 - add multiclass classifier tests
-- add individual dashboard tests
+- add dashboard integration tests using dash tests
 - add ExplainerDashboard intergration test
 - Add tests for decisiontrees, extratrees
 - test model_output='probability' and 'raw' or 'logodds' seperately
+- add test coverage (add a badge)
 
 # Docs:
 - document X_background
@@ -62,6 +71,8 @@
 
 ## Library level:
 - add badges to README: https://github.com/badges/shields
+-> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg
+- https://github.com/marketplace/actions/coveralls-python
 - submit pull request to dtreeviz to accept shadowtree as parameter
-- turn all docstrings into sphinx-napolean google style
+- turn all docstrings into sphinx-napolean google style (pyment)
 
