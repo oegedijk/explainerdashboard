@@ -122,7 +122,10 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         header_mode="none", name=None):
         super().__init__(explainer, title, header_mode, name)
 
-        self.index = ClassifierRandomIndexComponent(explainer)
+        if self.explainer.is_classifier:
+            self.index = ClassifierRandomIndexComponent(explainer)
+        elif self.explainer.is_regression:
+            self.index = RegressionRandomIndexComponent(explainer)
         self.summary = PredictionSummaryComponent(explainer)
         self.contributions = ShapContributionsGraphComponent(explainer)
         self.pdp = PdpComponent(explainer)

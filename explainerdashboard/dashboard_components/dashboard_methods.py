@@ -194,7 +194,7 @@ class ExplainerComponent(ABC):
             comp.register_callbacks(app)
         self._register_callbacks(app)
 
-def make_hideable(element, hide=False):
+def make_hideable(element, hide=False, id=None):
     """helper function to optionally not display an element in a layout.
 
     if hide=True: return a hidden div containing element
@@ -204,10 +204,17 @@ def make_hideable(element, hide=False):
     """ 
     if hide:
         if isinstance(element, dbc.Col) or isinstance(element, dbc.FormGroup):
-            return html.Div(element.children, style=dict(display="none"))
+            if id is not None:
+                return html.Div(element.children, id=id, style=dict(display="none"))
+            else:
+                return html.Div(element.children, style=dict(display="none"))
+
         else:
-            return html.Div(element, style=dict(display="none"))
+            return html.Div(element, id=id, style=dict(display="none"))
     else:
-        return element
+        if id is not None:
+            return html.Div(element, id=id)
+        else:
+            return element
 
 
