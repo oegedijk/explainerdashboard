@@ -26,7 +26,6 @@
 - remove group cats option when cats is empty (not just None)
 - confusion matrix: display both count and percentage
 
-
 ### Regression plots:
 - regression plots: only take log of x-axis or y-axis
 - add cats option (violin plots?) to plot_residuals_vs_feature
@@ -42,7 +41,8 @@
 - add option for vertical contributions?
 - reformat contributions table
 - add final prediction to contributions table
-- font size on index input larger
+- fix laggy tooltips on contributions table
+- 
 
 ### Components
 - add hide_title to all components
