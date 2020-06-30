@@ -1,3 +1,10 @@
+__all__ = [
+    'DummyComponent',
+    'ExplainerHeader',
+    'ExplainerComponent',
+    'make_hideable',
+]
+
 from abc import ABC
 import inspect
 
@@ -84,11 +91,14 @@ class ExplainerHeader:
         title_col = dbc.Col([html.H1(self.title)], width='auto')
 
         if self.explainer.is_classifier:
-            pos_label_group = dcc.Dropdown(
+            pos_label_group = html.Div([
+                dbc.Label("Positive class:", html_for="pos-label"),
+                dcc.Dropdown(
                     id='pos-label',
                     options = [{'label': label, 'value': i}
                             for i, label in enumerate(self.explainer.labels)],
                     value = self.explainer.pos_label)
+            ])
         else:
             pos_label_group = dummy_pos_label
 
@@ -118,6 +128,10 @@ class ExplainerComponent(ABC):
         self.name = name
         if self.name is None:
             self.name = shortuuid.ShortUUID().random(length=10)
+        self._components = []
+        self._dependencies = []
+
+    def connector_init(self):
         self._components = []
         self._dependencies = []
 

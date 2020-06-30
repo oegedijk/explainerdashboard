@@ -654,24 +654,37 @@ def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
                                 + decisiontree_df.iloc[[-1]]['diff'].item(), round)
 
 
-    decisiontree_summary_df = pd.DataFrame(columns=['value', 'condition', 'change', 'prediction'])
+    decisiontree_summary_df = pd.DataFrame(columns=['Feature', 'Condition', 'Adjustment', 'New Prediction'])
+    decisiontree_summary_df = decisiontree_summary_df.append({
+                            'Feature' : "",
+                            'Condition' : "",
+                            'Adjustment' : "Starting average",
+                            'New Prediction' : str(np.round(base_value, round)) + '%'
+                        }, ignore_index=True)
 
     for _, row in decisiontree_df.iterrows():
         if classifier:
             decisiontree_summary_df = decisiontree_summary_df.append({
-                            'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
-                            'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
-                            'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(100*row['diff'], round)) +'%',
-                            'prediction' : str(np.round(100*(row['average']+row['diff']), round)) + '%'
+                            'Feature' : row['feature'],
+                            'Condition' : str(row['value']) + str(' >= ' if row['direction'] == 'right' else ' < ') + str(row['split']).ljust(10),
+                            'Adjustment' : str('+' if row['diff'] >= 0 else '') + str(np.round(100*row['diff'], round)) +'%',
+                            'New Prediction' : str(np.round(100*(row['average']+row['diff']), round)) + '%'
                         }, ignore_index=True)
         else:
             decisiontree_summary_df = decisiontree_summary_df.append({
-                            'value' : (str(row['feature'])+'='+str(row['value'])).ljust(50),
-                            'condition' : str('>=' if row['direction'] == 'right' else '< ') + str(row['split']).ljust(10),
-                            'change' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
-                            'prediction' : str(np.round((row['average']+row['diff']), round))
+                            'Feature' : row['feature'],
+                            'Condition' : str(row['value']) + str(' >= ' if row['direction'] == 'right' else ' < ') + str(row['split']).ljust(10),
+                            'Adjustment' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
+                            'New Prediction' : str(np.round((row['average']+row['diff']), round))
                         }, ignore_index=True)
 
-    return base_value, prediction, decisiontree_summary_df
+    decisiontree_summary_df = decisiontree_summary_df.append({
+                        'Feature' : "",
+                        'Condition' : "",
+                        'Adjustment' : "Final Prediction",
+                        'New Prediction' : str(np.round(prediction, round)) + ('%' if classifier else '')
+                    }, ignore_index=True)
+
+    return decisiontree_summary_df
 
     

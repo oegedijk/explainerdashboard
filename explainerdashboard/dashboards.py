@@ -4,12 +4,7 @@ __all__ = ['ExplainerDashboard',
             'JupyterExplainerDashboard',
             'ExplainerTab',
             'JupyterExplainerTab',
-            'InlineExplainer',
-            'ModelSummaryTab', 
-            'ContributionsTab', 
-            'ShapDependenceTab',
-            'ShapInteractionsTab', 
-            'DecisionTreesTab']
+            'InlineExplainer']
 
 
 import dash
@@ -20,21 +15,17 @@ from jupyter_dash import JupyterDash
 
 import plotly.io as pio
 
-from .dashboard_tabs.dashboard_methods import *
-from .dashboard_tabs.model_summary_tab import *
-from .dashboard_tabs.contributions_tab import *
-from .dashboard_tabs.shap_dependence_tab import *
-from .dashboard_tabs.shap_interactions_tab import *
-from .dashboard_tabs.decision_trees_tab import *
-from explainerdashboard.dashboard_tabs.model_summary_tab import ModelSummaryTab
+from .dashboard_components import *
+from .dashboard_tabs import *
 
 
 class ExplainerDashboard:
     """Constructs a dashboard out of an Explainer object. You can indicate
     which tabs to include, and pass kwargs on to individual tabs.
     """
-    def __init__(self, explainer, title='Model Explainer',   
-                tabs=None,
+    def __init__(self, explainer, tabs=None,
+                 title='Model Explainer',   
+                importances=True,
                 model_summary=True,  
                 contributions=True,
                 shap_dependence=True,
@@ -57,64 +48,46 @@ class ExplainerDashboard:
         :type shap_interaction: bool, optional
         :param decision_trees: display tab with individual decision tree of random forest, defaults to False
         :type decision_trees: bool, optional
-        """
-        self.explainer=explainer
-        self.title = title
-        self.model_summary = model_summary
-        self.contributions = contributions
-        self.shap_dependence = shap_dependence
-        self.shap_interaction = shap_interaction
-        self.decision_trees = decision_trees
-        self.plotly_template = plotly_template
-        self.kwargs = kwargs
+        """        
+        
+        if tabs is None:
+            tabs = []
+            if shap_interaction and not explainer.interactions_should_work:
+                print("For this type of model and model_output interactions don't "
+                          "work, so setting shap_interaction=False...")
+                shap_interactions = False
+            if decision_trees and not hasattr(explainer, 'decision_trees'):
+                print("the explainer object has no decision_trees property. so "
+                        "setting decision_trees=False...")
+                decision_trees = False
+        
+            if importances:
+                tabs.append(ImportancesTab)
+            if model_summary:
+                tabs.append(ModelSummaryTab)
+            if contributions:
+                tabs.append(ContributionsTab)
+            if shap_dependence:
+                tabs.append(ShapDependenceTab)
+            if shap_interaction:
+                tabs.append(ShapInteractionsTab)
+            if decision_trees:
+                tabs.append(DecisionTreesTab)
 
-        # calculate lazily loaded properties before starting dashboard:
-        if shap_dependence or contributions or model_summary:
-            _ = explainer.shap_values, explainer.preds, explainer.pred_percentiles
-            if explainer.cats is not None:
-                _ = explainer.shap_values_cats
-            if explainer.is_classifier:
-                _ = explainer.pred_probas
-        if model_summary:
-            _ = explainer.permutation_importances
-            if explainer.cats is not None:
-                _ = explainer.permutation_importances_cats
-        if shap_interaction:
-            try:
-                _ = explainer.shap_interaction_values
-                if explainer.cats is not None:
-                    _ = explainer.shap_interaction_values_cats
-            except:
-                print("Note: calculating shap interaction failed, so turning off interactions tab")
-                self.shap_interaction=False
-        if decision_trees:
-            if hasattr(self.explainer, 'decision_trees'):
-                _ = explainer.graphviz_available
-                _ = explainer.decision_trees
-            else:
-                self.decision_trees = False
-            
+        tabs  = [tab(explainer, header_mode="none") for tab in tabs if issubclass(tab, ExplainerComponent)]
+        assert len(tabs) > 0, 'need to pass at least one valid tab! e.g. model_summary=True'
+
         self.app = self.get_dash_app()
         self.app.title = title
-        
-        pio.templates.default = self.plotly_template
-
-        # layout
-        self.header = ExplainerHeader(explainer, title=title, mode="dashboard")
-        self.tabs = [] if tabs is None else tabs
-        self._insert_tabs()
-        assert len(self.tabs) > 0, 'need to pass at least one tab! e.g. model_summary=True'
-        
-        self.tab_layouts = [
-            dcc.Tab(children=tab.layout(), label=tab.title, id=tab.tab_id, value=tab.tab_id) 
-                for tab in self.tabs]
-
         self.app.layout = dbc.Container([
-            self.header.layout(),
-            dcc.Tabs(id="tabs", value=self.tabs[0].tab_id, children=self.tab_layouts),
+            ExplainerHeader(explainer, title=title, mode="dashboard").layout(),
+            dcc.Tabs(id="tabs", value=tabs[0].name, 
+                     children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
+                                       children=tab.layout()) for tab in tabs]),
         ], fluid=True)
         
-        for tab in self.tabs:
+        for tab in tabs:
+            tab.calculate_dependencies()
             tab.register_callbacks(self.app)
 
     def get_dash_app(self):
@@ -123,21 +96,6 @@ class ExplainerDashboard:
         app.css.config.serve_locally = True
         app.scripts.config.serve_locally = True
         return app
-
-    def _insert_tabs(self):
-        if self.model_summary:
-            self.tabs.append(ModelSummaryTab(self.explainer, **self.kwargs))
-        if self.contributions:
-            self.tabs.append(ContributionsTab(self.explainer, **self.kwargs))
-        if self.shap_dependence:
-            self.tabs.append(ShapDependenceTab(self.explainer, **self.kwargs))
-        if self.shap_interaction:
-            self.tabs.append(ShapInteractionsTab(self.explainer, **self.kwargs))
-        if self.decision_trees:
-            assert hasattr(self.explainer, 'decision_trees'), \
-                """the explainer object has no shadow_trees property. This tab 
-                only works with a RandomForestClassifierBunch or RandomForestRegressionBunch""" 
-            self.tabs.append(DecisionTreesTab(self.explainer, **self.kwargs))
         
     def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
@@ -145,8 +103,8 @@ class ExplainerDashboard:
         :param port: the port to run the dashboard on, defaults to 8050
         :type port: int, optional
         """
-        print(f"Running {self.title} on http://localhost:{port}")
-        pio.templates.default = self.plotly_template
+        print(f"Running {self.app.title} on http://localhost:{port}")
+        pio.templates.default = "none"
         self.app.run_server(port=port, **kwargs)
 
 
@@ -189,7 +147,7 @@ class ExplainerTab:
         
         :param explainer: an ExplainerBunch object
         :param tab: Tab or string identifier for tab to be displayed: 
-                    'model_summary', 'contributions', 'shap_dependence', 
+                    'importances', 'model_summary', 'contributions', 'shap_dependence', 
                     'shap_interaction', 'decision_trees'
         :type tab: either an ExplainerTab or str
         :param title: Title of the dashboard, defaults to 'Model Explainer'
@@ -204,7 +162,9 @@ class ExplainerTab:
         self.kwargs = kwargs
 
         if isinstance(tab, str):
-            if tab == 'model_summary':
+            if tab == 'importances':
+                tab = ImportancesTab
+            elif tab == 'model_summary':
                 tab = ModelSummaryTab
             elif tab == 'contributions':
                 tab = ContributionsTab
@@ -215,8 +175,8 @@ class ExplainerTab:
             elif tab == 'decision_trees':
                 tab = DecisionTreesTab
             else:
-                raise ValueError("If tab is str then it should be in "
-                        "['model_summary', 'contributions', 'shap_dependence', "
+                raise ValueError("If parameter tab is str then it should be in "
+                        "['importances', 'model_summary', 'contributions', 'shap_dependence', "
                         "'shap_interactions', 'decision_trees']")
 
         self.tab = tab(self.explainer, header_mode="standalone", **self.kwargs)
@@ -252,12 +212,12 @@ class JupyterExplainerTab(ExplainerTab):
         app = JupyterDash(__name__)
         return app
 
-    def run(self, mode='inline', port=8050, width=800, height=650, **kwargs):
+    def run(self, port=8050, mode='inline', width=1000, height=650, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
-        :param mode: either 'inline', 'jupyterlab' or 'external' 
-        :type mode: str, optional
         :param port: the port to run the dashboard on, defaults to 8050
         :type port: int, optional
+        :param mode: either 'inline', 'jupyterlab' or 'external' 
+        :type mode: str, optional
         :param width: width in pixels of inline iframe
         :param height: height in pixels of inline iframe
         """
@@ -314,7 +274,7 @@ class InlineExplainer:
         component.register_callbacks(app)
         self._run_app(app)
 
-    def model_summary(self, title='Model Summary', 
+    def modelsummary_tab(self, title='Model Summary', 
                         bin_size=0.1, quantiles=10, cutoff=0.5, 
                         logs=False, pred_or_actual="vs_pred", ratio=False, col=None,
                         importance_type="shap", depth=None, cats=True):
@@ -325,6 +285,36 @@ class InlineExplainer:
                     importance_type=importance_type, depth=depth, cats=cats)
         self._run_component(tab, title)
 
+    def importances_tab(self,  title='Importances', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        tab = ImportancesTab(self.explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def contributions_tab(self,  title='Contributions', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        tab = ContributionsTab(self.explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def dependence_tab(self, title='Shap Dependence', **kwargs):
+        """Runs shap_dependence tab inline in notebook"""
+        tab = ShapDependenceTab(self.explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def interactions_tab(self, title='Shap Interactions', **kwargs):
+        """Runs shap_interactions tab inline in notebook"""
+        tab = ShapInteractionsTab(self.explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def decisiontrees_tab(self, title='Decision Trees', **kwargs):
+        """Runs decision_trees tab inline in notebook"""
+        tab = DecisionTreesTab(self.explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
     def importances(self, title='Importances', **kwargs):
         """Runs model_summary tab inline in notebook"""
         comp = ImportancesComponent(self.explainer, header_mode="hidden", **kwargs)
@@ -333,15 +323,16 @@ class InlineExplainer:
     def model_stats(self, title='Models Stats', **kwargs):
         """Runs model_stats inline in notebook"""
         if self.explainer.is_classifier:
-            comp = ClassifierModelStatsComponent(self.explainer, 
+            comp = ClassifierModelStatsComposite(self.explainer, 
                     header_mode="hidden", **kwargs)
         elif self.explainer.is_regression:
-            comp = RegressionModelStatsComponent(self.explainer, 
+            comp = RegressionModelStatsComposite(self.explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def precision(self, title="Precision Plot", **kwargs):
         """shows precision plot"""
+        assert self.explainer.is_classifier
         comp = PrecisionComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
@@ -352,36 +343,43 @@ class InlineExplainer:
 
     def lift_curve(self, title="Lift Curve", **kwargs):
         """shows precision plot"""
+        assert self.explainer.is_classifier
         comp = LiftCurveComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def classification(self, title="Classification", **kwargs):
         """shows precision plot"""
+        assert self.explainer.is_classifier
         comp = ClassificationComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def roc_auc(self, title="ROC AUC Curve", **kwargs):
         """shows precision plot"""
+        assert self.explainer.is_classifier
         comp = RocAucComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def pr_auc(self, title="PR AUC Curve", **kwargs):
         """shows precision plot"""
+        assert self.explainer.is_classifier
         comp = PrAucComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def pred_vs_actual(self, title="Predicted vs Actual", **kwargs):
         "shows predicted vs actual for regression"
+        assert self.explainer.is_regression
         comp = PredictedVsActualComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def residuals(self, title="Residuals", **kwargs):
         "shows residuals for regression"
+        assert self.explainer.is_regression
         comp = ResidualsComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def residuals_vs_col(self, title="Residuals vs col", **kwargs):
         "shows residuals vs col for regression"
+        assert self.explainer.is_regression
         comp = ResidualsVsColComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
@@ -397,20 +395,20 @@ class InlineExplainer:
             comp = ClassifierRandomIndexComponent(self.explainer, 
                     header_mode="hidden", **kwargs)
         elif self.explainer.is_regression:
-            pass
+            raise NotImplementedError
             # comp = RegressionRandomIndexComponent(self.explainer, 
             #     header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def contributions_graph(self,  title='Contributions', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        comp = ContributionsGraphComponent(self.explainer, 
+        comp = ShapContributionsGraphComponent(self.explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def contributions_table(self,  title='Contributions', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        comp = ContributionsTableComponent(self.explainer, 
+        comp = ShapContributionsTableComponent(self.explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
@@ -420,18 +418,17 @@ class InlineExplainer:
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
-
-    def contributions(self,  title='Contributions', **kwargs):
+    def individual_predictions(self,  title='Contributions', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        tab = IndividualContributionsComponent(self.explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
+        comp = IndividualPredictionsComposite(self.explainer, 
+                header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
 
     def shap_overview(self, title='Shap Overview', **kwargs):
         """Runs shap_dependence tab inline in notebook"""
-        tab = ShapDependenceTab(self.explainer, 
+        comp = ShapDependenceComposite(self.explainer, 
                 header_mode="hidden", **kwargs)
-        self._run_component(tab, title)
+        self._run_component(comp, title)
 
     def shap_summary(self, title='Shap Summary', **kwargs):
         """Show shap summary inline in notebook"""
@@ -446,6 +443,12 @@ class InlineExplainer:
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
+    def interaction_overview(self, title='Interactions Overview', **kwargs):
+        """Runs shap_dependence tab inline in notebook"""
+        comp = ShapInteractionsComposite(self.explainer, 
+                header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
     def interaction_summary(self, title='Shap Interaction Summary', **kwargs):
         """show shap interaction summary inline in notebook"""
         comp =InteractionSummaryComponent(self.explainer, header_mode="hidden", **kwargs)
@@ -456,15 +459,26 @@ class InlineExplainer:
         comp =InteractionDependenceComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
-    def shap_interaction(self, title='Shap Interactions', **kwargs):
-        """Runs shap_interaction tab inline in notebook"""
-        tab = ShapInteractionsTab(self.explainer, 
-            header_mode="hidden", **kwargs)
-        self._run_component(tab, title)
+    def decisiontrees_overview(self, title="Decision Trees", **kwargs):
+        """shap decision tree composite inline in notebook"""
+        comp = DecisionTreesComposite(self.explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
 
-    def decision_trees(self, title='Decision Trees', **kwargs):
+    def decisiontrees(self, title='Decision Trees', **kwargs):
         """Runs decision_trees tab inline in notebook"""
-        tab = DecisionTreesTab(self.explainer, 
+        comp = DecisionTreesComponent(self.explainer, 
                 header_mode="hidden", **kwargs)
-        self._run_component(tab, title)
+        self._run_component(comp, title)
+
+    def decisionpath_table(self, title='Decision path', **kwargs):
+        """Runs decision_trees tab inline in notebook"""
+        comp = DecisionPathTableComponent(self.explainer, 
+                header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def decisionpath_graph(self, title='Decision path', **kwargs):
+        """Runs decision_trees tab inline in notebook"""
+        comp = DecisionPathTableComponent(self.explainer, 
+                header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
 
