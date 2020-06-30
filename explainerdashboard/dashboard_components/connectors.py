@@ -1,5 +1,6 @@
 __all__ = [
     'ClassifierRandomIndexComponent',
+    'RegressionRandomIndexComponent',
     'CutoffConnector',
     'IndexConnector',
     'HighlightConnector'
@@ -142,6 +143,283 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             elif pred_or_perc == 'percentiles':
                 return "Percentiles range:"
             raise PreventUpdate
+
+class RegressionRandomIndexComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Select Random Index",
+                        header_mode="none", name=None,
+                        hide_index=False, hide_pred_slider=False, 
+                        hide_residual_slider=False, hide_pred_or_y=False, 
+                        hide_abs_residuals=False, hide_button=False, 
+                        index=None, pred_slider=None, y_slider=None, 
+                        residual_slider=None, abs_residual_slider=None,
+                        pred_or_y="preds", abs_residuals=True, round=2):
+        super().__init__(explainer, title, header_mode, name)
+
+        self.hide_index, self.hide_button = hide_index, hide_button
+        self.hide_pred_slider = hide_pred_slider
+        self.hide_residual_slider = hide_residual_slider
+        self.hide_pred_or_y, self.hide_abs_residuals = hide_pred_or_y, hide_abs_residuals
+
+        self.index, self.round = index, round
+        self.pred_slider, self.y_slider = pred_slider, y_slider
+        self.residual_slider, self.abs_residual_slider = residual_slider, abs_residual_slider
+        self.pred_or_y, self.abs_residuals =  pred_or_y, abs_residuals
+
+        self.index_name = 'random-index-reg-index-'+self.name
+
+        if self.pred_slider is None:
+            self.pred_slider = [self.explainer.preds.min(), self.explainer.preds.max()]
+
+        if self.y_slider is None:
+            self.y_slider = [self.explainer.y.min(), self.explainer.y.max()]
+
+        if self.residual_slider is None:
+            self.residual_slider = [self.explainer.residuals.min(), self.explainer.residuals.max()]
+
+        if self.abs_residual_slider is None:
+            self.abs_residual_slider = [self.explainer.abs_residuals.min(), self.explainer.abs_residuals.max()]
+
+        assert (len(self.pred_slider)==2 and self.pred_slider[0]<=self.pred_slider[1]), \
+            "pred_slider should be a list of a [lower_bound, upper_bound]!"
+
+        assert (len(self.y_slider)==2 and self.y_slider[0]<=self.y_slider[1]), \
+            "y_slider should be a list of a [lower_bound, upper_bound]!"
+
+        assert (len(self.residual_slider)==2 and self.residual_slider[0]<=self.residual_slider[1]), \
+            "residual_slider should be a list of a [lower_bound, upper_bound]!"
+
+        assert (len(self.abs_residual_slider)==2 and self.abs_residual_slider[0]<=self.abs_residual_slider[1]), \
+            "abs_residual_slider should be a list of a [lower_bound, upper_bound]!"
+
+    def _layout(self):
+        return html.Div([
+            html.H3("Select index:"),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                            #dbc.Label("Index:", html_for='random-index-clas-index-'+self.name),
+                            dcc.Dropdown(id='random-index-reg-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                        ], md=8), hide=self.hide_index),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Button("Random Index", color="primary", id='random-index-reg-button-'+self.name, block=True)
+                    ], md=4), hide=self.hide_button),
+            ], form=True),
+            make_hideable(
+                html.Div([
+                html.Div([
+                    dbc.Row([
+                            dbc.Col([
+                                html.Div([
+                                    dbc.Label("Predictions range:",
+                                        html_for='random-index-reg-pred-slider-'+self.name),
+                                    dcc.RangeSlider(
+                                        id='random-index-reg-pred-slider-'+self.name,
+                                        min=self.explainer.preds.min(), 
+                                        max=self.explainer.preds.max(), 
+                                        step=np.float_power(10, -self.round),
+                                        value=[self.pred_slider[0], self.pred_slider[1]], 
+                                        marks={self.explainer.preds.min(): str(np.round(self.explainer.preds.min(), self.round)),
+                                            self.explainer.preds.max(): str(np.round(self.explainer.preds.max(), self.round))}, 
+                                        allowCross=False,
+                                        tooltip = {'always_visible' : False}
+                                    )
+                                ], style={'margin-bottom':0})
+                            ])
+                    ]),
+                ], id='random-index-reg-pred-slider-div-'+self.name),
+                html.Div([
+                    dbc.Row([
+                            dbc.Col([
+                                html.Div([
+                                    dbc.Label("Y range:",
+                                        html_for='random-index-reg-y-slider-'+self.name),
+                                    dcc.RangeSlider(
+                                        id='random-index-reg-y-slider-'+self.name,
+                                        min=self.explainer.y.min(), 
+                                        max=self.explainer.y.max(), 
+                                        step=np.float_power(10, -self.round),
+                                        value=[self.y_slider[0], self.y_slider[1]], 
+                                        marks={self.explainer.y.min(): str(np.round(self.explainer.y.min(), self.round)),
+                                            self.explainer.y.max(): str(np.round(self.explainer.y.max(), self.round))}, 
+                                        allowCross=False,
+                                        tooltip = {'always_visible' : False}
+                                    )
+                                ], style={'margin-bottom':0})
+                            ]),
+                    ]), 
+                ], id='random-index-reg-y-slider-div-'+self.name),
+                ]), hide=self.hide_pred_slider),
+            make_hideable(
+                html.Div([
+                html.Div([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label("Residuals range:",
+                                    html_for='random-index-reg-residual-slider-'+self.name),
+                                dcc.RangeSlider(
+                                    id='random-index-reg-residual-slider-'+self.name,
+                                    min=self.explainer.residuals.min(), 
+                                    max=self.explainer.residuals.max(), 
+                                    #step=np.float_power(10, -self.round),
+                                    value=[self.residual_slider[0], self.residual_slider[1]], 
+                                    marks={self.explainer.residuals.min(): str(np.round(self.explainer.residuals.min(), self.round)),
+                                        self.explainer.residuals.max(): str(np.round(self.explainer.residuals.max(), self.round))}, 
+                                    allowCross=False,
+                                    tooltip={'always_visible' : False}
+                                )
+                            ], style={'margin-bottom':0})
+                        ])
+                    ]),
+                ], id='random-index-reg-residual-slider-div-'+self.name),
+                html.Div([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label("Absolute residuals range:",
+                                    html_for='random-index-reg-abs-residual-slider-'+self.name),
+                                dcc.RangeSlider(
+                                    id='random-index-reg-abs-residual-slider-'+self.name,
+                                    min=self.explainer.abs_residuals.min(), 
+                                    max=self.explainer.abs_residuals.max(), 
+                                    #step=np.float_power(10, -self.round),
+                                    value=[self.abs_residual_slider[0], self.abs_residual_slider[1]], 
+                                    marks={self.explainer.abs_residuals.min(): str(np.round(self.explainer.abs_residuals.min(), self.round)),
+                                        self.explainer.abs_residuals.max(): str(np.round(self.explainer.abs_residuals.max(), self.round))}, 
+                                    allowCross=False,
+                                    tooltip={'always_visible' : False}
+                                )
+                            ], style={'margin-bottom':0})
+                        ])
+                    ])
+                ], id='random-index-reg-abs-residual-slider-div-'+self.name),
+            ]), hide=self.hide_residual_slider),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.RadioItems(
+                            id='random-index-reg-preds-or-y-'+self.name,
+                            options=[
+                                {'label': 'Use preds', 'value': 'preds'},
+                                {'label': 'Use y', 'value': 'y'},
+                            ],
+                            value=self.pred_or_y,
+                            inline=True)
+                    ], md=4), hide=self.hide_pred_or_y),
+                make_hideable(
+                    dbc.Col([
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioButton(
+                                id='random-index-reg-abs-residual-'+self.name,
+                                className="form-check-input",
+                                checked=self.abs_residuals),
+                            dbc.Label("Absolute residuals range:",
+                                    html_for='random-index-reg-abs-residual-'+self.name,
+                                    className="form-check-label"),
+                        ], check=True),
+                    ]), hide=self.hide_abs_residuals),
+            ]),       
+        ])
+    
+    def _register_callbacks(self, app):
+        @app.callback(
+            [Output('random-index-reg-pred-slider-div-'+self.name, 'style'),
+             Output('random-index-reg-y-slider-div-'+self.name, 'style')],
+            [Input('random-index-reg-preds-or-y-'+self.name, 'value')])
+        def update_reg_hidden_div_pred_sliders(preds_or_y):
+            if preds_or_y == 'preds':
+                return (None, dict(display="none"))
+            elif preds_or_y == 'y':
+                return (dict(display="none"), None)
+            raise PreventUpdate
+
+        @app.callback(
+            [Output('random-index-reg-residual-slider-div-'+self.name, 'style'),
+             Output('random-index-reg-abs-residual-slider-div-'+self.name, 'style')],
+            [Input('random-index-reg-abs-residual-'+self.name, 'checked')])
+        def update_reg_hidden_div_pred_sliders(abs_residuals):
+            if abs_residuals:
+                return (dict(display="none"), None)
+            else:
+                return (None, dict(display="none"))
+            raise PreventUpdate
+
+        @app.callback(
+            [Output('random-index-reg-residual-slider-'+self.name, 'min'),
+             Output('random-index-reg-residual-slider-'+self.name, 'max'),
+             Output('random-index-reg-residual-slider-'+self.name, 'value'),
+             Output('random-index-reg-residual-slider-'+self.name, 'marks'),
+             Output('random-index-reg-abs-residual-slider-'+self.name, 'min'),
+             Output('random-index-reg-abs-residual-slider-'+self.name, 'max'),
+             Output('random-index-reg-abs-residual-slider-'+self.name, 'value'),
+             Output('random-index-reg-abs-residual-slider-'+self.name, 'marks'),],
+            [Input('random-index-reg-pred-slider-'+self.name, 'value'),
+             Input('random-index-reg-y-slider-'+self.name, 'value')],
+            [State('random-index-reg-preds-or-y-'+self.name, 'value'),
+             State('random-index-reg-residual-slider-'+self.name, 'value'),
+             State('random-index-reg-abs-residual-slider-'+self.name, 'value')])
+        def update_residual_slider_limits(pred_range, y_range, preds_or_y, residuals_range, abs_residuals_range):
+            if preds_or_y=='preds':
+                min_residuals = self.explainer.residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].min()
+                max_residuals = self.explainer.residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].max()
+                min_abs_residuals = self.explainer.abs_residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].min()
+                max_abs_residuals = self.explainer.abs_residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].max()
+            elif preds_or_y=='y':
+                min_residuals = self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min()
+                max_residuals = self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max()
+                min_abs_residuals = self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min()
+                max_abs_residuals = self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max()
+                
+            new_residuals_range = [max(min_residuals, residuals_range[0]), min(max_residuals, residuals_range[1])]
+            new_abs_residuals_range = [max(min_abs_residuals, abs_residuals_range[0]), min(max_abs_residuals, abs_residuals_range[1])]
+            residuals_marks = {min_residuals: str(np.round(min_residuals, self.round)),
+                                max_residuals: str(np.round(max_residuals, self.round))}
+            abs_residuals_marks = {min_abs_residuals: str(np.round(min_abs_residuals, self.round)),
+                                    max_abs_residuals: str(np.round(max_abs_residuals, self.round))}
+            return (min_residuals, max_residuals, new_residuals_range, residuals_marks,
+                    min_abs_residuals, max_abs_residuals, new_abs_residuals_range, abs_residuals_marks)
+
+        @app.callback(
+            Output('random-index-reg-index-'+self.name, 'value'),
+            [Input('random-index-reg-button-'+self.name, 'n_clicks')],
+            [State('random-index-reg-pred-slider-'+self.name, 'value'),
+             State('random-index-reg-y-slider-'+self.name, 'value'),
+             State('random-index-reg-residual-slider-'+self.name, 'value'),
+             State('random-index-reg-abs-residual-slider-'+self.name, 'value'),
+             State('random-index-reg-preds-or-y-'+self.name, 'value'),
+             State('random-index-reg-abs-residual-'+self.name, 'checked')])
+        def update_index(n_clicks, pred_range, y_range, residual_range, abs_residuals_range, preds_or_y, abs_residuals):
+            if preds_or_y == 'preds':
+                if abs_residuals:
+                    return self.explainer.random_index(
+                                pred_min=pred_range[0], pred_max=pred_range[1], 
+                                abs_residuals_min=abs_residuals_range[0], 
+                                abs_residuals_max=abs_residuals_range[1], 
+                                return_str=True)
+                else:
+                    return self.explainer.random_index(
+                                pred_min=pred_range[0], pred_max=pred_range[1], 
+                                residuals_min=residuals_range[0], 
+                                residuals_max=residuals_range[1], 
+                                return_str=True)       
+            elif preds_or_y == 'y':
+                if abs_residuals:
+                    return self.explainer.random_index(
+                                y_min=y_range[0], y_max=y_range[1], 
+                                abs_residuals_min=abs_residuals_range[0], 
+                                abs_residuals_max=abs_residuals_range[1], 
+                                return_str=True)
+                else:
+                    return self.explainer.random_index(
+                                y_min=pred_range[0], y_max=pred_range[1], 
+                                residuals_min=residuals_range[0], 
+                                residuals_max=residuals_range[1], 
+                                return_str=True)      
 
 
 class CutoffConnector(ExplainerComponent):

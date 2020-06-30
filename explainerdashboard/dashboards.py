@@ -127,7 +127,7 @@ class JupyterExplainerDashboard(ExplainerDashboard):
         :param width: width in pixels of inline iframe
         :param height: height in pixels of inline iframe
         """
-        pio.templates.default = self.plotly_template
+        pio.templates.default = "none"
         if mode in ['inline', 'jupyterlab']:
             self.app.run_server(mode=mode, width=width, height=height, port=port)
         elif mode == 'external':
@@ -395,9 +395,8 @@ class InlineExplainer:
             comp = ClassifierRandomIndexComponent(self.explainer, 
                     header_mode="hidden", **kwargs)
         elif self.explainer.is_regression:
-            raise NotImplementedError
-            # comp = RegressionRandomIndexComponent(self.explainer, 
-            #     header_mode="hidden", **kwargs)
+            comp = RegressionRandomIndexComponent(self.explainer, 
+                    header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def contributions_graph(self,  title='Contributions', **kwargs):

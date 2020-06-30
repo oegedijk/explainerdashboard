@@ -1634,8 +1634,60 @@ class RegressionExplainer(BaseExplainer):
     def residuals(self):
         if not hasattr(self, '_residuals'):
             print("Calculating residuals...")
-            self._residuals =  self.preds-self.y
+            self._residuals =  self.y-self.preds
         return self._residuals
+
+    @property
+    def abs_residuals(self):
+        if not hasattr(self, '_abs_residuals'):
+            print("Calculating absolute residuals...")
+            self._abs_residuals =  np.abs(self.residuals)
+        return self._abs_residuals
+
+    def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, 
+                        residuals_min=None, residuals_max=None,
+                        abs_residuals_min=None, abs_residuals_max=None,
+                        return_str=False, **kwargs):
+        """
+        Return a random index from dataset.
+        if y_values is given select an index for which y in y_values
+        if return_str return str index from self.idxs
+        """
+        if y_min is None:
+            y_min = self.y.min()
+        if y_max is None:
+            y_max = self.y.max()
+        if pred_min is None:
+            pred_min = self.preds.min()
+        if pred_max is None:
+            pred_max = self.preds.max()
+        if residuals_min is None:
+            residuals_min = self.residuals.min()
+        if residuals_max is None:
+            residuals_max = self.residuals.max()
+        if abs_residuals_min is None:
+            abs_residuals_min = self.abs_residuals.min()
+        if abs_residuals_max is None:
+            abs_residuals_max = self.abs_residuals.max()
+
+        potential_idxs = self.y[(self.y >= y_min) & 
+                                (self.y <= y_max) & 
+                                (self.preds >= pred_min) & 
+                                (self.preds <= pred_max) &
+                                (self.residuals >= residuals_min) & 
+                                (self.residuals <= residuals_max) &
+                                (self.abs_residuals >= abs_residuals_min) & 
+                                (self.abs_residuals <= abs_residuals_max)].index
+
+        if len(potential_idxs) > 0:
+            idx = np.random.choice(potential_idxs)
+        else:
+            return None
+        if return_str:
+            assert self.idxs is not None, \
+                "no self.idxs property found..."
+            return self.idxs[idx]
+        return int(idx)
 
     def prediction_result_markdown(self, index, round=2, **kwargs):
         int_idx = self.get_int_idx(index)

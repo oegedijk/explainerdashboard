@@ -2,6 +2,7 @@ __all__ = [
     'PredictedVsActualComponent',
     'ResidualsComponent',
     'ResidualsVsColComponent',
+    'RegressionModelSummaryComponent',
 ]
 
 import dash
