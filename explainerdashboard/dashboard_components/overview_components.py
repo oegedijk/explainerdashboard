@@ -123,7 +123,7 @@ class ImportancesComponent(ExplainerComponent):
                         html.Label('Depth:'),
                         dcc.Dropdown(id='importances-depth-'+self.name,
                                             options = [{'label': str(i+1), 'value':i+1} 
-                                                        for i in range(len(self.explainer.columns_ranked_by_shap(self.cats)))],
+                                                        for i in range(self.explainer.n_features(self.cats))],
                                             value=self.depth)
                     ]), self.hide_depth),
                 make_hideable(

@@ -32,7 +32,7 @@ class ShapSummaryComponent(ExplainerComponent):
             self.hide_cats = True
         
         if self.depth is not None:
-            self.depth = min(self.depth, len(self.explainer.columns_ranked_by_shap(cats)))
+            self.depth = min(self.depth, self.explainer.n_features(cats))
 
         self.register_dependencies('shap_values', 'shap_values_cats')
              
@@ -45,7 +45,7 @@ class ShapSummaryComponent(ExplainerComponent):
                         dbc.Label("Depth:"),
                         dcc.Dropdown(id='shap-summary-depth-'+self.name,
                             options=[{'label': str(i+1), 'value': i+1} for i in 
-                                        range(len(self.explainer.columns_ranked_by_shap(self.cats)))],
+                                        range(self.explainer.n_features(self.cats))],
                             value=self.depth)
                     ], md=3), self.hide_depth),
                 make_hideable(
@@ -106,7 +106,7 @@ class ShapSummaryComponent(ExplainerComponent):
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'shap-summary-group-cats-'+self.name:
                 depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(len(self.explainer.columns_ranked_by_shap(cats)))]
+                                        for i in range(self.explainer.n_features(cats))]
                 print(depth_options)
                 return (plot, depth_options)
             else:
@@ -257,7 +257,7 @@ class InteractionSummaryComponent(ExplainerComponent):
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         if self.depth is not None:
-            self.depth = min(self.depth, len(self.explainer.columns_ranked_by_shap(self.cats)-1))
+            self.depth = min(self.depth, self.explainer.n_features(self.cats)-1)
         
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
@@ -279,7 +279,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                         dbc.Label("Depth:"),
                         dcc.Dropdown(id='interaction-summary-depth-'+self.name, 
                             options = [{'label': str(i+1), 'value':i+1} 
-                                            for i in range(len(self.explainer.columns_ranked_by_shap(self.cats))-1)],
+                                            for i in range(self.explainer.n_features(self.cats)-1)],
                             value=self.depth)
                     ], md=2), self.hide_depth),
                 make_hideable(
@@ -337,7 +337,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                 trigger = ctx.triggered[0]['prop_id'].split('.')[0]
                 if trigger == 'interaction-summary-group-cats-'+self.name:
                     depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(len(self.explainer.columns_ranked_by_shap(cats)))]
+                                            for i in range(self.explainer.n_features(cats))]
                     return (plot, depth_options)
                 else:
                     return (plot, dash.no_update)
@@ -398,7 +398,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         dbc.Label("Interaction Feature:"),
                         dcc.Dropdown(id='interaction-dependence-interact-col-'+self.name, 
                             options=[{'label': col, 'value':col} 
-                                        for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                        for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
                             value=self.interact_col
                         ),
                     ], md=4), hide=self.hide_interact_col), 
@@ -498,7 +498,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         self.index_name = 'contributions-graph-index-'+self.name
 
         if self.depth is not None:
-            self.depth = min(self.depth, len(self.explainer.columns_ranked_by_shap(self.cats)))
+            self.depth = min(self.depth, self.explainer.n_features(self.cats))
 
         self.register_dependencies('shap_values', 'shap_values_cats')
 
@@ -519,7 +519,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         dbc.Label("Depth:"),
                         dcc.Dropdown(id='contributions-graph-depth-'+self.name, 
                             options = [{'label': str(i+1), 'value':i+1} 
-                                            for i in range(len(self.explainer.columns_ranked_by_shap(self.cats)))],
+                                            for i in range(self.explainer.n_features(self.cats))],
                             value=self.depth)
                     ], md=2), hide=self.hide_depth),
                 make_hideable(
@@ -562,7 +562,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'contributions-graph-group-cats-'+self.name:
                 depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(len(self.explainer.columns_ranked_by_shap(cats)))]
+                                        for i in range(self.explainer.n_features(cats))]
                 return (plot, depth_options)
             else:
                 return (plot, dash.no_update)
@@ -582,7 +582,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         self.index_name = 'contributions-table-index-'+self.name
 
         if self.depth is not None:
-            self.depth = min(self.depth, len(self.explainer.columns_ranked_by_shap(self.cats)))
+            self.depth = min(self.depth, self.explainer.n_features(self.cats))
 
         self.register_dependencies('shap_values', 'shap_values_cats')
 
@@ -603,7 +603,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                         dbc.Label("Depth:"),
                         dcc.Dropdown(id='contributions-table-depth-'+self.name, 
                             options = [{'label': str(i+1), 'value':i+1} 
-                                            for i in range(len(self.explainer.columns_ranked_by_shap(self.cats)))],
+                                            for i in range(self.explainer.n_features(self.cats))],
                             value=self.depth)
                     ], md=2), hide=self.hide_depth),
                 make_hideable(
@@ -664,7 +664,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'contributions-table-group-cats-'+self.name:
                 depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(len(self.explainer.columns_ranked_by_shap(cats)))]
+                                        for i in range(self.explainer.n_features(cats))]
                 return (output_div, depth_options)
             else:
                 return (output_div, dash.no_update) 

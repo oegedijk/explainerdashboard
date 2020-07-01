@@ -533,17 +533,17 @@ class HighlightConnector(ExplainerComponent):
             self.output_highlight_names = [self.output_highlight_names]
 
     @staticmethod
-    def highlight_name(highlights):#, multi=False):
-        def get_highligh_name(o):
+    def highlight_name(highlights):
+        def get_highlight_name(o):
             if isinstance(o, str): return o
             elif isinstance(o, ExplainerComponent):
-                if not hasattr(o, "highligh_name"):
-                    raise ValueError(f"{o} does not have an .highligh_name property!")
+                if not hasattr(o, "highlight_name"):
+                    raise ValueError(f"{o} does not have an .highlight_name property!")
                 return o.highlight_name
-            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .highlighy_name property")
+            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .highlight_name property")
         
         if hasattr(highlights, '__iter__'):
-            highlist_name_list = []
+            highlight_name_list = []
             for highlight in highlights:
                 highlight_name_list.append(get_highlight_name(highlight))
             return highlight_name_list
