@@ -213,7 +213,6 @@ class ShapDependenceComponent(ExplainerComponent):
 
 class ShapSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, shap_summary_component, shap_dependence_component):
-        self.connector_init()
         self.sum_name = shap_summary_component.name
         self.dep_name = shap_dependence_component.name
 
@@ -452,7 +451,6 @@ class InteractionDependenceComponent(ExplainerComponent):
 
 class InteractionSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, interaction_summary_component, interaction_dependence_component):
-        self.connector_init()
         self.sum_name = interaction_summary_component.name
         self.dep_name = interaction_dependence_component.name
 

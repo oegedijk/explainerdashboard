@@ -229,12 +229,28 @@ class JupyterExplainerTab(ExplainerTab):
         else:
             raise ValueError("mode should either be 'inline', 'jupyterlab' or 'external'!")
 
+class InlineExplainerComponent:
+    def __init__(self, inline_explainer, name):
+        self._inline_explainer = inline_explainer
+        self._explainer = inline_explainer._explainer
+        self._name = name
+
+    def _run_component(self, component, title):
+        self._inline_explainer._run_component(component, title)
+
+    def __repr__(self):
+        component_methods = [method_name for method_name in dir(self)
+                  if callable(getattr(self, method_name)) and not method_name.startswith("_")]
+
+        return f"InlineExplainer.{self._name} has the following components: {', '.join(component_methods)}"
+
+
 class InlineExplainer:
     """
     Run a single tab inline in a Jupyter notebook using specific method calls.
     """
     def __init__(self, explainer, mode='inline', width=1000, height=800, 
-                    port=8050, plotly_template="none", **kwargs):
+                    port=8050, **kwargs):
         """
         :param explainer: an Explainer object
         :param mode: either 'inline', 'jupyterlab' or 'external' 
@@ -245,13 +261,17 @@ class InlineExplainer:
         """
         assert mode in ['inline', 'external', 'jupyterlab'], \
             "mode should either be 'inline', 'external' or 'jupyterlab'!"
-        self.explainer = explainer
-        self.mode = mode
-        self.width = width
-        self.height = height
-        self.port = port
-        self.plotly_template = plotly_template
-        self.kwargs = kwargs
+        self._explainer = explainer
+        self._mode = mode
+        self._width = width
+        self._height = height
+        self._port = port
+        self._kwargs = kwargs
+        self.tab = InlineExplainerTabs(self, "tabs")
+        self.shap = InlineShapExplainer(self, "shap")
+        self.classifier = InlineClassifierExplainer(self, "classifier")
+        self.regression = InlineRegressionExplainer(self, "regression")
+        self.decisiontreees =InlineDecisionTreesExplainer(self, "decisiontrees")
 
     def _run_app(self, app, **kwargs):
         """Starts the dashboard either inline or in a seperate tab
@@ -259,11 +279,11 @@ class InlineExplainer:
         :param app: the JupyterDash app to be run
         :type mode: JupyterDash app instance
         """
-        pio.templates.default = self.plotly_template
-        if self.mode in ['inline', 'jupyterlab']:
-            app.run_server(mode=self.mode, width=self.width, height=self.height, port=self.port)
-        elif self.mode == 'external':
-             app.run_server(mode=self.mode, port=self.port, **self.kwargs)
+        pio.templates.default = "none"
+        if self._mode in ['inline', 'jupyterlab']:
+            app.run_server(mode=self._mode, width=self._width, height=self._height, port=self._port)
+        elif self._mode == 'external':
+             app.run_server(mode=self._mode, port=self._port, **self._kwargs)
         else:
             raise ValueError("mode should either be 'inline', 'jupyterlab'  or 'external'!")
 
@@ -273,211 +293,237 @@ class InlineExplainer:
         app.layout = component.layout()
         component.register_callbacks(app)
         self._run_app(app)
-
-    def modelsummary_tab(self, title='Model Summary', 
-                        bin_size=0.1, quantiles=10, cutoff=0.5, 
-                        logs=False, pred_or_actual="vs_pred", ratio=False, col=None,
-                        importance_type="shap", depth=None, cats=True):
-        """Runs model_summary tab inline in notebook"""
-        tab = ModelSummaryTab(self.explainer, header_mode="hidden",
-                    bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, 
-                    logs=logs, pred_or_actual=pred_or_actual, ratio=ratio,
-                    importance_type=importance_type, depth=depth, cats=cats)
-        self._run_component(tab, title)
-
-    def importances_tab(self,  title='Importances', **kwargs):
-        """Show contributions (permutation or shap) inline in notebook"""
-        tab = ImportancesTab(self.explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
-
-    def contributions_tab(self,  title='Contributions', **kwargs):
-        """Show contributions (permutation or shap) inline in notebook"""
-        tab = ContributionsTab(self.explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
-
-    def dependence_tab(self, title='Shap Dependence', **kwargs):
-        """Runs shap_dependence tab inline in notebook"""
-        tab = ShapDependenceTab(self.explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
-
-    def interactions_tab(self, title='Shap Interactions', **kwargs):
-        """Runs shap_interactions tab inline in notebook"""
-        tab = ShapInteractionsTab(self.explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
-
-    def decisiontrees_tab(self, title='Decision Trees', **kwargs):
-        """Runs decision_trees tab inline in notebook"""
-        tab = DecisionTreesTab(self.explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
-
+    
     def importances(self, title='Importances', **kwargs):
         """Runs model_summary tab inline in notebook"""
-        comp = ImportancesComponent(self.explainer, header_mode="hidden", **kwargs)
+        comp = ImportancesComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def model_stats(self, title='Models Stats', **kwargs):
         """Runs model_stats inline in notebook"""
-        if self.explainer.is_classifier:
-            comp = ClassifierModelStatsComposite(self.explainer, 
+        if self._explainer.is_classifier:
+            comp = ClassifierModelStatsComposite(self._explainer, 
                     header_mode="hidden", **kwargs)
-        elif self.explainer.is_regression:
-            comp = RegressionModelStatsComposite(self.explainer, 
+        elif self._explainer.is_regression:
+            comp = RegressionModelStatsComposite(self._explainer, 
                 header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def precision(self, title="Precision Plot", **kwargs):
-        """shows precision plot"""
-        assert self.explainer.is_classifier
-        comp = PrecisionComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def confusion_matrix(self, title="Confusion Matrix", **kwargs):
-        """shows precision plot"""
-        comp= ConfusionMatrixComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def lift_curve(self, title="Lift Curve", **kwargs):
-        """shows precision plot"""
-        assert self.explainer.is_classifier
-        comp = LiftCurveComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def classification(self, title="Classification", **kwargs):
-        """shows precision plot"""
-        assert self.explainer.is_classifier
-        comp = ClassificationComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def roc_auc(self, title="ROC AUC Curve", **kwargs):
-        """shows precision plot"""
-        assert self.explainer.is_classifier
-        comp = RocAucComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def pr_auc(self, title="PR AUC Curve", **kwargs):
-        """shows precision plot"""
-        assert self.explainer.is_classifier
-        comp = PrAucComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def pred_vs_actual(self, title="Predicted vs Actual", **kwargs):
-        "shows predicted vs actual for regression"
-        assert self.explainer.is_regression
-        comp = PredictedVsActualComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def residuals(self, title="Residuals", **kwargs):
-        "shows residuals for regression"
-        assert self.explainer.is_regression
-        comp = ResidualsComponent(self.explainer, header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def residuals_vs_col(self, title="Residuals vs col", **kwargs):
-        "shows residuals vs col for regression"
-        assert self.explainer.is_regression
-        comp = ResidualsVsColComponent(self.explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def prediction(self,  title='Prediction', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        comp = PredictionSummaryComponent(self.explainer, 
+        comp = PredictionSummaryComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def random_index(self, title='Random Index', **kwargs):
         """show random index selector inline in notebook"""
-        if self.explainer.is_classifier:
-            comp = ClassifierRandomIndexComponent(self.explainer, 
+        if self._explainer.is_classifier:
+            comp = ClassifierRandomIndexComponent(self._explainer, 
                     header_mode="hidden", **kwargs)
-        elif self.explainer.is_regression:
-            comp = RegressionRandomIndexComponent(self.explainer, 
+        elif self._explainer.is_regression:
+            comp = RegressionRandomIndexComponent(self._explainer, 
                     header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def contributions_graph(self,  title='Contributions', **kwargs):
-        """Show contributions (permutation or shap) inline in notebook"""
-        comp = ShapContributionsGraphComponent(self.explainer, 
-                header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
-
-    def contributions_table(self,  title='Contributions', **kwargs):
-        """Show contributions (permutation or shap) inline in notebook"""
-        comp = ShapContributionsTableComponent(self.explainer, 
-                header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def pdp(self, title="Partial Dependence Plots", **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        comp = PdpComponent(self.explainer, 
+        comp = PdpComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
-    def individual_predictions(self,  title='Contributions', **kwargs):
+    
+class InlineExplainerTabs(InlineExplainerComponent):
+    def modelsummary_tab(self, title='Model Summary', 
+                        bin_size=0.1, quantiles=10, cutoff=0.5, 
+                        logs=False, pred_or_actual="vs_pred", ratio=False, col=None,
+                        importance_type="shap", depth=None, cats=True):
+        """Runs model_summary tab inline in notebook"""
+        tab = ModelSummaryTab(self._explainer, header_mode="hidden",
+                    bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, 
+                    logs=logs, pred_or_actual=pred_or_actual, ratio=ratio,
+                    importance_type=importance_type, depth=depth, cats=cats)
+        self._run_component(tab, title)
+
+    def importances(self,  title='Importances', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        comp = IndividualPredictionsComposite(self.explainer, 
-                header_mode="hidden", **kwargs)
-        self._run_component(comp, title)
+        tab = ImportancesTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
 
-    def shap_overview(self, title='Shap Overview', **kwargs):
+    def modelsummary(self,  title='Model Summary', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        tab = ModelSummaryTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def contributions(self,  title='Contributions', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        tab = ContributionsTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def dependence(self, title='Shap Dependence', **kwargs):
         """Runs shap_dependence tab inline in notebook"""
-        comp = ShapDependenceComposite(self.explainer, 
+        tab = ShapDependenceTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def interactions(self, title='Shap Interactions', **kwargs):
+        """Runs shap_interactions tab inline in notebook"""
+        tab = ShapInteractionsTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def decisiontrees(self, title='Decision Trees', **kwargs):
+        """Runs shap_interactions tab inline in notebook"""
+        tab = ShapDecisionTreesTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+
+class InlineShapExplainer(InlineExplainerComponent):
+
+    def overview(self, title='Shap Overview', **kwargs):
+        """Runs shap_dependence tab inline in notebook"""
+        comp = ShapDependenceComposite(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
-    def shap_summary(self, title='Shap Summary', **kwargs):
+    def summary(self, title='Shap Summary', **kwargs):
         """Show shap summary inline in notebook"""
-        comp = ShapSummaryComponent(self.explainer, 
+        comp = ShapSummaryComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
-    def shap_dependence(self, title='Shap Dependence', **kwargs):
+    def dependence(self, title='Shap Dependence', **kwargs):
         """Show shap summary inline in notebook"""
         
-        comp = ShapDependenceComponent(self.explainer, 
+        comp = ShapDependenceComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def interaction_overview(self, title='Interactions Overview', **kwargs):
         """Runs shap_dependence tab inline in notebook"""
-        comp = ShapInteractionsComposite(self.explainer, 
+        comp = ShapInteractionsComposite(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def interaction_summary(self, title='Shap Interaction Summary', **kwargs):
         """show shap interaction summary inline in notebook"""
-        comp =InteractionSummaryComponent(self.explainer, header_mode="hidden", **kwargs)
+        comp =InteractionSummaryComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def interaction_dependence(self, title='Shap Interaction Dependence', **kwargs):
         """show shap interaction dependence inline in notebook"""
-        comp =InteractionDependenceComponent(self.explainer, header_mode="hidden", **kwargs)
+        comp =InteractionDependenceComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
+    def contributions_graph(self,  title='Contributions', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        comp = ShapContributionsGraphComponent(self._explainer, 
+                header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def contributions_table(self,  title='Contributions', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        comp = ShapContributionsTableComponent(self._explainer, 
+                header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+
+class InlineClassifierExplainer(InlineExplainerComponent):
+    def model_stats(self, title='Models Stats', **kwargs):
+        """Runs model_stats inline in notebook"""
+        comp = ClassifierModelStatsComposite(self._explainer, 
+                    header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def precision(self, title="Precision Plot", **kwargs):
+        """shows precision plot"""
+        assert self.explainer.is_classifier
+        comp = PrecisionComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def confusion_matrix(self, title="Confusion Matrix", **kwargs):
+        """shows precision plot"""
+        comp= ConfusionMatrixComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def lift_curve(self, title="Lift Curve", **kwargs):
+        """shows precision plot"""
+        assert self.explainer.is_classifier
+        comp = LiftCurveComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def classification(self, title="Classification", **kwargs):
+        """shows precision plot"""
+        assert self.explainer.is_classifier
+        comp = ClassificationComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def roc_auc(self, title="ROC AUC Curve", **kwargs):
+        """shows precision plot"""
+        assert self.explainer.is_classifier
+        comp = RocAucComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def pr_auc(self, title="PR AUC Curve", **kwargs):
+        """shows precision plot"""
+        assert self.explainer.is_classifier
+        comp = PrAucComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+
+class InlineRegressionExplainer(InlineExplainerComponent):
+    def model_stats(self, title='Models Stats', **kwargs):
+        """Runs model_stats inline in notebook"""
+
+        comp = RegressionModelStatsComposite(self._explainer, 
+                    header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def pred_vs_actual(self, title="Predicted vs Actual", **kwargs):
+        "shows predicted vs actual for regression"
+        assert self.explainer.is_regression
+        comp = PredictedVsActualComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def residuals(self, title="Residuals", **kwargs):
+        "shows residuals for regression"
+        assert self.explainer.is_regression
+        comp = ResidualsComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+    def residuals_vs_col(self, title="Residuals vs col", **kwargs):
+        "shows residuals vs col for regression"
+        assert self.explainer.is_regression
+        comp = ResidualsVsColComponent(self._explainer, header_mode="hidden", **kwargs)
+        self._run_component(comp, title)
+
+
+class InlineDecisionTreesExplainer(InlineExplainerComponent):
     def decisiontrees_overview(self, title="Decision Trees", **kwargs):
         """shap decision tree composite inline in notebook"""
-        comp = DecisionTreesComposite(self.explainer, header_mode="hidden", **kwargs)
+        comp = DecisionTreesComposite(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def decisiontrees(self, title='Decision Trees', **kwargs):
         """Runs decision_trees tab inline in notebook"""
-        comp = DecisionTreesComponent(self.explainer, 
+        comp = DecisionTreesComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def decisionpath_table(self, title='Decision path', **kwargs):
         """Runs decision_trees tab inline in notebook"""
-        comp = DecisionPathTableComponent(self.explainer, 
+        comp = DecisionPathTableComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def decisionpath_graph(self, title='Decision path', **kwargs):
         """Runs decision_trees tab inline in notebook"""
-        comp = DecisionPathTableComponent(self.explainer, 
+        comp = DecisionPathTableComponent(self._explainer, 
                 header_mode="hidden", **kwargs)
         self._run_component(comp, title)
+
+   
 
