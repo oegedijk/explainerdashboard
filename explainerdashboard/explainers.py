@@ -294,6 +294,12 @@ class BaseExplainer(ABC):
         else:
             return self.mean_abs_shap(pos_label).Feature.tolist()
 
+    def n_features(self, cats=False):
+        if cats:
+            return len(self.columns_cats)
+        else:
+            return len(self.columns)
+
     def equivalent_col(self, col):
         """if col in self.columns, return equivalent col in self.columns_cats,
                 e.g. equivalent_col('Gender_Male') -> 'Gender'

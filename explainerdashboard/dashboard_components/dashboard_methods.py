@@ -163,6 +163,8 @@ class ExplainerComponent(ABC):
     def dependencies(self):
         if not hasattr(self, '_dependencies'):
             self._dependencies = []
+        if not hasattr(self, '_components'):
+            self._components = []
         deps = self._dependencies
         for comp in self._components:
             deps.extend(comp.dependencies)

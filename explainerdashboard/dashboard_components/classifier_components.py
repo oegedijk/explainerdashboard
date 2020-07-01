@@ -37,75 +37,85 @@ class PrecisionComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            self.header.layout(),
-            html.Div([
-                dcc.Loading(id="loading-precision-graph-"+self.name, 
-                        children=[dcc.Graph(id='precision-graph-'+self.name)]),
-            ], style={'margin': 0}),
-            make_hideable(
-                html.Div([
-                    dbc.Label('Bin size:', html_for='precision-binsize-'+self.name),
+            dbc.Row([
+                dbc.Col([
                     html.Div([
-                        dcc.Slider(id='precision-binsize-'+self.name, 
-                                min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
-                                marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
-                                    0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
-                                    0.5: '0.5'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False})
-                    ], style={'margin-bottom': 25}),
-                ], id='precision-bin-size-div-'+self.name, style=dict(margin=5)),  
-                hide=self.hide_binsize),
-            make_hideable(
-                html.Div([
-                    dbc.Label('Quantiles:', html_for='precision-quantiles-'+self.name),
-                    html.Div([
-                        dcc.Slider(id='precision-quantiles-'+self.name, 
-                                    min = 1, max = 20, step=1, value=self.quantiles,
-                                    marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
-                                    included=False,
-                                    tooltip = {'always_visible' : False}),
-                    ], style={'margin-bottom':25}),
-                ], id='precision-quantiles-div-'+self.name), hide=self.hide_binsize),
-            make_hideable(
-                html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='precision-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False})
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-            make_hideable(
-                html.Div([
-                    dbc.Label('Binning Method:', html_for='precision-binsize-or-quantiles-'+self.name),
-                    dbc.RadioItems(
-                        id='precision-binsize-or-quantiles-'+self.name,
-                        options=[
-                            {'label': 'Bin Size', 
-                            'value': 'bin_size'},
-                            {'label': 'Quantiles', 
-                            'value': 'quantiles'}
-                        ],
-                        value=self.precision_or_binsize,
-                        inline=True),
-                ]), hide=self.hide_binmethod),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup([
-                            dbc.RadioButton(
-                                id="precision-multiclass-"+self.name, 
-                                className="form-check-input",
-                                checked=self.multiclass
-                            ),
-                            dbc.Label(
-                                "Display all classes",
-                                html_for="precision-multiclass-"+self.name,
-                                className="form-check-label",
-                            ),
-                    ], check=True),
-                ]), hide=self.hide_multiclass),     
+                        dcc.Loading(id="loading-precision-graph-"+self.name, 
+                                children=[dcc.Graph(id='precision-graph-'+self.name)]),
+                    ], style={'margin': 0}),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    make_hideable(
+                        html.Div([
+                            dbc.Label('Bin size:', html_for='precision-binsize-'+self.name),
+                            html.Div([
+                                dcc.Slider(id='precision-binsize-'+self.name, 
+                                        min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
+                                        marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
+                                            0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
+                                            0.5: '0.5'}, 
+                                        included=False,
+                                        tooltip = {'always_visible' : False})
+                            ], style={'margin-bottom': 5}),
+                        ], id='precision-bin-size-div-'+self.name, style=dict(margin=5)),  
+                    hide=self.hide_binsize),
+                    make_hideable(
+                        html.Div([
+                            dbc.Label('Quantiles:', html_for='precision-quantiles-'+self.name),
+                            html.Div([
+                                dcc.Slider(id='precision-quantiles-'+self.name, 
+                                            min = 1, max = 20, step=1, value=self.quantiles,
+                                            marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
+                                            included=False,
+                                            tooltip = {'always_visible' : False}),
+                            ], style={'margin-bottom':5}),
+                        ], id='precision-quantiles-div-'+self.name), hide=self.hide_binsize),
+                    make_hideable(
+                        html.Div([
+                            html.Label('Cutoff prediction probability:'),
+                            dcc.Slider(id='precision-cutoff-'+self.name, 
+                                        min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                        marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                0.75: '0.75', 0.99: '0.99'}, 
+                                        included=False,
+                                        tooltip = {'always_visible' : False})
+                        ], style={'margin-bottom': 5}), hide=self.hide_cutoff),
+                ]),
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label('Binning Method:', html_for='precision-binsize-or-quantiles-'+self.name),
+                        dbc.RadioItems(
+                            id='precision-binsize-or-quantiles-'+self.name,
+                            options=[
+                                {'label': 'Bin Size', 
+                                'value': 'bin_size'},
+                                {'label': 'Quantiles', 
+                                'value': 'quantiles'}
+                            ],
+                            value=self.precision_or_binsize,
+                            inline=True),
+                    ], width=3), hide=self.hide_binmethod),
+                make_hideable(
+                    dbc.Col([
+                        dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id="precision-multiclass-"+self.name, 
+                                    className="form-check-input",
+                                    checked=self.multiclass
+                                ),
+                                dbc.Label(
+                                    "Display all classes",
+                                    html_for="precision-multiclass-"+self.name,
+                                    className="form-check-label",
+                                ),
+                                
+                        ], check=True),
+                    ], width=3), hide=self.hide_multiclass), 
+            ])    
         ])
 
     def _register_callbacks(self, app):

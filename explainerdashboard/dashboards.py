@@ -230,21 +230,6 @@ class JupyterExplainerTab(ExplainerTab):
         else:
             raise ValueError("mode should either be 'inline', 'jupyterlab' or 'external'!")
 
-class InlineExplainerComponent:
-    def __init__(self, inline_explainer, name):
-        self._inline_explainer = inline_explainer
-        self._explainer = inline_explainer._explainer
-        self._name = name
-
-    def _run_component(self, component, title):
-        self._inline_explainer._run_component(component, title)
-
-    def __repr__(self):
-        component_methods = [method_name for method_name in dir(self)
-                  if callable(getattr(self, method_name)) and not method_name.startswith("_")]
-
-        return f"InlineExplainer.{self._name} has the following components: {', '.join(component_methods)}"
-
 
 class InlineExplainer:
     """
@@ -333,8 +318,30 @@ class InlineExplainer:
         self._run_component(comp, title)
 
     
+class InlineExplainerComponent:
+    def __init__(self, inline_explainer, name):
+        self._inline_explainer = inline_explainer
+        self._explainer = inline_explainer._explainer
+        self._name = name
+
+    def _run_component(self, component, title):
+        self._inline_explainer._run_component(component, title)
+
+    def __repr__(self):
+        component_methods = [method_name for method_name in dir(self)
+                  if callable(getattr(self, method_name)) and not method_name.startswith("_")]
+
+        return f"InlineExplainer.{self._name} has the following components: {', '.join(component_methods)}"
+
+
 class InlineExplainerTabs(InlineExplainerComponent):
-    def modelsummary_tab(self, title='Model Summary', 
+    def importances(self,  title='Importances', **kwargs):
+        """Show contributions (permutation or shap) inline in notebook"""
+        tab = ImportancesTab(self._explainer, 
+                header_mode="standalone", **kwargs)
+        self._run_component(tab, title)
+
+    def modelsummary(self, title='Model Summary', 
                         bin_size=0.1, quantiles=10, cutoff=0.5, 
                         logs=False, pred_or_actual="vs_pred", ratio=False, col=None,
                         importance_type="shap", depth=None, cats=True):
@@ -343,18 +350,6 @@ class InlineExplainerTabs(InlineExplainerComponent):
                     bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, 
                     logs=logs, pred_or_actual=pred_or_actual, ratio=ratio,
                     importance_type=importance_type, depth=depth, cats=cats)
-        self._run_component(tab, title)
-
-    def importances(self,  title='Importances', **kwargs):
-        """Show contributions (permutation or shap) inline in notebook"""
-        tab = ImportancesTab(self._explainer, 
-                header_mode="standalone", **kwargs)
-        self._run_component(tab, title)
-
-    def modelsummary(self,  title='Model Summary', **kwargs):
-        """Show contributions (permutation or shap) inline in notebook"""
-        tab = ModelSummaryTab(self._explainer, 
-                header_mode="standalone", **kwargs)
         self._run_component(tab, title)
 
     def contributions(self,  title='Contributions', **kwargs):
@@ -441,7 +436,7 @@ class InlineClassifierExplainer(InlineExplainerComponent):
 
     def precision(self, title="Precision Plot", **kwargs):
         """shows precision plot"""
-        assert self.explainer.is_classifier
+        assert self._explainer.is_classifier
         comp = PrecisionComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
@@ -452,25 +447,25 @@ class InlineClassifierExplainer(InlineExplainerComponent):
 
     def lift_curve(self, title="Lift Curve", **kwargs):
         """shows precision plot"""
-        assert self.explainer.is_classifier
+        assert self._explainer.is_classifier
         comp = LiftCurveComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def classification(self, title="Classification", **kwargs):
         """shows precision plot"""
-        assert self.explainer.is_classifier
+        assert self._explainer.is_classifier
         comp = ClassificationComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def roc_auc(self, title="ROC AUC Curve", **kwargs):
         """shows precision plot"""
-        assert self.explainer.is_classifier
+        assert self._explainer.is_classifier
         comp = RocAucComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
     def pr_auc(self, title="PR AUC Curve", **kwargs):
         """shows precision plot"""
-        assert self.explainer.is_classifier
+        assert self._explainer.is_classifier
         comp = PrAucComponent(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
 
