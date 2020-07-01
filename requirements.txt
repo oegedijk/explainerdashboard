@@ -7,3 +7,4 @@ pandas
 PDPbox
 scikit-learn
 shap
+shortuuid

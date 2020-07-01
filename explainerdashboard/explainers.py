@@ -113,6 +113,7 @@ class BaseExplainer(ABC):
         self.columns = self.X.columns.tolist()
         self.is_classifier = False
         self.is_regression = False
+        self.interactions_should_work = True
         _ = self.shap_explainer
 
     @classmethod
@@ -732,8 +733,10 @@ class BaseExplainer(ABC):
         """
         assert col in self.X.columns or col in self.cats, \
             f"{col} not in columns of dataset"
-
-        features = get_feature_dict(self.X.columns, self.cats)[col]
+        if col in self.columns and not col in self.columns_cats:
+            features = col
+        else:
+            features = get_feature_dict(self.X.columns, self.cats)[col]
 
         if index is not None:
             idx = self.get_int_idx(index)
@@ -1000,7 +1003,7 @@ class BaseExplainer(ABC):
                 interaction=True)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,
-                    num_grid_lines=100, num_grid_points=10, pos_label=None):
+                    gridlines=100, gridpoints=10, pos_label=None):
         """returns plotly fig for a partial dependence plot showing ice lines
         for num_grid_lines rows, average pdp based on sample of sample.
         If index is given, display pdp for this specific index.
@@ -1022,7 +1025,7 @@ class BaseExplainer(ABC):
         """
         pdp_result = self.get_pdp_result(col, index,
                             drop_na=drop_na, sample=sample,
-                            num_grid_points=num_grid_points)
+                            num_grid_points=gridpoints)
 
         if index is not None:
             try:
@@ -1031,13 +1034,13 @@ class BaseExplainer(ABC):
                                 display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
                                 index_feature_value=col_value, index_prediction=pred,
                                 feature_name=col,
-                                num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+                                num_grid_lines=min(gridlines, sample, len(self.X)))
             except:
                 return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+                        num_grid_lines=min(gridlines, sample, len(self.X)))
         else:
             return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(num_grid_lines, sample, len(self.X)))
+                        num_grid_lines=min(gridlines, sample, len(self.X)))
 
 
 
@@ -1105,6 +1108,7 @@ class ClassifierExplainer(BaseExplainer):
                                                     self.X_background if self.X_background is not None else self.X,
                                                     model_output="probability",
                                                     feature_perturbation="interventional")
+                        self.interactions_should_work = False
                     else:
                         self.model_output = "logodds"
                         print(f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})")
@@ -1402,6 +1406,7 @@ class ClassifierExplainer(BaseExplainer):
         else:
             if y_values is None: y_values = self.y.unique().tolist()
             if not isinstance(y_values, list): y_values = [y_values]
+            y_values = [y if isinstance(y, int) else self.labels.index(y) for y in y_values]
             if pred_proba_min is None: pred_proba_min = self.pred_probas(pos_label).min()
             if pred_proba_max is None: pred_proba_max = self.pred_probas(pos_label).max()
             if pred_percentile_min is None: pred_percentile_min = 0.0
@@ -1479,27 +1484,30 @@ class ClassifierExplainer(BaseExplainer):
         if pos_label is None: pos_label = self.pos_label
         
         def display_probas(pred_probas_raw, labels, model_output='probability', round=2):
-            assert (len(pred_probas_raw.shape)==1 
-                    and len(pred_probas_raw) ==len(labels))
+            assert (len(pred_probas_raw.shape)==1 and len(pred_probas_raw) ==len(labels))
             def log_odds(p, round=2):
                 return np.round(np.log(p / (1-p)), round)
-
             for i in range(len(labels)):
-                pred_proba_str = f"{labels[i]}: {np.round(100*pred_probas_raw[i], round)}"
-                log_odds_str = f"(logodds={log_odds(pred_probas_raw[i], round)})"
-                yield f"##### {pred_proba_str} {log_odds_str if model_output=='logodds' else ''}\n"
+                proba_str = f"{np.round(100*pred_probas_raw[i], round)}%"
+                logodds_str = f"(logodds={log_odds(pred_probas_raw[i], round)})"
+                yield f"* {labels[i]}: {proba_str if model_output=='probability' else logodds_str}\n"
 
-        model_prediction = f"# Prediction for {index}:\n" 
-        for pred in display_probas(
-                self.pred_probas_raw[int_idx], 
-                self.labels, round):
-            model_prediction += pred
+        model_prediction = ""
         if (isinstance(self.y[0], int) or 
             isinstance(self.y[0], np.int64)):
-            model_prediction += f"##### Actual Outcome: {self.labels[self.y[int_idx]]}\n\n"
+            model_prediction += f"Outcome: {self.labels[self.y[int_idx]]}\n\n"
+        
+        model_prediction += "Prediction probabilities per label:\n\n" 
+        for pred in display_probas(
+                self.pred_probas_raw[int_idx], 
+                self.labels, self.model_output, round):
+            model_prediction += pred
+        
         if include_percentile:
-            model_prediction += f'##### In top {np.round(100*(1-self.pred_percentiles(pos_label)[int_idx]))}% percentile probability {self.labels[pos_label]}'
+            percentile = np.round(100*(1-self.pred_percentiles(pos_label)[int_idx]))
+            model_prediction += f'\nIn top {percentile}% percentile probability {self.labels[pos_label]}'      
         return model_prediction
+
 
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=None, multiclass=False, pos_label=None):
         """plots predicted probability on the x-axis and observed precision (fraction of actual positive
@@ -1635,15 +1643,67 @@ class RegressionExplainer(BaseExplainer):
     def residuals(self):
         if not hasattr(self, '_residuals'):
             print("Calculating residuals...")
-            self._residuals =  self.preds-self.y
+            self._residuals =  self.y-self.preds
         return self._residuals
+
+    @property
+    def abs_residuals(self):
+        if not hasattr(self, '_abs_residuals'):
+            print("Calculating absolute residuals...")
+            self._abs_residuals =  np.abs(self.residuals)
+        return self._abs_residuals
+
+    def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, 
+                        residuals_min=None, residuals_max=None,
+                        abs_residuals_min=None, abs_residuals_max=None,
+                        return_str=False, **kwargs):
+        """
+        Return a random index from dataset.
+        if y_values is given select an index for which y in y_values
+        if return_str return str index from self.idxs
+        """
+        if y_min is None:
+            y_min = self.y.min()
+        if y_max is None:
+            y_max = self.y.max()
+        if pred_min is None:
+            pred_min = self.preds.min()
+        if pred_max is None:
+            pred_max = self.preds.max()
+        if residuals_min is None:
+            residuals_min = self.residuals.min()
+        if residuals_max is None:
+            residuals_max = self.residuals.max()
+        if abs_residuals_min is None:
+            abs_residuals_min = self.abs_residuals.min()
+        if abs_residuals_max is None:
+            abs_residuals_max = self.abs_residuals.max()
+
+        potential_idxs = self.y[(self.y >= y_min) & 
+                                (self.y <= y_max) & 
+                                (self.preds >= pred_min) & 
+                                (self.preds <= pred_max) &
+                                (self.residuals >= residuals_min) & 
+                                (self.residuals <= residuals_max) &
+                                (self.abs_residuals >= abs_residuals_min) & 
+                                (self.abs_residuals <= abs_residuals_max)].index
+
+        if len(potential_idxs) > 0:
+            idx = np.random.choice(potential_idxs)
+        else:
+            return None
+        if return_str:
+            assert self.idxs is not None, \
+                "no self.idxs property found..."
+            return self.idxs[idx]
+        return int(idx)
 
     def prediction_result_markdown(self, index, round=2, **kwargs):
         int_idx = self.get_int_idx(index)
+        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)}\n\n"
+        model_prediction += f"Actual Outcome: {np.round(self.y[int_idx], round)}\n\n"
+        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)}"
 
-        model_prediction = f"# Prediction for {index}:\n" \
-                            + f"##### Prediction: {np.round(self.preds[int_idx], round)}\n"
-        model_prediction += f"##### Actual Outcome: {np.round(self.y[int_idx], round)}"
         return model_prediction
 
     def metrics(self):
@@ -1707,6 +1767,10 @@ class RandomForestExplainer(BaseExplainer):
     make up the RandomForest.
     """
     
+    @property
+    def no_of_trees(self):
+        return len(self.model.estimators_)
+        
     @property
     def graphviz_available(self):
         if not hasattr(self, '_graphviz_available'):
