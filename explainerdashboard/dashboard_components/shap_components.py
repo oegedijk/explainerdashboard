@@ -21,11 +21,13 @@ from .dashboard_methods import *
 class ShapSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence Summary',
                     header_mode="none", name=None,
-                    hide_depth=False, hide_type=False, hide_cats=False,
+                    hide_title=False, hide_depth=False, 
+                    hide_type=False, hide_cats=False,
                     depth=None, summary_type="aggregate", cats=True):
         super().__init__(explainer, title, header_mode, name)
 
-        self.hide_depth, self.hide_type, self.hide_cats = hide_depth, hide_type, hide_cats
+        self.hide_title, self.hide_depth,  = hide_title, hide_depth
+        self.hide_type, self.hide_cats = hide_type, hide_cats
         self.depth, self.summary_type, self.cats = depth, summary_type, cats
 
         if self.explainer.cats is None or not self.explainer.cats:
@@ -38,7 +40,7 @@ class ShapSummaryComponent(ExplainerComponent):
              
     def _layout(self):
         return dbc.Container([
-            html.H3('Shap Summary'),
+            make_hideable(html.H3('Shap Summary'), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -116,11 +118,12 @@ class ShapSummaryComponent(ExplainerComponent):
 class ShapDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence Summary',
                     header_mode="none", name=None,
-                    hide_cats=False, hide_col=False, hide_color_col=False, hide_highlight=False,
+                    hide_title=False, hide_cats=False, hide_col=False, 
+                    hide_color_col=False, hide_highlight=False,
                     cats=True, col=None, color_col=None, highlight=None):
         super().__init__(explainer, title, header_mode, name)
 
-        self.hide_cats, self.hide_col = hide_cats, hide_col
+        self.hide_title, self.hide_cats, self.hide_col = hide_title, hide_cats, hide_col
         self.hide_color_col, self.hide_highlight = hide_color_col, hide_highlight
 
         self.cats = cats
@@ -133,7 +136,7 @@ class ShapDependenceComponent(ExplainerComponent):
              
     def _layout(self):
         return dbc.Container([
-            html.H3('Shap Dependence Plot'),
+            make_hideable(html.H3('Shap Dependence Plot'), hide=self.hide_title),
             dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -245,12 +248,13 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary",
                     header_mode="none", name=None,
-                    hide_col=False, hide_depth=False, hide_type=False, hide_cats=False,
+                    hide_title=False, hide_col=False, hide_depth=False, 
+                    hide_type=False, hide_cats=False,
                     col=None, depth=None, summary_type="aggregate", cats=True):
         super().__init__(explainer, title, header_mode, name)
 
-        self.hide_col, self.hide_depth, self.hide_type, self.hide_cats = \
-            hide_col, hide_depth, hide_type, hide_cats
+        self.hide_title, self.hide_col, self.hide_depth, self.hide_type, self.hide_cats = \
+            hide_title, hide_col, hide_depth, hide_type, hide_cats
         self.col, self.depth, self.summary_type, self.cats = \
             col, depth, summary_type, cats
     
@@ -263,7 +267,7 @@ class InteractionSummaryComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3('Shap Interaction Summary'),
+            make_hideable(html.H3('Shap Interaction Summary'), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -347,13 +351,14 @@ class InteractionSummaryComponent(ExplainerComponent):
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence",
                     header_mode="none", name=None,
-                    hide_cats=False, hide_col=False, hide_interact_col=False, hide_highlight=False,
+                    hite_title=False, hide_cats=False, hide_col=False, 
+                    hide_interact_col=False, hide_highlight=False,
                     hide_top=False, hide_bottom=False,
                     cats=True, col=None, interact_col=None, highlight=None):
         super().__init__(explainer, title, header_mode, name)
 
-        self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_highlight = \
-            hide_cats, hide_col, hide_interact_col, hide_highlight
+        self.hide_title, self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_highlight = \
+            hide_title, hide_cats, hide_col, hide_interact_col, hide_highlight
         self.hide_top, self.hide_bottom = hide_top, hide_bottom
 
         self.cats, self.col, self.interact_col, self.highlight = \
@@ -368,7 +373,7 @@ class InteractionDependenceComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3('Shap Interaction Plots'),
+            make_hideable(html.H3('Shap Interaction Plots'), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -487,12 +492,13 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions",
                     header_mode="none", name=None,
-                    hide_index=False, hide_depth=False, hide_cats=False,
+                    hide_title=False, hide_index=False, 
+                    hide_depth=False, hide_cats=False,
                     index=None, depth=None, cats=True):
         super().__init__(explainer, title, header_mode, name)
 
-        self.hide_index, self.hide_depth, self.hide_cats = \
-            hide_index, hide_depth, hide_cats
+        self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
+            hide_title, hide_index, hide_depth, hide_cats
         self.index, self.depth, self.cats = index, depth, cats
 
         self.index_name = 'contributions-graph-index-'+self.name
@@ -504,7 +510,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3("Contributions to prediction:"),
+            make_hideable(html.H3("Contributions to prediction:"), hide=hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -571,12 +577,13 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 class ShapContributionsTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions",
                     header_mode="none", name=None,
-                    hide_index=False, hide_depth=False, hide_cats=False,
+                    hide_title=False, hide_index=False, 
+                    hide_depth=False, hide_cats=False,
                     index=None, depth=None, cats=True):
         super().__init__(explainer, title, header_mode, name)
 
-        self.hide_index, self.hide_depth, self.hide_cats = \
-            hide_index, hide_depth, hide_cats
+        self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
+            hide_title, hide_index, hide_depth, hide_cats
         self.index, self.depth, self.cats = index, depth, cats
 
         self.index_name = 'contributions-table-index-'+self.name
@@ -588,7 +595,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3("Contributions to prediction:"),
+            make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([

@@ -72,6 +72,7 @@
 - convert to MyST for markdown friendly documentation?
 
 ## Library level:
+- add more screenshots to README with https://postimages.org/
 - add more _ to properties to make them hidden from tab completions
 - add badges to README: https://github.com/badges/shields
 -> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg

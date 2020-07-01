@@ -142,7 +142,7 @@ class ExplainerTab:
     identifier. 
     """
     def __init__(self, explainer, tab, title='Model Explainer', 
-                    plotly_template="none", **kwargs):
+                    header_mode="standalone", **kwargs):
         """Constructs an ExplainerDashboard.
         
         :param explainer: an ExplainerBunch object
@@ -157,8 +157,6 @@ class ExplainerTab:
         
         self.explainer = explainer
         self.title = title
-
-        self.plotly_template = plotly_template
         self.kwargs = kwargs
 
         if isinstance(tab, str):
@@ -179,15 +177,16 @@ class ExplainerTab:
                         "['importances', 'model_summary', 'contributions', 'shap_dependence', "
                         "'shap_interactions', 'decision_trees']")
 
-        self.tab = tab(self.explainer, header_mode="standalone", **self.kwargs)
+        self.tab = tab(self.explainer, header_mode=header_mode, **self.kwargs)
 
         self.app = self.get_dash_app()
         self.app.title = title
         
-        pio.templates.default = self.plotly_template
+        #pio.templates.default = self.plotly_template
 
         self.app.layout = self.tab.layout()
         self.tab.register_callbacks(self.app)
+        self.tab.calculate_dependencies()
 
     def get_dash_app(self):
         app = dash.Dash(__name__)
@@ -203,7 +202,7 @@ class ExplainerTab:
         :type port: int, optional
         """
         print(f"Running {self.title} on http://localhost:{port}")
-        pio.templates.default = self.plotly_template
+        #pio.templates.default = self.plotly_template
         self.app.run_server(port=port, **kwargs)
 
 
@@ -222,10 +221,10 @@ class JupyterExplainerTab(ExplainerTab):
         :param width: width in pixels of inline iframe
         :param height: height in pixels of inline iframe
         """
-        pio.templates.default = self.plotly_template
+        #pio.templates.default = self.plotly_template
         if mode in ['inline', 'jupyterlab']:
             self.app.run_server(mode=mode, width=width, height=height, port=port)
-        elif mode == 'jupyterlab':
+        elif mode in ['external']:
              self.app.run_server(mode=mode, port=port, **kwargs)
         else:
             raise ValueError("mode should either be 'inline', 'jupyterlab' or 'external'!")
