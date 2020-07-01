@@ -20,6 +20,7 @@
 - Add Altair (vega) plots for easy inclusion in websites
 - rename plotly_ from all plotting functions? or not if we're going to add altair?
 - highlight id in violin plots
+- Contributions: order by global mean_abs_shap or by specific shap
 
 ### Classifier plots:
 - Add feature names to waterfall plot
@@ -70,6 +71,7 @@
 - convert to MyST for markdown friendly documentation?
 
 ## Library level:
+- add more _ to properties to make them hidden from tab completions
 - add badges to README: https://github.com/badges/shields
 -> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg
 - https://github.com/marketplace/actions/coveralls-python

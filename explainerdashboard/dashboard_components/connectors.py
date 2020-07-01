@@ -191,6 +191,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
         assert (len(self.abs_residual_slider)==2 and self.abs_residual_slider[0]<=self.abs_residual_slider[1]), \
             "abs_residual_slider should be a list of a [lower_bound, upper_bound]!"
 
+        assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
+
     def _layout(self):
         return html.Div([
             html.H3("Select index:"),
@@ -265,7 +267,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                     id='random-index-reg-residual-slider-'+self.name,
                                     min=self.explainer.residuals.min(), 
                                     max=self.explainer.residuals.max(), 
-                                    #step=np.float_power(10, -self.round),
+                                    step=np.float_power(10, -self.round),
                                     value=[self.residual_slider[0], self.residual_slider[1]], 
                                     marks={self.explainer.residuals.min(): str(np.round(self.explainer.residuals.min(), self.round)),
                                         self.explainer.residuals.max(): str(np.round(self.explainer.residuals.max(), self.round))}, 
@@ -286,7 +288,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                     id='random-index-reg-abs-residual-slider-'+self.name,
                                     min=self.explainer.abs_residuals.min(), 
                                     max=self.explainer.abs_residuals.max(), 
-                                    #step=np.float_power(10, -self.round),
+                                    step=np.float_power(10, -self.round),
                                     value=[self.abs_residual_slider[0], self.abs_residual_slider[1]], 
                                     marks={self.explainer.abs_residuals.min(): str(np.round(self.explainer.abs_residuals.min(), self.round)),
                                         self.explainer.abs_residuals.max(): str(np.round(self.explainer.abs_residuals.max(), self.round))}, 
@@ -491,31 +493,28 @@ class CutoffConnector(ExplainerComponent):
 
 class IndexConnector(ExplainerComponent):
     def __init__(self, input_index, output_indexes):
-        self.connector_init()
         self.input_index_name = self.index_name(input_index)
-        self.output_index_names = self.index_name(output_indexes, multi=True)
+        self.output_index_names = self.index_name(output_indexes)
+        if not isinstance(self.output_index_names, list):
+            self.output_index_names = [self.output_index_names]
 
     @staticmethod
-    def index_name(indexes, multi=False):
+    def index_name(indexes):#, multi=False):
+        def get_index_name(o):
+            if isinstance(o, str): return o
+            elif isinstance(o, ExplainerComponent):
+                if not hasattr(o, "index_name"):
+                    raise ValueError(f"{o} does not have an .index_name property!")
+                return o.index_name
+            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .index_name property")
+        
+        if hasattr(indexes, '__iter__'):
             index_name_list = []
-            if isinstance(indexes, str):
-                index_name_list.append(indexes)
-            elif isinstance(indexes, ExplainerComponent) and hasattr(indexes, "index_name"):
-                index_name_list.append(indexes.index_name)
-            elif multi and hasattr(indexes, '__iter__'):
-                for index in indexes:
-                    if isinstance(index, str):
-                        index_name_list.append(index)
-                    elif isinstance(index, ExplainerComponent) and hasattr(index, "index_name"):
-                        index_name_list.append(index.index_name)
-                    else:
-                        raise ValueError("inputs/outputs should be either str or an ExplainerComponent with a .index_name property!"
-                                        f"{index} is neither!")
-
-            if multi:
-                return index_name_list
-            else:
-                return index_name_list[0]
+            for index in indexes:
+                index_name_list.append(get_index_name(index))
+            return index_name_list
+        else:
+            return get_index_name(indexes)
 
     def register_callbacks(self, app):
         @app.callback(
@@ -528,31 +527,28 @@ class IndexConnector(ExplainerComponent):
 
 class HighlightConnector(ExplainerComponent):
     def __init__(self, input_highlight, output_highlights):
-        self.connector_init()
         self.input_highlight_name = self.highlight_name(input_highlight)
-        self.output_highlight_names = self.highlight_name(output_highlights, multi=True)
+        self.output_highlight_names = self.highlight_name(output_highlights)
+        if not isinstance(self.output_highlight_names, list):
+            self.output_highlight_names = [self.output_highlight_names]
 
     @staticmethod
-    def highlight_name(highlights, multi=False):
-            highlight_name_list = []
-            if isinstance(highlights, str):
-                highlight_name_list.append(highlights)
-            elif isinstance(highlights, ExplainerComponent) and hasattr(highlights, "highlight_name"):
-                highlight_name_list.append(highlights.highlight_name)
-            elif multi and hasattr(highlights, '__iter__'):
-                for highlight in highlights:
-                    if isinstance(highlight, str):
-                        highlight_name_list.append(highlight)
-                    elif isinstance(highlight, ExplainerComponent) and hasattr(highlight, "highlight_name"):
-                        highlight_name_list.append(highlight.highlight_name)
-                    else:
-                        raise ValueError("inputs/outputs should be either str or an ExplainerComponent with a .highlight_name property!"
-                                        f"{highlight} is neither!")
-
-            if multi:
-                return highlight_name_list
-            else:
-                return highlight_name_list[0]
+    def highlight_name(highlights):#, multi=False):
+        def get_highligh_name(o):
+            if isinstance(o, str): return o
+            elif isinstance(o, ExplainerComponent):
+                if not hasattr(o, "highligh_name"):
+                    raise ValueError(f"{o} does not have an .highligh_name property!")
+                return o.highlight_name
+            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .highlighy_name property")
+        
+        if hasattr(highlights, '__iter__'):
+            highlist_name_list = []
+            for highlight in highlights:
+                highlight_name_list.append(get_highlight_name(highlight))
+            return highlight_name_list
+        else:
+            return get_highlight_name(highlights)
 
     def register_callbacks(self, app):
         @app.callback(

@@ -28,21 +28,27 @@ class PredictedVsActualComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            dcc.Loading(id="loading-pred-vs-actual-graph-"+self.name, 
+            dbc.Row([
+                dbc.Col([
+                    dcc.Loading(id="loading-pred-vs-actual-graph-"+self.name, 
                                 children=[dcc.Graph(id='pred-vs-actual-graph-'+self.name)]),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup(
-                    [
-                        dbc.RadioButton(
-                            id='pred-vs-actual-logs-'+self.name,
-                            className="form-check-input",
-                            checked=self.logs),
-                        dbc.Label("Take Logs",
-                                html_for='pred-vs-actual-logs-'+self.name,
-                                className="form-check-label"),
-                    ], check=True),
-                ]), hide=self.hide_logs),
+                ])
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioButton(
+                                id='pred-vs-actual-logs-'+self.name,
+                                className="form-check-input",
+                                checked=self.logs),
+                            dbc.Label("Take Logs",
+                                    html_for='pred-vs-actual-logs-'+self.name,
+                                    className="form-check-label"),
+                        ], check=True),
+                    ]), hide=self.hide_logs),
+            ])   
         ])
 
     def _register_callbacks(self, app):
@@ -69,36 +75,43 @@ class ResidualsComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            dcc.Loading(id="loading-residuals-graph-"+self.name, 
+            dbc.Row([
+                dbc.Col([
+                    dcc.Loading(id="loading-residuals-graph-"+self.name, 
                                 children=[dcc.Graph(id='residuals-graph-'+self.name)]),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup(
-                    [
-                        dbc.RadioItems(
-                            options=[
-                                {"label": "vs Prediction", "value": "vs_pred"},
-                                {"label": "vs Actual", "value": "vs_actual"},
-                            ],
-                            value=self.pred_or_actual,
-                            id='residuals-pred-or-actual-'+self.name,
-                            inline=True,
-                        ),
-                    ]),
-                ]), hide=self.hide_pred_or_actual),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup(
-                    [
-                        dbc.RadioButton(
-                            id='residuals-ratio-'+self.name,
-                            className="form-check-input",
-                            checked=self.ratio),
-                        dbc.Label("Display Ratio",
-                                html_for='residuals-ratio-'+self.name,
-                                className="form-check-label"),
-                    ], check=True),
-                ]), hide=self.hide_ratio),
+                ])
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioItems(
+                                options=[
+                                    {"label": "vs Prediction", "value": "vs_pred"},
+                                    {"label": "vs Actual", "value": "vs_actual"},
+                                ],
+                                value=self.pred_or_actual,
+                                id='residuals-pred-or-actual-'+self.name,
+                                inline=True,
+                            ),
+                        ]),
+                    ]), hide=self.hide_pred_or_actual),
+                make_hideable(
+                    dbc.Col([
+                        dbc.FormGroup(
+                        [
+                            dbc.RadioButton(
+                                id='residuals-ratio-'+self.name,
+                                className="form-check-input",
+                                checked=self.ratio),
+                            dbc.Label("Display Ratio",
+                                    html_for='residuals-ratio-'+self.name,
+                                    className="form-check-label"),
+                        ], check=True),
+                    ]), hide=self.hide_ratio),
+
+            ])  
         ])
 
     def register_callbacks(self, app):

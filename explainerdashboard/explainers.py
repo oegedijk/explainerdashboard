@@ -1691,8 +1691,10 @@ class RegressionExplainer(BaseExplainer):
 
     def prediction_result_markdown(self, index, round=2, **kwargs):
         int_idx = self.get_int_idx(index)
-        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)}\n"
-        model_prediction += f"Actual Outcome: {np.round(self.y[int_idx], round)}"
+        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)}\n\n"
+        model_prediction += f"Actual Outcome: {np.round(self.y[int_idx], round)}\n\n"
+        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)}"
+
         return model_prediction
 
     def metrics(self):

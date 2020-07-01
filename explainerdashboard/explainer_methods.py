@@ -522,23 +522,27 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
     :param round: rounding of contribution
     """
     contrib_summary_df = pd.DataFrame(columns=['Reason', 'Effect'])
+    final_pred = np.round(contrib_df.contribution.sum(), round)
 
     for _, row in contrib_df.iterrows():
         if row['col'] == 'base_value':
-            reason = 'BASE VALUE'
+            reason = 'Average of population'
+            effect = ""
         else:
             reason = f"{row['col']} = {row['value']}"
-        effect = f"{'+' if row['contribution'] >= 0 else ''}"
+            effect = f"{'+' if row['contribution'] >= 0 else ''}"
         if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
         else:
             effect +=  str(np.round(row['contribution'], round))
 
+
         contrib_summary_df = contrib_summary_df.append(
-            pd.DataFrame({
-                'Reason': [reason],
-                'Effect': [effect]
-            }))
+            dict(Reason=reason, Effect=effect), ignore_index=True)
+    
+    contrib_summary_df = contrib_summary_df.append(
+            dict(Reason="Final prediction", Effect=str(final_pred)), ignore_index=True)
+    
     return contrib_summary_df.reset_index(drop=True)
 
 

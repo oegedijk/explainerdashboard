@@ -131,11 +131,9 @@ class ExplainerComponent(ABC):
         self._components = []
         self._dependencies = []
 
-    def connector_init(self):
-        self._components = []
-        self._dependencies = []
-
     def register_components(self, *components):
+        if not hasattr(self, '_components'):
+            self._components = []
         for comp in components:
             if isinstance(comp, ExplainerComponent):
                 self._components.append(comp)
@@ -163,6 +161,8 @@ class ExplainerComponent(ABC):
 
     @property
     def dependencies(self):
+        if not hasattr(self, '_dependencies'):
+            self._dependencies = []
         deps = self._dependencies
         for comp in self._components:
             deps.extend(comp.dependencies)
@@ -194,7 +194,7 @@ class ExplainerComponent(ABC):
             comp.register_callbacks(app)
         self._register_callbacks(app)
 
-def make_hideable(element, hide=False, id=None):
+def make_hideable(element, hide=False):
     """helper function to optionally not display an element in a layout.
 
     if hide=True: return a hidden div containing element
@@ -204,17 +204,10 @@ def make_hideable(element, hide=False, id=None):
     """ 
     if hide:
         if isinstance(element, dbc.Col) or isinstance(element, dbc.FormGroup):
-            if id is not None:
-                return html.Div(element.children, id=id, style=dict(display="none"))
-            else:
-                return html.Div(element.children, style=dict(display="none"))
-
+            return html.Div(element.children, style=dict(display="none"))
         else:
-            return html.Div(element, id=id, style=dict(display="none"))
+            return html.Div(element, style=dict(display="none"))
     else:
-        if id is not None:
-            return html.Div(element, id=id)
-        else:
-            return element
+        return element
 
 
