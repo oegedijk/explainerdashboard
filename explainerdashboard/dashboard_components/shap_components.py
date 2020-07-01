@@ -351,7 +351,7 @@ class InteractionSummaryComponent(ExplainerComponent):
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence",
                     header_mode="none", name=None,
-                    hite_title=False, hide_cats=False, hide_col=False, 
+                    hide_title=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_highlight=False,
                     hide_top=False, hide_bottom=False,
                     cats=True, col=None, interact_col=None, highlight=None):
@@ -510,7 +510,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            make_hideable(html.H3("Contributions to prediction:"), hide=hide_title),
+            make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
