@@ -63,7 +63,7 @@ RegressionExplainer: Plots
    
 
 RandomForestExplainer: Plots
-=====================================
+============================
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer
    :members: plot_trees, decision_path

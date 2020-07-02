@@ -24,11 +24,16 @@ Some example code::
                         decision_trees=False).run(port=8051)
 
 
+
 ExplainerDashboard
 ==================
 
-.. autoclass:: explainerdashboard.dashboards.ExplainerDashboard
-   :members: __init__, run
+.. currentmodule:: explainerdashboard.dashboards
+
+.. autoclass:: ExplainerDashboard
+   :members: run 
+   :member-order: bysource
+
 
 JupyterExplainerDashboard
 =========================
@@ -39,7 +44,8 @@ in jupyterlab, or in seperate browser tab respectively. This has the benefit
 that you can keep working inside the notebook while the dashboard is running.
 
 .. autoclass:: explainerdashboard.dashboards.JupyterExplainerDashboard
-   :members: __init__, run
+   :members: run
+   :member-order: bysource
 
 ExplainerTab
 ============
@@ -53,7 +59,8 @@ You can either pass the appropriate tab class definition, or a string identifier
 
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerTab
-   :members: __init__, run
+   :members: run
+   :member-order: bysource
 
 JupyterExplainerTab
 ===================
@@ -65,10 +72,11 @@ the dashboard inline in a notebook, in seperate pane in jupyterlab, or in
 seperate browser tab respectively. 
 
 .. autoclass:: explainerdashboard.dashboards.JupyterExplainerTab
-   :members: __init__, run
+   :members: run
+   :member-order: bysource
 
-InlineExplainerTab
-==================
+InlineExplainer
+===============
 
 An alternative API to run a particular tab or component inline in a notebook. each
 individual component can be accessed through InlineExplainer directly. Full tabs
@@ -84,9 +92,9 @@ Examples::
     InlineExplainer(explainer, width=1200, height=1000).shap_interaction()
 
 
-.. autoclass:: explainerdashboard.dashboards.InlineExplainerTab
-   :members: __init__, model_summary, importances, model_stats, contributions, shap_dependence, shap_interaction, decision_trees
-
+.. autoclass:: explainerdashboard.dashboards.InlineExplainer
+   :members:  tab, shap, classifier, regression, decisiontrees, importances, model_stats, prediction, random_index, pdp
+   :member-order: bysource
 
 
 Dashboard tabs
@@ -97,6 +105,8 @@ Importances tab (importances=True)
 
 Shows an overview of the most important features according to either permutation importance
 or mean absolute shap value.
+
+.. autoclass:: explainerdashboard.dashboard_tabs.ImportancesTab
 
 
 Model summary tab (model_summary=True)
@@ -111,6 +121,7 @@ For regression models for now only shows permutation importances and mean absolu
 
 .. autoclass:: explainerdashboard.dashboard_tabs.ModelSummaryTab
 
+
 Individual Predictions Tab (contributions=True)
 -----------------------------------------------
 
@@ -118,6 +129,7 @@ Explains individual predictions, showing the shap values for each feature that
 impacted the prediction. Also shows a pdp plot for each feature.
 
 .. autoclass:: explainerdashboard.dashboard_tabs.ContributionsTab
+
 
 Feature Dependence tab (shap_dependence=True)
 ---------------------------------------------
@@ -127,6 +139,7 @@ shows the shap value plotted versus the feature value.
 
 .. autoclass:: explainerdashboard.dashboard_tabs.ShapDependenceTab
 
+
 Feature Interactions tab (shap_interaction=True)
 ------------------------------------------------
 
@@ -134,6 +147,7 @@ Shows a summary of the distributions of shap interaction values for each a given
 When clicked shows the shap interactions value plotted versus the feature value. 
 
 .. autoclass:: explainerdashboard.dashboard_tabs.ShapInteractionsTab
+
 
 Decision Trees tab (decision_trees=True)
 ----------------------------------------
