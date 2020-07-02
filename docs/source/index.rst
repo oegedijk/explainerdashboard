@@ -72,6 +72,7 @@ object check out `explainer_examples notebook in the github repo. <https://githu
    explainers
    plots
    dashboards
+   components
    license
    help
 

@@ -56,25 +56,25 @@ class DummyComponent:
 
 class ExplainerHeader:
     """
-    Generates header layout with a title and, for classification models, a
-        positive label selector. The callbacks for most of the ExplainerComponents
-        expect the presence of both a 'pos-label' and a 'tabs' dash element, so you
-        have to make sure there is at least an element with that name.
+    Generates a header layout with a title and, for classification models, a
+    positive label selector. The callbacks for most of the ExplainerComponents
+    expect the presence of both a 'pos-label' and a 'tabs' dash element, so you
+    have to make sure there is at least an element with that name.
 
-        If you have standalone page without tabs ans so without a dcc.Tabs 
-        component, an ExplainerHeader(mode='standalone') will insert a dummy 
-        'tabs' hidden div.
+    If you have standalone page without tabs ans so without a dcc.Tabs 
+    component, an ExplainerHeader(mode='standalone') will insert a dummy 
+    'tabs' hidden div.
 
-        Even if you don't need or want a positive label selector in your layout, 
-        you still need a 'pos-label' input element in order for the callbacks
-        to be validated. an ExplainerHeader(mode='hidden'), will add a hidden
-        div with both a 'tabs' and a 'pos-label' element.
+    Even if you don't need or want a positive label selector in your layout, 
+    you still need a 'pos-label' input element in order for the callbacks
+    to be validated. an ExplainerHeader(mode='hidden'), will add a hidden
+    div with both a 'tabs' and a 'pos-label' element.
 
-        For a subcomponent, you don't need to define either a 'pos-label' or
-        a 'tabs' element (these are taken care off by the overall layout),
-        so ExplainerHeader(mode='none'), will simply add a dummy hidden layout.
+    For a subcomponent, you don't need to define either a 'pos-label' or
+    a 'tabs' element (these are taken care off by the overall layout),
+    so ExplainerHeader(mode='none'), will simply add a dummy hidden layout.
     """
-    def __init__(self, explainer, mode="dashboard", title="Explainer Dashboard"):
+    def __init__(self, explainer, mode="none", title="Explainer Dashboard"):
         """Insert appropriate header layout into explainable dashboard layout.
 
         Args:
@@ -84,10 +84,10 @@ class ExplainerHeader:
                     Used for ExplainerDashboard.
                 "standalone": display title and label selector, insert dummy 'tabs'.
                     Used for ExplainerTabs or standalone single layouts.
-                "hidden": don't display header but insert 'pos-label' and 'tabs'.
+                "hidden": don't display header but insert dummy elements 'pos-label' and 'tabs'. 
                     Used for InlineExplainer.
                 "none": don't generate any header at all.
-                    Used for ExplainerComponents.. Defaults to "dashboard".
+                    Used for sub ExplainerComponents.. Defaults to "none".
             title (str, optional): Title to display in header. 
                     Defaults to "Explainer Dashboard".
         """
@@ -98,10 +98,11 @@ class ExplainerHeader:
 
     def layout(self):
         """html.Div() with elements depending on self.mode:
-            'dashboard': title+positive label selector
-            'standalone': title+positive label selector + hidden 'tabs' element
-            'hidden': hidden 'post-label' and 'tabs' element
-            'none': empty layout
+
+        - 'dashboard': title+positive label selector
+        - 'standalone': title+positive label selector + hidden 'tabs' element
+        - 'hidden': hidden 'pos-label' and 'tabs' element
+        - 'none': empty layout
         """
         dummy_pos_label = html.Div(
                 [dcc.Input(id="pos-label")], style=dict(display="none"))
@@ -143,12 +144,16 @@ class ExplainerComponent(ABC):
     """ExplainerComponent is a bundle of a dash layout and callbacks that
     make use of an Explainer object. 
 
-    An ExplainerComponent can have ExplainerComponent subcomponents.
+    An ExplainerComponent can have ExplainerComponent subcomponents, that
+    you register with register_components(). If the component depends on 
+    certain lazily calculated Explainer properties, you can register these
+    with register_dependencies().
 
     ExplainerComponent makes sure that:
-    1. an appropriate header is inserted
-    2. callbacks are registered
-    3. lazily calculated dependencies are registered (even nested ones!)
+
+    1. An appropriate header is inserted into .layout()
+    2. Callbacks of subcomponents are registered.
+    3. Lazily calculated dependencies (even of subcomponents) can be calculated.
     
     Each ExplainerComponent adds a unique uuid name string to all elements, so 
     that there is never a name clash even with multiple ExplanerComponents of 
@@ -161,6 +166,23 @@ class ExplainerComponent(ABC):
         to _register_callbacks() when calling register_callbacks()
     """
     def __init__(self, explainer, title=None, header_mode="none", name=None):
+        """initialize the ExplainerComponent
+
+        Args:
+            explainer (Explainer): explainer object constructed with e.g.
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to None.
+            header_mode (str,{"standalone", "hidden" or "none"}, optional):
+                        determines what kind of ExplainerHeader to insert into
+                        the layout. For a component that forms the entire page, 
+                        use 'standalone'. If you don't want to see the title and
+                        pos label selector, use 'hidden'. If this is a subcomponent
+                        of a larger page, use 'none'.
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+        """
         self.explainer = explainer
         self.title = title
         self.header = ExplainerHeader(explainer, title=title, mode=header_mode)
@@ -234,17 +256,22 @@ class ExplainerComponent(ABC):
 
     def layout(self):
         "returns a combination of the header and _layout()"
-        return html.Div([
-            self.header.layout(),
-            self._layout()
-        ])
+        if not hasattr(self, 'header'):
+            return self._layout()
+        else:
+            return html.Div([
+                self.header.layout(),
+                self._layout()
+            ])
 
     def _register_callbacks(self, app):
-        """register callbacks particular to a ExplainerComponent"""
+        """register callbacks specific to this ExplainerComponent"""
         pass
 
     def register_callbacks(self, app):
-        """register callbacks of this component and all subcomponents"""
+        """First register callbacks of all subcomponents, then call
+        _register_callbacks(app)
+        """
         for comp in self._components:
             comp.register_callbacks(app)
         self._register_callbacks(app)
@@ -254,7 +281,7 @@ def make_hideable(element, hide=False):
 
     This is used for all the hide_ flags in ExplainerComponent constructors.
     e.g. hide_cutoff=True to hide a cutoff slider from a layout:
-    
+
     Example:
         make_hideable(dbc.Col([cutoff.layout()]), hide=hide_cutoff)
 

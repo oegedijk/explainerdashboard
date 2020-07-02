@@ -627,7 +627,7 @@ class IndexConnector(ExplainerComponent):
         else:
             return get_index_name(indexes)
 
-    def register_callbacks(self, app):
+    def _register_callbacks(self, app):
         @app.callback(
             [Output(index_name, 'value') for index_name in self.output_index_names],
             [Input(self.input_index_name, 'value')]
@@ -677,7 +677,7 @@ class HighlightConnector(ExplainerComponent):
         else:
             return get_highlight_name(highlights)
 
-    def register_callbacks(self, app):
+    def _register_callbacks(self, app):
         @app.callback(
             [Output(highlight_name, 'value') for highlight_name in self.output_highlight_names],
             [Input(self.input_highlight_name, 'value')])
