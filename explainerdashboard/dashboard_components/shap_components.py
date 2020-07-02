@@ -24,6 +24,30 @@ class ShapSummaryComponent(ExplainerComponent):
                     hide_title=False, hide_depth=False, 
                     hide_type=False, hide_cats=False,
                     depth=None, summary_type="aggregate", cats=True):
+        """Shows shap summary component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Shap Dependence Summary".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title above component. 
+                        Defaults to False.
+            hide_depth (bool, optional): hide the depth toggle. 
+                        Defaults to False.
+            hide_type (bool, optional): hide the summary type toggle 
+                        (aggregated, detailed). Defaults to False.
+            hide_cats (bool, optional): hide the group cats toggle. Defaults to False.
+            depth (int, optional): initial number of features to show. Defaults to None.
+            summary_type (str, {'aggregate', 'detailed'}. optional): type of 
+                        summary graph to show. Defaults to "aggregate".
+            cats (bool, optional): group cats. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_title, self.hide_depth,  = hide_title, hide_depth
@@ -116,11 +140,34 @@ class ShapSummaryComponent(ExplainerComponent):
 
 
 class ShapDependenceComponent(ExplainerComponent):
-    def __init__(self, explainer, title='Shap Dependence Summary',
+    def __init__(self, explainer, title='Shap Dependence',
                     header_mode="none", name=None,
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_color_col=False, hide_highlight=False,
                     cats=True, col=None, color_col=None, highlight=None):
+        """Show shap dependence graph
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Shap Dependence".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): hide component title. Defaults to False.
+            hide_cats (bool, optional): hide group cats toggle. Defaults to False.
+            hide_col (bool, optional): hide feature selector. Defaults to False.
+            hide_color_col (bool, optional): hide color feature selector Defaults to False.
+            hide_highlight (bool, optional): hide highlight selector Defaults to False.
+            cats (bool, optional): group cats. Defaults to True.
+            col (str, optional): Feature to display. Defaults to None.
+            color_col (str, optional): Color plot by values of this Feature. 
+                        Defaults to None.
+            highlight (int, optional): Highlight a particular row. Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_title, self.hide_cats, self.hide_col = hide_title, hide_cats, hide_col
@@ -216,6 +263,15 @@ class ShapDependenceComponent(ExplainerComponent):
 
 class ShapSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, shap_summary_component, shap_dependence_component):
+        """Connects a ShapSummaryComponent with a ShapDependence Component:
+
+        - When group cats in ShapSummary, then group cats in ShapDependence
+        - When clicking on feature in ShapSummary, then select that feature in ShapDependence
+
+        Args:
+            shap_summary_component (ShapSummaryComponent): ShapSummaryComponent
+            shap_dependence_component (ShapDependenceComponent): ShapDependenceComponent
+        """
         self.sum_name = shap_summary_component.name
         self.dep_name = shap_dependence_component.name
 
@@ -251,6 +307,28 @@ class InteractionSummaryComponent(ExplainerComponent):
                     hide_title=False, hide_col=False, hide_depth=False, 
                     hide_type=False, hide_cats=False,
                     col=None, depth=None, summary_type="aggregate", cats=True):
+        """Show SHAP Interaciton values summary component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Interactions Summary".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): hide the component title. Defaults to False.
+            hide_col (bool, optional): Hide the feature selector. Defaults to False.
+            hide_depth (bool, optional): Hide depth toggle. Defaults to False.
+            hide_type (bool, optional): Hide summary type toggle. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            col (str, optional): Feature to show interaction summary for. Defaults to None.
+            depth (int, optional): Number of interaction features to display. Defaults to None.
+            summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
+            cats (bool, optional): Group categorical features. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_title, self.hide_col, self.hide_depth, self.hide_type, self.hide_cats = \
@@ -355,6 +433,34 @@ class InteractionDependenceComponent(ExplainerComponent):
                     hide_interact_col=False, hide_highlight=False,
                     hide_top=False, hide_bottom=False,
                     cats=True, col=None, interact_col=None, highlight=None):
+        """Interaction Dependence Component.
+
+        Shows two graphs:
+            top graph: col vs interact_col
+            bottom graph: interact_col vs col
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Interactions Dependence".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): Hide component title. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_col (bool, optional): Hide feature selector. Defaults to False.
+            hide_interact_col (bool, optional): Hide interaction feature selector. Defaults to False.
+            hide_highlight (bool, optional): Hide highlight index selector. Defaults to False.
+            hide_top (bool, optional): Hide the top interaction graph (col vs interact_col). Defaults to False.
+            hide_bottom (bool, optional): hide the bottom interaction graph (interact_col vs col). Defaults to False.
+            cats (bool, optional): group categorical features. Defaults to True.
+            col (str, optional): Feature to find interactions for. Defaults to None.
+            interact_col (str, optional): Feature to interact with. Defaults to None.
+            highlight (int, optional): Index row to highlight Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_title, self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_highlight = \
@@ -456,6 +562,17 @@ class InteractionDependenceComponent(ExplainerComponent):
 
 class InteractionSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, interaction_summary_component, interaction_dependence_component):
+        """Connects a InteractionSummaryComponent with an InteractionDependenceComponent:
+
+        - When group cats in Summary, then group cats in Dependence
+        - When select feature in summary, then select col in Dependence
+        - When clicking on interaction feature in Summary, then select that interaction 
+            feature in Dependence.
+
+        Args:
+            shap_summary_component (ShapSummaryComponent): ShapSummaryComponent
+            shap_dependence_component (ShapDependenceComponent): ShapDependenceComponent
+        """
         self.sum_name = interaction_summary_component.name
         self.dep_name = interaction_dependence_component.name
 
@@ -495,6 +612,26 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_cats=False,
                     index=None, depth=None, cats=True):
+        """Display Shap contributions to prediction graph component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Contributions".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): Hide component title. Defaults to False.
+            hide_index (bool, optional): Hide index selector. Defaults to False.
+            hide_depth (bool, optional): Hide depth toggle. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            index ({int, bool}, optional): Initial index to display. Defaults to None.
+            depth (int, optional): Initial number of features to display. Defaults to None.
+            cats (bool, optional): Group cats. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
@@ -580,6 +717,26 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_cats=False,
                     index=None, depth=None, cats=True):
+        """Show SHAP values contributions to prediction in a table component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Contributions".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): Hide component title. Defaults to False.
+            hide_index (bool, optional): Hide index selector. Defaults to False.
+            hide_depth (bool, optional): Hide depth selector. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            index ([type], optional): Initial index to display. Defaults to None.
+            depth ([type], optional): Initial number of features to display. Defaults to None.
+            cats (bool, optional): Group categoricals. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \

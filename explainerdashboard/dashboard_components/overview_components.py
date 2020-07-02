@@ -20,6 +20,23 @@ class PredictionSummaryComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_index=False, hide_percentile=False,
                     index=None, percentile=True):
+        """Shows a summary for a particular prediction
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Prediction Summary".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_index (bool, optional): hide index selector. Defaults to False.
+            hide_percentile (bool, optional): hide percentile toggle. Defaults to False.
+            index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
+            percentile (bool, optional): Whether to add the prediction percentile. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_index, self.hide_percentile = hide_index, hide_percentile
@@ -79,6 +96,30 @@ class ImportancesComponent(ExplainerComponent):
                         header_mode="none", name=None,
                         hide_type=False, hide_depth=False, hide_cats=False,
                         importance_type="shap", depth=None, cats=True):
+        """Display features importances component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Importances".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_type (bool, optional): Hide permutation/shap selector toggle. 
+                        Defaults to False.
+            hide_depth (bool, optional): Hide number of features toggle. 
+                        Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. 
+                        Defaults to False.
+            importance_type (str, {'permuation', 'shap'} optional): 
+                        initial importance type to display. Defaults to "shap".
+            depth (int, optional): Initial number of top features to display. 
+                        Defaults to None (=show all).
+            cats (bool, optional): Group categoricals. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_type = hide_type
@@ -173,6 +214,33 @@ class PdpComponent(ExplainerComponent):
                     hide_gridlines=False, hide_gridpoints=False,
                     col=None, index=None, cats=True,
                     dropna=True, sample=100, gridlines=50, gridpoints=10):
+        """Show Partial Dependence Plot component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Partial Dependence Plot".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_col (bool, optional): Hide feature selector. Defaults to False.
+            hide_index (bool, optional): Hide index selector. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
+            hide_sample (bool, optional): Hide sample size input. Defaults to False.
+            hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
+            hide_gridpoints (bool, optional): Hide gridpounts input. Defaults to False.
+            col (str, optional): Feature to display PDP for. Defaults to None.
+            index ({int, str}, optional): Index to add ice line to plot. Defaults to None.
+            cats (bool, optional): Group categoricals for feature selector. Defaults to True.
+            dropna (bool, optional): Drop rows where values equal explainer.na_fill (usually -999). Defaults to True.
+            sample (int, optional): Sample size to calculate average partial dependence. Defaults to 100.
+            gridlines (int, optional): Number of ice lines to display in plot. Defaults to 50.
+            gridpoints (int, optional): Number of breakpoints on horizontal axis Defaults to 10.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_col, self.hide_index, self.hide_cats = hide_col, hide_index, hide_cats

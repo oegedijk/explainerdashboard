@@ -21,6 +21,21 @@ class PredictedVsActualComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_logs=False,
                     logs=False):
+        """Shows a plot of predictions vs y.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Predicted vs Actual".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_logs (bool, optional): Hide the logs toggle. Defaults to False.
+            logs (bool, optional): Whether to use log axis. Defaults to False.
+        """
         super().__init__(explainer, title, header_mode, name)
         self.hide_logs = hide_logs
         self.logs = logs
@@ -65,6 +80,27 @@ class ResidualsComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_pred_or_actual=False, hide_ratio=False,
                     pred_or_actual="vs_pred", ratio=False):
+        """Residuals plot component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Residuals".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_pred_or_actual (bool, optional): hide vs predictions or vs 
+                        actual for x-axis toggle. Defaults to False.
+            hide_ratio (bool, optional): hide ratio toggle. Defaults to False.
+            pred_or_actual (str, {'vs_actual', 'vs_pred'}, optional): Whether 
+                        to plot actual or predictions on the x-axis. 
+                        Defaults to "vs_pred".
+            ratio (bool, optional): Show the residual/prediction or residual/actual 
+                        ratio instead of raw residuals. Defaults to False.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_pred_or_actual = hide_pred_or_actual
@@ -130,6 +166,24 @@ class ResidualsVsColComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_col=False, hide_ratio=False,
                     col=None, ratio=False):
+        """Show residuals vs a particular Feature component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Residuals vs feature".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_col (bool, optional): Hide de column selector. Defaults to False.
+            hide_ratio (bool, optional): Hide the ratio toggle. Defaults to False.
+            col ([type], optional): Initial feature to display. Defaults to None.
+            ratio (bool, optional): Whether to display residual ratio instead 
+                        of residuals. Defaults to False.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_col, self.hide_ratio = hide_col, hide_ratio
@@ -181,6 +235,19 @@ class ResidualsVsColComponent(ExplainerComponent):
 class RegressionModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary",
                     header_mode="none", name=None):
+        """Show model summary statistics (RMSE, MAE, R2) component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Model Summary".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
         self.register_dependencies(['preds'])
 

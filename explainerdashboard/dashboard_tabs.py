@@ -25,7 +25,7 @@ class ImportancesTab(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Feature Importances".
-            header_mode (str, optional): {"dashboard", "hidden" or "none"}. 
+            header_mode (str, optional): {"dashboard", "standalone", "hidden" or "none"}. 
                         Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
@@ -60,7 +60,7 @@ class ModelSummaryTab(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Model Performance".
-            header_mode (str, optional): {"dashboard", "hidden" or "none"}. 
+            header_mode (str, optional): {"dashboard", "standalone", "hidden" or "none"}. 
                         Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
@@ -102,7 +102,7 @@ class ContributionsTab(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Individual Predictions".
-            header_mode (str, optional): {"dashboard", "hidden" or "none"}. 
+            header_mode (str, optional): {"dashboard", "standalone", "hidden" or "none"}. 
                         Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
@@ -132,7 +132,7 @@ class ShapDependenceTab(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         'Feature Dependence'.
-            header_mode (str, optional): {"dashboard", "hidden" or "none"}. 
+            header_mode (str, optional): {"dashboard", "standalone", "hidden" or "none"}. 
                         Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
@@ -161,7 +161,7 @@ class ShapInteractionsTab(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         'Feature Interactions'.
-            header_mode (str, optional): {"dashboard", "hidden" or "none"}. 
+            header_mode (str, optional): {"dashboard", "standalone", "hidden" or "none"}. 
                         Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
@@ -190,7 +190,7 @@ class DecisionTreesTab(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         'Decision Trees'.
-            header_mode ({"dashboard", "hidden" or "none"}, optional): 
+            header_mode ({"dashboard", "standalone", "hidden" or "none"}, optional): 
                         Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 

@@ -26,6 +26,34 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         hide_button=False,
                         index=None, slider= None, labels=None, 
                         pred_or_perc='predictions'):
+        """Select a random index subject to constraints component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Select Random Index".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_index (bool, optional): Hide index selector. Defaults to False.
+            hide_slider (bool, optional): Hide prediction/percentile slider. 
+                        Defaults to False.
+            hide_labels (bool, optional): Hide label selector Defaults to False.
+            hide_pred_or_perc (bool, optional): Hide prediction/percentiles 
+                        toggle. Defaults to False.
+            hide_button (bool, optional): Hide button. Defaults to False.
+            index ({str, int}, optional): Initial index to display. 
+                        Defaults to None.
+            slider ([float,float], optional): initial slider position 
+                        [lower bound, upper bound]. Defaults to None.
+            labels ([str], optional): list of initial labels(str) to include. 
+                        Defaults to None.
+            pred_or_perc (str, optional): Whether to use prediction or 
+                        percentiles slider. Defaults to 'predictions'.
+        """
         super().__init__(explainer,title, header_mode, name)
 
         self.hide_index, self.hide_slider = hide_index, hide_slider
@@ -153,6 +181,46 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         index=None, pred_slider=None, y_slider=None, 
                         residual_slider=None, abs_residual_slider=None,
                         pred_or_y="preds", abs_residuals=True, round=2):
+        """Select a random index subject to constraints component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Select Random Index".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_index (bool, optional): Hide index selector. 
+                        Defaults to False.
+            hide_pred_slider (bool, optional): Hide prediction slider. 
+                        Defaults to False.
+            hide_residual_slider (bool, optional): hide residuals slider. 
+                        Defaults to False.
+            hide_pred_or_y (bool, optional): hide prediction or actual toggle. 
+                        Defaults to False.
+            hide_abs_residuals (bool, optional): hide absolute residuals toggle. 
+                        Defaults to False.
+            hide_button (bool, optional): hide button. Defaults to False.
+            index ({str, int}, optional): Initial index to display. 
+                        Defaults to None.
+            pred_slider ([lb, ub], optional): Initial values for prediction 
+                        values slider [lowerbound, upperbound]. Defaults to None.
+            y_slider ([lb, ub], optional): Initial values for y slider 
+                        [lower bound, upper bound]. Defaults to None.
+            residual_slider ([lb, ub], optional): Initial values for residual slider 
+                        [lower bound, upper bound]. Defaults to None.
+            abs_residual_slider ([lb, ub], optional): Initial values for absolute 
+                        residuals slider [lower bound, upper bound] 
+                        Defaults to None.
+            pred_or_y (str, {'preds', 'y'}, optional): Initial use predictions 
+                        or y slider. Defaults to "preds".
+            abs_residuals (bool, optional): Initial use residuals or absolute 
+                        residuals. Defaults to True.
+            round (int, optional): rounding used for slider spacing. Defaults to 2.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_index, self.hide_button = hide_index, hide_button
@@ -434,6 +502,33 @@ class CutoffConnector(ExplainerComponent):
                         cutoff_components=None,
                         hide_cutoff=False, hide_percentile=False,
                         cutoff=0.5, percentile=None):
+        """Connect the cutoff sliders of multiple components to a single sliders.
+
+        All components in the list cutoff_components should have a .cutoff_name
+        property that will be added to the output of the callback.
+
+        With the percentile slider you can select a cutoff sucht that the 
+        fraction of samples below the cutoff is equal to the percentile.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Global Cutoff".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            cutoff_components (list, optional): List of components whose cutoff 
+                        will be set by the global slider. All components must 
+                        have a .cutoff_name property in order to identify them 
+                        in the callback output. Defaults to None.
+            hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
+            hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
+            cutoff (float, optional): Initial cutoff. Defaults to 0.5.
+            percentile ([type], optional): Initial percentile. Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
         self.cutoff_names = [comp.cutoff_name for comp in cutoff_components]
 
@@ -493,6 +588,22 @@ class CutoffConnector(ExplainerComponent):
 
 class IndexConnector(ExplainerComponent):
     def __init__(self, input_index, output_indexes):
+        """Connect the index selector of input_index with those of output_indexes.
+
+        You can use this to connect a RandomIndexComponent with a 
+        PredictionSummaryComponent for example.
+
+        When you change the index in input_index, all the indexes in output_indexes
+        will automatically be updated.
+
+        Args:
+            input_index ([{str, ExplainerComponent}]): Either a str or an 
+                        ExplainerComponent. If str should be equal to the 
+                        name of the index property. If ExplainerComponent then
+                        should have a .index_name property.
+            output_indexes (list(str, ExplainerComponent)): list of str of 
+                        ExplainerComponents.
+        """
         self.input_index_name = self.index_name(input_index)
         self.output_index_names = self.index_name(output_indexes)
         if not isinstance(self.output_index_names, list):
@@ -527,6 +638,22 @@ class IndexConnector(ExplainerComponent):
 
 class HighlightConnector(ExplainerComponent):
     def __init__(self, input_highlight, output_highlights):
+    """Connect the highlight selector of input_highlight with those of output_highlights.
+
+        You can use this to connect a DecisionTreesComponent component to a 
+        DecisionPathGraphComponent for example.
+
+        When you change the highlight in input_highlight, all the highlights in output_highlights
+        will automatically be updated.
+
+        Args:
+            input_highlight ([{str, ExplainerComponent}]): Either a str or an 
+                        ExplainerComponent. If str should be equal to the 
+                        name of the highlight property. If ExplainerComponent then
+                        should have a .highlight_name property.
+            output_highlights (list(str, ExplainerComponent)): list of str of 
+                        ExplainerComponents.
+        """
         self.input_highlight_name = self.highlight_name(input_highlight)
         self.output_highlight_names = self.highlight_name(output_highlights)
         if not isinstance(self.output_highlight_names, list):
