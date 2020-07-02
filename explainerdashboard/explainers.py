@@ -655,9 +655,10 @@ class BaseExplainer(ABC):
         see https://explained.ai/rf-importance/index.html
 
         Args:
-          topx(int, optional, optional): only return topx most important features, defaults to None
-          cutoff(float, optional, optional): only return features with importance of at least cutoff,
-        defaults to None
+          topx(int, optional, optional): only return topx most important 
+                features, defaults to None
+          cutoff(float, optional, optional): only return features with importance 
+                of at least cutoff, defaults to None
           cats(bool, optional, optional): Group categoricals, defaults to False
           pos_label:  (Default value = None)
 
@@ -707,10 +708,10 @@ class BaseExplainer(ABC):
         Args:
           index(int or str): index for which to calculate contributions
           cats(bool, optional, optional): Group categoricals, defaults to True
-          topx(int, optional, optional): Only return topx features, remainder called REST,
-        defaults to None
-          cutoff(float, optional, optional): only return features with at least cutoff contributions,
-        defaults to None
+          topx(int, optional, optional): Only return topx features, remainder 
+                    called REST, defaults to None
+          cutoff(float, optional, optional): only return features with at least 
+                    cutoff contributions, defaults to None
           pos_label:  (Default value = None)
 
         Returns:
@@ -925,11 +926,13 @@ class BaseExplainer(ABC):
         Tables will be called name_COLS and name_SHAP and name_CONTRBIB
 
         Args:
-          conn(sqlalchemy.engine.Engine or sqlite3.Connection): database connecter acceptable for pd.to_sql
+          conn(sqlalchemy.engine.Engine or sqlite3.Connection):     
+                    database connecter acceptable for pd.to_sql
           schema(str): schema to write to
           name(str): name prefix of tables
           cats(bool, optional, optional): group categorical variables, defaults to True
-          if_exists(fail’, ‘replace’, ‘append’}, default ‘fail’, optional): How to behave if the table already exists. (Default value = 'replace')
+          if_exists({'fail’, ‘replace’, ‘append’}, default ‘replace’, optional): 
+                    How to behave if the table already exists. (Default value = 'replace')
           round(int, optional, optional): how to round shap values (Default value = None)
           lang(str, optional, optional): language to format dfs in. Defaults to 'en', 'nl' also available
           pos_label:  (Default value = None)
@@ -950,7 +953,7 @@ class BaseExplainer(ABC):
 
         Args:
           type(str, optional): shap' for mean absolute shap values, 'permutation' for
-        permutation importances, defaults to 'shap'
+                    permutation importances, defaults to 'shap'
           topx(int, optional, optional): Only return topx features, defaults to None
           cats(bool, optional, optional): Group categoricals defaults to False
           kind:  (Default value = 'shap')
@@ -1068,8 +1071,10 @@ class BaseExplainer(ABC):
 
         Args:
           col(str): feature to be displayed
-          color_col(str): if color_col provided then shap values colored (blue-red) according to feature color_col (Default value = None)
-          highlight_idx: individual observation to be highlighed in the plot. (Default value = None)
+          color_col(str): if color_col provided then shap values colored (blue-red) 
+                    according to feature color_col (Default value = None)
+          highlight_idx: individual observation to be highlighed in the plot. 
+                    (Default value = None)
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -1126,13 +1131,16 @@ class BaseExplainer(ABC):
 
         Args:
           col(str): feature to display pdp graph for
-          index(int or str, optional, optional): index to highlight in pdp graph, defaults to None
-          drop_na(bool, optional, optional): if true drop samples with value equal to na_fill, defaults to True
-          sample(int, optional, optional): sample size on which the average pdp will be calculated, defaults to 100
-          num_grid_lines(int, optional): number of ice lines to display, defaults to 100
-          num_grid_points(ints: int, optional): number of points on the x axis to calculate the pdp for, defaults to 10
-          gridlines:  (Default value = 100)
-          gridpoints:  (Default value = 10)
+          index(int or str, optional, optional): index to highlight in pdp graph, 
+                    defaults to None
+          drop_na(bool, optional, optional): if true drop samples with value 
+                    equal to na_fill, defaults to True
+          sample(int, optional, optional): sample size on which the average 
+                    pdp will be calculated, defaults to 100
+          gridlines(int, optional): number of ice lines to display, 
+                    defaults to 100
+          gridpoints(ints: int, optional): number of points on the x axis 
+                    to calculate the pdp for, defaults to 10
           pos_label:  (Default value = None)
 
         Returns:
@@ -1179,8 +1187,10 @@ class ClassifierExplainer(BaseExplainer):
         Compared to BaseExplainer defines two additional parameters
 
         Args:
-            labels(list): list of str labels for the different classes, defaults to e.g. ['0', '1'] for a binary classification
-            pos_label: class that should be used as the positive class, defaults to 1
+            labels(list): list of str labels for the different classes, 
+                        defaults to e.g. ['0', '1'] for a binary classification
+            pos_label: class that should be used as the positive class, 
+                        defaults to 1
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
@@ -1675,7 +1685,8 @@ class ClassifierExplainer(BaseExplainer):
 
         Args:
           index(int or str): the index of the row for which to generate the prediction
-          include_percentile(bool, optional, optional): include the rank percentile of the prediction, defaults to True
+          include_percentile(bool, optional, optional): include the rank 
+                    percentile of the prediction, defaults to True
           round(int, optional, optional): rounding to apply to results, defaults to 2
           pos_label:  (Default value = None)
           **kwargs: 
@@ -1723,9 +1734,11 @@ class ClassifierExplainer(BaseExplainer):
 
         Args:
           bin_size(float, optional):  size of the bins on x-axis (e.g. 0.05 for 20 bins)
-          quantiles(int, optional): number of equal sized quantiles to split the predictions by e.g. 20, optional)
+          quantiles(int, optional): number of equal sized quantiles to split 
+                    the predictions by e.g. 20, optional)
           cutoff: cutoff of model to include in the plot (Default value = None)
-          multiclass: whether to display all classes or only positive class, defaults to False
+          multiclass: whether to display all classes or only positive class, 
+                    defaults to False
           pos_label: positive label to display, defaults to self.pos_label
 
         Returns:
@@ -1761,9 +1774,12 @@ class ClassifierExplainer(BaseExplainer):
         """plot of a confusion matrix.
 
         Args:
-          cutoff(float, optional, optional): cutoff of positive class to calculate confusion matrix for, defaults to 0.5
-          normalized(bool, optional, optional): display percentages instead of counts , defaults to False
-          binary(bool, optional, optional): if multiclass display one-vs-rest instead, defaults to False
+          cutoff(float, optional, optional): cutoff of positive class to 
+                    calculate confusion matrix for, defaults to 0.5
+          normalized(bool, optional, optional): display percentages instead 
+                    of counts , defaults to False
+          binary(bool, optional, optional): if multiclass display one-vs-rest 
+                    instead, defaults to False
           pos_label: positive label to display, defaults to self.pos_label
 
         Returns:
@@ -1794,8 +1810,10 @@ class ClassifierExplainer(BaseExplainer):
         """plot of a lift curve.
 
         Args:
-          cutoff(float, optional): cutoff of positive class to calculate lift (Default value = None)
-          percentage(bool, optional): display percentages instead of counts , defaults to False
+          cutoff(float, optional): cutoff of positive class to calculate lift 
+                    (Default value = None)
+          percentage(bool, optional): display percentages instead of counts, 
+                    defaults to False
           round: number of digits to round to (Default value = 2)
           pos_label: positive label to display, defaults to self.pos_label
 
@@ -1809,8 +1827,10 @@ class ClassifierExplainer(BaseExplainer):
         """plot showing a barchart of the classification result for cutoff
 
         Args:
-          cutoff(float, optional): cutoff of positive class to calculate lift (Default value = 0.5)
-          percentage(bool, optional): display percentages instead of counts , defaults to True
+          cutoff(float, optional): cutoff of positive class to calculate lift 
+                    (Default value = 0.5)
+          percentage(bool, optional): display percentages instead of counts, 
+                    defaults to True
           pos_label: positive label to display, defaults to self.pos_label
 
         Returns:
@@ -1870,8 +1890,8 @@ class RegressionExplainer(BaseExplainer):
                     units=""):
         """Explainer for regression models.
 
-        In addition to BaseExplainer defines a number of plots specific to regression 
-        problems such as a predicted vs actual and residual plots.
+        In addition to BaseExplainer defines a number of plots specific to 
+        regression problems such as a predicted vs actual and residual plots.
 
         Combared to BaseExplainerBunch defines two additional parameters.
 
@@ -2004,9 +2024,11 @@ class RegressionExplainer(BaseExplainer):
         """plot of residuals. x-axis is the predicted outcome by default
 
         Args:
-          vs_actual(bool, optional): use actual value for x-axis, defaults to False
+          vs_actual(bool, optional): use actual value for x-axis,   
+                    defaults to False
           round(int, optional): rounding to perform on values, defaults to 2
-          ratio(bool, optional): whether to take the residual/prediction ratio instead, defaults to False
+          ratio(bool, optional): whether to take the residual/prediction 
+                    ratio instead, defaults to False
           **kwargs: 
 
         Returns:
@@ -2021,7 +2043,8 @@ class RegressionExplainer(BaseExplainer):
 
         Args:
           col(str): Plot against feature col
-          ratio(bool, optional): display residual ratio instead of raw value, defaults to False
+          ratio(bool, optional): display residual ratio instead of raw value, 
+                    defaults to False
           round(int, optional: rounding to perform on residuals, defaults to 2
           dropna(bool, optional: drop missing values from plot, defaults to True
           **kwargs: 

@@ -252,11 +252,16 @@ class InlineExplainer:
         self._height = height
         self._port = port
         self._kwargs = kwargs
-        self.tab = InlineExplainerTabs(self, "tabs")
-        self.shap = InlineShapExplainer(self, "shap")
-        self.classifier = InlineClassifierExplainer(self, "classifier")
-        self.regression = InlineRegressionExplainer(self, "regression")
-        self.decisiontreees =InlineDecisionTreesExplainer(self, "decisiontrees")
+        self.tab = InlineExplainerTabs(self, "tabs") 
+        """subclass with tab layouts, e.g. InlineExplainer(explainer).tab.modelsummary()"""
+        self.shap = InlineShapExplainer(self, "shap") 
+        """subclass with shaplayouts, e.g. InlineExplainer(explainer).shap.dependence()"""
+        self.classifier = InlineClassifierExplainer(self, "classifier") 
+        """subclass with classifier plots, e.g. InlineExplainer(explainer).classifier.confusion_matrix()"""
+        self.regression = InlineRegressionExplainer(self, "regression") 
+        """subclass with regression plots, e.g. InlineExplainer(explainer).regression.residuals()"""
+        self.decisiontrees =InlineDecisionTreesExplainer(self, "decisiontrees") 
+        """subclass with decisiontree plots, e.g. InlineExplainer(explainer).decisiontrees.decisiontrees()"""
 
     def _run_app(self, app, **kwargs):
         """Starts the dashboard either inline or in a seperate tab
