@@ -53,7 +53,7 @@ class PrecisionComponent(ExplainerComponent):
         self.hide_binmethod, self.hide_multiclass = hide_binmethod, hide_multiclass
         
         self.bin_size, self.quantiles, self.cutoff = bin_size, quantiles, cutoff 
-        self.precision_or_binsize, self.multiclass = precision_or_binsize, multiclass
+        self.quantiles_or_binsize, self.multiclass = quantiles_or_binsize, multiclass
         self.cutoff_name = 'precision-cutoff-' + self.name
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
@@ -118,7 +118,7 @@ class PrecisionComponent(ExplainerComponent):
                                 {'label': 'Quantiles', 
                                 'value': 'quantiles'}
                             ],
-                            value=self.precision_or_binsize,
+                            value=self.quantiles_or_binsize,
                             inline=True),
                     ], width=3), hide=self.hide_binmethod),
                 make_hideable(
