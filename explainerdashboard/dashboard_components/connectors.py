@@ -638,7 +638,7 @@ class IndexConnector(ExplainerComponent):
 
 class HighlightConnector(ExplainerComponent):
     def __init__(self, input_highlight, output_highlights):
-    """Connect the highlight selector of input_highlight with those of output_highlights.
+        """Connect the highlight selector of input_highlight with those of output_highlights.
 
         You can use this to connect a DecisionTreesComponent component to a 
         DecisionPathGraphComponent for example.
