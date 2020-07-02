@@ -275,7 +275,7 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
         self.sum_name = shap_summary_component.name
         self.dep_name = shap_dependence_component.name
 
-    def register_callbacks(self, app):
+    def _register_callbacks(self, app):
         @app.callback(
             Output('shap-dependence-group-cats-'+self.dep_name, 'checked'),
             [Input('shap-summary-group-cats-'+self.sum_name, 'checked')],
@@ -576,7 +576,7 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
         self.sum_name = interaction_summary_component.name
         self.dep_name = interaction_dependence_component.name
 
-    def register_callbacks(self, app):
+    def _register_callbacks(self, app):
         @app.callback(
             Output('interaction-dependence-group-cats-'+self.dep_name, 'checked'),
             [Input('interaction-summary-group-cats-'+self.sum_name, 'checked')],

@@ -107,9 +107,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
 
         - predictions vs actual plot
         - residual plot
-        -residuals vs feature
-
-
+        - residuals vs feature
 
         Args:
             explainer (Explainer): explainer object constructed with either
@@ -319,6 +317,7 @@ class DecisionTreesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees",
                     header_mode="none", name=None):
         """Composite of decision tree related components:
+        
         - individual decision trees barchart
         - decision path table
         - deciion path graph

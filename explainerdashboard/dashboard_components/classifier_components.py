@@ -253,7 +253,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                 ]), hide=self.hide_binary),
         ])
 
-    def register_callbacks(self, app):
+    def _register_callbacks(self, app):
         @app.callback(
              Output('confusionmatrix-graph-'+self.name, 'figure'),
             [Input('confusionmatrix-cutoff-'+self.name, 'value'),
@@ -404,7 +404,7 @@ class ClassificationComponent(ExplainerComponent):
                 ]), hide=self.hide_percentage),
         ])
 
-    def register_callbacks(self, app):
+    def _register_callbacks(self, app):
         @app.callback(
             Output('classification-graph-'+self.name, 'figure'),
             [Input('classification-cutoff-'+self.name, 'value'),
