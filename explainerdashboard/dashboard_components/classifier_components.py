@@ -24,7 +24,29 @@ class PrecisionComponent(ExplainerComponent):
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
                     hide_multiclass=False,
                     bin_size=0.1, quantiles=10, cutoff=0.5,
-                    precision_or_binsize='bin_size', multiclass=False):
+                    quantiles_or_binsize='bin_size', multiclass=False):
+        """Shows a precision graph with toggles.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Precision Plot".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
+            hide_binsize (bool, optional): hide binsize/quantiles slider. Defaults to False.
+            hide_binmethod (bool, optional): Hide binsize/quantiles toggle. Defaults to False.
+            hide_multiclass (bool, optional): Hide multiclass toggle. Defaults to False.
+            bin_size (float, optional): Size of bins in probability space. Defaults to 0.1.
+            quantiles (int, optional): Number of quantiles to divide plot. Defaults to 10.
+            cutoff (float, optional): Cutoff to display in graph. Defaults to 0.5.
+            quantiles_or_binsize (str, {'quantiles', 'bin_size'}, optional): Default bin method. Defaults to 'bin_size'.
+            multiclass (bool, optional): Display all classes. Defaults to False.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_cutoff, self.hide_binsize = hide_cutoff, hide_binsize
@@ -158,6 +180,25 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
                     cutoff=0.5, percentage=True, binary=True):
+        """Display confusion matrix component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Confusion Matrix".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
+            hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
+            hide_binary (bool, optional): Hide binary toggle. Defaults to False.
+            cutoff (float, optional): Default cutoff. Defaults to 0.5.
+            percentage (bool, optional): Display percentages instead of counts. Defaults to True.
+            binary (bool, optional): Show binary instead of multiclass confusion matrix. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
@@ -231,6 +272,23 @@ class LiftCurveComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_cutoff=False, hide_percentage=False,
                     cutoff=0.5, percentage=True):
+        """Show liftcurve component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Lift Curve".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
+            hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
+            cutoff (float, optional): Cutoff for lift curve. Defaults to 0.5.
+            percentage (bool, optional): Display percentages instead of counts. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
@@ -288,6 +346,24 @@ class ClassificationComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_cutoff=False, hide_percentage=False,
                     cutoff=0.5, percentage=True):
+        """Shows a barchart of the number of classes above the cutoff and below
+        the cutoff.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Classification Plot".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
+            hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
+            cutoff (float, optional): Cutoff for prediction. Defaults to 0.5.
+            percentage (bool, optional): Show percentage instead of counts. Defaults to True.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
@@ -342,10 +418,25 @@ class ClassificationComponent(ExplainerComponent):
 
 
 class RocAucComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Precision Plot",
+    def __init__(self, explainer, title="ROC AUC Plot",
                     header_mode="none", name=None, 
                     hide_cutoff=False,
                     cutoff=0.5):
+        """Show ROC AUC curve component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "ROC AUC Plot".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
+            cutoff (float, optional): default cutoff. Defaults to 0.5.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_cutoff = hide_cutoff
@@ -382,10 +473,25 @@ class RocAucComponent(ExplainerComponent):
 
 
 class PrAucComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Precision Plot",
+    def __init__(self, explainer, title="PR AUC Plot",
                     header_mode="none", name=None,
                     hide_cutoff=False,
                     cutoff=0.5):
+        """Display PR AUC plot component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "PR AUC Plot".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
+            cutoff (float, optional): default cutoff. Defaults to 0.5.
+        """
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_cutoff = hide_cutoff

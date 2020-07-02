@@ -23,6 +23,23 @@ class DecisionTreesComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_index=False, hide_highlight=False,
                     index=None, highlight=None):
+        """Show prediction from individual decision trees inside RandomForest component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Decision Trees".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_index (bool, optional): Hide index selector. Defaults to False.
+            hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
+            index ({str, int}, optional): Initial index to display. Defaults to None.
+            highlight ([type], optional): Initial tree to highlight. Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.index, self.highlight = index, highlight
@@ -86,6 +103,27 @@ class DecisionPathTableComponent(ExplainerComponent):
                     header_mode="none", name=None,
                     hide_index=False, hide_highlight=False,
                     index=None, highlight=None):
+        """Display a table of the decision path through a particular decision tree
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Decision path table".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_index (bool, optional): Hide index selector. 
+                        Defaults to False.
+            hide_highlight (bool, optional): Hide tree index selector. 
+                        Defaults to False.
+            index ({str, int}, optional): Initial index to display decision 
+                        path for. Defaults to None.
+            highlight (int, optional): Initial tree idx to display decision 
+                        path for. Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.index, self.highlight = index, highlight
@@ -139,10 +177,27 @@ class DecisionPathTableComponent(ExplainerComponent):
 
 
 class DecisionPathGraphComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision path table",
+    def __init__(self, explainer, title="Decision path graph",
                     header_mode="none", name=None,
                     hide_index=False, hide_highlight=False,
                     index=None, highlight=None):
+        """Display dtreeviz decision path
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Decision path graph".
+            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
+                        Defaults to "none".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_index (bool, optional): hide index selector. Defaults to False.
+            hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
+            index ({str, int}, optional): Initial index to display. Defaults to None.
+            highlight ([type], optional): Initial tree idx to display. Defaults to None.
+        """
         super().__init__(explainer, title, header_mode, name)
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.index, self.highlight = index, highlight
@@ -191,118 +246,3 @@ class DecisionPathGraphComponent(ExplainerComponent):
             if index is not None and highlight is not None:
                 return self.explainer.decision_path_encoded(highlight, index)
             raise PreventUpdate
-
-        
-
-def decision_trees_layout(explainer, round=2, **kwargs):
-    return dbc.Container([
-        dbc.Row([
-            dbc.Col([
-                html.H2('Predictions of individual decision trees.'),
-                dbc.Form(
-                    [
-                        dbc.FormGroup(
-                            [
-                                dbc.Label("Index", className="mr-2"),
-                                dbc.Input(id='tree-input-index', 
-                                            placeholder="Fill in index here...",
-                                            debounce=True),
-                            ],
-                            className="mr-3",
-                        ),
-                        
-                    ], inline=True),    
-                dbc.Button("Random Index", color="primary", id='tree-index-button'),
-                dcc.Store(id='tree-index-store'),
-                html.H4('(click on a prediction to see decision path)'),
-               # dcc.Loading(id="loading-trees-graph", 
-                           # children=[
-                                dcc.Graph(id='tree-predictions-graph'),
-                                #]),  
-            ], width={"size": 8, "offset": 2})
-        ]), 
-        dbc.Row([
-            dbc.Col([
-                html.Label('Decision path in decision tree:'),
-                dcc.Markdown(id='tree-basevalue'),
-                dash_table.DataTable(
-                    id='tree-predictions-table',
-                    style_cell={'fontSize':20, 'font-family':'sans-serif'},
-                ),
-            ], width={"size": 6, "offset": 3})
-        ]), 
-        dbc.Row([
-            dbc.Col([
-                 dcc.Loading(id="loading-tree-svg-graph", 
-                            children=[html.Img(id='dtreeviz-svg')])
-            ])
-            
-        ])
-    ],  fluid=True)
-
-
-def decision_trees_callbacks(explainer, app, round=2, **kwargs):
-    @app.callback(
-        [Output('tree-predictions-table', 'data'),
-         Output('tree-predictions-table', 'columns')],
-        [Input('tree-predictions-graph', 'clickData'),
-         Input('pos-label', 'value')], # this causes issues for some reason, only on this tab??
-        [State('tree-index-store', 'data'),
-         State('tabs', 'value')])
-    def display_tree_click_data(clickdata, pos_label, index, tab):
-        if clickdata is not None and index is not None:
-            tree_idx = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else 0
-            _, _, decisiontree_df = explainer.decisiontree_df_summary(tree_idx, index, round=round, pos_label=pos_label)
-            columns = [{'id': c, 'name': c} for c in  decisiontree_df.columns.tolist()]
-            return (decisiontree_df.to_dict('records'), columns)
-        raise PreventUpdate
-
-    @app.callback(
-        Output('dtreeviz-svg', 'src'),
-        [Input('tree-predictions-graph', 'clickData'),
-         #Input('pos-label', 'value')#this causes issues for some reason, only on this tab??
-         ],
-        [State('tree-index-store', 'data'),
-         State('tabs', 'value')])
-    def display_click_data(clickData, index, tab):
-        if clickData is not None and index is not None and explainer.graphviz_available and explainer.is_classifier:
-            tree_idx = int(clickData['points'][0]['text'].split('tree no ')[1].split(':')[0]) 
-            svg_encoded = explainer.decision_path_encoded(tree_idx, index)
-            return svg_encoded
-        return ""
-
-    @app.callback(
-        Output('tree-predictions-graph', 'figure'),
-        [Input('tree-index-store', 'data'),
-         Input('pos-label', 'value'),
-         Input('tree-predictions-graph', 'clickData')],
-        [State('tabs', 'value')]
-    )
-    def update_tree_graph(index, pos_label, clickdata, tab):
-        if index is not None:
-            highlight_tree = int(clickdata['points'][0]['text'].split('tree no ')[1].split(':')[0]) if clickdata is not None else None
-            return explainer.plot_trees(index, highlight_tree=highlight_tree, round=round, pos_label=pos_label)
-        return {}
-
-    @app.callback(
-        Output('tree-index-store', 'data'),
-        [Input('tree-input-index', 'value')],
-        [State('tabs', 'value')]
-    )
-    def update_tree_index_store(index, tab):
-        if (explainer.idxs is None 
-            and str(index).isdigit() 
-            and int(index) >= 0
-            and int(index) <= len(explainer)):
-            return int(index)
-        if (explainer.idxs is not None and index in explainer.idxs):
-            return index
-        return None
-
-    @app.callback(
-        Output('tree-input-index', 'value'),
-        [Input('tree-index-button', 'n_clicks')],
-        [State('tabs', 'value')]
-    )
-    def update_tree_input_index(n_clicks, tab):
-        return explainer.random_index(return_str=True)
