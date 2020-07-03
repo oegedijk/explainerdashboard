@@ -253,15 +253,15 @@ class InlineExplainer:
         self._port = port
         self._kwargs = kwargs
         self.tab = InlineExplainerTabs(self, "tabs") 
-        """subclass with tab layouts, e.g. InlineExplainer(explainer).tab.modelsummary()"""
+        """subclass with InlineExplainerTabs layouts, e.g. InlineExplainer(explainer).tab.modelsummary()"""
         self.shap = InlineShapExplainer(self, "shap") 
-        """subclass with shaplayouts, e.g. InlineExplainer(explainer).shap.dependence()"""
+        """subclass with InlineShapExplainer layouts, e.g. InlineExplainer(explainer).shap.dependence()"""
         self.classifier = InlineClassifierExplainer(self, "classifier") 
-        """subclass with classifier plots, e.g. InlineExplainer(explainer).classifier.confusion_matrix()"""
+        """subclass with InlineClassifierExplainer plots, e.g. InlineExplainer(explainer).classifier.confusion_matrix()"""
         self.regression = InlineRegressionExplainer(self, "regression") 
-        """subclass with regression plots, e.g. InlineExplainer(explainer).regression.residuals()"""
+        """subclass with InlineRegressionExplainer plots, e.g. InlineExplainer(explainer).regression.residuals()"""
         self.decisiontrees =InlineDecisionTreesExplainer(self, "decisiontrees") 
-        """subclass with decisiontree plots, e.g. InlineExplainer(explainer).decisiontrees.decisiontrees()"""
+        """subclass with InlineDecisionTreesExplainer plots, e.g. InlineExplainer(explainer).decisiontrees.decisiontrees()"""
 
     def _run_app(self, app, **kwargs):
         """Starts the dashboard either inline or in a seperate tab
@@ -502,7 +502,7 @@ class InlineRegressionExplainer(InlineExplainerComponent):
 
 
 class InlineDecisionTreesExplainer(InlineExplainerComponent):
-    def decisiontrees_overview(self, title="Decision Trees", **kwargs):
+    def overview(self, title="Decision Trees", **kwargs):
         """shap decision tree composite inline in notebook"""
         comp = DecisionTreesComposite(self._explainer, header_mode="hidden", **kwargs)
         self._run_component(comp, title)
