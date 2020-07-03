@@ -351,10 +351,7 @@ class InlineExplainerTabs(InlineExplainerComponent):
 
     @delegates_kwargs(ModelSummaryTab)
     @delegates_doc(ModelSummaryTab)
-    def modelsummary(self, title='Model Summary', 
-                        bin_size=0.1, quantiles=10, cutoff=0.5, 
-                        logs=False, pred_or_actual="vs_pred", ratio=False, col=None,
-                        importance_type="shap", depth=None, cats=True):
+    def modelsummary(self, title='Model Summary', **kwargs):
         """Runs model_summary tab inline in notebook"""
         tab = ModelSummaryTab(self._explainer, header_mode="hidden",
                     bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, 
@@ -386,11 +383,11 @@ class InlineExplainerTabs(InlineExplainerComponent):
                 header_mode="standalone", **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ShapDecisionTreesTab)
-    @delegates_doc(ShapDecisionTreesTab)
+    @delegates_kwargs(DecisionTreesTab)
+    @delegates_doc(DecisionTreesTab)
     def decisiontrees(self, title='Decision Trees', **kwargs):
         """Runs shap_interactions tab inline in notebook"""
-        tab = ShapDecisionTreesTab(self._explainer, 
+        tab = DecisionTreesTab(self._explainer, 
                 header_mode="standalone", **kwargs)
         self._run_component(tab, title)
 

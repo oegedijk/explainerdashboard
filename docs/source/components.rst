@@ -3,7 +3,9 @@ ExplainerComponents
 
 The dashboard is constructed out of ``ExplainerComponents``: self-contained
 elements usually consisting of a plot or table and various dropdowns, sliders 
-and toggles to manipulate that plot.
+and toggles to manipulate that plot. Components can be connected with connectors,
+so that when you select an index in one component that automatically updates the
+index in another component for example.
 
 When you run ``ExplainerDashboard`` you get the default dashboard with basically
 every component listed below with every toggle and slider visible. 

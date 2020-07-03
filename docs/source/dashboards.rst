@@ -12,11 +12,14 @@ By default all tabs that are feasible will be displayed. Warning: the interactio
 take quite some time to compute, so you may want to switch it off if you're not particularly 
 interested in interaction effects between features.
 
+.. image:: screenshot.png
+
 Some example code::
 
     from explainerdashboard.dashboards import ExplainerDashboard
 
     ExplainerDashboard(explainer, title="Titanic Explainer",
+                        importances=True,
                         model_summary=True,  
                         contributions=True,
                         shap_dependence=False,
@@ -38,9 +41,10 @@ ExplainerDashboard
 JupyterExplainerDashboard
 =========================
 If you are working within a notebook there is also an alternative ``JupyterExplainerDashboard`` that uses the ``JupyterDash`` 
-backend instead of ``dash.Dash()``. You can either pass to ``run()`` ``mode='inline'`` or ``mode='jupyterlab'`` or 
+backend instead of ``dash.Dash()``. You can pass to ``run()`` either 
+``mode='inline'`` or ``mode='jupyterlab'`` or 
 ``mode='external'`` to start the dashboard inline in a notebook, in seperate pane 
-in jupyterlab, or in seperate browser tab respectively. This has the benefit
+in jupyterlab, or in a seperate browser tab respectively. This has the benefit
 that you can keep working inside the notebook while the dashboard is running.
 
 .. autoclass:: explainerdashboard.dashboards.JupyterExplainerDashboard
@@ -50,7 +54,7 @@ that you can keep working inside the notebook while the dashboard is running.
 ExplainerTab
 ============
 
-To run a single page of a particular ``ExplainerComponent`` or tab, there is ``ExplainerTab``. 
+To run a single page of a particular ``ExplainerComponent`` (or tab), there is ``ExplainerTab``. 
 You can either pass the appropriate tab class definition, or a string identifier::
 
     ExplainerTab(explainer, "model_summary").run()
