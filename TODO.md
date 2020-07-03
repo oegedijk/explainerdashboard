@@ -1,11 +1,8 @@
 
 # TODO:
-- fix hit enter on input field reloads page on decision tree tab
-- Interaction feature stuck on one feature on heroku?
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
 - replace custom permutation importances by sklearn permuation importances
-- add non-shap dependent len(cols) property
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -16,15 +13,13 @@
 
 ## Plots:
 - Add options sorting contributions plot from most negative to most positive
+- Contributions: order by global mean_abs_shap or by specific shap
 - fix name of figure MEAN_ABS_SHAP
 - Add Altair (vega) plots for easy inclusion in websites
-- rename plotly_ from all plotting functions? or not if we're going to add altair?
 - highlight id in violin plots
-- Contributions: order by global mean_abs_shap or by specific shap
+- Add feature names to waterfall plot
 
 ### Classifier plots:
-- Add feature names to waterfall plot
-- remove group cats option when cats is empty (not just None)
 - confusion matrix: display both count and percentage
 
 ### Regression plots:
@@ -33,27 +28,19 @@
 - add log ratio
 
 ## Explainers:
-- add get_random_index with min/max residual for regression
-- check all shap values >0 and <1 for model_output=probability
+- check all shap values >-1 and <1 for model_output=probability
 
 ## Dashboard:
-- Make all DashboardTabs derive from ABC BaseExplainerTab
-- Try to make a class decorator for title_and_label_selector?
 - make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
-- reformat contributions table
-- add final prediction to contributions table
-- fix laggy tooltips on contributions table
-- 
+ 
 
 ### Components
 - add hide_title to all components
+- seperate CutoffConnector from PercentileCutoffComponent
 
 ## Methods:
-- Multiprocessing shap summary graph 
-- Move pdp function to explainer_methods.py
-- Add LIME, Shaabas values for completeness?
-- refactor for loop in contrib_df_summary
+- Add LIME values
 
 ## Tests:
 - add multiclass classifier tests
@@ -63,13 +50,8 @@
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - add test coverage (add a badge)
 
-# Docs:
-- document X_background
-- document properties with prop(pos_label)
-- document model_output
-- document JupyterExplainerDashboard, InlineExplainer
-- add deploying with flask/gunicorn section
-- convert to MyST for markdown friendly documentation?
+## Docs:
+
 
 ## Library level:
 - add more screenshots to README with https://postimages.org/
@@ -78,5 +60,3 @@
 -> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg
 - https://github.com/marketplace/actions/coveralls-python
 - submit pull request to dtreeviz to accept shadowtree as parameter
-- turn all docstrings into sphinx-napolean google style (pyment)
-
