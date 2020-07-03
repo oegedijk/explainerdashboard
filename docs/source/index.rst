@@ -4,29 +4,44 @@ explainerdashboard
 Summary
 =======
 
-``explainerdashboard`` is a library for quickly analyzing and explaining the performance
-of a (scikit-learn compatible) machine learning models.
+``explainerdashboard`` is a library for quickly building interactive dashboards
+and interactive notebook components for analyzing and explaining the performance
+of (scikit-learn compatible) machine learning models.
 
-It combines shap values, permutation importances, partial dependence plots,
-and the visualisation of individual trees of random forests into a single package.
+It allows you to investigate shap values, permutation importances, 
+interaction effects, partial dependence plots, all kinds of performance plots,
+and even individual trees in a random forest by deploying an interactive 
+dashboard with just two lines of code. 
 
-You can easily construct an ``Explainer`` object that computes all relevant
-statistics behind the scenes and allows you to quickly plot feature importances,
-shap dependence plots, pdp plots, etc.
+.. image:: screenshot.png
 
-You then pass this ``Explainer`` object to an ``ExplainerDashboard`` to start an interactive
-analytical web app to inspect the workings and performance of your model.
+You first construct an ``explainer`` object out of your model and the test data. 
+The ``explainer`` offers an interface that computes all relevent metrics behind 
+the scenes and allows you to quickly plot feature importances,
+shap dependence plots, pdp plots, etc, etc.
 
-Or you can use the primitives provided by the ``Explainer`` to construct your own
-project-specific dashboard using plotly dash. 
+You then pass this ``explainer`` object to an ``ExplainerDashboard`` to start an 
+interactive analytical web app to inspect the workings and performance of your model.
+For a custom dashboard you can make use of the ``ExplainerComponents`` primitives to 
+easily make your a dashboard interface to your own liking. For viewing 
+individual components or tabs directly inside your jupyter notebook you use the 
+``InlineExplainer``.
+
+With ``explainerdashboard`` any datascientist can create an interactive web app
+to display the workings of their ML model in minutes, without having to know
+anything about web development or deployment. In addition it aids the model
+development flow by offering interactive inline notebook components without
+having to even launch a dashboard. 
 
 Supports all scikit-learn compatible models (that are compatible with the shap library), 
-including LogisticRegression, RandomForest, XGBoost, LightGBM and CatBoost.
+including XGBoost, LightGBM, CatBoost, LinearRegression, LogisticRegression 
+and RandomForests.
 
-Example
-=======
+An Example
+==========
 
-Some example code::
+Some example code, where we load some data, fit a model, construct an explainer, 
+pass it on to an ``ExplainerDashboard`` and run the dashboard::
 
     from sklearn.ensemble import RandomForestClassifier
 
@@ -59,11 +74,14 @@ Or, as a one-liner::
 
 The result of the lines above can be viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
 
+
 More examples of how to start dashboards for different types of models and with 
-different parameters can be found in the `dashboard_examples notebook in the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_
+different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_ 
+in the github repo.
 
 For examples on how to interact with and get plots and dataframes out of the explainer
-object check out `explainer_examples notebook in the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+object check out `explainer_examples notebook  <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+in the github repo.
 
 
 .. toctree::
@@ -72,9 +90,9 @@ object check out `explainer_examples notebook in the github repo. <https://githu
    explainers
    plots
    dashboards
+   tabs
    inline
    components
-   composites
    custom
    deployment
    license

@@ -1,12 +1,14 @@
 CustomDashboard
 ***************
 
-Using the ``ExplainerComponents`` it becomes very easy to build your own custom 
-dashboards, without needing to know much about web development or even much
-about `plotly dash <https://dash.plotly.com/>`_. (although I would recommend anyone to learn the latter)
+Using the ``ExplainerComponents`` and connectors it becomes very easy to build 
+your own custom dashboards, without needing to know much about web development 
+or even much about `plotly dash <https://dash.plotly.com/>`_. 
+(although I would recommend anyone to learn the latter)
 
 You can get some inspiration from ``explainerdashboard.dashbord_components.composites``
-on how you can construct simple layouts, combining different components. 
+on how you can construct simple layouts, combining different components and
+connectors.
 
 Constructing layout
 ===================
@@ -30,12 +32,12 @@ If you know a little bit of html then using ``dash_html_components`` you
 can add further elements to your design. For example to insert a header
 add ``html.H1("This is my header!")``.
 
-add ExplainerComponents
------------------------
+Adding ExplainerComponents
+--------------------------
 
 The final element is ofcourse the ``ExplainerComponents``. To add them
-to your design you need to first instantiate them, add the ``layout()`` to your
-custom layout and then ``register_callbacks()``
+to your design you need to simply instantiate them, add the ``component.layout()`` 
+to your custom layout and then ``component.register_callbacks(app)``.
 
 A very simple example would be::
 
@@ -74,13 +76,12 @@ callbacks expect to be there.
 
 If you wrap your components into a custom ``ExplainerComponent``, and 
 ``register_components()``, then you don't need to seperately call `register_callbacks()`
-on each component, but only on the composite component.
-
-If you then start the ``ExplainerComponent`` using ``ExplainerTab()``, 
-``calculate_dependencies()`` will be automatically be run as well.
+on each component, but only on the composite component. If you then start the 
+``ExplainerComponent`` using ``ExplainerTab()``,  ``calculate_dependencies()`` 
+will be automatically be run as well.
 
 Below you can see three different design patterns on how to construct your
-own page.
+own custom dashboard.
 
 Design patterns
 ===============
@@ -174,13 +175,26 @@ registering the callbacks, and starting the app::
     shap_dependence.register_callbacks(app)
     connector.register_callbacks(app)
 
+
     app.run_server()
+
+
 
 Wrapping dashboard into a class
 -------------------------------
 
 A slightly cleaner design consists of wrapping the layout into a CustomDashboard
-class::
+class. 
+
+Here we also calculate dependencies before we start the dashboard. 
+
+ExplainerDashboard does the expensive calculations of e.g. shap values only when 
+they are needed for an output, and then saves the result for all subsequent calls. 
+However when starting a dashboard multiple components might request shap values
+in parallel resulting in wasted cpu cycles and a slow boot. The solution is 
+making sure these properties are all calculated before starting the dashboard.
+ExplainerComponents come with a nice method ``calculate_dependencies()`` 
+that does exactly this::
 
     class CustomDashboard():
         def __init__(self, explainer):
@@ -265,11 +279,18 @@ class::
             self.shap_dependence.register_callbacks(app)
             self.connector.register_callbacks(app)
 
+        def calculate_dependencies(self):
+            self.precision.calculate_dependencies()
+            self.shap_summary.calculate_dependencies()
+            self.shap_dependence.calculate_dependencies()
+            self.connector.calculate_dependencies()
+
     db = CustomDashboard(explainer)
     app = JupyterDash(external_stylesheets=[dbc.themes.FLATLY], assets_url_path="")
     app.title = "Titanic Explainer"
     app.layout = db.layout()
     db.register_callbacks(app)
+    db.calculate_dependencies()
     app.run_server()
 
 Custom ExplainerComponent and use ExplainerTab
@@ -277,8 +298,12 @@ Custom ExplainerComponent and use ExplainerTab
 
 A third method consists of inheriting from ExplainerComponent and then
 running the page with ``ExplainerTab``. The main difference is calling the
-``super().__init__()`` function, calling ``register_components()``,
-and defining the layout in ``_layout()`` with an underscore::
+``super().__init__()`` and calling ``register_components()`` inside the init,
+and defining the layout in ``_layout()`` with an underscore.
+
+The benefit is that you don't have to explicitly write the ``register_callbacks`` or
+``calculate_dependencies`` method, as these get generated automatically 
+when calling ``register_components``::
 
     class CustomDashboard(ExplainerComponent):
         def __init__(self, explainer, title="Titanic Explainer",

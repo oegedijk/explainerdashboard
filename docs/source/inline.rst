@@ -6,6 +6,8 @@ quickly interactively like to explore your data. The ``InlineExplainer`` allows
 you to do this by running ``ExplainerComponents`` (or whole tabs) inline 
 inside your Jupyter notebook.
 
+.. image:: inline_screenshot.png
+
 This allows you to quickly check model performance, look for shap importances,
 etc. The components are sorted into subcategories and work with tab-completion.
 

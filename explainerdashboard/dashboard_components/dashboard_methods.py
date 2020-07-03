@@ -292,6 +292,8 @@ class ExplainerComponent(ABC):
         """First register callbacks of all subcomponents, then call
         _register_callbacks(app)
         """
+        if not hasattr(self, '_components'):
+            self._components = []
         for comp in self._components:
             comp.register_callbacks(app)
         self._register_callbacks(app)
