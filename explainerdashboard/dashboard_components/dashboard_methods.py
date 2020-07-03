@@ -1,4 +1,6 @@
 __all__ = [
+    'delegates_kwargs',
+    'delegates_doc',
     'DummyComponent',
     'ExplainerHeader',
     'ExplainerComponent',
@@ -7,6 +9,7 @@ __all__ = [
 
 from abc import ABC
 import inspect
+import types
 
 import dash
 import dash_core_components as dcc
@@ -18,7 +21,7 @@ import shortuuid
 
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
 # then extended to deal with multiple inheritance
-def delegates(to=None, keep=False):
+def delegates_kwargs(to=None, keep=False):
     "Decorator: replace `**kwargs` in signature with params from `to`"
     def _f(f):
         from_f = f.__init__ if to is None else f
@@ -39,6 +42,23 @@ def delegates(to=None, keep=False):
         if keep: 
             sigd['kwargs'] = k
         from_f.__signature__ = sig.replace(parameters=sigd.values())
+        return f
+    return _f
+
+
+def delegates_doc(to=None, keep=False):
+    "Decorator: replace `__doc__` with `__doc__` from `to`"
+    def _f(f):
+        from_f = f.__init__ if to is None else f
+        if to is None:
+            for base_cls in f.__bases__:
+                to_f = base_cls.__init__
+        else:
+            if isinstance(to, types.FunctionType):
+                to_f = to
+            else:
+                to_f = to.__init__
+        from_f.__doc__ = to_f.__doc__
         return f
     return _f
 
