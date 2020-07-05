@@ -1,5 +1,37 @@
 # Release Notes
 
+## version 0.2:
+### Breaking Changes
+- InlineExplainer api has been completely redefined
+- 
+
+### New Features
+- Major rewrite and refactor of the dashboard code, now modularized into ExplainerComponents
+    and ExplainerComposites.
+- ExplainerComponents can now be individually accessed through InlineExplainer
+- All elements of components can now be switched on or off or be given an
+    initial value.
+- Makes it much, much easier to design own custom dashboards.
+
+### Better docs:
+- Added sections InlineExplainer, ExplainerTabs, ExplainerComponents, 
+    CustomDashboards and deployment
+- Added screenshots to documentation.
+
+### Bug Fixes
+- fixes residuals y-pred instead of pred-y
+-
+
+### Improvements
+-   Random Index Selector redesigned
+-   Prediction summary redesigned
+-   Tables now follow dbc.Table formatting
+-   All connections between components now happen through explicit connectors
+-   Layout of most components redesigned, with all elements made hideable
+
+### Other Changes
+-
+-
 ## Version 0.1.13
 
 ### Bug Fixes

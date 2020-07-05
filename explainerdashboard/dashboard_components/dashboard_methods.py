@@ -94,7 +94,8 @@ class ExplainerHeader:
     a 'tabs' element (these are taken care off by the overall layout),
     so ExplainerHeader(mode='none'), will simply add a dummy hidden layout.
     """
-    def __init__(self, explainer, mode="none", title="Explainer Dashboard"):
+    def __init__(self, explainer, mode="none", title="Explainer Dashboard",
+                    hide_title=False, hide_selector=False):
         """Insert appropriate header layout into explainable dashboard layout.
 
         Args:
@@ -102,6 +103,7 @@ class ExplainerHeader:
             mode (str, {'dashboard', 'standalone', 'hidden', 'none', optional): 
                 "dashboard": Display both title and label selector.
                     Used for ExplainerDashboard.
+                "dashboard_titleonly": Display title and add dummy label selector
                 "standalone": display title and label selector, insert dummy 'tabs'.
                     Used for ExplainerTabs or standalone single layouts.
                 "hidden": don't display header but insert dummy elements 'pos-label' and 'tabs'. 
@@ -110,11 +112,15 @@ class ExplainerHeader:
                     Used for sub ExplainerComponents.. Defaults to "none".
             title (str, optional): Title to display in header. 
                     Defaults to "Explainer Dashboard".
+            hide_title(bool, optional): Hide the title. Defaults to False.
+            hide_selector(bool, optional): Hide the selector. Defaults to False.
         """
         assert mode in ["dashboard", "standalone", "hidden", "none"]
         self.explainer = explainer
         self.mode = mode
         self.title = title
+        self.hide_title, self.hide_selector = hide_title, hide_selector
+        self.hide_both = hide_title and hide_selector
 
     def layout(self):
         """html.Div() with elements depending on self.mode:
@@ -128,34 +134,39 @@ class ExplainerHeader:
                 [dcc.Input(id="pos-label")], style=dict(display="none"))
         dummy_tabs = html.Div(dcc.Input(id="tabs"), style=dict(display="none"))
 
-        title_col = dbc.Col([html.H1(self.title)], width='auto')
+        title_col = make_hideable(
+            dbc.Col([html.H1(self.title)], width='auto'), hide=self.hide_title)
+
 
         if self.explainer.is_classifier:
-            pos_label_group = html.Div([
-                dbc.Label("Positive class:", html_for="pos-label"),
-                dcc.Dropdown(
-                    id='pos-label',
-                    options = [{'label': label, 'value': i}
-                            for i, label in enumerate(self.explainer.labels)],
-                    value = self.explainer.pos_label)
-            ])
+            pos_label_group = make_hideable(
+                dbc.Col([
+                    dbc.Label("Positive class:", html_for="pos-label"),
+                    dcc.Dropdown(
+                        id='pos-label',
+                        options = [{'label': label, 'value': i}
+                                for i, label in enumerate(self.explainer.labels)],
+                        value = self.explainer.pos_label)
+                ], width=2), 
+                hide=self.hide_selector)
         else:
-            pos_label_group = dummy_pos_label
+            pos_label_group = html.Div(
+                [dcc.Input(id="pos-label")], style=dict(display="none"))
 
         if self.mode=="dashboard":
             return dbc.Container([
-                dbc.Row([title_col, dbc.Col([pos_label_group], width=2)],
+                dbc.Row([title_col, pos_label_group],
                 justify="start", align="center")
             ], fluid=True)
         elif self.mode=="standalone":
             return dbc.Container([
-                dbc.Row([title_col, dbc.Col([pos_label_group], width=2), dummy_tabs],
+                dbc.Row([title_col, pos_label_group, dummy_tabs],
                 justify="start", align="center")
             ], fluid=True)
         elif self.mode=="hidden":
             return html.Div(
-                [pos_label_group, dummy_tabs],
-                style=dict(display="none"))
+                    dbc.Row([pos_label_group, dummy_tabs])
+            , style=dict(display="none"))
         elif self.mode=="none":
             return None
 

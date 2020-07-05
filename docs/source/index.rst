@@ -72,7 +72,8 @@ Or, as a one-liner::
         )
     ).run()
 
-The result of the lines above can be viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
+The result of the lines above can be seen in the screenshot above or can be
+viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
 
 
 More examples of how to start dashboards for different types of models and with 
@@ -88,7 +89,6 @@ in the github repo.
    :maxdepth: 3
 
    explainers
-   plots
    dashboards
    tabs
    inline

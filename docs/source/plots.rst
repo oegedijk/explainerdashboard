@@ -39,7 +39,6 @@ BaseExplainer: Plots
    :members: plot_importances, plot_shap_contributions, plot_shap_summary, plot_shap_interaction_summary, plot_shap_dependence, plot_shap_interaction, plot_pdp
    :member-order: bysource
    :exclude-members: __init__
-   :noindex: 
 
 
 ClassifierExplainer: Plots
@@ -49,7 +48,6 @@ ClassifierExplainer: Plots
    :members: plot_precision, plot_cumulative_precision, plot_classification, plot_lift_curve, plot_confusion_matrix, plot_roc_auc, plot_pr_auc
    :member-order: bysource
    :exclude-members: __init__
-   :noindex: 
 
 
 RegressionExplainer: Plots
@@ -59,7 +57,6 @@ RegressionExplainer: Plots
    :members: plot_predicted_vs_actual, plot_residuals,  plot_residuals_vs_feature
    :member-order: bysource
    :exclude-members: __init__
-   :noindex:
    
 
 RandomForestExplainer: Plots
@@ -69,4 +66,3 @@ RandomForestExplainer: Plots
    :members: plot_trees, decision_path
    :member-order: bysource
    :exclude-members: __init__
-   :noindex: 

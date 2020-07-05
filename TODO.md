@@ -12,12 +12,14 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
+- ADD BUTTON TO DECISIONPATH GRAPH!
 - Add options sorting contributions plot from most negative to most positive
 - Contributions: order by global mean_abs_shap or by specific shap
 - fix name of figure MEAN_ABS_SHAP
 - Add Altair (vega) plots for easy inclusion in websites
 - highlight id in violin plots
 - Add feature names to waterfall plot
+- replace -999 in contributions table by "MISSING"
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
@@ -31,6 +33,7 @@
 - check all shap values >-1 and <1 for model_output=probability
 
 ## Dashboard:
+
 - make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
  
@@ -54,6 +57,7 @@
 
 
 ## Library level:
+- add @delegates_kwargs_and_doc_to() 
 - add more screenshots to README with https://postimages.org/
 - add more _ to properties to make them hidden from tab completions
 - add badges to README: https://github.com/badges/shields
