@@ -6,7 +6,9 @@ __all__ = ['ExplainerDashboard',
             'JupyterExplainerTab',
             'InlineExplainer']
 
+import inspect 
 
+import shortuuid
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
@@ -20,36 +22,146 @@ from .dashboard_tabs import *
 
 
 
-class ExplainerDashboard:
-    """Constructs a dashboard out of an Explainer object. You can indicate
-    which tabs to include, and pass kwargs on to individual tabs.
+def instantiate_component(component, explainer, header_mode="none", **kwargs):
+    """Returns an instantiated ExplainerComponent.
+    
+    If the component input is just a class definition, instantiate it with
+    explainer, header_mode and kwargs.
+    If it is already an ExplainerComponent instance, set header_mode and return it.
+    If it is any other instance with layout and regiuster_components methods,
+    then add a name property and return it. 
+
+    Args:
+        component ([type]): Either a class definition or instance of an 
+            ExplainerComponent or one of the following str: 'importances', 
+            'model_summary', 'contributions', 'shap_dependence', 
+            'shap_interactions', 'decision_trees'.
+        explainer ([type]): An Explainer object that will be used to instantiate class definitions
+        header_mode (str, optional): Header_mode to assign to component. Defaults to "none".
+        kwargs: kwargs will be passed on to the instance
+
+    Raises:
+        ValueError: if component is not a subclass or instance of ExplainerComponent,
+                or is an instance without layout and register_callbacks methods
+
+    Returns:
+        [type]: instantiated component
     """
-    def __init__(self, explainer, tabs=None,
-                 title='Model Explainer',   
-                importances=True,
-                model_summary=True,  
-                contributions=True,
-                shap_dependence=True,
-                shap_interaction=True,
-                decision_trees=True,
-                plotly_template="none",
-                **kwargs):
-        """Constructs an ExplainerDashboard.
+    if isinstance(component, str):
+        if component == 'importances':
+            component = ImportancesTab
+        elif component == 'model_summary':
+            component = ModelSummaryTab
+        elif component == 'contributions':
+            component = ContributionsTab
+        elif component == 'shap_dependence':
+            component = ShapDependenceTab
+        elif component == 'shap_interaction':
+            component = ShapInteractionsTab
+        elif component == 'decision_trees':
+            component = DecisionTreesTab
+        else:
+            raise ValueError("If when passing a component as str then it should be in "
+                    "['importances', 'model_summary', 'contributions', 'shap_dependence', "
+                    "'shap_interactions', 'decision_trees']")
+    if inspect.isclass(component) and issubclass(component, ExplainerComponent):
+        return component(explainer, header_mode=header_mode, **kwargs)
+    elif isinstance(component, ExplainerComponent):
+        component.header.mode = header_mode
+        return component
+    elif (not inspect.isclass(component)
+          and hasattr(component, "layout")):
+        if not (hasattr(component, "name") and isinstance(component.name, str)):
+            try:
+                component_name  = component.__name__
+            except:
+                component_name = shortuuid.ShortUUID().random(length=10)
+            print(f"Warning: setting {component}.name to {component_name}")
+            component.name = component_name
+        if not hasattr(component, "title"):
+            print(f"Warning: setting {component}.title to 'CustomTab'")
+            component.title = "CustomTab"
+        return component
+    else:
+        raise ValueError(f"{component} is not a valid component...")
+
+
+class ExplainerDashboard:
+    def __init__(self, explainer=None, tabs=None,
+                 title='Model Explainer',
+                 header_hide_title=False,
+                 header_hide_selector=False,
+                 mode="dash",
+                 width=1000,
+                 height=800,
+                 external_stylesheets=None,
+                 importances=True,
+                 model_summary=True,
+                 contributions=True,
+                 shap_dependence=True,
+                 shap_interaction=True,
+                 decision_trees=True,
+                 **kwargs):
+        """Creates an explainerdashboard out of an Explainer object.
+
+
+        single page dashboard:
+            If tabs is a single ExplainerComponent class or instance, display it 
+            as a standalone page without tabs.
+
+        Multi tab dashboard:
+            If tabs is a list of ExplainerComponent classes or instances, then construct
+            a layout with a tab per component. Instead of components you can also pass
+            the following strings: "importances", "model_summary", "contributions", 
+            "shap_dependence", "shap_interaction" or "decision_trees". You can mix and
+            combine these different modularities, e.g.: 
+                tabs=[ImportancesTab, "contributions", custom_tab]
+
+        If tabs is None, then construct tabs based on the boolean parameters:
+            importances, model_summary, contributions, shap_dependence, 
+            shap_interaction and decision_trees, which all default to True.
+
+        You can select four different modes:
+            - 'dash': standard dash.Dash() app
+            - 'inline': JupyterDash app inline in a notebook cell output
+            - 'jupyterlab': JupyterDash app in jupyterlab pane
+            - 'external': JupyterDash app in external tab
+
+        You can switch off the title and positive label selector
+            with header_hide_title=True and header_hide_selector=True.
+
+        You run the dashboard
+            with e.g. ExplainerDashboard(explainer).run(port=8050)
+
+
+        Args:
+            explainer(): explainer object
+            tabs(): single component or list of components
+            title(str, optional): title of dashboard, defaults to 'Model Explainer'
+            header_hide_title(bool, optional): hide the title, defaults to False
+            header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
+            mode(str, {'dash', 'inline' , 'jupyterlab', 'external'}, optional): 
+                type of dash server to start. 'inline' runs in a jupyter notebook output cell. 
+                'jupyterlab' runs in a jupyterlab pane. 'external' runs in an external tab
+                while keeping the notebook interactive. 
+            width(int, optional): width of notebook output cell in pixels, defaults to 1000.
+            height(int, optional): height of notebookn output cell in pixels, defaults to 800.
+            external_stylesheets(list, optional): attach dbc themes e.g. 
+                `external_stylesheets=[dbc.themes.FLATLY]`. 
+            importances(bool, optional): include ImportancesTab, defaults to True.
+            model_summary(bool, optional): include ModelSummaryTab, defaults to True.
+            contributions(bool, optional): include ContributionsTab, defaults to True.
+            shap_dependence(bool, optional): include ShapDependenceTab, defaults to True.
+            shap_interaction(bool, optional): include InteractionsTab if model allows it, defaults to True.
+            decision_trees(bool, optional): include DecisionTreesTab if model allows it, defaults to True.
+        """
+        self.mode, self.width, self.height = mode, width, height
+        self.header_hide_title, self.header_hide_selector = \
+            header_hide_title, header_hide_selector
+        self.external_stylesheets = external_stylesheets
         
-        :param explainer: an ExplainerBunch object
-        :param title: Title of the dashboard, defaults to 'Model Explainer'
-        :type title: str, optional
-        :param model_summary: display model_summary tab or not, defaults to True
-        :type model_summary: bool, optional
-        :param contributions: display individual contributions tab or not, defaults to True
-        :type contributions: bool, optional
-        :param shap_dependence: display shap dependence tab or not, defaults to True
-        :type shap_dependence: bool, optional
-        :param shap_interaction: display tab interaction tab or not. 
-        :type shap_interaction: bool, optional
-        :param decision_trees: display tab with individual decision tree of random forest, defaults to False
-        :type decision_trees: bool, optional
-        """        
+        self.app = self.get_dash_app()
+        self.app.title = title
         
         if tabs is None:
             tabs = []
@@ -74,29 +186,75 @@ class ExplainerDashboard:
                 tabs.append(ShapInteractionsTab)
             if decision_trees:
                 tabs.append(DecisionTreesTab)
+                    
+        if isinstance(tabs, list):
+            tabs  = [instantiate_component(tab, explainer, "none", **kwargs) for tab in tabs]
+            assert len(tabs) > 0, 'When passing a list, need to pass at least one valid tab!'
+            self.app.layout = dbc.Container([
+                ExplainerHeader(explainer, title=title, mode="dashboard", 
+                    hide_title=header_hide_title, 
+                    hide_selector=header_hide_selector).layout(),
+                dcc.Tabs(id="tabs", value=tabs[0].name, 
+                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
+                                           children=tab.layout()) for tab in tabs]),
+            ], fluid=True)
 
-        tabs  = [tab(explainer, header_mode="none") for tab in tabs if issubclass(tab, ExplainerComponent)]
-        assert len(tabs) > 0, 'need to pass at least one valid tab! e.g. model_summary=True'
-
-        self.app = self.get_dash_app()
-        self.app.title = title
-        self.app.layout = dbc.Container([
-            ExplainerHeader(explainer, title=title, mode="dashboard").layout(),
-            dcc.Tabs(id="tabs", value=tabs[0].name, 
-                     children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
-                                       children=tab.layout()) for tab in tabs]),
-        ], fluid=True)
-        
-        for tab in tabs:
-            tab.calculate_dependencies()
-            tab.register_callbacks(self.app)
-
+            for tab in tabs:
+                try:
+                    tab.calculate_dependencies()
+                except AttributeError:
+                    pass
+                tab.register_callbacks(self.app)
+            
+        else:                
+            kwargs['title'] = title
+            tab = instantiate_component(tabs, explainer, "none", **kwargs)
+            self.app.layout = dbc.Container([
+                ExplainerHeader(
+                        explainer, title=title, 
+                        mode="standalone", 
+                        hide_title=header_hide_title, 
+                        hide_selector=header_hide_selector
+                ).layout(),
+                tab.layout()
+            ], fluid=True)
+            
+            try:
+                tab.calculate_dependencies()
+            except AttributeError:
+                print("Warning: component does not have calculate_dependencies() method...")
+                pass
+            try:
+                tab.register_callbacks(self.app)
+            except AttributeError:
+                print("Warning: component does not have register_callbacks() method...")
+                pass
+            
     def get_dash_app(self):
-        app = dash.Dash(__name__)
-        app.config['suppress_callback_exceptions']=True
-        app.css.config.serve_locally = True
-        app.scripts.config.serve_locally = True
-        return app
+        if self.mode=="dash":
+            if self.external_stylesheets is not None:
+                app = dash.Dash(external_stylesheets=self.external_stylesheets, assets_url_path="")
+                app.config['suppress_callback_exceptions']=True
+            else:
+                app = dash.Dash(__name__)
+                app.css.config.serve_locally = True
+                app.scripts.config.serve_locally = True
+            return app
+        elif self.mode in ['inline', 'jupyterlab', 'external']:
+            if self.external_stylesheets is not None:
+                app = JupyterDash(external_stylesheets=self.external_stylesheets, assets_url_path="")
+            else:
+                app = JupyterDash(__name__)
+            return app
+        else:
+            raise ValueError(f"mode=={self.mode} but should be in "
+                 "['dash', 'inline', 'juypyterlab', 'external']")
+
+    def flask_server(self):
+        """returns self.app.server so that it can be exposed to e.g. gunicorn"""
+        if self.mode != 'dash':
+            print("Warning: in production you should probably use mode='dash'...")
+        return self.app.server
         
     def run(self, port=8050, **kwargs):
         """Starts the dashboard using the built-in Flask server on localhost:port
@@ -104,131 +262,33 @@ class ExplainerDashboard:
         :param port: the port to run the dashboard on, defaults to 8050
         :type port: int, optional
         """
-        print(f"Running {self.app.title} on http://localhost:{port}")
         pio.templates.default = "none"
-        self.app.run_server(port=port, **kwargs)
+        if self.mode == 'dash':
+            self.app.run_server(port=port, **kwargs)
+        elif self.mode == 'external':
+            self.app.run_server(port=port, mode=self.mode, **kwargs)
+        elif self.mode in ['inline', 'jupyterlab']:
+            self.app.run_server(port=port, mode=self.mode, 
+                                width=self.width, height=self.height, **kwargs)
+        else:
+            raise ValueError(f"Unknown mode: {mode}...")
 
 
 class JupyterExplainerDashboard(ExplainerDashboard):
-    """
-    ExplainerDashboard that uses launches a JupyterDash app instead of a
-    default dash app.
-    """ 
-    def get_dash_app(self):
-        app = JupyterDash(__name__)
-        return app
-
-    def run(self, port=8050, mode='inline', width=800, height=650, **kwargs):
-        """Starts the dashboard using the built-in Flask server on localhost:port
-
-        :param port: the port to run the dashboard on, defaults to 8050
-        :type port: int, optional
-        :param mode: either 'inline', 'jupyterlab' or 'external'
-        :type mode: str, optional
-        :param width: width in pixels of inline iframe
-        :param height: height in pixels of inline iframe
-        """
-        pio.templates.default = "none"
-        if mode in ['inline', 'jupyterlab']:
-            self.app.run_server(mode=mode, width=width, height=height, port=port)
-        elif mode == 'external':
-             self.app.run_server(mode=mode, port=port, **kwargs)
-        else:
-            raise ValueError("mode should either be 'inline', 'jupyterlab'  or 'external'!")
-
+    def __init__(self, *args, **kwargs):
+        raise ValueError("JupyterExplainerDashboard has been deprecated. "
+                    "Use e.g. ExplainerDashboard(mode='inline') instead.")
 
 class ExplainerTab:
-    """Constructs a dashboard with a single tab out of an Explainer object. 
-    You either pass the class definition of the tab to include, or a string
-    identifier. 
-    """
-    def __init__(self, explainer, tab, title='Model Explainer', 
-                    header_mode="standalone", **kwargs):
-        """Constructs an ExplainerDashboard.
-        
-        :param explainer: an ExplainerBunch object
-        :param tab: Tab or string identifier for tab to be displayed: 
-                    'importances', 'model_summary', 'contributions', 'shap_dependence', 
-                    'shap_interaction', 'decision_trees'
-        :type tab: either an ExplainerTab or str
-        :param title: Title of the dashboard, defaults to 'Model Explainer'
-        :type title: str, optional
-        :param tab: single tab to be run as dashboard
-        """
-        
-        self.explainer = explainer
-        self.title = title
-        self.kwargs = kwargs
-
-        if isinstance(tab, str):
-            if tab == 'importances':
-                tab = ImportancesTab
-            elif tab == 'model_summary':
-                tab = ModelSummaryTab
-            elif tab == 'contributions':
-                tab = ContributionsTab
-            elif tab == 'shap_dependence':
-                tab = ShapDependenceTab
-            elif tab == 'shap_interaction':
-                tab = ShapInteractionsTab
-            elif tab == 'decision_trees':
-                tab = DecisionTreesTab
-            else:
-                raise ValueError("If parameter tab is str then it should be in "
-                        "['importances', 'model_summary', 'contributions', 'shap_dependence', "
-                        "'shap_interactions', 'decision_trees']")
-
-        self.tab = tab(self.explainer, header_mode=header_mode, **self.kwargs)
-
-        self.app = self.get_dash_app()
-        self.app.title = title
-        
-        #pio.templates.default = self.plotly_template
-
-        self.app.layout = self.tab.layout()
-        self.tab.register_callbacks(self.app)
-        self.tab.calculate_dependencies()
-
-    def get_dash_app(self):
-        app = dash.Dash(__name__)
-        app.config['suppress_callback_exceptions']=True
-        app.css.config.serve_locally = True
-        app.scripts.config.serve_locally = True
-        return app
-
-    def run(self, port=8050, **kwargs):
-        """Starts the dashboard using the built-in Flask server on localhost:port
-        
-        :param port: the port to run the dashboard on, defaults to 8050
-        :type port: int, optional
-        """
-        print(f"Running {self.title} on http://localhost:{port}")
-        #pio.templates.default = self.plotly_template
-        self.app.run_server(port=port, **kwargs)
+    def __init__(self, *args, **kwargs):
+        raise ValueError("ExplainerTab has been deprecated. "
+                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab) instead.")
 
 
 class JupyterExplainerTab(ExplainerTab):
-    def get_dash_app(self):
-        app = JupyterDash(__name__)
-        return app
-
-
-    def run(self, port=8050, mode='inline', width=1000, height=650, **kwargs):
-        """Starts the dashboard using the built-in Flask server on localhost:port
-        :param port: the port to run the dashboard on, defaults to 8050
-        :type port: int, optional
-        :param mode: either 'inline', 'jupyterlab' or 'external' 
-        :type mode: str, optional
-        :param width: width in pixels of inline iframe
-        :param height: height in pixels of inline iframe
-        """
-        #pio.templates.default = self.plotly_template
-        if mode in ['inline', 'jupyterlab']:
-            self.app.run_server(mode=mode, width=width, height=height, port=port)
-        elif mode in ['external']:
-             self.app.run_server(mode=mode, port=port, **kwargs)
-        else:
-            raise ValueError("mode should either be 'inline', 'jupyterlab' or 'external'!")
+    def __init__(self, *args, **kwargs):
+        raise ValueError("ExplainerTab has been deprecated. "
+                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab, mode='inline') instead.")
 
 
 class InlineExplainer:
