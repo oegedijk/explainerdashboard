@@ -6,28 +6,41 @@ Summary
 
 ``explainerdashboard`` is a library for quickly building interactive dashboards
 and interactive notebook components for analyzing and explaining the performance
-of (scikit-learn compatible) machine learning models.
+and workings of (scikit-learn compatible) machine learning models.
 
 It allows you to investigate shap values, permutation importances, 
 interaction effects, partial dependence plots, all kinds of performance plots,
 and even individual trees in a random forest by deploying an interactive 
-dashboard with just two lines of code. 
+dashboard with just two lines of code
+
+You first construct an ``explainer`` object out of your model and the test data::
+
+    explainer = ClassifierExplainer(model, x, y)
+
+The ``explainer`` offers an interface that computes all relevent metrics behind 
+the scenes and allows you to quickly plot feature importances,
+shap dependence plots, pdp plots, etc, etc:
+
+
+.. image:: notebook_screenshot.png
+
+
+You then pass this ``explainer`` object to an ``ExplainerDashboard`` to start an 
+interactive analytical web app to inspect the workings and performance of your model::
+
+    ExplainerDashboard(explainer).run()
 
 .. image:: screenshot.png
 
-You first construct an ``explainer`` object out of your model and the test data. 
-The ``explainer`` offers an interface that computes all relevent metrics behind 
-the scenes and allows you to quickly plot feature importances,
-shap dependence plots, pdp plots, etc, etc.
 
-You then pass this ``explainer`` object to an ``ExplainerDashboard`` to start an 
-interactive analytical web app to inspect the workings and performance of your model.
 For a custom dashboard you can make use of the ``ExplainerComponents`` primitives to 
 easily make your a dashboard interface to your own liking. For viewing 
 individual components or tabs directly inside your jupyter notebook you use the 
-``InlineExplainer``.
+``InlineExplainer``:
 
-With ``explainerdashboard`` any datascientist can create an interactive web app
+.. image:: inline_screenshot.png
+
+With ``explainerdashboard`` any data scientist can create an interactive web app
 to display the workings of their ML model in minutes, without having to know
 anything about web development or deployment. In addition it aids the model
 development flow by offering interactive inline notebook components without

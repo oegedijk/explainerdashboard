@@ -111,10 +111,10 @@ You can start the dashboard with the standard ``dash.Dash()`` or with the
 new notebook friendly ``jupyter_dash`` library. The latter will allow you
 to keep working interactively in your notebook while the dashboard is running.
 
-The default dash server is started with mode='dash'. There are three different 
-options for ``jupyter_dash`` mode: 'inline'for running the dashboard in an 
-output cell in your notebook, 'jupyterlab' for runnning the dashboard in 
-jupyterlab pane, or 'external' which runs the dashboard in a seperate tab::
+The default dash server is started with ``mode='dash'``. There are three different 
+options for ``jupyter_dash`` ``mode='inline'`` for running the dashboard in an 
+output cell in your notebook, ``mode='jupyterlab'`` for runnning the dashboard in 
+jupyterlab pane, or ``mode='external'`` which runs the dashboard in a seperate tab::
 
    ExplainerDashboard(explainer, mode='dash').run() # default
    ExplainerDashboard(explainer, mode='inline').run()
