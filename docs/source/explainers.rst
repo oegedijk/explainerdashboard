@@ -284,7 +284,7 @@ plot_precision
 plot_cumulative_precision
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.ClassifierExplainer.cumulative_precision
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_cumulative_precision
 
 plot_classification
 ^^^^^^^^^^^^^^^^^^^
@@ -311,6 +311,29 @@ plot_pr_auc
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_pr_auc
 
+Regression Plots 
+----------------
+
+For the derived RegressionExplainer class again some additional plots::
+
+    explainer.plot_predicted_vs_actual(...)
+    explainer.plot_residuals(...)
+    explainer.plot_residuals_vs_feature(...)
+
+plot_predicted_vs_actual
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RegressionExplainer.plot_predicted_vs_actual
+
+plot_residuals
+^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RegressionExplainer.plot_residuals
+
+plot_residuals_vs_feature
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RegressionExplainer.plot_residuals_vs_feature
 
 
 RandomForest Plots
@@ -342,13 +365,33 @@ This also works with classifiers and regression models::
     explainer = RandomForestRegressionExplainer(model, X, y)
 
 
-plot_classification
-^^^^^^^^^^^^^^^^^^^
+plot_trees
+^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_classification
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.plot_trees
+
+decision_path
+^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path
+
+decision_path_file
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
+
+decision_path_encoded
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_encoded
+
+
 
 Other explainer outputs
 =======================
+
+Base outputs
+------------
 
 Some other useful tables and outputs you can get out of the explainer::
 
@@ -361,6 +404,51 @@ Some other useful tables and outputs you can get out of the explainer::
     contrib_summary_df(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
     interactions_df(col, cats=False, topx=None, cutoff=None, pos_label=None)
 
+metrics
+^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.metrics
+
+metrics_markdown
+^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.metrics_markdown
+
+mean_abs_shap_df
+^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.mean_abs_shap_df
+
+permutation_importances_df
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.permutation_importances_df
+
+importances_df
+^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.importances_df
+
+contrib_df
+^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.contrib_df
+
+contrib_summary_df
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.contrib_summary_df
+
+interactions_df
+^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.interactions_df
+
+
+
+Classifier outputs
+------------------
+
 For ``ClassifierExplainer`` in addition::
 
     random_index(y_values=None, return_str=False,pred_proba_min=None, pred_proba_max=None,
@@ -370,6 +458,37 @@ For ``ClassifierExplainer`` in addition::
     precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
     lift_curve_df(pos_label=None)
 
+
+random_index
+^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.random_index
+
+prediction_result_markdown
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.prediction_result_markdown
+
+cutoff_from_percentile
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.cutoff_from_percentile
+
+precision_df
+^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.precision_df
+
+lift_curve_df
+^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.lift_curve_df
+
+
+Regression outputs
+------------------
+
+
 For ``RegressionExplainer``::
 
     prediction_result_markdown(index, round=2)
@@ -378,6 +497,19 @@ For ``RegressionExplainer``::
                     abs_residuals_min=None, abs_residuals_max=None,
                     return_str=False)
 
+prediction_result_markdown
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RegressionExplainer.prediction_result_markdown
+
+random_index
+^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RegressionExplainer.random_index
+
+
+RandomForest outputs
+--------------------
 
 For ``RandomForestExplainer``::
 
@@ -385,6 +517,21 @@ For ``RandomForestExplainer``::
     decisiontree_df_summary(tree_idx, index, round=2, pos_label=None)
     decision_path_file(tree_idx, index)
 
+
+decisiontree_df
+^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_df
+
+decisiontree_df_summary
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_df_summary
+
+decision_path_file
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
 
 Calculated Properties
 =====================
@@ -485,6 +632,7 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
         plot_precision, plot_cumulative_precision, plot_classification, 
         plot_lift_curve, plot_confusion_matrix, plot_roc_auc, plot_pr_auc
    :member-order: bysource
+   :noindex:
 
 
 RegressionExplainer
@@ -500,6 +648,7 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
    :members: random_index, residuals, metrics, prediction_result_markdown,
             plot_predicted_vs_actual, plot_residuals,  plot_residuals_vs_feature
    :member-order: bysource
+   :noindex:
 
 
 RandomForestExplainer
@@ -509,6 +658,7 @@ RandomForestExplainer
    :members: decisiontree_df, decisiontree_df_summary, plot_trees, decision_path
    :member-order: bysource
    :exclude-members: 
+   :noindex:
 
 RandomForestClassifierExplainer
 -------------------------------
@@ -516,6 +666,7 @@ RandomForestClassifierExplainer
 .. autoclass:: explainerdashboard.explainers.RandomForestClassifierExplainer
    :member-order: bysource
    :exclude-members: __init__
+   :noindex:
 
 RandomForestRegressionExplainer
 -------------------------------
@@ -523,6 +674,7 @@ RandomForestRegressionExplainer
 .. autoclass:: explainerdashboard.explainers.RandomForestRegressionExplainer
    :member-order: bysource
    :exclude-members: __init__
+   :noindex:
 
 
 
