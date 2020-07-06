@@ -1680,7 +1680,7 @@ class ClassifierExplainer(BaseExplainer):
         if pos_label is None: pos_label = self.pos_label
         return get_lift_curve_df(self.pred_probas(pos_label), self.y, pos_label)
 
-    def prediction_result_markdown(self, index, include_percentile=True, round=2, pos_label=None, **kwargs):
+    def prediction_result_markdown(self, index, include_percentile=True, round=2, pos_label=None):
         """markdown of result of prediction for index
 
         Args:

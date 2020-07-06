@@ -1,5 +1,5 @@
-CustomDashboard
-***************
+Custom Dashboards
+*****************
 
 Using the ``ExplainerComponents`` and connectors it becomes very easy to build 
 your own custom dashboards, without needing to know much about web development 
@@ -293,11 +293,11 @@ that does exactly this::
     db.calculate_dependencies()
     app.run_server()
 
-Custom ExplainerComponent and use ExplainerTab
-----------------------------------------------
+Custom ExplainerComponent and use ExplainerDashboard
+----------------------------------------------------
 
 A third method consists of inheriting from ExplainerComponent and then
-running the page with ``ExplainerTab``. The main difference is calling the
+running the page with ``ExplainerDashboard``. The main difference is calling the
 ``super().__init__()`` and calling ``register_components()`` inside the init,
 and defining the layout in ``_layout()`` with an underscore.
 
@@ -382,8 +382,8 @@ when calling ``register_components``::
                 ])
             ])
     
-    db = JupyterExplainerTab(explainer, CustomComponent, header_mode="hidden")
-    db.run(mode='external')
+    ExplainerDashboard(explainer, CustomComponent, header_hide_selector=True).run()
+
 
 
 

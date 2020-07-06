@@ -19,7 +19,9 @@ This is enough to launch an ExplainerDashboard::
 
 .. image:: screenshot.png
 
-Or you can use it interactively in a notebook to inspect your model::
+
+Or you can use it interactively in a notebook to inspect your model 
+using the built-in plotting methods, e.g.::
 
     explainer.plot_confusion_matrix()
     explainer.plot_shap_contributions(index=0)
@@ -29,19 +31,33 @@ Or you can use it interactively in a notebook to inspect your model::
 
 For the full lists of plots available see :ref:`Plots<Plots>`.
 
-Explainer Parameters
-====================
+
+Or you can start an interactive :ref:`ExplainerComponent<ExplainerComponents>` 
+in your notebook using :ref:`InlineExplainer<InlineExplainer>`, e.g.::
+
+    InlineExplainer(explainer).tab.importances()
+    InlineExplainer(explainer).classifier.roc_auc()
+    InlineExplainer(explainer).regression.residuals_vs_col()
+    InlineExplainer(explainer).shap.overview()
+
+.. image:: inline_screenshot.png
+
+
+Parameters
+==========
 
 There are a number of optional parameters that can either make sure that
 SHAP values get calculated in the appropriate way, or that make the explainer 
 give a bit nicer and more convenient output::
 
     ClassifierExplainer(model, X_test, y_test, 
-            shap='linear', X_background=X_train, model_output='logodds',
+            shap='linear', # manually set shap type, overrides default 'guess'
+            X_background=X_train, # set background dataset for shap calculations
+            model_output='logodds', # set model_output to logodds (vs probability)
             cats=['Sex', 'Deck', 'Embarked'], # makes it easy to group onehotencoded vars
-            idxs=test_names, #names of passengers # index by name
-            descriptions=feature_descriptions, # show feature descriptions in plots
-            labels=['Not survived', 'Survived'])
+            idxs=test_names, # index with str identifier
+            descriptions=feature_descriptions, # show long feature descriptions in hovers
+            labels=['Not survived', 'Survived']) # show target labels instead of ['0', '1']
 
 cats
 ----
@@ -50,16 +66,20 @@ If you have onehot-encoded your categorical variables, they will show up as a
 lot of independent features. This clutters your feature space, and often makes 
 it hard to interpret the effect of the underlying categorical feature. 
 
-However as long as you encoded the onehot categories with ``FeatureName_Category``,
-then ``explainerdashboard`` can group these categories together again in 
-the various plots and tables. For this you can pass a list of onehotencoded 
-categorical features to the parameter ``cats``.
+However as long as you encoded the onehot categories with an underscore like 
+``CategoricalFeature_Category``, then ``explainerdashboard`` can group these 
+categories together again in the various plots and tables. For this you can 
+pass a list of onehotencoded categorical features to the parameter ``cats``.
 For the titanic example this would be:
     - ``Sex``: ``Sex_female``, ``Sex_male``
     - ``Deck``: ``Deck_A``, ``Deck_B``, etc
     - ``Embarked``: ``Embarked_Southampton``, ``Embarked_Cherbourg``, etc
 
-So you would pass ``cats=['Sex', 'Deck', 'Embarked']``.
+So you would pass ``cats=['Sex', 'Deck', 'Embarked']``. You can now use these 
+categorical features directly as input for plotting methods, e.g. 
+``explainer.plot_shap_dependence("Deck")``. For other methods you can pass
+a parameter ``shap=True``, to indicate that you'd like to group the categorical
+features in your output. 
 
 idxs
 ----
@@ -69,7 +89,7 @@ If you pass these the the Explainer object, you can index using both the
 numerical index, e.g. ``explainer.contrib_df(0)`` for the first row, or using the 
 identifier, e.g. ``explainer.contrib_df("Braund, Mr. Owen Harris")``.
 
-The proper name or id will be use used in all ``ExplainerComponents`` that
+The proper name or idx will be use used in all ``ExplainerComponents`` that
 allow index selection.
 
 descriptions
@@ -79,39 +99,44 @@ descriptions
 In order to be explanatory, you often have to explain the meaning of the features 
 themselves (especially if the naming is not obvious).
 Passing the dict along to descriptions will show hover-over tooltips for the 
-various variables in the dashboard.
+various features in the dashboard.
 
 labels
 ------
-labels: The outcome variables for a classification problem are assumed to 
+labels: The outcome variables for a classification  ``y`` are assumed to 
 be encoded 0, 1 (, 2, 3, ...) This is not very human readable, so you can pass a 
 list of human readable labels such as ``labels=['Not survived', 'Survived']``.
 
 units
 -----
 
-For regression models the units of the y variable. E.g. if the model is predicting
-house prices in dollar you can set ``units='$'``.
+For regression models the units of the ``y`` variable. E.g. if the model is predicting
+house prices in dollar you can set ``units='$'``. This will be displayed along
+the axis of various plots.
 
 
 X_background
 ------------
 
-Some models like LogisticRegression (as well as certain gradienst boosting 
+Some models like sklearn ``LogisticRegression`` (as well as certain gradienst boosting 
 algorithms in probability space) need a background dataset to calculate shap values. 
-These can be passed as X_background. If you don't pass an X_background, Explainer 
+These can be passed as ``X_background``. If you don't pass an X_background, Explainer 
 uses X instead but gives off a warning.
+
+Usually a representative background dataset of a couple of hunderd rows should be
+enough to get decent shap values.
 
 model_output
 ------------
 
-By default ``model_output`` for classifier is set to ``"probability"``, as this 
+By default ``model_output`` for classifiers is set to ``"probability"``, as this 
 is more intuitively explainable to non data scientist stakeholders.
 However for certain models (e.g. ``XGBClassifier``, ``LGBMCLassifier``, ``CatBoostClassifier``), 
 need a background dataset X_background to calculate shap values in probability 
-space, and are not able to calculate shap interaction values.
+space, and are not able to calculate shap interaction values in probability space.
 Therefore you can also pass model_output='logodds', in which case shap values 
-get calculated and displayed in the dashboard as logodds.
+get calculated faster and interaction effects can be studied. Now you just need
+to explain to your stakeholders what logodds are :)
 
 shap
 ----
@@ -126,7 +151,8 @@ e.g. ``shap='tree'``, ``shap='linear'``, ``shap='kernel'``, ``shap='deep'``, etc
 model_output, X_background example
 ----------------------------------
 
-Putting it all together::
+An example of using setting ``X_background`` and ``model_output`` with a 
+LogisticRegression::
 
     from sklearn.linear_model import LogisticRegression
 
@@ -144,17 +170,17 @@ permutation_cv
 --------------
 
 Normally permuation importances get calculated over a single fold (assuming the
-data is the test set). However if you pass the training set the the explainer,
+data is the test set). However if you pass the training set to the explainer,
 you may wish to cross-validate calculate the permutation importances. In that
 case pass the number of folds to ``permutation_cv``.
 
 na_fill
 -------
 
-If you fill missing values with some extreme value such as ``-999``, these can
-mess with the horizontal axis of your plots. In order to filter these out,
-your need to tell the expaliner what the extreme value is that you used to fill.
-Defaults to ``-999``.
+If you fill missing values with some extreme value such as ``-999`` (typical for
+tree based methods), these can mess with the horizontal axis of your plots. 
+In order to filter these out, you need to tell the expaliner what the extreme value 
+is that you used to fill. Defaults to ``-999``.
 
 Plots
 =====
@@ -241,6 +267,117 @@ This also works with classifiers and regression models::
 
     explainer = RandomForestClassifierExplainer(model, X, y)
     explainer = RandomForestRegressionExplainer(model, X, y)
+
+
+Other explainer outputs
+=======================
+
+Some other useful tables and outputs you can get out of the explainer::
+
+    metrics()
+    metrics_markdown(round=2)
+    mean_abs_shap_df(topx=None, cutoff=None, cats=False, pos_label=None)
+    permutation_importances_df(topx=None, cutoff=None, cats=False, pos_label=None)
+    importances_df(kind="shap", topx=None, cutoff=None, cats=False, pos_label=None)
+    contrib_df(index, cats=True, topx=None, cutoff=None, pos_label=None)
+    contrib_summary_df(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
+    interactions_df(col, cats=False, topx=None, cutoff=None, pos_label=None)
+
+For ``ClassifierExplainer`` in addition::
+
+    random_index(y_values=None, return_str=False,pred_proba_min=None, pred_proba_max=None,
+                    pred_percentile_min=None, pred_percentile_max=None, pos_label=None)
+    prediction_result_markdown(index, include_percentile=True, round=2, pos_label=None)
+    cutoff_from_percentile(percentile, pos_label=None)
+    precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
+    lift_curve_df(pos_label=None)
+
+For ``RegressionExplainer``::
+
+    prediction_result_markdown(index, round=2)
+    random_index(y_min=None, y_max=None, pred_min=None, pred_max=None, 
+                    residuals_min=None, residuals_max=None,
+                    abs_residuals_min=None, abs_residuals_max=None,
+                    return_str=False)
+
+
+For ``RandomForestExplainer``::
+
+    decisiontree_df(tree_idx, index, pos_label=None)
+    decisiontree_df_summary(tree_idx, index, round=2, pos_label=None)
+    decision_path_file(tree_idx, index)
+
+
+Calculated Properties
+=====================
+
+In general ``Explainers`` don't calculate any properties of the model or the 
+data until they are needed for an output, so-called lazy calculation. When the
+property is calculated once, it is stored for next time. So the first time 
+you invoke a plot involving shap values may take a while to calculate. The next
+time will be basically instant. 
+
+You can access these properties directly from the explainer, e.g. ``explainer.shap_values``. 
+For classifier models if you want values for a particular ``pos_label`` you can
+pass this (int) label ``explainer.shap_values(0)`` would get the shap values for the 0'th class.
+
+In order to calculate all properties of the explainer at once, you can call
+``explainer.calculate_properties()``. (``ExplainerComponents`` have a similar method
+``component.calculate_dependencies()`` to calculate all properties that that specific
+component will need). 
+
+The various properties are::
+
+    explainer.preds
+    explainer.pred_percentiles
+    explainer.permutation_importances
+    explainer.permutation_importances_cats
+    explainer.shap_base_value
+    explainer.shap_values
+    explainer.shap_values_cats
+    explainer.shap_interaction_values
+    explainer.shap_interaction_values_cats
+    explainer.mean_abs_shap
+    explainer.mean_abs_shap_cats
+
+For ``ClassifierExplainer``::
+
+    explainer.y_binary
+    explainer.pred_probas_raw
+    explainer.pred_percentiles_raw
+    explainer.pred_probas
+
+For ``RegressionExplainer``::
+
+    explainer.residuals
+    explainer.abs_residuals
+
+
+Setting pos_label
+=================
+
+For ``ClassifierExplainer`` you can calculate most properties for multiple labels as
+the positive label. With a binary classification usually label '1' is the positive class,
+but in some cases you might also be interested in the '0' label.
+
+For multiclass classification you may want to investigate shap dependences for
+the various classes.
+
+You can pass a parameter ``pos_label`` to almost every property or method, to get
+the output for that specific positive label. If you don't pass a ``pos_label`` 
+manually to a specific method, the global ``pos_label`` will be used. You can set
+this directly on the explainer (even us str labels if you've set these)::
+
+    explainer.pos_label = 0
+    explainer.plot_shap_dependence("Fare") # will show plot for pos_label=0
+    explainer.pos_label = 'Survived' 
+    explainer.plot_shap_dependence("Fare") # will now show plot for pos_label=1
+    explainer.plot_shap_dependence("Fare", pos_label=0) # show plot for label 0, without changing explainer.pos_label
+
+The ``ExplainerDashboard`` will show a dropdown menu in the header to choose
+a particular ``pos_label``. Changing this will basically update every single
+plot in the dashboard. 
+
 
 BaseExplainer
 =============

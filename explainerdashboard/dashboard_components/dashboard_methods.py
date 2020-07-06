@@ -114,6 +114,7 @@ class ExplainerHeader:
                     Defaults to "Explainer Dashboard".
             hide_title(bool, optional): Hide the title. Defaults to False.
             hide_selector(bool, optional): Hide the selector. Defaults to False.
+            
         """
         assert mode in ["dashboard", "standalone", "hidden", "none"]
         self.explainer = explainer
