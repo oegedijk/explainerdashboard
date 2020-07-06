@@ -214,6 +214,43 @@ example code::
     explainer.plot_shap_interaction("Fare", "PassengerClass")
     explainer.plot_pdp("Sex", index=0)
 
+plot_importances
+^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importances
+
+plot_shap_contributions
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_contributions
+
+plot_shap_dependence
+^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_dependence
+
+plot_shap_interaction
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_interaction
+
+plot_pdp
+^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_pdp
+
+plot_shap_summary
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_summary
+
+plot_shap_interaction_summary
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_interaction_summary
+
+
+
 Classifier Plots
 ----------------
 
@@ -238,6 +275,42 @@ example code::
     explainer.plot_pr_auc(cutoff=0.3)
 
 More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+
+plot_precision
+^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_precision
+
+plot_cumulative_precision
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.cumulative_precision
+
+plot_classification
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_classification
+
+plot_confusion_matrix
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_confusion_matrix
+
+plot_lift_curve
+^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_lift_curve
+
+plot_roc_auc
+^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_roc_auc
+
+plot_pr_auc
+^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_pr_auc
+
 
 
 RandomForest Plots
@@ -268,6 +341,11 @@ This also works with classifiers and regression models::
     explainer = RandomForestClassifierExplainer(model, X, y)
     explainer = RandomForestRegressionExplainer(model, X, y)
 
+
+plot_classification
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_classification
 
 Other explainer outputs
 =======================
