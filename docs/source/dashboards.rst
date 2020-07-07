@@ -117,12 +117,13 @@ output cell in your notebook, ``mode='jupyterlab'`` for runnning the dashboard i
 jupyterlab pane, or ``mode='external'`` which runs the dashboard in a seperate tab::
 
    ExplainerDashboard(explainer, mode='dash').run() # default
-   ExplainerDashboard(explainer, mode='inline').run()
-   ExplainerDashboard(explainer, mode='jupyterlab').run()
-   ExplainerDashboard(explainer, mode='external').run
+   ExplainerDashboard(explainer, mode='inline').run(port=8051)
+   ExplainerDashboard(explainer, mode='jupyterlab').run(8052)
+   ExplainerDashboard(explainer, mode='external').run()
 
 The parameters ``width`` and ``height`` determine the size of the output area in pixels.
-(default to ``1000x800``).
+(default to ``1000x800``). You can kill a JupyterDash based dashboard with
+``ExplainerDashboard().terminate(port)``.
 
 .. image:: inline_example.png
 
@@ -192,6 +193,6 @@ ExplainerDashboard documentation
 --------------------------------
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerDashboard
-   :members: run, flask_server
+   :members: run, terminate, flask_server
    :member-order: bysource
 

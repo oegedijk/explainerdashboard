@@ -865,8 +865,14 @@ class BaseExplainer(ABC):
                 num_grid_points=num_grid_points, feature=features)
         if isinstance(features, list):
             # strip 'col_' from the grid points
-            pdp_result.feature_grids = \
-                pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values
+            if isinstance(pdp_result, list):
+                for i in range(len(pdp_result)):
+                    pdp_result[i].feature_grids = \
+                        pd.Series(pdp_result[i].feature_grids).str.split(col+'_').str[1].values
+            else:
+                pdp_result.feature_grids = \
+                        pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values
+                
         return pdp_result
 
     def get_dfs(self, cats=True, round=None, lang='en', pos_label=None):

@@ -5,7 +5,7 @@ Summary
 =======
 
 ``explainerdashboard`` is a library for quickly building interactive dashboards
-and interactive notebook components for analyzing and explaining the performance
+and interactive notebook components for analyzing and explaining the predictions
 and workings of (scikit-learn compatible) machine learning models.
 
 It allows you to investigate shap values, permutation importances, 

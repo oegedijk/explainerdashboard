@@ -66,8 +66,11 @@ Note:
 
 (or alternatively hit shift-tab in jupyter ofcourse)
 
-InlineExplainer documentation:
-==============================
+You can kill an ``InlineExplainer`` running on a particular port with 
+``InlineExplainer().terminate(port)``.
+
+InlineExplainer documentation
+=============================
 
 
 .. autoclass:: explainerdashboard.dashboards.InlineExplainer

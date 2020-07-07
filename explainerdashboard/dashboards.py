@@ -7,6 +7,7 @@ __all__ = ['ExplainerDashboard',
             'InlineExplainer']
 
 import inspect 
+import requests
 
 import shortuuid
 import dash
@@ -81,6 +82,10 @@ def instantiate_component(component, explainer, header_mode="none", **kwargs):
         if not hasattr(component, "title"):
             print(f"Warning: setting {component}.title to 'CustomTab'")
             component.title = "CustomTab"
+        try:
+            component.header.mode = header_mode
+        except AttributeError:
+            print(f"Warning couldn't find a header to set mode to {header_mode}")
         return component
     else:
         raise ValueError(f"{component} is not a valid component...")
@@ -168,7 +173,7 @@ class ExplainerDashboard:
             if shap_interaction and not explainer.interactions_should_work:
                 print("For this type of model and model_output interactions don't "
                           "work, so setting shap_interaction=False...")
-                shap_interactions = False
+                shap_interaction = False
             if decision_trees and not hasattr(explainer, 'decision_trees'):
                 print("the explainer object has no decision_trees property. so "
                         "setting decision_trees=False...")
@@ -257,21 +262,63 @@ class ExplainerDashboard:
         return self.app.server
         
     def run(self, port=8050, **kwargs):
-        """Starts the dashboard using the built-in Flask server on localhost:port
-        
-        :param port: the port to run the dashboard on, defaults to 8050
-        :type port: int, optional
+        """Start ExplainerDashboard on port
+
+        Args:
+            port (int, optional): port to run on. Defaults to 8050.
+
+        Raises:
+            ValueError: if mode is unknown
+
         """
+
         pio.templates.default = "none"
+        self.port = port
+        
         if self.mode == 'dash':
+            print(f"Starting ExplainerDashboard on http://localhost:{port}")
             self.app.run_server(port=port, **kwargs)
         elif self.mode == 'external':
+            print(f"Starting ExplainerDashboard on http://localhost:{port}")
             self.app.run_server(port=port, mode=self.mode, **kwargs)
         elif self.mode in ['inline', 'jupyterlab']:
             self.app.run_server(port=port, mode=self.mode, 
                                 width=self.width, height=self.height, **kwargs)
         else:
             raise ValueError(f"Unknown mode: {mode}...")
+
+    def terminate(self, port=None, token=None):
+        """terminate a JupyterDash based DashboardExplainer i.e. mode 
+        in ['inline', 'jupyterlab', 'external']
+
+        You can kill any JupyterDash dashboard from any ExplainerDashboard
+        by specifying the right port. 
+
+        Args:
+            port (int, optional): port on which the dashboard is running. 
+                        Defaults to the last port the instance had started on.
+            token (str, optional): JupyterDash._token class property. 
+                Defaults to the _token of the JupyterDash in the current namespace.
+
+        Raises:
+            ValueError: if can't find the port to terminate.
+        """
+        if port is None:
+            try:
+                port = self.port
+            except:
+                raise ValueError("Can't find port to terminate. You either first "
+                        "need to run() a dashboard with this instance, or you "
+                        "need to pass a port to terminate...")
+        if token is None:
+            token = JupyterDash._token
+        
+        shutdown_url = f"http://localhost:{port}/_shutdown_{token}"
+        print(f"Trying to shut down dashboard on port {port}...")
+        try:
+            response = requests.get(shutdown_url)
+        except Exception as e:
+            print(f"Something seems to have failed: {e}")
 
 
 class JupyterExplainerDashboard(ExplainerDashboard):
@@ -323,6 +370,33 @@ class InlineExplainer:
         """subclass with InlineRegressionExplainer plots, e.g. InlineExplainer(explainer).regression.residuals()"""
         self.decisiontrees =InlineDecisionTreesExplainer(self, "decisiontrees") 
         """subclass with InlineDecisionTreesExplainer plots, e.g. InlineExplainer(explainer).decisiontrees.decisiontrees()"""
+
+    def terminate(self, port=None, token=None):
+        """terminate an InlineExplainer on particular port.
+
+        You can kill any JupyterDash dashboard from any ExplainerDashboard
+        by specifying the right port. 
+
+        Args:
+            port (int, optional): port on which the InlineExplainer is running. 
+                        Defaults to the last port the instance had started on.
+            token (str, optional): JupyterDash._token class property. 
+                Defaults to the _token of the JupyterDash in the current namespace.
+
+        Raises:
+            ValueError: if can't find the port to terminate.
+        """
+        if port is None:
+            port = self._port
+        if token is None:
+            token = JupyterDash._token
+        
+        shutdown_url = f"http://localhost:{port}/_shutdown_{token}"
+        print(f"Trying to shut down dashboard on port {port}...")
+        try:
+            response = requests.get(shutdown_url)
+        except Exception as e:
+            print(f"Something seems to have failed: {e}")
 
     def _run_app(self, app, **kwargs):
         """Starts the dashboard either inline or in a seperate tab
