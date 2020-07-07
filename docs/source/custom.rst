@@ -89,7 +89,7 @@ Design patterns
 Standard flat dash design
 -------------------------
 
-The standard simple way to define a custom dashboard is by instantiating
+The standard default dash way to define a custom dashboard is by instantiating
 the components, then adding these into a layout, instantiating a dash app,
 registering the callbacks, and starting the app::
 
@@ -166,7 +166,7 @@ registering the callbacks, and starting the app::
             ])
 
 
-    app = JupyterDash(external_stylesheets=[dbc.themes.FLATLY], assets_url_path="")
+    app = dash.Dash(__name__)
     app.title = "Titanic Explainer"
     app.layout = layout
 
@@ -174,7 +174,6 @@ registering the callbacks, and starting the app::
     shap_summary.register_callbacks(app)
     shap_dependence.register_callbacks(app)
     connector.register_callbacks(app)
-
 
     app.run_server()
 
@@ -286,12 +285,13 @@ that does exactly this::
             self.connector.calculate_dependencies()
 
     db = CustomDashboard(explainer)
+    
     app = JupyterDash(external_stylesheets=[dbc.themes.FLATLY], assets_url_path="")
     app.title = "Titanic Explainer"
     app.layout = db.layout()
     db.register_callbacks(app)
     db.calculate_dependencies()
-    app.run_server()
+    app.run_server(mode='external')
 
 Custom ExplainerComponent and use ExplainerDashboard
 ----------------------------------------------------
@@ -303,7 +303,9 @@ and defining the layout in ``_layout()`` with an underscore.
 
 The benefit is that you don't have to explicitly write the ``register_callbacks`` or
 ``calculate_dependencies`` method, as these get generated automatically 
-when calling ``register_components``::
+when calling ``register_components``, and you don't have to write the ``dash`` 
+boilerplate code. This means you can fully concentrate on just designing your 
+layout and components::
 
     class CustomDashboard(ExplainerComponent):
         def __init__(self, explainer, title="Titanic Explainer",
