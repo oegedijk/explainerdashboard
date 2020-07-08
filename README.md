@@ -7,7 +7,10 @@ by: Oege Dijk
 This package makes it convenient to quickly explain the workings of a (scikit-learn compatible)
 fitted machine learning model using either interactive plots in e.g. Jupyter Notebook or 
 deploying an interactive dashboard (based on Flask/Dash) that allows you to quickly explore
-the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](explainerdashboard.readthedocs.io), example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+
+[![Dashboard Screenshot](https://i.postimg.cc/Gm8RnKVb/Screenshot-2020-07-01-at-13-25-19.png)](https://postimg.cc/PCj9mWd7)
+
 
 In a lot of organizations, especially governmental, but with the GDPR also increasingly in private sector, it is becoming more and more important to be able to explain the inner workings of your machine learning algorithms. Customers have to some extent a right to an explanation why they were selected, and more and more internal and external regulators require it. With recent innovations in explainable AI (e.g. SHAP values) the old black box trope is nog longer valid, but it can still take quite a bit of data wrangling and plot manipulation to get the explanations out of a model. This library aims to make this easy.
 
@@ -57,6 +60,7 @@ explainer = RandomForestClassifierExplainer(model, X_test, y_test,
                                 labels=['Not survived', 'Survived'])
 
 db = ExplainerDashboard(explainer, title="Titanic Explainer",
+                        importances=True,
                         model_summary=True,  # you can switch off individual tabs
                         contributions=True,
                         shap_dependence=True,
@@ -69,8 +73,8 @@ db.run(port=8051)
 When working inside jupyter you can use `JupyterExplainerDashboard()` instead
 to use `JupyterDash` instead of `dash.Dash()` to start the app.
 
-You can also use e.g. `InlineExplainer(explainer).shap_dependence()` to see a 
-single specific tab inline in your notebook. 
+You can also use e.g. `InlineExplainer(explainer).tab.dependence()` to see a 
+single specific tab or component inline in your notebook. 
 
 ## Installation
 
@@ -86,6 +90,8 @@ Example notebook on how to launch dashboards for different model types here: [da
 
 Example notebook on how to interact with the explainer object here: [explainer_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
 
+Example notebook on how to design a custom dashboard: [custom_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/custom_examples.ipynb).
+
 Finally an example is deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com). (source code on github [here](https://github.com/oegedijk/explainingtitanic))
 
 ## A simple demonstration
@@ -99,7 +105,7 @@ and optionally the corresponding target values `y`.
 
 In addition you can pass:
 - `metric`: permutation importances get calculated against a particular metric (for regression defaults to `r2_score` and for classification to `roc_auc_score`)
-- `shap`: type of shap explainer to use. e.g. 'tree' for `shap.TreeExplainer(...)`, or 'linear', 'kernel', etc
+- `shap`: type of shap explainer to use. e.g. 'tree' for `shap.TreeExplainer(...)`, or 'linear', 'kernel', etc (defaults to 'guess')
 - `X_background`: background data to use for shap explainer (most tree based models don't need this), if not given use `X` instead
 - `model_output`: for classification models either 'logodds' or 'probability', defaults to 'probability'
 - `cats`: a list of onehot encoded variables (e.g. if encoded as 'Gender_Female', 'Gender_Male' you would pass `cats=['Gender']`). This allows you to group the onehotencoded columns together in various plots with the argument `cats=True`. 
@@ -120,7 +126,7 @@ model.fit(X_train, y_train)
 explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
                                 X_background=None, model_output='probability',
                                 cats=['Sex', 'Deck', 'Embarked'],
-                                idxs=test_names, #names of passengers 
+                                idxs=test_names, 
                                 labels=['Not survived', 'Survived'])
 ```
 
@@ -138,10 +144,8 @@ ExplainerDashboard that builds an interactive Plotly Dash analytical dashboard f
 easily exploring the various plots and analysis mentioned earlier. 
 
 You can use a series of booleans to switch on or off certain tabs of the dashboard.
-(Calculating shap interaction values can take quite a but of time if you have a large dataset with a lot of features, 
+(Calculating shap interaction values can take quite a bit of time if you have a large dataset with a lot of features, 
 so if you are not really interested in them, it may make sense to switch that tab off.)
-
-Any additional `**kwargs` get passed down to the individual tabs. (mostly `n_features` and `round` for now)
 
 ```
 db = ExplainerDashboard(explainer, 'Titanic Explainer`,
@@ -156,7 +160,7 @@ You then start the dashboard on a particular port with `db.run(port=8050)`.
 
 If you wish to use e.g. gunicorn to deploy the dashboard you should add `server = db.app.server` to your code to expose the Flask server. You can then start the server with e.g. `gunicorn dashboard:server` (assuming the file you defined the dashboard in was called `dashboard.py`). 
 
-It may take some time to calculate all the properties of the ExplainerBunch (especially shap interaction values). However all properties get calculated lazily, so they are only calculated when you call a plot or table that depends on them. To save startup time you can save the ExplainerBunch to disk with e.g. joblib and then load the ExplainerBunch with pre-calculated properties whenever you wish to start the dashboard. 
+It may take some time to calculate all the properties of the `Explainer` (especially shap interaction values). However all properties get calculated lazily, so they are only calculated when you call a plot or table that depends on them. To save startup time you can save the `Explainer` to disk with e.g. joblib and then load the `Explainer` with pre-calculated properties whenever you wish to start the dashboard. 
 
 
 ## Deployed example:

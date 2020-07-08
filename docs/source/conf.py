@@ -15,9 +15,11 @@
 import os
 import sys
 print('conf.py, adding to path: ', os.path.abspath('../../explainerdashboard/'))
-sys.path.insert(0, os.path.abspath('../../explainerdashboard'))
+#sys.path.insert(0, os.path.abspath('../../explainerdashboard/'))
+#sys.path.insert(0, os.path.abspath('../../explainerdashboard/dashboard_components/'))
 print('conf.py, adding to path: ', os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../..'))
 
 #sys.path.insert(0, os.path.abspath('../explainerdashboard/dashboard_tabs/'))
 #sys.path.insert(0, os.path.join(os.path.dirname(__name__), '../explainerdashboard/'))
@@ -51,19 +53,21 @@ extensions = [
     'sphinx.ext.autodoc', 
     #'sphinxcontrib.fulltoc',
     'sphinx.ext.autosectionlabel',
-    "sphinx_rtd_theme"
+    "sphinx_rtd_theme",
+    'sphinx.ext.napoleon'
 ]
 
 autodoc_mock_imports = ['matplotlib', 'np', 'dash', 'dash_bootstrap_components',
                     'dash_html_components', 'dash_table', 'dash_core_components',
                     'dtreeviz', 'numpy', 'pandas', 'pd', 'pdpbox', 
-                    'sklearn', 'shap',  'plotly']
+                    'sklearn', 'shap',  'plotly', 'shortuuid']
 
 
+
+autoclass_content = "both"
 
 autodoc_default_options = {
-    'member-order': 'bysource',
-    'special-members': '__init__',
+    'member-order': 'bysource'
 }
 
 # Add any paths that contain templates here, relative to this directory.
