@@ -17,7 +17,7 @@ def plotly_contribution_plot(contrib_df, target="target",
     Takes in a DataFrame contrib_df with columns
     'col' -- name of columns
     'contribution' -- contribution of that column to the final predictions
-    'cumulatief' -- the summed contributions from the top to the current row
+    'cumulative' -- the summed contributions from the top to the current row
     'base' -- the summed contributions from the top excluding the current row
 
     Outputs a bar chart displaying the contribution of each individual
@@ -30,7 +30,6 @@ def plotly_contribution_plot(contrib_df, target="target",
     contrib_df['base'] = np.round(multiplier * contrib_df['base'], round)
     contrib_df['cumulative'] = np.round(multiplier * contrib_df['cumulative'], round)
     contrib_df['contribution'] = np.round(multiplier * contrib_df['contribution'], round)
-
 
     if not include_base_value:
         contrib_df = contrib_df[contrib_df.col != 'base_value']
