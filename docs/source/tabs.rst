@@ -33,6 +33,19 @@ Decisiontrees Tab
 
 .. image:: tab_decision_trees.png
 
+ExplainerTabsLayout
+===================
+
+.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerTabsLayout
+   :members:
+
+
+ExplainerPageLayout
+===================
+
+.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerPageLayout
+   :members:
+
 
 
 ExplainerComposites

@@ -22,84 +22,18 @@ from .dashboard_components import *
 from .dashboard_tabs import *
 
 
-
-def instantiate_component(component, explainer, header_mode="none", **kwargs):
-    """Returns an instantiated ExplainerComponent.
-    
-    If the component input is just a class definition, instantiate it with
-    explainer, header_mode and kwargs.
-    If it is already an ExplainerComponent instance, set header_mode and return it.
-    If it is any other instance with layout and regiuster_components methods,
-    then add a name property and return it. 
-
-    Args:
-        component ([type]): Either a class definition or instance of an 
-            ExplainerComponent or one of the following str: 'importances', 
-            'model_summary', 'contributions', 'shap_dependence', 
-            'shap_interactions', 'decision_trees'.
-        explainer ([type]): An Explainer object that will be used to instantiate class definitions
-        header_mode (str, optional): Header_mode to assign to component. Defaults to "none".
-        kwargs: kwargs will be passed on to the instance
-
-    Raises:
-        ValueError: if component is not a subclass or instance of ExplainerComponent,
-                or is an instance without layout and register_callbacks methods
-
-    Returns:
-        [type]: instantiated component
-    """
-    if isinstance(component, str):
-        if component == 'importances':
-            component = ImportancesTab
-        elif component == 'model_summary':
-            component = ModelSummaryTab
-        elif component == 'contributions':
-            component = ContributionsTab
-        elif component == 'shap_dependence':
-            component = ShapDependenceTab
-        elif component == 'shap_interaction':
-            component = ShapInteractionsTab
-        elif component == 'decision_trees':
-            component = DecisionTreesTab
-        else:
-            raise ValueError("If when passing a component as str then it should be in "
-                    "['importances', 'model_summary', 'contributions', 'shap_dependence', "
-                    "'shap_interactions', 'decision_trees']")
-    if inspect.isclass(component) and issubclass(component, ExplainerComponent):
-        return component(explainer, header_mode=header_mode, **kwargs)
-    elif isinstance(component, ExplainerComponent):
-        component.header.mode = header_mode
-        return component
-    elif (not inspect.isclass(component)
-          and hasattr(component, "layout")):
-        if not (hasattr(component, "name") and isinstance(component.name, str)):
-            try:
-                component_name  = component.__name__
-            except:
-                component_name = shortuuid.ShortUUID().random(length=10)
-            print(f"Warning: setting {component}.name to {component_name}")
-            component.name = component_name
-        if not hasattr(component, "title"):
-            print(f"Warning: setting {component}.title to 'CustomTab'")
-            component.title = "CustomTab"
-        try:
-            component.header.mode = header_mode
-        except AttributeError:
-            print(f"Warning couldn't find a header to set mode to {header_mode}")
-        return component
-    else:
-        raise ValueError(f"{component} is not a valid component...")
-
-
 class ExplainerDashboard:
     def __init__(self, explainer=None, tabs=None,
                  title='Model Explainer',
                  header_hide_title=False,
                  header_hide_selector=False,
+                 fluid=True,
                  mode="dash",
                  width=1000,
                  height=800,
                  external_stylesheets=None,
+                 server=True,
+                 url_base_pathname=None,
                  importances=True,
                  model_summary=True,
                  contributions=True,
@@ -149,6 +83,8 @@ class ExplainerDashboard:
                 type of dash server to start. 'inline' runs in a jupyter notebook output cell. 
                 'jupyterlab' runs in a jupyterlab pane. 'external' runs in an external tab
                 while keeping the notebook interactive. 
+            fluid(bool, optional): whether to stretch the layout to available space.
+                    Defaults to True.
             width(int, optional): width of notebook output cell in pixels, defaults to 1000.
             height(int, optional): height of notebookn output cell in pixels, defaults to 800.
             external_stylesheets(list, optional): attach dbc themes e.g. 
@@ -164,8 +100,9 @@ class ExplainerDashboard:
         self.header_hide_title, self.header_hide_selector = \
             header_hide_title, header_hide_selector
         self.external_stylesheets = external_stylesheets
+        self.server, self.url_base_pathname = server, url_base_pathname
         
-        self.app = self.get_dash_app()
+        self.app = self._get_dash_app()
         self.app.title = title
         
         if tabs is None:
@@ -191,63 +128,63 @@ class ExplainerDashboard:
                 tabs.append(ShapInteractionsTab)
             if decision_trees:
                 tabs.append(DecisionTreesTab)
+
+        if isinstance(tabs, list) and len(tabs)==1:
+            tabs = tabs[0]
                     
         if isinstance(tabs, list):
-            tabs  = [instantiate_component(tab, explainer, "none", **kwargs) for tab in tabs]
-            assert len(tabs) > 0, 'When passing a list, need to pass at least one valid tab!'
-            self.app.layout = dbc.Container([
-                ExplainerHeader(explainer, title=title, mode="dashboard", 
-                    hide_title=header_hide_title, 
-                    hide_selector=header_hide_selector).layout(),
-                dcc.Tabs(id="tabs", value=tabs[0].name, 
-                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
-                                           children=tab.layout()) for tab in tabs]),
-            ], fluid=True)
+            tabs = [self._convert_str_tabs(tab) for tab in tabs]
+            explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
+                            hide_title=header_hide_title, 
+                            hide_selector=header_hide_selector, 
+                            fluid=fluid)
+        else:
+            tabs = self._convert_str_tabs(tabs)
+            explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
+                            hide_title=header_hide_title, 
+                            hide_selector=header_hide_selector, 
+                            fluid=fluid)
 
-            for tab in tabs:
-                try:
-                    tab.calculate_dependencies()
-                except AttributeError:
-                    pass
-                tab.register_callbacks(self.app)
-            
-        else:                
-            kwargs['title'] = title
-            tab = instantiate_component(tabs, explainer, "none", **kwargs)
-            self.app.layout = dbc.Container([
-                ExplainerHeader(
-                        explainer, title=title, 
-                        mode="standalone", 
-                        hide_title=header_hide_title, 
-                        hide_selector=header_hide_selector
-                ).layout(),
-                tab.layout()
-            ], fluid=True)
-            
-            try:
-                tab.calculate_dependencies()
-            except AttributeError:
-                print("Warning: component does not have calculate_dependencies() method...")
-                pass
-            try:
-                tab.register_callbacks(self.app)
-            except AttributeError:
-                print("Warning: component does not have register_callbacks() method...")
-                pass
-            
-    def get_dash_app(self):
+        self.app.layout = explainer_layout.layout()
+        explainer_layout.calculate_dependencies()
+        explainer_layout.register_callbacks(self.app)
+
+    def _convert_str_tabs(self, component):
+        if isinstance(component, str):
+            if component == 'importances':
+                return ImportancesTab
+            elif component == 'model_summary':
+                return ModelSummaryTab
+            elif component == 'contributions':
+                return ContributionsTab
+            elif component == 'shap_dependence':
+                return ShapDependenceTab
+            elif component == 'shap_interaction':
+                return ShapInteractionsTab
+            elif component == 'decision_trees':
+                return  DecisionTreesTab
+        return component
+
+    def _get_dash_app(self):
         if self.mode=="dash":
             if self.external_stylesheets is not None:
-                app = dash.Dash(external_stylesheets=self.external_stylesheets, assets_url_path="")
-                app.config['suppress_callback_exceptions']=True
+                app = dash.Dash(server=self.server, 
+                                external_stylesheets=self.external_stylesheets, 
+                                assets_url_path="", 
+                                url_base_pathname=self.url_base_pathname)
+                app.config['suppress_callback_exceptions'] = True
             else:
-                app = dash.Dash(__name__)
+                app = dash.Dash(__name__, 
+                                server=self.server, 
+                                url_base_pathname=self.url_base_pathname)
                 app.css.config.serve_locally = True
                 app.scripts.config.serve_locally = True
             return app
         elif self.mode in ['inline', 'jupyterlab', 'external']:
             if self.external_stylesheets is not None:
-                app = JupyterDash(external_stylesheets=self.external_stylesheets, assets_url_path="")
+                app = JupyterDash(
+                            external_stylesheets=self.external_stylesheets, 
+                            assets_url_path="")
             else:
                 app = JupyterDash(__name__)
             return app

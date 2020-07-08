@@ -21,7 +21,7 @@ from .connectors import ClassifierRandomIndexComponent, IndexConnector, Highligh
 class DecisionTreesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees",
                     header_mode="none", name=None,
-                    hide_index=False, hide_highlight=False,
+                    hide_title=False, hide_index=False, hide_highlight=False,
                     index=None, highlight=None):
         """Show prediction from individual decision trees inside RandomForest component
 
@@ -35,12 +35,14 @@ class DecisionTreesComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title, Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree to highlight. Defaults to None.
         """
         super().__init__(explainer, title, header_mode, name)
+        self.hide_title = hide_title
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.index, self.highlight = index, highlight
 
@@ -49,7 +51,8 @@ class DecisionTreesComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3("Decision trees:"),
+            make_hideable(
+                html.H3("Decision trees:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -101,7 +104,7 @@ class DecisionTreesComponent(ExplainerComponent):
 class DecisionPathTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path table",
                     header_mode="none", name=None,
-                    hide_index=False, hide_highlight=False,
+                    hide_title=False, hide_index=False, hide_highlight=False,
                     index=None, highlight=None):
         """Display a table of the decision path through a particular decision tree
 
@@ -115,6 +118,7 @@ class DecisionPathTableComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title, Defaults to False.
             hide_index (bool, optional): Hide index selector. 
                         Defaults to False.
             hide_highlight (bool, optional): Hide tree index selector. 
@@ -125,7 +129,8 @@ class DecisionPathTableComponent(ExplainerComponent):
                         path for. Defaults to None.
         """
         super().__init__(explainer, title, header_mode, name)
-        self.hide_index, self.hide_highlight = hide_index, hide_highlight
+        self.hide_title, self.hide_index, self.hide_highlight = \
+            hide_title, hide_index, hide_highlight
         self.index, self.highlight = index, highlight
 
         self.index_name = 'decisionpath-table-index-'+self.name
@@ -134,7 +139,8 @@ class DecisionPathTableComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3("Decision path:"),
+            make_hideable(
+                html.H3("Decision path:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -179,7 +185,8 @@ class DecisionPathTableComponent(ExplainerComponent):
 class DecisionPathGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path graph",
                     header_mode="none", name=None,
-                    hide_index=False, hide_highlight=False,
+                    hide_title=False, hide_index=False, 
+                    hide_highlight=False, hide_button=False,
                     index=None, highlight=None):
         """Display dtreeviz decision path
 
@@ -193,13 +200,16 @@ class DecisionPathGraphComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
+            hide_button (bool, optional): hide the button, Defaults to False.
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
         """
         super().__init__(explainer, title, header_mode, name)
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
+        self.hide_title, self.hide_button = hide_title, hide_button
         self.index, self.highlight = index, highlight
 
         self.index_name = 'decisionpath-index-'+self.name
@@ -207,7 +217,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
     def _layout(self):
         return html.Div([
-            html.H3("Decision path:"),
+            make_hideable(
+                html.H3("Decision Tree Graph:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -225,6 +236,11 @@ class DecisionPathGraphComponent(ExplainerComponent):
                                             for tree in range(self.explainer.no_of_trees)],
                             value=self.highlight)
                     ], md=2), hide=self.hide_highlight), 
+                    make_hideable(
+                    dbc.Col([
+                        dbc.Button("Generate Tree Graph", color="primary", 
+                                    id='decisionpath-button-'+self.name)
+                    ], md=2, align="end"), hide=self.hide_button), 
             ]),
             dbc.Row([
                 dbc.Col([
@@ -237,12 +253,13 @@ class DecisionPathGraphComponent(ExplainerComponent):
     def _register_callbacks(self, app):
         @app.callback(
             Output("decisionpath-svg-"+self.name, 'src'),
-            [Input('decisionpath-index-'+self.name, 'value'),
-             Input('decisionpath-highlight-'+self.name, 'value'),
-             Input('pos-label', 'value')],
-            [State('tabs', 'value')]
+            [Input('decisionpath-button-'+self.name, 'n_clicks')],
+            [State('decisionpath-index-'+self.name, 'value'),
+             State('decisionpath-highlight-'+self.name, 'value'),
+             State('pos-label', 'value'),
+             State('tabs', 'value')]
         )
-        def update_tree_graph(index, highlight, pos_label, tab):
-            if index is not None and highlight is not None:
+        def update_tree_graph(n_clicks, index, highlight, pos_label, tab):
+            if n_clicks is not None and index is not None and highlight is not None:
                 return self.explainer.decision_path_encoded(highlight, index)
             raise PreventUpdate

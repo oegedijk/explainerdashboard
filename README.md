@@ -7,7 +7,7 @@ by: Oege Dijk
 This package makes it convenient to quickly explain the workings of a (scikit-learn compatible)
 fitted machine learning model using either interactive plots in e.g. Jupyter Notebook or 
 deploying an interactive dashboard (based on Flask/Dash) that allows you to quickly explore
-the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](explainerdashboard.readthedocs.io), example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
 
 [![Dashboard Screenshot](https://i.postimg.cc/Gm8RnKVb/Screenshot-2020-07-01-at-13-25-19.png)](https://postimg.cc/PCj9mWd7)
 

@@ -12,7 +12,6 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- ADD BUTTON TO DECISIONPATH GRAPH!
 - Add options sorting contributions plot from most negative to most positive
 - Contributions: order by global mean_abs_shap or by specific shap
 - fix name of figure MEAN_ABS_SHAP
@@ -33,7 +32,6 @@
 - check all shap values >-1 and <1 for model_output=probability
 
 ## Dashboard:
-
 - make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
  
@@ -54,12 +52,11 @@
 - add test coverage (add a badge)
 
 ## Docs:
-
+- Add SKETCHY theme example
 
 ## Library level:
 - add @delegates_kwargs_and_doc_to() 
 - add more screenshots to README with https://postimages.org/
-- add more _ to properties to make them hidden from tab completions
 - add badges to README: https://github.com/badges/shields
 -> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg
 - https://github.com/marketplace/actions/coveralls-python
