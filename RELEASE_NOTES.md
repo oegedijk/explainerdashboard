@@ -3,6 +3,8 @@
 ## version 0.2:
 ### Breaking Changes
 - InlineExplainer api has been completely redefined
+- JupyterExplainerDashboard, ExplainerTab and JupyterExplainerTab have been deprecated
+
 
 
 ### New Features
