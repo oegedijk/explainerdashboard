@@ -4,9 +4,14 @@ Deployment
 When deploying your dashboard it is better not to use the built-in flask
 server but use more robust and scalable options like ``gunicorn`` and ``nginx``.
 
-In order to deploy the dashboard you need to expose the flask server inside
-the ``ExplainerDashboard`` through your web service. This can be found
-inside the ``app`` inside the ``ExplainerDashboard``.
+Deploying a single dashboard instance
+=====================================
+
+``Dash`` is built on top of ``Flask``, and so the dashbaord instance 
+contains a Flask server. You can simply expose this server to host your dashboard.
+
+The server can be found in ``ExplainerDashboard().app.server`` or with
+the methods ``ExplainerDashboard.flask_server()``.
 
 The code below is from `the deployed example to heroku <https://github.com/oegedijk/explainingtitanic/blob/master/dashboard.py>`_::
 
@@ -43,3 +48,36 @@ server with for example three workers and binding to port 8050 like this::
 
 So here ``dashboard`` refers to ``dashboard.py`` and ``server`` refers to the ``server``
 defined equal to ``db.app.server``.
+
+Deploying dashboard as part of Flask app on specific route
+==========================================================
+
+Another way to deploy the dashboard is to first start a ``Flask`` app, and then
+use this app as the backend of the Dashboard, and host the dashboard on a specific
+route. This way you can for example host multiple dashboard under different urls.
+You need to pass the Flask ``server`` instance and the ``url_base_pathname`` to the
+``ExplainerDashboard`` constructor, and then the dashboard itself can be found
+under ``db.app.index``::
+
+    from flask import Flask
+    
+    app = Flask(__name__)
+
+    [...]
+    
+    db = ExplainerDashboard(explainer, server=app, url_base_pathname="/dashboard/")
+
+    @app.route('/dashboard')
+    def return_dashboard():
+        return db.app.index()
+
+Now you can start the dashboard by::
+
+    gunicorn -w 3 -b localhost:8050 dashboard:app
+
+And you can visit the dashboard on ``http://localhost:8050/dashboard``.
+
+Deploying as part of a multipage dash app
+=========================================
+
+**Under Construction**
