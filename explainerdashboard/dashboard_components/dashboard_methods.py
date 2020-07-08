@@ -413,7 +413,7 @@ class ExplainerTabsLayout:
         """
         self.fluid = fluid
 
-        self.header = ExplainerHeader(explainer, "dashboard", 
+        self.header = ExplainerHeader(explainer, "dashboard", title,
                                     hide_title=hide_title, 
                                     hide_selector=hide_selector,
                                     fluid=fluid)
@@ -472,7 +472,7 @@ class ExplainerPageLayout(ExplainerComponent):
         """
         
         self.fluid = fluid
-        self.header = ExplainerHeader(explainer, "standalone", 
+        self.header = ExplainerHeader(explainer, "standalone", title,
                                     hide_title=hide_title, 
                                     hide_selector=hide_selector,
                                     fluid=fluid)
