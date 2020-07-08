@@ -177,6 +177,7 @@ class ExplainerDashboard:
                 app = dash.Dash(__name__, 
                                 server=self.server, 
                                 url_base_pathname=self.url_base_pathname)
+                app.config['suppress_callback_exceptions'] = True
                 app.css.config.serve_locally = True
                 app.scripts.config.serve_locally = True
             return app
