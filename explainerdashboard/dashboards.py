@@ -424,10 +424,8 @@ class InlineExplainerTabs(InlineExplainerComponent):
     @delegates_doc(ModelSummaryTab)
     def modelsummary(self, title='Model Summary', **kwargs):
         """Runs model_summary tab inline in notebook"""
-        tab = ModelSummaryTab(self._explainer, header_mode="hidden",
-                    bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, 
-                    logs=logs, pred_or_actual=pred_or_actual, ratio=ratio,
-                    importance_type=importance_type, depth=depth, cats=cats)
+        tab = ModelSummaryTab(self._explainer, 
+                header_mode="standalone", **kwargs)
         self._run_component(tab, title)
 
     @delegates_kwargs(ContributionsTab)

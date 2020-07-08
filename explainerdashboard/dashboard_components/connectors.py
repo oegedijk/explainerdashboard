@@ -1,6 +1,7 @@
 __all__ = [
     'ClassifierRandomIndexComponent',
     'RegressionRandomIndexComponent',
+    'CutoffPercentileComponent',
     'CutoffConnector',
     'IndexConnector',
     'HighlightConnector'
@@ -492,23 +493,21 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                 return_str=True)      
 
 
-class CutoffConnector(ExplainerComponent):
+class CutoffPercentileComponent(ExplainerComponent):
     """
     updates cutoff properties of other components given by component list
     e.g. 'precision-cutoff', 'confusionmatrix-cutoff', etc. 
     """
     def __init__(self, explainer, title="Global cutoff",
                         header_mode="none", name=None,
-                        cutoff_components=None,
                         hide_cutoff=False, hide_percentile=False,
                         cutoff=0.5, percentile=None):
-        """Connect the cutoff sliders of multiple components to a single sliders.
+        """
+        Slider to set a cutoff for Classifier components.
 
-        All components in the list cutoff_components should have a .cutoff_name
-        property that will be added to the output of the callback.
-
-        With the percentile slider you can select a cutoff sucht that the 
-        fraction of samples below the cutoff is equal to the percentile.
+        With the percentile slider you can select a cutoff such that the 
+        fraction of samples below the cutoff is equal to the percentile, e.g.:
+        percentile=0.8 means "mark the 20% highest scores as positive".
 
         Args:
             explainer (Explainer): explainer object constructed with either
@@ -520,21 +519,18 @@ class CutoffConnector(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            cutoff_components (list, optional): List of components whose cutoff 
-                        will be set by the global slider. All components must 
-                        have a .cutoff_name property in order to identify them 
-                        in the callback output. Defaults to None.
             hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
             hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
         """
         super().__init__(explainer, title, header_mode, name)
-        self.cutoff_names = [comp.cutoff_name for comp in cutoff_components]
 
         self.hide_cutoff = hide_cutoff
         self.hide_percentile = hide_percentile
         self.cutoff, self.percentile = cutoff, percentile
+
+        self.cutoff_name = 'cutoffconnector-cutoff-'+self.name
         self.register_dependencies(['preds', 'pred_percentiles'])
 
     def _layout(self):
@@ -578,12 +574,55 @@ class CutoffConnector(ExplainerComponent):
                 return np.round(self.explainer.cutoff_from_percentile(percentile, pos_label=pos_label), 2)
             raise PreventUpdate
 
+
+class CutoffConnector(ExplainerComponent):
+    def __init__(self, input_cutoff, output_cutoffs):
+        """Connect the cutoff selector of input_cutoff with those of output_cutoffs.
+
+        You can use this to connect a CutoffPercentileComponent with a 
+        RocAucComponent for example,
+
+        When you change the cutoff in input_cutoff, all the cutoffs in output_cutoffs
+        will automatically be updated.
+
+        Args:
+            input_cutoff ([{str, ExplainerComponent}]): Either a str or an 
+                        ExplainerComponent. If str should be equal to the 
+                        name of the cutoff property. If ExplainerComponent then
+                        should have a .cutoff_name property.
+            output_cutoffs (list(str, ExplainerComponent)): list of str of 
+                        ExplainerComponents.
+        """
+        self.input_cutoff_name = self.cutoff_name(input_cutoff)
+        self.output_cutoff_names = self.cutoff_name(output_cutoffs)
+        if not isinstance(self.output_cutoff_names, list):
+            self.output_cutoff_names = [self.output_cutoff_names]
+
+    @staticmethod
+    def cutoff_name(cutoffs):
+        def get_cutoff_name(o):
+            if isinstance(o, str): return o
+            elif isinstance(o, ExplainerComponent):
+                if not hasattr(o, "cutoff_name"):
+                    raise ValueError(f"{o} does not have an .cutoff_name property!")
+                return o.cutoff_name
+            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .cutoff_name property")
+        
+        if hasattr(cutoffs, '__iter__'):
+            cutoff_name_list = []
+            for cutoff in cutoffs:
+                cutoff_name_list.append(get_cutoff_name(cutoff))
+            return cutoff_name_list
+        else:
+            return get_cutoff_name(cutoffs)
+
+    def _register_callbacks(self, app):
         @app.callback(
-            [Output(cut, 'value') for cut in self.cutoff_names],
-            [Input('cutoffconnector-cutoff-'+self.name, 'value')]
+            [Output(cutoff_name, 'value') for cutoff_name in self.output_cutoff_names],
+            [Input(self.input_cutoff_name, 'value')]
         )
         def update_cutoffs(cutoff):
-            return tuple(cutoff for i in range(len(self.cutoff_names)))
+            return tuple(cutoff for i in range(len(self.output_cutoff_names)))
 
 
 class IndexConnector(ExplainerComponent):

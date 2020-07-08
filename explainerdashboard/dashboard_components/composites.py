@@ -54,13 +54,14 @@ class ClassifierModelStatsComposite(ExplainerComponent):
         self.rocauc = RocAucComponent(explainer)
         self.prauc = PrAucComponent(explainer)
 
-        self.cutoffconnector = CutoffConnector(explainer,
-            cutoff_components=[self.precision, self.confusionmatrix, 
-                self.liftcurve, self.classification, self.rocauc, self.prauc])
+        self.cutoffpercentile = CutoffPercentileComponent(explainer)
+        self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
+                [self.precision, self.confusionmatrix, self.liftcurve, 
+                 self.classification, self.rocauc, self.prauc])
 
         self.register_components(
             self.precision, self.confusionmatrix, self.liftcurve,
-            self.classification, self.rocauc, self.prauc,
+            self.classification, self.rocauc, self.prauc, self.cutoffpercentile,
             self.cutoffconnector)
 
     def _layout(self):
@@ -68,7 +69,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
             dbc.Row([
                 dbc.Col([
-                    self.cutoffconnector.layout(),
+                    self.cutoffpercentile.layout(),
                 ])
             ]),
             dbc.Row([
