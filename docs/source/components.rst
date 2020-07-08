@@ -254,6 +254,12 @@ RegressionRandomIndexComponent
 .. autoclass:: explainerdashboard.dashboard_components.connectors.RegressionRandomIndexComponent
    :members:
 
+CutoffPercentileComponent
+-------------------------
+
+.. autoclass:: explainerdashboard.dashboard_components.connectors.CutoffPercentileComponent
+   :members:
+
 CutoffConnector
 ---------------
 
