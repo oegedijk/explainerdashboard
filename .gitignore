@@ -137,3 +137,4 @@ catboost_info/learn/events.out.tfevents
 scratch_notebook.ipynb
 show_and_tell_draft.md
 db_test.py
+.DS_Store
