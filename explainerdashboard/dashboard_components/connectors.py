@@ -494,20 +494,17 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
 
 class CutoffPercentileComponent(ExplainerComponent):
-    """
-    updates cutoff properties of other components given by component list
-    e.g. 'precision-cutoff', 'confusionmatrix-cutoff', etc. 
-    """
     def __init__(self, explainer, title="Global cutoff",
                         header_mode="none", name=None,
                         hide_cutoff=False, hide_percentile=False,
                         cutoff=0.5, percentile=None):
         """
-        Slider to set a cutoff for Classifier components.
-
-        With the percentile slider you can select a cutoff such that the 
-        fraction of samples below the cutoff is equal to the percentile, e.g.:
+        Slider to set a cutoff for Classifier components, based on setting the
+        cutoff at a certain percentile of predictions, e.g.:
         percentile=0.8 means "mark the 20% highest scores as positive".
+        
+        This cutoff can then be conencted with other components like e.g.
+        RocAucComponent with a CutoffConnector.
 
         Args:
             explainer (Explainer): explainer object constructed with either
