@@ -64,8 +64,8 @@ db = ExplainerDashboard(explainer, title="Titanic Explainer",
                         model_summary=True,  # you can switch off individual tabs
                         contributions=True,
                         shap_dependence=True,
-                        shap_interaction=True,
-                        decision_trees=True)
+                        shap_interaction=False,
+                        decision_trees=False)
 db.run(port=8051)
 
 ```
