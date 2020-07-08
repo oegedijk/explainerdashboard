@@ -3,7 +3,7 @@
 ## version 0.2:
 ### Breaking Changes
 - InlineExplainer api has been completely redefined
-- 
+
 
 ### New Features
 - Major rewrite and refactor of the dashboard code, now modularized into ExplainerComponents
@@ -12,10 +12,12 @@
 - All elements of components can now be switched on or off or be given an
     initial value.
 - Makes it much, much easier to design own custom dashboards.
+- ExplainerDashboard can be passed an arbitrary list of components to 
+    display as tabs.
 
 ### Better docs:
 - Added sections InlineExplainer, ExplainerTabs, ExplainerComponents, 
-    CustomDashboards and deployment
+    CustomDashboards and Deployment
 - Added screenshots to documentation.
 
 ### Bug Fixes
@@ -32,6 +34,7 @@
 ### Other Changes
 -
 -
+
 ## Version 0.1.13
 
 ### Bug Fixes
