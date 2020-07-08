@@ -43,11 +43,18 @@ The code below is from `the deployed example to heroku <https://github.com/oeged
 If you name the file above ``dashboard.py``, then you can start the gunicorn
 server with for example three workers and binding to port 8050 like this::
 
-    gunicorn -w 3 -b localhost:8050 dashboard:server
+    gunicorn localhost:8050 dashboard:server
 
 
 So here ``dashboard`` refers to ``dashboard.py`` and ``server`` refers to the ``server``
 defined equal to ``db.app.server``.
+
+If you want to have multiple workers to speed up your dashboard, you need
+to preload the app before starting::
+
+        gunicorn -w 3 --preload localhost:8050 dashboard:server
+
+
 
 Deploying dashboard as part of Flask app on specific route
 ==========================================================
@@ -73,7 +80,7 @@ under ``db.app.index``::
 
 Now you can start the dashboard by::
 
-    gunicorn -w 3 -b localhost:8050 dashboard:app
+    gunicorn -w 3 --preload -b localhost:8050 dashboard:app
 
 And you can visit the dashboard on ``http://localhost:8050/dashboard``.
 
