@@ -19,6 +19,7 @@
 - highlight id in violin plots
 - Add feature names to waterfall plot
 - replace -999 in contributions table by "MISSING"
+- add wizard curve to lift curve plot
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
@@ -38,7 +39,8 @@
 
 ### Components
 - add hide_title to all components
-- seperate CutoffConnector from PercentileCutoffComponent
+- try removing State('tabs')
+- add pos_label selector to all components and make PosLabelConnector
 
 ## Methods:
 - Add LIME values
@@ -52,7 +54,7 @@
 - add test coverage (add a badge)
 
 ## Docs:
-- Add SKETCHY theme example
+
 
 ## Library level:
 - add @delegates_kwargs_and_doc_to() 
