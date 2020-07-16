@@ -163,9 +163,9 @@ class PrecisionComponent(ExplainerComponent):
              Input('precision-cutoff-'+self.name, 'value'),
              Input('precision-multiclass-'+self.name, 'checked'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')],
+            #[State('tabs', 'value')],
         )
-        def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, tab):
+        def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label):
             if bins == 'bin_size':
                 return self.explainer.plot_precision(
                     bin_size=bin_size, cutoff=cutoff, multiclass=multiclass, pos_label=pos_label)
@@ -260,9 +260,8 @@ class ConfusionMatrixComponent(ExplainerComponent):
              Input('confusionmatrix-percentage-'+self.name, 'checked'),
              Input('confusionmatrix-binary-'+self.name, 'checked'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')],
         )
-        def update_confusionmatrix_graph(cutoff, normalized, binary, pos_label, tab):
+        def update_confusionmatrix_graph(cutoff, normalized, binary, pos_label):
             return self.explainer.plot_confusion_matrix(
                         cutoff=cutoff, normalized=normalized, binary=binary, pos_label=pos_label)
 
@@ -335,9 +334,8 @@ class LiftCurveComponent(ExplainerComponent):
             [Input('liftcurve-cutoff-'+self.name, 'value'),
              Input('liftcurve-percentage-'+self.name, 'checked'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, percentage, pos_label, tab):
+        def update_precision_graph(cutoff, percentage, pos_label):
             return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
 
@@ -410,9 +408,8 @@ class ClassificationComponent(ExplainerComponent):
             [Input('classification-cutoff-'+self.name, 'value'),
              Input('classification-percentage-'+self.name, 'checked'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, percentage, pos_label, tab):
+        def update_precision_graph(cutoff, percentage, pos_label):
             return self.explainer.plot_classification(
                     cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
@@ -465,10 +462,9 @@ class RocAucComponent(ExplainerComponent):
         @app.callback(
             Output('rocauc-graph-'+self.name, 'figure'),
             [Input('rocauc-cutoff-'+self.name, 'value'),
-             Input('pos-label', 'value'),
-             Input('tabs', 'value')],
+             Input('pos-label', 'value')],
         )
-        def update_precision_graph(cutoff, pos_label, tab):
+        def update_precision_graph(cutoff, pos_label):
             return self.explainer.plot_roc_auc(cutoff=cutoff, pos_label=pos_label)
 
 
@@ -520,7 +516,7 @@ class PrAucComponent(ExplainerComponent):
             Output('prauc-graph-'+self.name, 'figure'),
             [Input('prauc-cutoff-'+self.name, 'value'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')],
+            #[State('tabs', 'value')],
         )
-        def update_precision_graph(cutoff, pos_label, tab):
+        def update_precision_graph(cutoff, pos_label):#, tab):
             return self.explainer.plot_pr_auc(cutoff=cutoff, pos_label=pos_label)

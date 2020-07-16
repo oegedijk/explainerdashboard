@@ -85,9 +85,8 @@ class DecisionTreesComponent(ExplainerComponent):
             [Input('decisiontrees-index-'+self.name, 'value'),
              Input('decisiontrees-highlight-'+self.name, 'value'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')]
         )
-        def update_tree_graph(index, highlight, pos_label, tab):
+        def update_tree_graph(index, highlight, pos_label):
             if index is not None:
                 return self.explainer.plot_trees(index, highlight_tree=highlight, pos_label=pos_label)
             return {}
@@ -173,9 +172,8 @@ class DecisionPathTableComponent(ExplainerComponent):
             [Input('decisionpath-table-index-'+self.name, 'value'),
              Input('decisionpath-table-highlight-'+self.name, 'value'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')]
         )
-        def update_decisiontree_table(index, highlight, pos_label, tab):
+        def update_decisiontree_table(index, highlight, pos_label):
             if index is not None and highlight is not None:
                 decisionpath_df = self.explainer.decisiontree_df_summary(highlight, index, pos_label=pos_label)
                 return dbc.Table.from_dataframe(decisionpath_df)
@@ -256,10 +254,9 @@ class DecisionPathGraphComponent(ExplainerComponent):
             [Input('decisionpath-button-'+self.name, 'n_clicks')],
             [State('decisionpath-index-'+self.name, 'value'),
              State('decisionpath-highlight-'+self.name, 'value'),
-             State('pos-label', 'value'),
-             State('tabs', 'value')]
+             State('pos-label', 'value')]
         )
-        def update_tree_graph(n_clicks, index, highlight, pos_label, tab):
+        def update_tree_graph(n_clicks, index, highlight, pos_label):
             if n_clicks is not None and index is not None and highlight is not None:
                 return self.explainer.decision_path_encoded(highlight, index)
             raise PreventUpdate

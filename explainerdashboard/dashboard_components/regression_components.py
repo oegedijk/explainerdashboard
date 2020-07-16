@@ -70,9 +70,8 @@ class PredictedVsActualComponent(ExplainerComponent):
         @app.callback(
             Output('pred-vs-actual-graph-'+self.name, 'figure'),
             [Input('pred-vs-actual-logs-'+self.name, 'checked')],
-            [State('tabs', 'value')]
         )
-        def update_predicted_vs_actual_graph(logs, tab):
+        def update_predicted_vs_actual_graph(logs):
             return self.explainer.plot_predicted_vs_actual(logs=logs)
 
 class ResidualsComponent(ExplainerComponent):
@@ -155,9 +154,8 @@ class ResidualsComponent(ExplainerComponent):
             Output('residuals-graph-'+self.name, 'figure'),
             [Input('residuals-pred-or-actual-'+self.name, 'value'),
              Input('residuals-ratio-'+self.name, 'checked')],
-            [State('tabs', 'value')],
         )
-        def update_residuals_graph(pred_or_actual, ratio, tab):
+        def update_residuals_graph(pred_or_actual, ratio):
             vs_actual = pred_or_actual=='vs_actual'
             return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
 
@@ -227,9 +225,8 @@ class ResidualsVsColComponent(ExplainerComponent):
             Output('residuals-vs-col-graph-'+self.name, 'figure'),
             [Input('residuals-vs-col-col-'+self.name, 'value'),
              Input('residuals-vs-col-ratio-'+self.name, 'checked')],
-            [State('tabs', 'value')],
         )
-        def update_residuals_graph(col, ratio, tab):
+        def update_residuals_graph(col, ratio):
             return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
 
 class RegressionModelSummaryComponent(ExplainerComponent):
@@ -261,7 +258,6 @@ class RegressionModelSummaryComponent(ExplainerComponent):
         @app.callback(
             Output('model-summary-'+self.name, 'children'),
             [Input('pos-label', 'value')],
-            [State('tabs', 'value')]
         )
-        def update_model_summary(pos_label, tab):
+        def update_model_summary(pos_label):
             return self.explainer.metrics_markdown()
