@@ -38,7 +38,6 @@
 
 ### Components
 - add hide_title to all components
-- seperate CutoffConnector from PercentileCutoffComponent
 
 ## Methods:
 - Add LIME values
