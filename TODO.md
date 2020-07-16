@@ -30,11 +30,12 @@
 - add log ratio
 
 ## Explainers:
-- check all shap values >-1 and <1 for model_output=probability
 
 ## Dashboard:
 - make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
+- remove tabs from state
+- remove global pos-label
  
 
 ### Components
