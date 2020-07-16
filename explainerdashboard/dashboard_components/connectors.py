@@ -496,6 +496,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff",
                         header_mode="none", name=None,
+                        orientation='horizontal',
                         hide_cutoff=False, hide_percentile=False,
                         cutoff=0.5, percentile=None):
         """
@@ -516,6 +517,9 @@ class CutoffPercentileComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            orientation(str, {'horizontal','vertical'}, optional): whether to 
+                        display sliders side by side or on top of each other.
+                        Defaults to 'horizontal'.
             hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
             hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
@@ -523,6 +527,7 @@ class CutoffPercentileComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, header_mode, name)
 
+        self.orientation = orientation
         self.hide_cutoff = hide_cutoff
         self.hide_percentile = hide_percentile
         self.cutoff, self.percentile = cutoff, percentile
@@ -531,9 +536,7 @@ class CutoffPercentileComponent(ExplainerComponent):
         self.register_dependencies(['preds', 'pred_percentiles'])
 
     def _layout(self):
-        return html.Div([
-            dbc.Row([
-                make_hideable(
+        cutoff_col = make_hideable(
                     dbc.Col([
                         html.Div([
                             html.Label('Cutoff prediction probability:'),
@@ -544,8 +547,8 @@ class CutoffPercentileComponent(ExplainerComponent):
                                         included=False,
                                         tooltip = {'always_visible' : False})
                         ], style={'margin-bottom': 15}),
-                    ]), hide=self.hide_cutoff),
-                make_hideable(
+                    ]), hide=self.hide_cutoff)
+        percentile_col = make_hideable(
                     dbc.Col([
                         html.Div([
                             html.Label('Cutoff percentile of samples:'),
@@ -557,8 +560,24 @@ class CutoffPercentileComponent(ExplainerComponent):
                                         tooltip = {'always_visible' : False})
                         ], style={'margin-bottom': 15}),
                     ]), hide=self.hide_percentile),
+        if self.orientation == 'horizontal':
+            return html.Div([
+                dbc.Row([
+                    cutoff_col,
+                    percentile_col
+                ])
             ])
-        ])
+        elif self.orientation == 'vertical':
+            return html.Div([
+                dbc.Row([
+                    cutoff_col,
+                ]),
+                dbc.Row([
+                    percentile_col
+                ])
+            ])
+        raise ValueError("orientation should be either 'horizontal' or 'vertical'!")
+
 
     def _register_callbacks(self, app):
         @app.callback(
