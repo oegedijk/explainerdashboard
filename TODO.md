@@ -2,7 +2,7 @@
 # TODO:
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees
-- replace custom permutation importances by sklearn permuation importances
+- replace custom permutation importances by sklearn permuation importances?
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -32,7 +32,6 @@
 - check all shap values >-1 and <1 for model_output=probability
 
 ## Dashboard:
-- make alternative tight layout for mode='inline' 
 - add option for vertical contributions?
  
 
@@ -51,7 +50,7 @@
 - add test coverage (add a badge)
 
 ## Docs:
-- Add SKETCHY theme example
+
 
 ## Library level:
 - add @delegates_kwargs_and_doc_to() 
