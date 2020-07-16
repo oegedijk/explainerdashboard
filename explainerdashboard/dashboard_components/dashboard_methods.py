@@ -159,7 +159,7 @@ class ExplainerHeader:
         """
         dummy_pos_label = html.Div(
                 [dcc.Input(id="pos-label")], style=dict(display="none"))
-        dummy_tabs = html.Div(dcc.Input(id="tabs"), style=dict(display="none"))
+        dummy_tabs = None #html.Div(dcc.Input(id="tabs"), style=dict(display="none"))
 
         title_col = make_hideable(
             dbc.Col([html.H1(self.title)], width='auto'), hide=self.hide_title)

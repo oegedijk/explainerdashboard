@@ -119,9 +119,8 @@ class ShapSummaryComponent(ExplainerComponent):
             [Input('shap-summary-type-'+self.name, 'value'),
              Input('shap-summary-group-cats-'+self.name, 'checked'),
              Input('shap-summary-depth-'+self.name, 'value'),
-             Input('pos-label', 'value')],
-            [State('tabs', 'value')])
-        def update_shap_summary_graph(summary_type, cats, depth, pos_label, tab):
+             Input('pos-label', 'value')])
+        def update_shap_summary_graph(summary_type, cats, depth, pos_label):
             if summary_type == 'aggregate':
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, cats=cats, pos_label=pos_label)
@@ -255,9 +254,8 @@ class ShapDependenceComponent(ExplainerComponent):
 
         @app.callback(
             Output('shap-dependence-col-'+self.name, 'options'),
-            [Input('shap-dependence-group-cats-'+self.name, 'checked')],
-            [State('tabs', 'value')])
-        def update_dependence_shap_scatter_graph(cats,  tab):
+            [Input('shap-dependence-group-cats-'+self.name, 'checked')])
+        def update_dependence_shap_scatter_graph(cats):
             return [{'label': col, 'value': col} 
                                     for col in self.explainer.columns_ranked_by_shap(cats)]
 
@@ -278,9 +276,8 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
     def _register_callbacks(self, app):
         @app.callback(
             Output('shap-dependence-group-cats-'+self.dep_name, 'checked'),
-            [Input('shap-summary-group-cats-'+self.sum_name, 'checked')],
-            [State('tabs', 'value')])
-        def update_dependence_shap_scatter_graph(cats,  tab):
+            [Input('shap-summary-group-cats-'+self.sum_name, 'checked')])
+        def update_dependence_shap_scatter_graph(cats):
             return cats
 
         @app.callback(
@@ -579,9 +576,8 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
     def _register_callbacks(self, app):
         @app.callback(
             Output('interaction-dependence-group-cats-'+self.dep_name, 'checked'),
-            [Input('interaction-summary-group-cats-'+self.sum_name, 'checked')],
-            [State('tabs', 'value')])
-        def update_dependence_shap_scatter_graph(cats,  tab):
+            [Input('interaction-summary-group-cats-'+self.sum_name, 'checked')])
+        def update_dependence_shap_scatter_graph(cats):
             return cats
 
         @app.callback(
@@ -794,9 +790,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         
     def _register_callbacks(self, app):
         @app.callback(
-            [#Output('contributions-table-'+self.name, 'data'),
-             Output('contributions-table-'+self.name, 'children'),
-             #Output('contributions-table-'+self.name, 'tooltip_data'),
+            [Output('contributions-table-'+self.name, 'children'),
              Output('contributions-table-depth-'+self.name, 'options')],
             [Input('contributions-table-index-'+self.name, 'value'),
              Input('contributions-table-depth-'+self.name, 'value'),

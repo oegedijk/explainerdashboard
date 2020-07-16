@@ -198,9 +198,8 @@ class ImportancesComponent(ExplainerComponent):
              Input('importances-group-cats-'+self.name, 'checked'),
              Input('importances-permutation-or-shap-'+self.name, 'value'),
              Input('pos-label', 'value')],
-            [State('tabs', 'value')]
         )
-        def update_importances(depth, cats, permutation_shap, pos_label, tab): 
+        def update_importances(depth, cats, permutation_shap, pos_label):
             return self.explainer.plot_importances(
                         kind=permutation_shap, topx=depth, 
                         cats=cats, pos_label=pos_label)
