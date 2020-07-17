@@ -2,6 +2,7 @@ __all__ = [
     'ClassifierRandomIndexComponent',
     'RegressionRandomIndexComponent',
     'CutoffPercentileComponent',
+    'PosLabelConnector',
     'CutoffConnector',
     'IndexConnector',
     'HighlightConnector'
@@ -590,9 +591,52 @@ class CutoffPercentileComponent(ExplainerComponent):
                 return np.round(self.explainer.cutoff_from_percentile(percentile, pos_label=pos_label), 2)
             raise PreventUpdate
 
-class PosLabelConnextor(ExplainerComponent):
+class PosLabelConnector(ExplainerComponent):
     def __init__(self, input_pos_label, output_pos_labels):
-        pass
+        self.input_pos_label_name = self._get_pos_label(input_pos_label)
+        self.output_pos_label_names = self._get_pos_labels(output_pos_labels)
+
+    def _get_pos_label(self, input_pos_label):
+        if isinstance(input_pos_label, PosLabelSelector):
+            return 'pos-label-' + input_pos_label.name
+        elif hasattr(input_pos_label, 'selector') and isinstance(input_pos_label.selector, PosLabelSelector):
+            return 'pos-label-' + input_pos_label.selector.name
+        elif isinstance(input_pos_label, str):
+            return input_pos_label
+        else:
+            raise ValueError("input_pos_label should either be a str, "
+                    "PosLabelSelector or an instance with a .selector property"
+                    " that is a PosLabelSelector!")
+
+    def _get_pos_labels(self, output_pos_labels):
+        def get_pos_labels(o):
+            if isinstance(o, PosLabelSelector):
+                return ['pos-label-'+o.name]
+            elif isinstance(o, str):
+                return [str]
+            elif hasattr(o, 'pos_labels'):
+                return o.pos_labels
+            else:
+                raise ValueError(f"{o} is not a PosLabelSelector, nor is a str,"
+                            " nor has a property .pos_labels!")
+
+        if hasattr(output_pos_labels, '__iter__'):
+            pos_labels = []
+            for comp in output_pos_labels:
+                pos_labels.extend(get_pos_labels(comp))
+            return list(set(pos_labels))
+        else:
+            return get_pos_labels(output_pos_labels)
+
+    def _register_callbacks(self, app):
+        @app.callback(
+            [Output(pos_label_name, 'value') for pos_label_name in self.output_pos_label_names],
+            [Input(self.input_pos_label_name, 'value')]
+        )
+        def update_pos_labels(pos_label):
+            return tuple(pos_label for i in range(len(self.output_pos_label_names)))
+
+
 
 class CutoffConnector(ExplainerComponent):
     def __init__(self, input_cutoff, output_cutoffs):
