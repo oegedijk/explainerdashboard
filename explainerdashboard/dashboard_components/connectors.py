@@ -590,6 +590,9 @@ class CutoffPercentileComponent(ExplainerComponent):
                 return np.round(self.explainer.cutoff_from_percentile(percentile, pos_label=pos_label), 2)
             raise PreventUpdate
 
+class PosLabelConnextor(ExplainerComponent):
+    def __init__(self, input_pos_label, output_pos_labels):
+        pass
 
 class CutoffConnector(ExplainerComponent):
     def __init__(self, input_cutoff, output_cutoffs):

@@ -18,7 +18,7 @@ from .dashboard_methods import *
 class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary",
                     header_mode="none", name=None,
-                    hide_index=False, hide_percentile=False,
+                    hide_index=False, hide_percentile=False, hide_selector=False,
                     index=None, percentile=True):
         """Shows a summary for a particular prediction
 
@@ -40,9 +40,11 @@ class PredictionSummaryComponent(ExplainerComponent):
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_index, self.hide_percentile = hide_index, hide_percentile
+        self.hide_selector = hide_selector
         self.index, self.percentile = index, percentile
 
         self.index_name = 'modelprediction-index-'+self.name
+        self.selector = PosLabelSelector(explainer, name=self.name)
 
     def _layout(self):
         return html.Div([
@@ -57,6 +59,9 @@ class PredictionSummaryComponent(ExplainerComponent):
                                 value=self.index)
                     ], md=8), hide=self.hide_index),
                 make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+                make_hideable(
                     dbc.Col([
                         dbc.Label("Show Percentile:"),
                         dbc.FormGroup(
@@ -69,7 +74,8 @@ class PredictionSummaryComponent(ExplainerComponent):
                                     html_for='modelprediction-percentile'+self.name, 
                                     className="form-check-label"),
                         ], check=True)
-                    ], md=4), hide=self.hide_percentile),
+                    ], md=2), hide=self.hide_percentile),
+                
             ]),
             dbc.Row([
                 dbc.Col([
@@ -84,7 +90,7 @@ class PredictionSummaryComponent(ExplainerComponent):
             Output('modelprediction-'+self.name, 'children'),
             [Input('modelprediction-index-'+self.name, 'value'),
              Input('modelprediction-percentile-'+self.name, 'checked'),
-             Input('pos-label', 'value')])
+             Input('pos-label-'+self.name, 'value')])
         def update_output_div(index, include_percentile, pos_label):
             if index is not None:
                 return self.explainer.prediction_result_markdown(index, include_percentile=include_percentile, pos_label=pos_label)
@@ -95,6 +101,7 @@ class ImportancesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Importances",
                         header_mode="none", name=None,
                         hide_type=False, hide_depth=False, hide_cats=False,
+                        hide_selector=False,
                         importance_type="shap", depth=None, cats=True):
         """Display features importances component
 
@@ -125,6 +132,7 @@ class ImportancesComponent(ExplainerComponent):
         self.hide_type = hide_type
         self.hide_depth = hide_depth
         self.hide_cats = hide_cats
+        self.hide_selector = hide_selector
         if self.explainer.cats is None or not self.explainer.cats:
             self.hide_cats = True
 
@@ -135,6 +143,7 @@ class ImportancesComponent(ExplainerComponent):
             depth = min(depth, len(explainer.columns_ranked_by_shap(cats)))
         self.depth = depth
         self.cats = cats
+        self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies(['shap_values', 'shap_values_cats',
             'permutation_importances', 'permutation_importances_cats'])
 
@@ -180,7 +189,10 @@ class ImportancesComponent(ExplainerComponent):
                                     html_for='importances-group-cats-'+self.name,
                                     className="form-check-label"),
                         ], check=True), 
-                    ]),  self.hide_cats),        
+                    ]),  self.hide_cats),    
+                make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector)    
             ], form=True),
 
             dbc.Row([
@@ -197,7 +209,7 @@ class ImportancesComponent(ExplainerComponent):
             [Input('importances-depth-'+self.name, 'value'),
              Input('importances-group-cats-'+self.name, 'checked'),
              Input('importances-permutation-or-shap-'+self.name, 'value'),
-             Input('pos-label', 'value')],
+             Input('pos-label-'+self.name, 'value')],
         )
         def update_importances(depth, cats, permutation_shap, pos_label):
             return self.explainer.plot_importances(
@@ -209,6 +221,7 @@ class PdpComponent(ExplainerComponent):
     def __init__(self, explainer, title="Partial Dependence Plot",
                     header_mode="none", name=None,
                     hide_col=False, hide_index=False, hide_cats=False,
+                    hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False,
                     col=None, index=None, cats=True,
@@ -243,6 +256,7 @@ class PdpComponent(ExplainerComponent):
         super().__init__(explainer, title, header_mode, name)
 
         self.hide_col, self.hide_index, self.hide_cats = hide_col, hide_index, hide_cats
+        self.hide_selector = hide_selector
         self.hide_dropna, self.hide_sample = hide_dropna, hide_sample
         self.hide_gridlines, self.hide_gridpoints = hide_gridlines, hide_gridpoints
 
@@ -254,6 +268,8 @@ class PdpComponent(ExplainerComponent):
 
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+
+        self.selector = PosLabelSelector(explainer, name=self.name)
 
     def _layout(self):
         return html.Div([
@@ -276,6 +292,9 @@ class PdpComponent(ExplainerComponent):
                                 value=None)
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+                    make_hideable(
                         dbc.Col([
                             dbc.Label("Grouping:"),
                             dbc.FormGroup(
@@ -288,7 +307,8 @@ class PdpComponent(ExplainerComponent):
                                         html_for='pdp-group-cats-'+self.name, 
                                         className="form-check-label"),
                             ], check=True)
-                        ], md=3), hide=self.hide_cats),
+                        ], md=2), hide=self.hide_cats),
+                    
                 ], form=True),
                 dbc.Row([
                     dbc.Col([
@@ -341,7 +361,7 @@ class PdpComponent(ExplainerComponent):
              Input('pdp-sample-'+self.name, 'value'),
              Input('pdp-gridlines-'+self.name, 'value'),
              Input('pdp-gridpoints-'+self.name, 'value'),
-             Input('pos-label', 'value')]
+             Input('pos-label-'+self.name, 'value')]
         )
         def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, pos_label):
             return self.explainer.plot_pdp(col, index, 

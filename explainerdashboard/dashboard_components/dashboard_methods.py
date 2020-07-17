@@ -4,6 +4,7 @@ __all__ = [
     'DummyComponent',
     'ExplainerHeader',
     'ExplainerComponent',
+    'PosLabelSelector',
     'make_hideable',
     'ExplainerTabsLayout',
     'ExplainerPageLayout'
@@ -96,6 +97,9 @@ class DummyComponent:
 
     def register_callbacks(self, app):
         pass
+
+
+
 
 
 class ExplainerHeader:
@@ -297,6 +301,21 @@ class ExplainerComponent(ABC):
         deps = list(set(deps))
         return deps
 
+    @property
+    def pos_labels(self):
+        """returns a list of unique pos label selector elements 
+        of the component and all subcomponents"""
+        
+        if not hasattr(self, '_components'):
+            self._components = []
+        pos_labels = []
+        if hasattr(self, 'selector') and isinstance(self.selector, PosLabelSelector):
+            pos_labels.append('pos-label-'+self.selector.name)
+        for comp in self._components:
+            pos_labels.extend(comp.pos_labels)
+        pos_labels = list(set(pos_labels))
+        return pos_labels
+
     def calculate_dependencies(self):
         """calls all properties in self.dependencies so that they get calculated
         up front. This is useful to do before starting a dashboard, so you don't
@@ -337,6 +356,24 @@ class ExplainerComponent(ABC):
             comp.register_callbacks(app)
         self._register_callbacks(app)
 
+
+class PosLabelSelector(ExplainerComponent):
+    def __init__(self, explainer, title='Pos Label Selector',
+                     header_mode="none", name=None):
+        super().__init__(explainer, title, header_mode, name)
+        
+    def layout(self):
+        if self.explainer.is_classifier:
+            return html.Div([
+                            dbc.Label("Positive class:", html_for="pos-label"),
+                            dcc.Dropdown(
+                                id='pos-label-'+self.name,
+                                options = [{'label': label, 'value': i}
+                                        for i, label in enumerate(self.explainer.labels)],
+                                value = self.explainer.pos_label)
+                            ])
+        else:
+            return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))
 
 
 

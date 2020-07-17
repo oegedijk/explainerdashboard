@@ -2243,7 +2243,7 @@ class RandomForestExplainer(BaseExplainer):
         if self.is_classifier:
             if pos_label is None: pos_label = self.pos_label
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
-                        highlight_tree=highlight_tree, round=round, pos_label=self.pos_label)
+                        highlight_tree=highlight_tree, round=round, pos_label=pos_label)
         else:
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
                         highlight_tree=highlight_tree, round=round)

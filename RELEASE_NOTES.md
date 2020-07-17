@@ -1,5 +1,28 @@
 # Release Notes
 
+## Version 2.1:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- PercentileCutoffComponent now has parameter orientation: {'horizontal', 'vertical}
+-
+
+### Bug Fixes
+- Interaction connector bug fixed in detailed summary: click didn't work
+-
+
+### Improvements
+- All `State['tabs', 'value']` condition have been taken out of callbacks. This
+    used to fix some bugs with dash tabs, but seems it works even without, so
+    also no need to insert dummy_tabs in `ExplainerHeader`.
+- All `ExplainerComponents` now have their own pos label selector.
+
+### Other Changes
+-
+-
+
 ## version 0.2:
 ### Breaking Changes
 - InlineExplainer api has been completely redefined
