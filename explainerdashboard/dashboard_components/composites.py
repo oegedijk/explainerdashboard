@@ -22,6 +22,7 @@ from .decisiontree_components import *
 class ClassifierModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Classification Stats", 
                     header_mode="none", name=None,
+                    hide_selector=False,
                     bin_size=0.1, quantiles=10, cutoff=0.5):
         """Composite of multiple classifier related components: 
             - precision graph
@@ -47,12 +48,12 @@ class ClassifierModelStatsComposite(ExplainerComponent):
         """
         super().__init__(explainer, title, header_mode, name)
 
-        self.precision = PrecisionComponent(explainer)
-        self.confusionmatrix = ConfusionMatrixComponent(explainer)
-        self.liftcurve = LiftCurveComponent(explainer)
-        self.classification = ClassificationComponent(explainer)
-        self.rocauc = RocAucComponent(explainer)
-        self.prauc = PrAucComponent(explainer)
+        self.precision = PrecisionComponent(explainer, hide_selector=hide_selector)
+        self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector)
+        self.liftcurve = LiftCurveComponent(explainer, hide_selector=hide_selector)
+        self.classification = ClassificationComponent(explainer, hide_selector=hide_selector)
+        self.rocauc = RocAucComponent(explainer, hide_selector=hide_selector)
+        self.prauc = PrAucComponent(explainer, hide_selector=hide_selector)
 
         self.cutoffpercentile = CutoffPercentileComponent(explainer)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
