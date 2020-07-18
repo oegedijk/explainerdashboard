@@ -25,7 +25,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         header_mode="none", name=None,
                         hide_index=False, hide_slider=False, 
                         hide_labels=False, hide_pred_or_perc=False,
-                        hide_button=False,
+                        hide_selector=False, hide_button=False,
                         index=None, slider= None, labels=None, 
                         pred_or_perc='predictions'):
         """Select a random index subject to constraints component
@@ -46,6 +46,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             hide_labels (bool, optional): Hide label selector Defaults to False.
             hide_pred_or_perc (bool, optional): Hide prediction/percentiles 
                         toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_button (bool, optional): Hide button. Defaults to False.
             index ({str, int}, optional): Initial index to display. 
                         Defaults to None.
@@ -60,7 +61,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
         self.hide_index, self.hide_slider = hide_index, hide_slider
         self.hide_labels, self.hide_pred_or_perc = hide_labels, hide_pred_or_perc
-        self.hide_button = hide_button
+        self.hide_selector, self.hide_button = hide_selector, hide_button
 
         self.index, self.slider = index, slider
         self.labels, self.pred_or_perc = labels, pred_or_perc
@@ -72,6 +73,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
         if self.labels is None:
             self.labels = self.explainer.labels
+
+        self.selector = PosLabelSelector(explainer, name=self.name)
 
         assert (len(self.slider)==2 and 
                 self.slider[0]>=0 and self.slider[0]<=1 and 
@@ -129,7 +132,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                         0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
                                 tooltip = {'always_visible' : False})
                         ], style={'margin-bottom':25})
-                    ], md=8), hide=self.hide_slider),
+                    ], md=6), hide=self.hide_slider),
                 make_hideable(
                     dbc.Col([
                         dbc.RadioItems(
@@ -140,9 +143,12 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                             ],
                             value=self.pred_or_perc,
                             inline=True)
-                    ], md=4), hide=self.hide_pred_or_perc),
-            ], justify="start"),
-            
+                    ], md=3, align="center"), hide=self.hide_pred_or_perc),
+                make_hideable(
+                    dbc.Col([
+                        self.selector.layout()
+                    ], md=3), hide=self.hide_selector),
+            ], justify="start"),  
         ])
     
     def _register_callbacks(self, app):
@@ -152,7 +158,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             [State('random-index-clas-slider-'+self.name, 'value'),
              State('random-index-clas-labels-'+self.name, 'value'),
              State('random-index-clas-pred-or-perc-'+self.name, 'value'),
-             State('pos-label', 'value')])
+             State('pos-label-'+self.name, 'value')])
         def update_index(n_clicks, slider_range, labels, pred_or_perc, pos_label):
             if pred_or_perc == 'predictions':
                 return self.explainer.random_index(y_values=labels, 
@@ -497,8 +503,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff",
                         header_mode="none", name=None,
-                        orientation='horizontal',
-                        hide_cutoff=False, hide_percentile=False,
+                        hide_cutoff=False, hide_percentile=False, 
+                        hide_selector=False,
                         cutoff=0.5, percentile=None):
         """
         Slider to set a cutoff for Classifier components, based on setting the
@@ -518,73 +524,70 @@ class CutoffPercentileComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            orientation(str, {'horizontal','vertical'}, optional): whether to 
-                        display sliders side by side or on top of each other.
-                        Defaults to 'horizontal'.
             hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
             hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
         """
         super().__init__(explainer, title, header_mode, name)
 
-        self.orientation = orientation
         self.hide_cutoff = hide_cutoff
         self.hide_percentile = hide_percentile
+        self.hide_selector = hide_selector
         self.cutoff, self.percentile = cutoff, percentile
 
         self.cutoff_name = 'cutoffconnector-cutoff-'+self.name
+
+        self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies(['preds', 'pred_percentiles'])
 
     def _layout(self):
-        cutoff_col = make_hideable(
-                    dbc.Col([
-                        html.Div([
-                            html.Label('Cutoff prediction probability:'),
-                            dcc.Slider(id='cutoffconnector-cutoff-'+self.name, 
-                                        min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                        marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                0.75: '0.75', 0.99: '0.99'}, 
-                                        included=False,
-                                        tooltip = {'always_visible' : False})
-                        ], style={'margin-bottom': 15}),
-                    ]), hide=self.hide_cutoff)
-        percentile_col = make_hideable(
-                    dbc.Col([
-                        html.Div([
-                            html.Label('Cutoff percentile of samples:'),
-                            dcc.Slider(id='cutoffconnector-percentile-'+self.name, 
-                                        min = 0.01, max = 0.99, step=0.01, value=self.percentile,
-                                        marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                0.75: '0.75', 0.99: '0.99'}, 
-                                        included=False,
-                                        tooltip = {'always_visible' : False})
-                        ], style={'margin-bottom': 15}),
-                    ]), hide=self.hide_percentile),
-        if self.orientation == 'horizontal':
-            return html.Div([
-                dbc.Row([
-                    cutoff_col,
-                    percentile_col
-                ])
-            ])
-        elif self.orientation == 'vertical':
-            return html.Div([
-                dbc.Row([
-                    cutoff_col,
+        return html.Div([
+            dbc.Row([
+                dbc.Col([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                html.Div([
+                                    html.Label('Cutoff prediction probability:'),
+                                    dcc.Slider(id='cutoffconnector-cutoff-'+self.name, 
+                                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                        0.75: '0.75', 0.99: '0.99'}, 
+                                                included=False,
+                                                tooltip = {'always_visible' : False})
+                                ], style={'margin-bottom': 15}),
+                            ]), hide=self.hide_cutoff),
+                    ]),
+                    dbc.Row([
+                            make_hideable(
+                            dbc.Col([
+                                html.Div([
+                                    html.Label('Cutoff percentile of samples:'),
+                                    dcc.Slider(id='cutoffconnector-percentile-'+self.name, 
+                                                min = 0.01, max = 0.99, step=0.01, value=self.percentile,
+                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                        0.75: '0.75', 0.99: '0.99'}, 
+                                                included=False,
+                                                tooltip = {'always_visible' : False})
+                                ], style={'margin-bottom': 15}),
+                            ]), hide=self.hide_percentile),
+                    ])
                 ]),
-                dbc.Row([
-                    percentile_col
-                ])
-            ])
-        raise ValueError("orientation should be either 'horizontal' or 'vertical'!")
+                make_hideable(
+                    dbc.Col([
+                        self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+            ])  
+        ])
 
 
     def _register_callbacks(self, app):
         @app.callback(
             Output('cutoffconnector-cutoff-'+self.name, 'value'),
             [Input('cutoffconnector-percentile-'+self.name, 'value'),
-             Input('pos-label', 'value')]
+             Input('pos-label-'+self.name, 'value')]
         )
         def update_cutoff(percentile, pos_label):
             if percentile is not None:

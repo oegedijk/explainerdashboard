@@ -34,6 +34,7 @@ class PredictionSummaryComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_percentile (bool, optional): hide percentile toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
             percentile (bool, optional): Whether to add the prediction percentile. Defaults to True.
         """
@@ -57,10 +58,10 @@ class PredictionSummaryComponent(ExplainerComponent):
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
-                    ], md=8), hide=self.hide_index),
+                    ], md=6), hide=self.hide_index),
                 make_hideable(
                         dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
+                    ], width=3), hide=self.hide_selector),
                 make_hideable(
                     dbc.Col([
                         dbc.Label("Show Percentile:"),
@@ -74,7 +75,7 @@ class PredictionSummaryComponent(ExplainerComponent):
                                     html_for='modelprediction-percentile'+self.name, 
                                     className="form-check-label"),
                         ], check=True)
-                    ], md=2), hide=self.hide_percentile),
+                    ], md=3), hide=self.hide_percentile),
                 
             ]),
             dbc.Row([
@@ -120,6 +121,8 @@ class ImportancesComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide number of features toggle. 
                         Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. 
+                        Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. 
                         Defaults to False.
             importance_type (str, {'permuation', 'shap'} optional): 
                         initial importance type to display. Defaults to "shap".
@@ -241,6 +244,7 @@ class PdpComponent(ExplainerComponent):
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.

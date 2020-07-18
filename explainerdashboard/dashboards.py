@@ -12,6 +12,7 @@ import requests
 import shortuuid
 import dash
 import dash_core_components as dcc
+import dash_html_components as html
 import dash_bootstrap_components as dbc
 
 from jupyter_dash import JupyterDash
@@ -20,6 +21,186 @@ import plotly.io as pio
 
 from .dashboard_components import *
 from .dashboard_tabs import *
+
+
+def instantiate_component(component, explainer, **kwargs):
+    """Returns an instantiated ExplainerComponent.
+    If the component input is just a class definition, instantiate it with
+    explainer and k**wargs.
+    If it is already an ExplainerComponent instance then return it.
+    If it is any other instance with layout and register_components methods,
+    then add a name property and return it. 
+
+    Args:
+        component ([type]): Either a class definition or instance
+        explainer ([type]): An Explainer object that will be used to instantiate class definitions
+        kwargs: kwargs will be passed on to the instance
+
+    Raises:
+        ValueError: if component is not a subclass or instance of ExplainerComponent,
+                or is an instance without layout and register_callbacks methods
+
+    Returns:
+        [type]: instantiated component
+    """
+
+    if inspect.isclass(component) and issubclass(component, ExplainerComponent):
+        return component(explainer,  **kwargs)
+    elif isinstance(component, ExplainerComponent):
+        component.header.mode = header_mode
+        return component
+    elif (not inspect.isclass(component)
+          and hasattr(component, "layout")):
+        if not (hasattr(component, "name") and isinstance(component.name, str)):
+            try:
+                component_name  = component.__name__
+            except:
+                component_name = shortuuid.ShortUUID().random(length=10)
+            print(f"Warning: setting {component}.name to {component_name}")
+            component.name = component_name
+        if not hasattr(component, "title"):
+            print(f"Warning: setting {component}.title to 'CustomTab'")
+            component.title = "CustomTab"
+        return component
+    else:
+        raise ValueError(f"{component} is not a valid component...")
+
+
+class ExplainerTabsLayout:
+    def __init__(self, explainer, tabs,
+                 title='Model Explainer',
+                 hide_title=False,
+                 hide_selector=False,
+                 fluid=True,
+                 **kwargs):
+        """Generates a multi tab layout from a a list of ExplainerComponents.
+        If the component is a class definition, it gets instantiated first. If 
+        the component is not derived from an ExplainerComponent, then attempt
+        with duck typing to nevertheless instantiate a layout.
+
+        Args:
+            explainer ([type]): explainer
+            tabs (list[ExplainerComponent class or instance]): list of
+                ExplainerComponent class definitions or instances.
+            title (str, optional): [description]. Defaults to 'Model Explainer'.
+            hide_title (bool, optional): Hide the title. Defaults to False.
+            hide_selector (bool, optional): Hide the positive label selector. 
+                        Defaults to False.
+            fluid (bool, optional): Stretch layout to fill space. Defaults to False.
+        """
+        self.title = title
+        self.hide_title = hide_title
+        self.hide_selector = hide_selector
+        self.fluid = fluid
+        
+        self.selector = PosLabelSelector(explainer)
+        self.tabs  = [instantiate_component(tab, explainer, "none", **kwargs) for tab in tabs]
+        assert len(self.tabs) > 0, 'When passing a list to tabs, need to pass at least one valid tab!'
+        self.connector = PosLabelConnector(self.selector, self.tabs)
+        
+        
+    def layout(self):
+        """returns a multitab layout plus ExplainerHeader"""
+        return dbc.Container([
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        html.H1(self.title)
+                    ], width="auto"), hide=self.hide_title),
+                make_hideable(
+                    dbc.Col([
+                        self.selector.layout()
+                    ], md=3), hide=self.hide_selector),
+            ], justify="start"),
+            dcc.Tabs(id="tabs", value=self.tabs[0].name, 
+                        children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
+                                        children=tab.layout()) for tab in self.tabs]),
+        ], fluid=self.fluid)
+
+    def register_callbacks(self, app):
+        """Registers callbacks for all tabs"""
+        for tab in self.tabs:
+            try:
+                tab.register_callbacks(app)
+            except AttributeError:
+                print(f"Warning: {tab} does not have a register_callbacks method!")
+                
+        self.connector.register_callbacks(app)
+
+    def calculate_dependencies(self):
+        """Calculates dependencies for all tabs"""
+        for tab in self.tabs:
+            try:
+                tab.calculate_dependencies()
+            except AttributeError:
+                print(f"Warning: {tab} does not have a calculate_dependencies method!")
+
+
+class ExplainerPageLayout(ExplainerComponent):
+    def __init__(self, explainer, component,
+                 title='Model Explainer',
+                 hide_title=False,
+                 hide_selector=False,
+                 fluid=False,
+                 **kwargs):
+        """Generates a single page layout from a single ExplainerComponent.
+        If the component is a class definition, it gets instantiated. 
+
+        If the component is not derived from an ExplainerComponent, then tries
+        with duck typing to nevertheless instantiate a layout.
+
+
+        Args:
+            explainer ([type]): explainer
+            component (ExplainerComponent class or instance): ExplainerComponent 
+                        class definition or instance.
+            title (str, optional): [description]. Defaults to 'Model Explainer'.
+            hide_title (bool, optional): Hide the title. Defaults to False.
+            hide_selector (bool, optional): Hide the positive label selector. 
+                        Defaults to False.
+            fluid (bool, optional): Stretch layout to fill space. Defaults to False.
+        """
+        self.title = title
+        self.hide_title = hide_title
+        self.hide_selector = hide_selector
+        self.fluid = fluid
+        
+        self.selector = PosLabelSelector(explainer)
+        self.page  = instantiate_component(component, explainer, "none", **kwargs) 
+        self.connector = PosLabelConnector(self.selector, self.page)
+        
+        self.fluid = fluid
+        
+    def layout(self):
+        """returns single page layout with an ExplainerHeader"""
+        return dbc.Container([
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        html.H1(self.title)
+                    ], width="auto"), hide=self.hide_title),
+                make_hideable(
+                    dbc.Col([
+                        self.selector.layout()
+                    ], md=3), hide=self.hide_selector),
+            ], justify="start"),
+            self.page.layout()
+        ], fluid=self.fluid)
+
+    def register_callbacks(self, app):
+        """Register callbacks of page"""
+        try:
+            self.page.register_callbacks(app)
+        except AttributeError:
+            print(f"Warning: {self.page} does not have a register_callbacks method!")
+        self.connector.register_callbacks(app)
+
+    def calculate_dependencies(self):
+        """Calculate dependencies of page"""
+        try:
+            self.page.calculate_dependencies()
+        except AttributeError:
+            print(f"Warning: {self.page} does not have a calculate_dependencies method!")
 
 
 class ExplainerDashboard:

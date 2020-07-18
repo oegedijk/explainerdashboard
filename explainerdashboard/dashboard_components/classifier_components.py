@@ -39,6 +39,7 @@ class PrecisionComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_binsize (bool, optional): hide binsize/quantiles slider. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
             hide_binmethod (bool, optional): Hide binsize/quantiles toggle. Defaults to False.
             hide_multiclass (bool, optional): Hide multiclass toggle. Defaults to False.
             hide_selector (bool, optional): Hide pos label selector. Default to True.
@@ -204,6 +205,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_binary (bool, optional): Hide binary toggle. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): Default cutoff. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
             binary (bool, optional): Show binary instead of multiclass confusion matrix. Defaults to True.
@@ -300,6 +302,7 @@ class LiftCurveComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): Cutoff for lift curve. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
         """
@@ -381,6 +384,7 @@ class ClassificationComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): Cutoff for prediction. Defaults to 0.5.
             percentage (bool, optional): Show percentage instead of counts. Defaults to True.
         """
@@ -461,6 +465,7 @@ class RocAucComponent(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
         super().__init__(explainer, title, header_mode, name)
@@ -521,6 +526,7 @@ class PrAucComponent(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
         super().__init__(explainer, title, header_mode, name)
