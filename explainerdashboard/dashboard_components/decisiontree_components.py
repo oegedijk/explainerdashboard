@@ -39,6 +39,7 @@ class DecisionTreesComponent(ExplainerComponent):
             hide_title (bool, optional): hide title, Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree to highlight. Defaults to None.
         """
@@ -131,6 +132,8 @@ class DecisionPathTableComponent(ExplainerComponent):
                         Defaults to False.
             hide_highlight (bool, optional): Hide tree index selector. 
                         Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. 
+                        Defaults to False.
             index ({str, int}, optional): Initial index to display decision 
                         path for. Defaults to None.
             highlight (int, optional): Initial tree idx to display decision 
@@ -218,6 +221,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
             hide_button (bool, optional): hide the button, Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
         """

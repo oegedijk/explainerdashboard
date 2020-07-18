@@ -43,6 +43,7 @@ class ShapSummaryComponent(ExplainerComponent):
             hide_type (bool, optional): hide the summary type toggle 
                         (aggregated, detailed). Defaults to False.
             hide_cats (bool, optional): hide the group cats toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. Defaults to False.
             depth (int, optional): initial number of features to show. Defaults to None.
             summary_type (str, {'aggregate', 'detailed'}. optional): type of 
                         summary graph to show. Defaults to "aggregate".
@@ -167,6 +168,7 @@ class ShapDependenceComponent(ExplainerComponent):
             hide_col (bool, optional): hide feature selector. Defaults to False.
             hide_color_col (bool, optional): hide color feature selector Defaults to False.
             hide_highlight (bool, optional): hide highlight selector Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. Defaults to False.
             cats (bool, optional): group cats. Defaults to True.
             col (str, optional): Feature to display. Defaults to None.
             color_col (str, optional): Color plot by values of this Feature. 
@@ -189,7 +191,7 @@ class ShapDependenceComponent(ExplainerComponent):
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def _layout(self):
-        return dbc.Container([
+        return html.Div([
             make_hideable(html.H3('Shap Dependence Plot'), hide=self.hide_title),
             dbc.Row([
                     make_hideable(
@@ -235,7 +237,7 @@ class ShapDependenceComponent(ExplainerComponent):
             ], form=True),
             dcc.Loading(id="loading-dependence-graph-"+self.name, 
                          children=[dcc.Graph(id='shap-dependence-graph-'+self.name)]),
-        ], fluid=False)
+        ])
 
     def _register_callbacks(self, app):
         @app.callback(
@@ -332,6 +334,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_type (bool, optional): Hide summary type toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. Defaults to False.
             col (str, optional): Feature to show interaction summary for. Defaults to None.
             depth (int, optional): Number of interaction features to display. Defaults to None.
             summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
@@ -467,6 +470,7 @@ class InteractionDependenceComponent(ExplainerComponent):
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_interact_col (bool, optional): Hide interaction feature selector. Defaults to False.
             hide_highlight (bool, optional): Hide highlight index selector. Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. Defaults to False.
             hide_top (bool, optional): Hide the top interaction graph (col vs interact_col). Defaults to False.
             hide_bottom (bool, optional): hide the bottom interaction graph (interact_col vs col). Defaults to False.
             cats (bool, optional): group categorical features. Defaults to True.
@@ -533,7 +537,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     ], width=2), hide=self.hide_selector),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Highlight index:"),
+                        dbc.Label("Highlight:"),
                         dbc.Input(id='interaction-dependence-highlight-index-'+self.name, 
                             placeholder="Highlight index...", debounce=True)],
                         md=2), hide=self.hide_highlight), 
@@ -645,6 +649,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. Defaults to False.
             index ({int, bool}, optional): Initial index to display. Defaults to None.
             depth (int, optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group cats. Defaults to True.
@@ -686,8 +691,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     ], md=2), hide=self.hide_depth),
                 make_hideable(
                         dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector)
-                ], form=True),
+                    ], md=3), hide=self.hide_selector),
                 make_hideable(
                     dbc.Col([
                         dbc.Label("Grouping:"),
@@ -701,7 +705,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                     html_for='contributions-graph-group-cats-'+self.name, 
                                     className="form-check-label"),
                         ], check=True)
-                    ], md=2), hide=self.hide_cats),
+                    ], md=3), hide=self.hide_cats),
+                ], form=True),
                 
             dbc.Row([
                 dbc.Col([
@@ -757,6 +762,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth selector. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. Defaults to False.
             index ([type], optional): Initial index to display. Defaults to None.
             depth ([type], optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group categoricals. Defaults to True.
