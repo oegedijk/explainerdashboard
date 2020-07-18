@@ -45,6 +45,7 @@
 
 ## Methods:
 - Add LIME values
+- Add this method: https://arxiv.org/abs/2006.04750?
 
 ## Tests:
 - add multiclass classifier tests

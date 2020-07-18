@@ -24,7 +24,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         header_mode="none", name=None,
                         hide_index=False, hide_slider=False, 
                         hide_labels=False, hide_pred_or_perc=False,
-                        hide_button=False,
+                        hide_button=False, 
                         index=None, slider= None, labels=None, 
                         pred_or_perc='predictions'):
         """Select a random index subject to constraints component
@@ -90,7 +90,6 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                            #dbc.Label("Index:", html_for='random-index-clas-index-'+self.name),
                             dcc.Dropdown(id='random-index-clas-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
                                                     for idx in self.explainer.idxs],
