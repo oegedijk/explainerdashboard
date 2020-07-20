@@ -47,14 +47,10 @@ A very simple example would be::
 
     from explainerdashboard.dashboard_components import *
 
-    header = ExplainerHeader(explainer, mode="standalone")
     shap_dependence = ShapDependenceComponent(explainer)
             
-    layout = dbc.Container([
-        dbc.Col([
-            header.layout(),
-            shap_dependence.layout()
-        ])  
+    layout = html.Div([
+            shap_dependence.layout() 
     ])
     
     app = JupyterDash()
@@ -70,11 +66,7 @@ if you wish to hide the group cats toggle and start with the 'Fare' feature, you
 would instantiate as ``shap_dependence = ShapDependenceComponent(explainer, hide_cats=True, col='Fare')``.
 For all the options for the different ExplainerComponent check the :ref:`documentation<shap_components>`.
 
-It is important that you always include an :ref:`ExplainerHeader<ExplainerHeader>`
-into your design as this inserts certain elements into your page that certain 
-callbacks expect to be there. 
-
-If you wrap your components into a custom ``ExplainerComponent``, and 
+If you wrap your components into a custom ``ExplainerComponent``, and remember to
 ``register_components()``, then you don't need to seperately call `register_callbacks()`
 on each component, but only on the composite component. If you then start the 
 ``ExplainerComponent`` using ``ExplainerTab()``,  ``calculate_dependencies()`` 
@@ -109,7 +101,6 @@ registering the callbacks, and starting the app::
     connector = ShapSummaryDependenceConnector(shap_summary, shap_dependence)
             
     layout = dbc.Container([
-                ExplainerHeader(explainer, mode="hidden").layout(),
                 html.H1("Titanic Explainer"),
                 dbc.Row([
                     dbc.Col([
@@ -198,7 +189,6 @@ that does exactly this::
     class CustomDashboard():
         def __init__(self, explainer):
             self.explainer = explainer
-            self.header = ExplainerHeader(explainer, mode="hidden")
             self.precision = PrecisionComponent(explainer, 
                                     hide_cutoff=True, hide_binsize=True, 
                                     hide_binmethod=True, hide_multiclass=True,
@@ -216,7 +206,6 @@ that does exactly this::
             
         def layout(self):
             return dbc.Container([
-                self.header.layout(),
                 html.H1("Titanic Explainer"),
                 dbc.Row([
                     dbc.Col([
@@ -298,8 +287,7 @@ Custom ExplainerComponent and use ExplainerDashboard
 
 A third method consists of inheriting from ExplainerComponent and then
 running the page with ``ExplainerDashboard``. The main difference is calling the
-``super().__init__()`` and calling ``register_components()`` inside the init,
-and defining the layout in ``_layout()`` with an underscore.
+``super().__init__()`` and calling ``register_components()`` inside the init.
 
 The benefit is that you don't have to explicitly write the ``register_callbacks`` or
 ``calculate_dependencies`` method, as these get generated automatically 
@@ -308,9 +296,8 @@ boilerplate code. This means you can fully concentrate on just designing your
 layout and components::
 
     class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer, title="Titanic Explainer",
-                            header_mode="hidden", name=None):
-            super().__init__(explainer, title, header_mode, name)
+        def __init__(self, explainer)
+            super().__init__(explainer, title="Titanic Explainer")
             self.precision = PrecisionComponent(explainer, 
                                     hide_cutoff=True, hide_binsize=True, 
                                     hide_binmethod=True, hide_multiclass=True,
@@ -328,7 +315,7 @@ layout and components::
             
             self.register_components(self.precision, self.shap_summary, self.shap_dependence, self.connector)
             
-        def _layout(self):
+        def layout(self):
             return dbc.Container([
                 html.H1("Titanic Explainer"),
                 dbc.Row([

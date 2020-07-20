@@ -6,6 +6,7 @@
 
 ## Layout:
 - Find a proper frontender to help :)
+- add RegressionRandomIndex to DecisionTrees tab
 
 ## dfs:
 - wrap shap values in pd.DataFrames?
@@ -30,6 +31,7 @@
 
 ## Explainers:
 - check all shap values >-1 and <1 for model_output=probability
+- set "calculating permutation importances.."
 
 ## Dashboard:
 - add option for vertical contributions?

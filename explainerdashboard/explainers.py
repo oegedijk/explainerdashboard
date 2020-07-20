@@ -1153,9 +1153,8 @@ class BaseExplainer(ABC):
           plotly.Fig: fig
 
         """
-        pdp_result = self.get_pdp_result(col, index,
-                            drop_na=drop_na, sample=sample,
-                            num_grid_points=gridpoints)
+        pdp_result = self.get_pdp_result(col, index, 
+                        num_grid_points=gridpoints, pos_label=pos_label)
 
         if index is not None:
             try:

@@ -179,7 +179,7 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(
@@ -198,7 +198,9 @@ class IndividualPredictionsComposite(ExplainerComponent):
         self.index_connector = IndexConnector(self.index, 
                 [self.summary, self.contributions, self.pdp, self.contributions_list])
 
-        self.register_components(self.index, self.summary, self.contributions, self.pdp, self.contributions_list, self.index_connector)
+        self.register_components(
+            self.index, self.summary, self.contributions, 
+            self.pdp, self.contributions_list, self.index_connector)
 
     def layout(self):
         return html.Div([

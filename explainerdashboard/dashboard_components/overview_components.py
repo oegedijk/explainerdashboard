@@ -365,10 +365,11 @@ class PdpComponent(ExplainerComponent):
 
         @app.callback(
             Output('pdp-col-'+self.name, 'options'),
-            [Input('pdp-group-cats-'+self.name, 'checked')]
+            [Input('pdp-group-cats-'+self.name, 'checked')],
+            [State('pos-label-'+self.name, 'value')]
         )
-        def update_pdp_graph(cats):
+        def update_pdp_graph(cats, pos_label):
             col_options = [{'label': col, 'value':col} 
-                                for col in self.explainer.columns_ranked_by_shap(cats)]
+                                for col in self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)]
             return col_options
                         

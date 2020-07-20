@@ -1,7 +1,7 @@
 ExplainerComponents
 *******************
 
-The dashboard is constructed out of ``ExplainerComponents``: self-contained
+The dashboard is constructed out of ``ExplainerComponents``: self-contained reusable
 elements usually consisting of a plot or table and various dropdowns, sliders 
 and toggles to manipulate that plot. Components can be connected with connectors,
 so that when you select an index in one component that automatically updates the
@@ -28,17 +28,13 @@ but with no group cats or highlight toggle, and initial feature set to 'Fare'::
 
     from explainerdashboard.dashboard_components import *
 
-    header = ExplainerHeader(explainer, mode="standalone")
     shap_dependence = ShapDependenceComponent(explainer, 
                             hide_title=True, hide_cats=True, hide_highlight=True,
                             cats=True, col='Fare')
             
-    layout = dbc.Container([
-        dbc.Col([
-            header.layout(),
+    layout = html.Div([
             shap_dependence.layout()
         ])  
-    ])
     
     app = JupyterDash()
     app.title = "Titanic Explainer"
@@ -52,12 +48,13 @@ design a modern looking web layout. Then you can simply add ``component.layout()
 to the layout and call ``component.register_callbacks(app)`` to register the 
 callbacks to the app, and start the server. 
 
-ExplainerComponent and ExplainerHeader
-======================================
+ExplainerComponent
+==================
 
 Each component subclasses ``ExplainerComponent`` which provides the basic
-functionality of registering subcomponents, dependencies, adding a header to 
-the layout, registering callbacks of subcomponents, and calculating dependencies.
+functionality of registering subcomponents, dependencies, registering callbacks 
+of subcomponents, calculating dependencies, and providing a list of pos label 
+selector of all subcomponents.
 
 ExplainerComponent
 ------------------
@@ -65,11 +62,6 @@ ExplainerComponent
 .. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerComponent
    :members:
 
-ExplainerHeader
----------------
-
-.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerHeader
-   :members:
 
 shap_components
 ===============
@@ -259,6 +251,19 @@ CutoffPercentileComponent
 
 .. autoclass:: explainerdashboard.dashboard_components.connectors.CutoffPercentileComponent
    :members:
+
+PosLabelSelector
+----------------
+
+.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.PosLabelSelector
+   :members:
+
+PosLabelConnector
+-----------------
+
+.. autoclass:: explainerdashboard.dashboard_components.connectors.PosLabelConnector
+   :members:
+
 
 CutoffConnector
 ---------------
