@@ -21,7 +21,7 @@ from .decisiontree_components import *
 
 class ClassifierModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Classification Stats", name=None,
-                    hide_selector=True,
+                    hide_title=False, hide_selector=True,
                     bin_size=0.1, quantiles=10, cutoff=0.5):
         """Composite of multiple classifier related components: 
             - precision graph
@@ -39,12 +39,15 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
+            hide_title (bool, optional): hide title. Defaults to False.          
+            hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
             bin_size (float, optional): bin_size for precision plot. Defaults to 0.1.
             quantiles (int, optional): number of quantiles for precision plot. Defaults to 10.
             cutoff (float, optional): initial cutoff. Defaults to 0.5.
         """
         super().__init__(explainer, title, name)
+
+        self.hide_title = hide_title
 
         self.precision = PrecisionComponent(explainer, hide_selector=hide_selector)
         self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector)
@@ -65,7 +68,11 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-            dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                     html.H2('Model Performance:')]), hide=self.hide_title),
+            ]),
             dbc.Row([
                 dbc.Col([
                     self.cutoffpercentile.layout(),
@@ -100,6 +107,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 
 class RegressionModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Regression Stats", name=None,
+                    hide_title=False,
                     logs=False, pred_or_actual="vs_pred", ratio=False,
                     col=None):
         """Composite for displaying multiple regression related graphs:
@@ -116,6 +124,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title. Defaults to False.
             logs (bool, optional): Use log axis. Defaults to False.
             pred_or_actual (str, optional): plot residuals vs predictions 
                         or vs y (actual). Defaults to "vs_pred".
@@ -124,6 +133,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
      
+        self.hide_title = hide_title
         assert pred_or_actual in ['vs_actual', 'vs_pred'], \
             "pred_or_actual should be 'vs_actual' or 'vs_pred'!"
 
@@ -138,7 +148,11 @@ class RegressionModelStatsComposite(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-            dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        html.H2('Model Performance:')]), hide=self.hide_title)
+            ]),
             dbc.Row([
                 dbc.Col([
                     self.preds_vs_actual.layout()
@@ -160,7 +174,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
 
 class IndividualPredictionsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Individual Predictions", name=None,
-                        hide_selector=True):
+                        hide_title=False, hide_selector=True):
         """Composite for a number of component that deal with individual predictions:
 
         - random index selector
@@ -177,9 +191,12 @@ class IndividualPredictionsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title. Defaults to False.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
         """
         super().__init__(explainer, title, name)
+
+        self.hide_title = hide_title
 
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(

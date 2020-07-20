@@ -17,7 +17,8 @@ from .dashboard_methods import *
 
 class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary", name=None,
-                    hide_index=False, hide_percentile=False, hide_selector=False,
+                    hide_index=False, hide_percentile=False, 
+                    hide_title=False, hide_selector=False,
                     index=None, percentile=True):
         """Shows a summary for a particular prediction
 
@@ -31,6 +32,7 @@ class PredictionSummaryComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_percentile (bool, optional): hide percentile toggle. Defaults to False.
+            hide_title (bool, optional): hide title. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
             percentile (bool, optional): Whether to add the prediction percentile. Defaults to True.
@@ -38,7 +40,7 @@ class PredictionSummaryComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         self.hide_index, self.hide_percentile = hide_index, hide_percentile
-        self.hide_selector = hide_selector
+        self.hide_title, self.hide_selector = hide_title, hide_selector
         self.index, self.percentile = index, percentile
 
         self.index_name = 'modelprediction-index-'+self.name
@@ -46,7 +48,8 @@ class PredictionSummaryComponent(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-            html.H3("Predictions summary:"),
+            make_hideable(
+                html.H3("Predictions summary:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -98,7 +101,7 @@ class PredictionSummaryComponent(ExplainerComponent):
 class ImportancesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Importances", name=None,
                         hide_type=False, hide_depth=False, hide_cats=False,
-                        hide_selector=False,
+                        hide_title=False, hide_selector=False,
                         importance_type="shap", depth=None, cats=True):
         """Display features importances component
 
@@ -116,6 +119,7 @@ class ImportancesComponent(ExplainerComponent):
                         Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. 
                         Defaults to False.
+            hide_title (bool, optional): hide title. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                         Defaults to False.
             importance_type (str, {'permuation', 'shap'} optional): 
@@ -129,6 +133,7 @@ class ImportancesComponent(ExplainerComponent):
         self.hide_type = hide_type
         self.hide_depth = hide_depth
         self.hide_cats = hide_cats
+        self.hide_title = hide_title
         self.hide_selector = hide_selector
         if self.explainer.cats is None or not self.explainer.cats:
             self.hide_cats = True
@@ -145,8 +150,11 @@ class ImportancesComponent(ExplainerComponent):
             'permutation_importances', 'permutation_importances_cats'])
 
     def layout(self):
-        return dbc.Container([
-            dbc.Row([dbc.Col([html.H2('Feature Importances:')])]),
+        return html.Div([
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([html.H2('Feature Importances:')]), hide=self.hide_title),
+            ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -198,7 +206,7 @@ class ImportancesComponent(ExplainerComponent):
                             children=[dcc.Graph(id='importances-graph-'+self.name)])
                 ]),
             ]), 
-            ], fluid=True)
+        ])
         
     def _register_callbacks(self, app, **kwargs):
         @app.callback(  
@@ -217,7 +225,7 @@ class ImportancesComponent(ExplainerComponent):
 class PdpComponent(ExplainerComponent):
     def __init__(self, explainer, title="Partial Dependence Plot", name=None,
                     hide_col=False, hide_index=False, hide_cats=False,
-                    hide_selector=False,
+                    hide_title=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False,
                     col=None, index=None, cats=True,
@@ -235,6 +243,7 @@ class PdpComponent(ExplainerComponent):
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_title (bool, optional): Hide title, Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
@@ -251,7 +260,7 @@ class PdpComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         self.hide_col, self.hide_index, self.hide_cats = hide_col, hide_index, hide_cats
-        self.hide_selector = hide_selector
+        self.hide_title, self.hide_selector = hide_title, hide_selector
         self.hide_dropna, self.hide_sample = hide_dropna, hide_sample
         self.hide_gridlines, self.hide_gridpoints = hide_gridlines, hide_gridpoints
 
@@ -268,7 +277,8 @@ class PdpComponent(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-                html.H3('Partial Dependence Plot:'),
+                make_hideable(
+                    html.H3('Partial Dependence Plot:'), hide=self.hide_title),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([

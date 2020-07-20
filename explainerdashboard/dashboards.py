@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ['ExplainerDashboard', 
+__all__ = ['ExplainerTabsLayout',
+            'ExplainerPageLayout',
+            'ExplainerDashboard', 
             'JupyterExplainerDashboard',
             'ExplainerTab',
             'JupyterExplainerTab',
