@@ -133,7 +133,7 @@ class DecisionPathTableComponent(ExplainerComponent):
             highlight (int, optional): Initial tree idx to display decision 
                         path for. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.hide_title, self.hide_index, self.hide_highlight = \
             hide_title, hide_index, hide_highlight
         self.hide_selector = hide_selector

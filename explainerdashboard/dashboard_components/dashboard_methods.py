@@ -2,7 +2,6 @@ __all__ = [
     'delegates_kwargs',
     'delegates_doc',
     'DummyComponent',
-    'ExplainerHeader',
     'ExplainerComponent',
     'PosLabelSelector',
     'make_hideable',
@@ -95,106 +94,6 @@ class DummyComponent:
 
     def register_callbacks(self, app):
         pass
-
-
-# class ExplainerHeader:
-#     """
-#     Generates a header layout with a title and, for classification models, a
-#     positive label selector. The callbacks for most of the ExplainerComponents
-#     expect the presence of both a 'pos-label' and a 'tabs' dash element, so you
-#     have to make sure there is at least an element with that name.
-
-#     If you have standalone page without tabs ans so without a dcc.Tabs 
-#     component, an ExplainerHeader(mode='standalone') will insert a dummy 
-#     'tabs' hidden div.
-
-#     Even if you don't need or want a positive label selector in your layout, 
-#     you still need a 'pos-label' input element in order for the callbacks
-#     to be validated. an ExplainerHeader(mode='hidden'), will add a hidden
-#     div with both a 'tabs' and a 'pos-label' element.
-
-#     For a subcomponent, you don't need to define either a 'pos-label' or
-#     a 'tabs' element (these are taken care off by the overall layout),
-#     so ExplainerHeader(mode='none'), will simply add a dummy hidden layout.
-#     """
-#     def __init__(self, explainer, mode="none", title="Explainer Dashboard",
-#                     hide_title=False, hide_selector=False, fluid=True):
-#         """Insert appropriate header layout into explainable dashboard layout.
-
-#         Args:
-#             explainer ([type]): [description]
-#             mode (str, {'dashboard', 'standalone', 'hidden', 'none', optional): 
-#                 "dashboard": Display both title and label selector.
-#                     Used for ExplainerDashboard.
-#                 "dashboard_titleonly": Display title and add dummy label selector
-#                 "standalone": display title and label selector, insert dummy 'tabs'.
-#                     Used for ExplainerTabs or standalone single layouts.
-#                 "hidden": don't display header but insert dummy elements 'pos-label' and 'tabs'. 
-#                     Used for InlineExplainer.
-#                 "none": don't generate any header at all.
-#                     Used for sub ExplainerComponents.. Defaults to "none".
-#             title (str, optional): Title to display in header. 
-#                     Defaults to "Explainer Dashboard".
-#             hide_title(bool, optional): Hide the title. Defaults to False.
-#             hide_selector(bool, optional): Hide the selector. Defaults to False.
-#             fluid(bool, optional): whether to "stretch" (fluid=True) the layout
-#                     of the dbc.Container([])
-            
-#         """
-#         assert mode in ["dashboard", "standalone", "hidden", "none"]
-#         self.explainer = explainer
-#         self.mode = mode
-#         self.title = title
-#         self.hide_title, self.hide_selector = hide_title, hide_selector
-#         self.fluid = fluid
-
-#     def layout(self):
-#         """html.Div() with elements depending on self.mode:
-
-#         - 'dashboard': title+positive label selector
-#         - 'standalone': title+positive label selector + hidden 'tabs' element
-#         - 'hidden': hidden 'pos-label' and 'tabs' element
-#         - 'none': empty layout
-#         """
-#         dummy_pos_label = html.Div(
-#                 [dcc.Input(id="pos-label")], style=dict(display="none"))
-#         dummy_tabs = None #html.Div(dcc.Input(id="tabs"), style=dict(display="none"))
-
-#         title_col = make_hideable(
-#             dbc.Col([html.H1(self.title)], width='auto'), hide=self.hide_title)
-
-
-#         if self.explainer.is_classifier:
-#             pos_label_group = make_hideable(
-#                 dbc.Col([
-#                     dbc.Label("Positive class:", html_for="pos-label"),
-#                     dcc.Dropdown(
-#                         id='pos-label',
-#                         options = [{'label': label, 'value': i}
-#                                 for i, label in enumerate(self.explainer.labels)],
-#                         value = self.explainer.pos_label)
-#                 ], width=2), 
-#                 hide=self.hide_selector)
-#         else:
-#             pos_label_group = html.Div(
-#                 [dcc.Input(id="pos-label")], style=dict(display="none"))
-
-#         if self.mode=="dashboard":
-#             return dbc.Container([
-#                 dbc.Row([title_col, pos_label_group],
-#                 justify="start", align="center")
-#             ], fluid=self.fluid)
-#         elif self.mode=="standalone":
-#             return dbc.Container([
-#                 dbc.Row([title_col, pos_label_group, dummy_tabs],
-#                 justify="start", align="center")
-#             ], fluid=self.fluid)
-#         elif self.mode=="hidden":
-#             return html.Div(
-#                     dbc.Row([pos_label_group, dummy_tabs])
-#             , style=dict(display="none"))
-#         elif self.mode=="none":
-#             return None
 
 
 class ExplainerComponent(ABC):
@@ -333,11 +232,26 @@ class ExplainerComponent(ABC):
 
 
 class PosLabelSelector(ExplainerComponent):
-    def __init__(self, explainer, title='Pos Label Selector',
-                     header_mode="none", name=None,
+    """For classifier models displays a drop down menu with labels to be selected
+    as the positive class.
+    """
+    def __init__(self, explainer, title='Pos Label Selector', name=None,
                      pos_label=None):
-        super().__init__(explainer, title, header_mode, name)
+        """Generates a positive label selector with element id 'pos_label-'+self.name
+
+        Args:
+            explainer (Explainer): explainer object constructed with e.g.
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to None.
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to 'Pos Label Selector'.
+            pos_label (int, optional): Initial pos label. Defaults to 
+                        explainer.pos_label.
+        """
+        super().__init__(explainer, title, name)
         self.pos_label = pos_label if pos_label is not None else explainer.pos_label
+
     def layout(self):
         if self.explainer.is_classifier:
             return html.Div([
