@@ -2,22 +2,29 @@
 
 ## Version 2.1:
 ### Breaking Changes
-- 
-- 
+- Removed ExplainerHeader from ExplainerComponents
+    - so also removed header_mode from ExplainerComponent parameters
+- You can now syncronize pos labels across components with a PosLabelSelector
+    and PosLabelConnector.
 
 ### New Features
-- PercentileCutoffComponent now has parameter orientation: {'horizontal', 'vertical}
 -
 
 ### Bug Fixes
 - Interaction connector bug fixed in detailed summary: click didn't work
--
+- pos label was ignored in explainer.plot_pdp()
 
 ### Improvements
 - All `State['tabs', 'value']` condition have been taken out of callbacks. This
     used to fix some bugs with dash tabs, but seems it works even without, so
     also no need to insert dummy_tabs in `ExplainerHeader`.
-- All `ExplainerComponents` now have their own pos label selector.
+- All `ExplainerComponents` now have their own pos label selector, meaning
+    that they are now fully self-containted and independent. No global dash
+    elements in component callbacks. 
+- You can define the layout of ExplainerComponents in a layout() method instead
+    of _layout(). Should still define _register_callbacks() to define callbacks
+    so that all subcomponents that have been registered will automatically
+    get their callbacks registered as well. 
 
 ### Other Changes
 -
