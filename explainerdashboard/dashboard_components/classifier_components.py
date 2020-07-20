@@ -19,8 +19,7 @@ from .dashboard_methods import *
 
 
 class PrecisionComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Precision Plot",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Precision Plot", name=None,
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
                     hide_multiclass=False, hide_selector=False,
                     bin_size=0.1, quantiles=10, cutoff=0.5,
@@ -32,8 +31,6 @@ class PrecisionComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Precision Plot".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -49,7 +46,7 @@ class PrecisionComponent(ExplainerComponent):
             quantiles_or_binsize (str, {'quantiles', 'bin_size'}, optional): Default bin method. Defaults to 'bin_size'.
             multiclass (bool, optional): Display all classes. Defaults to False.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff, self.hide_binsize = hide_cutoff, hide_binsize
         self.hide_binmethod, self.hide_multiclass = hide_binmethod, hide_multiclass
@@ -62,7 +59,7 @@ class PrecisionComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 make_hideable(
@@ -185,8 +182,7 @@ class PrecisionComponent(ExplainerComponent):
 
 
 class ConfusionMatrixComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Confusion Matrix",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Confusion Matrix", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
                     hide_selector=False,
                     cutoff=0.5, percentage=True, binary=True):
@@ -197,8 +193,6 @@ class ConfusionMatrixComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Confusion Matrix".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -210,7 +204,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
             binary (bool, optional): Show binary instead of multiclass confusion matrix. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
         self.hide_binary, self.hide_selector = hide_binary, hide_selector
@@ -220,7 +214,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 make_hideable(
@@ -284,8 +278,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
 
 
 class LiftCurveComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Lift Curve",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Lift Curve", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
                     cutoff=0.5, percentage=True):
         """Show liftcurve component
@@ -295,8 +288,6 @@ class LiftCurveComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Lift Curve".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -306,7 +297,7 @@ class LiftCurveComponent(ExplainerComponent):
             cutoff (float, optional): Cutoff for lift curve. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
         self.hide_selector = hide_selector
@@ -316,7 +307,7 @@ class LiftCurveComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 make_hideable(
@@ -365,8 +356,7 @@ class LiftCurveComponent(ExplainerComponent):
 
 
 class ClassificationComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Classification Plot",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Classification Plot", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
                     cutoff=0.5, percentage=True):
         """Shows a barchart of the number of classes above the cutoff and below
@@ -377,8 +367,6 @@ class ClassificationComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Classification Plot".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -388,7 +376,7 @@ class ClassificationComponent(ExplainerComponent):
             cutoff (float, optional): Cutoff for prediction. Defaults to 0.5.
             percentage (bool, optional): Show percentage instead of counts. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
         self.hide_selector = hide_selector
@@ -398,7 +386,7 @@ class ClassificationComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 make_hideable(
@@ -448,8 +436,7 @@ class ClassificationComponent(ExplainerComponent):
 
 
 class RocAucComponent(ExplainerComponent):
-    def __init__(self, explainer, title="ROC AUC Plot",
-                    header_mode="none", name=None, 
+    def __init__(self, explainer, title="ROC AUC Plot", name=None, 
                     hide_cutoff=False, hide_selector=False,
                     cutoff=0.5):
         """Show ROC AUC curve component
@@ -459,8 +446,6 @@ class RocAucComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "ROC AUC Plot".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -468,7 +453,7 @@ class RocAucComponent(ExplainerComponent):
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff, self.hide_selector = hide_cutoff, hide_selector
         self.cutoff=cutoff
@@ -477,7 +462,7 @@ class RocAucComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 make_hideable(
@@ -509,8 +494,7 @@ class RocAucComponent(ExplainerComponent):
 
 
 class PrAucComponent(ExplainerComponent):
-    def __init__(self, explainer, title="PR AUC Plot",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="PR AUC Plot", name=None,
                     hide_cutoff=False, hide_selector=False,
                     cutoff=0.5):
         """Display PR AUC plot component
@@ -520,8 +504,6 @@ class PrAucComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "PR AUC Plot".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -529,7 +511,7 @@ class PrAucComponent(ExplainerComponent):
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff, self.hide_selector = hide_cutoff, hide_selector
         self.cutoff = cutoff
@@ -538,7 +520,7 @@ class PrAucComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 make_hideable(

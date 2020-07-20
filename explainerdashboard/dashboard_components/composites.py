@@ -20,8 +20,7 @@ from .decisiontree_components import *
 
 
 class ClassifierModelStatsComposite(ExplainerComponent):
-    def __init__(self, explainer, title="Classification Stats", 
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Classification Stats", name=None,
                     hide_selector=True,
                     bin_size=0.1, quantiles=10, cutoff=0.5):
         """Composite of multiple classifier related components: 
@@ -37,8 +36,6 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision Trees".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -47,7 +44,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             quantiles (int, optional): number of quantiles for precision plot. Defaults to 10.
             cutoff (float, optional): initial cutoff. Defaults to 0.5.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.precision = PrecisionComponent(explainer, hide_selector=hide_selector)
         self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector)
@@ -66,8 +63,8 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             self.classification, self.rocauc, self.prauc, self.cutoffpercentile,
             self.cutoffconnector)
 
-    def _layout(self):
-        return dbc.Container([
+    def layout(self):
+        return html.Div([
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
             dbc.Row([
                 dbc.Col([
@@ -98,12 +95,11 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                     self.prauc.layout()
                 ], md=6),
             ]),
-        ], fluid=True)
+        ])
 
 
 class RegressionModelStatsComposite(ExplainerComponent):
-    def __init__(self, explainer, title="Regression Stats", 
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Regression Stats", name=None,
                     logs=False, pred_or_actual="vs_pred", ratio=False,
                     col=None):
         """Composite for displaying multiple regression related graphs:
@@ -117,8 +113,6 @@ class RegressionModelStatsComposite(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Regression Stats".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -128,7 +122,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
             ratio (bool, optional): Use residual ratios. Defaults to False.
             col ({str, int}, optional): Feature to use for residuals plot. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
      
         assert pred_or_actual in ['vs_actual', 'vs_pred'], \
             "pred_or_actual should be 'vs_actual' or 'vs_pred'!"
@@ -142,8 +136,8 @@ class RegressionModelStatsComposite(ExplainerComponent):
         self.register_components([self.preds_vs_actual, self.modelsummary,
                     self.residuals, self.residuals_vs_col])
 
-    def _layout(self):
-        return dbc.Container([
+    def layout(self):
+        return html.Div([
             dbc.Row([dbc.Col([html.H2('Model Performance:')])]),
             dbc.Row([
                 dbc.Col([
@@ -161,12 +155,11 @@ class RegressionModelStatsComposite(ExplainerComponent):
                     self.residuals_vs_col.layout()
                 ], md=6),
             ])
-        ], fluid=True)
+        ])
 
 
 class IndividualPredictionsComposite(ExplainerComponent):
-    def __init__(self, explainer, title="Individual Predictions",
-                        header_mode="none", name=None,
+    def __init__(self, explainer, title="Individual Predictions", name=None,
                         hide_selector=True):
         """Composite for a number of component that deal with individual predictions:
 
@@ -181,8 +174,6 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Individual Predictions".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -209,9 +200,8 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
         self.register_components(self.index, self.summary, self.contributions, self.pdp, self.contributions_list, self.index_connector)
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
-            dbc.Container([
                 dbc.Row([
                     dbc.Col([
                         self.index.layout()
@@ -236,13 +226,11 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         html.Div([]),
                     ]),
                 ])
-            ], fluid=True),
         ])
 
 
 class ShapDependenceComposite(ExplainerComponent):
-    def __init__(self, explainer, title='Feature Dependence',
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title='Feature Dependence', name=None,
                     hide_selector=True,
                     depth=None, cats=True):
         """Composite of ShapSummary and ShapDependence component
@@ -252,8 +240,6 @@ class ShapDependenceComposite(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Feature Dependence".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -261,7 +247,7 @@ class ShapDependenceComposite(ExplainerComponent):
             depth (int, optional): Number of features to display. Defaults to None.
             cats (bool, optional): Group categorical features. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         
         self.shap_summary = ShapSummaryComponent(
                     self.explainer, 
@@ -275,7 +261,7 @@ class ShapDependenceComposite(ExplainerComponent):
                     self.shap_summary, self.shap_dependence)
         self.register_components(self.shap_summary, self.shap_dependence, self.connector)
 
-    def _layout(self):
+    def layout(self):
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
@@ -289,8 +275,7 @@ class ShapDependenceComposite(ExplainerComponent):
 
 
 class ShapInteractionsComposite(ExplainerComponent):
-    def __init__(self, explainer, title='Feature Interactions',
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title='Feature Interactions', name=None,
                     hide_selector=True,
                     depth=None, cats=True):
         """Composite of InteractionSummaryComponent and InteractionDependenceComponent
@@ -300,8 +285,6 @@ class ShapInteractionsComposite(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Feature Interactions".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -309,7 +292,7 @@ class ShapInteractionsComposite(ExplainerComponent):
             depth (int, optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Initally group cats. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.interaction_summary = InteractionSummaryComponent(
                 explainer, hide_selector=hide_selector, depth=depth, cats=cats)
@@ -320,9 +303,8 @@ class ShapInteractionsComposite(ExplainerComponent):
         self.register_components(
             self.interaction_summary, self.interaction_dependence, self.connector)
         
-    def _layout(self):
+    def layout(self):
         return html.Div([
-            dbc.Container([
                 dbc.Row([
                     dbc.Col([
                         self.interaction_summary.layout()
@@ -330,14 +312,12 @@ class ShapInteractionsComposite(ExplainerComponent):
                     dbc.Col([
                         self.interaction_dependence.layout()
                     ], width=6),
-                ])
-            ], fluid=True)  
+                ]) 
         ])
 
 
 class DecisionTreesComposite(ExplainerComponent):
-    def __init__(self, explainer, title="Decision Trees",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision Trees", name=None,
                     hide_selector=True):
         """Composite of decision tree related components:
         
@@ -350,14 +330,12 @@ class DecisionTreesComposite(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision Trees".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         
         self.index = ClassifierRandomIndexComponent(explainer, hide_selector=hide_selector)
         self.trees = DecisionTreesComponent(explainer, hide_selector=hide_selector)
@@ -373,8 +351,8 @@ class DecisionTreesComposite(ExplainerComponent):
                 self.decisionpath_table, self.decisionpath_graph, 
                 self.index_connector, self.highlight_connector)
 
-    def _layout(self):
-        return dbc.Container([
+    def layout(self):
+        return html.Div([
             dbc.Row([
                 dbc.Col([
                     self.index.layout(),
