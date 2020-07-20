@@ -8,7 +8,7 @@
     and PosLabelConnector.
 
 ### New Features
--
+- added check all shap values >-1 and <1 for model_output=probability
 
 ### Bug Fixes
 - Interaction connector bug fixed in detailed summary: click didn't work
@@ -27,7 +27,7 @@
     get their callbacks registered as well. 
 
 ### Other Changes
--
+-   added hide_title parameter to all components with a title
 -
 
 ## version 0.2:

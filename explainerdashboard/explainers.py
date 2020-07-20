@@ -1379,7 +1379,7 @@ class ClassifierExplainer(BaseExplainer):
     def permutation_importances(self):
         """Permutation importances"""
         if not hasattr(self, '_perm_imps'):
-            print("Calculating importances...")
+            print("Calculating permutation importances...")
             self._perm_imps = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric,
                             cv=self.permutation_cv,
@@ -1407,18 +1407,21 @@ class ClassifierExplainer(BaseExplainer):
             if isinstance(self._shap_base_value, np.ndarray) and len(self._shap_base_value) == 1:
                 self._shap_base_value = self._shap_base_value[0]
             if isinstance(self._shap_base_value, np.ndarray):
+            
                 self._shap_base_value = list(self._shap_base_value)
             if len(self.labels)==2 and isinstance(self._shap_base_value, (np.floating, float)):
                 if self.model_output == 'probability':
-                    assert self._shap_base_value >= 0.0 and self._shap_base_value <= 1.0, \
-                        (f"Shap base value does not look like a probability: {self._shap_base_value}. "
-                         "Try setting model_output='logodds'.")
                     self._shap_base_value = [1-self._shap_base_value, self._shap_base_value]
                 else: # assume logodds
                     self._shap_base_value = [-self._shap_base_value, self._shap_base_value]
             assert len(self._shap_base_value)==len(self.labels),\
                 f"len(shap_explainer.expected_value)={len(self._shap_base_value)}"\
                  + f"and len(labels)={len(self.labels)} do not match!"
+            if self.model_output == 'probability':
+                for shap_base_value in self._shap_base_value:
+                    assert shap_base_value >= 0.0 and shap_base_value <= 1.0, \
+                        (f"Shap base value does not look like a probability: {self._shap_base_value}. "
+                         "Try setting model_output='logodds'.")
         return default_list(self._shap_base_value, self.pos_label)
 
     @property
@@ -1437,6 +1440,15 @@ class ClassifierExplainer(BaseExplainer):
             assert len(self._shap_values)==len(self.labels),\
                 f"len(shap_values)={len(self._shap_values)}"\
                 + f"and len(labels)={len(self.labels)} do not match!"
+            if self.model_output == 'probability':
+                for shap_values in self._shap_values:
+                    assert np.all(shap_values >= -1.0) , \
+                        (f"model_output=='probability but some shap values are < 1.0!"
+                         "Try setting model_output='logodds'.")
+                for shap_values in self._shap_values:
+                    assert np.all(shap_values <= 1.0) , \
+                        (f"model_output=='probability but some shap values are > 1.0!"
+                         "Try setting model_output='logodds'.")
         return default_list(self._shap_values, self.pos_label)
 
     @property

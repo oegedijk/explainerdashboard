@@ -30,15 +30,15 @@
 - add log ratio
 
 ## Explainers:
-- check all shap values >-1 and <1 for model_output=probability
-- set "calculating permutation importances.."
+
 
 ## Dashboard:
 - add option for vertical contributions?
  
 
 ### Components
-- add hide_title to all components
+- add pos_label_name property to PosLabelConnector search
+
 
 ## Methods:
 - Add LIME values
@@ -52,12 +52,15 @@
 - add test coverage (add a badge)
 
 ## Docs:
+- add screenshots of components to docs
+- move screenshots to separate folder
+- document PosLabelSelector and PosLabelConnector, e.g.:
+        self.connector = PosLabelConnector(self.roc_auc, self)
+        self.register_components(self.connector)
 
 
 ## Library level:
-- add @delegates_kwargs_and_doc_to() 
 - add more screenshots to README with https://postimages.org/
-- add badges to README: https://github.com/badges/shields
--> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg
 - https://github.com/marketplace/actions/coveralls-python
 - submit pull request to dtreeviz to accept shadowtree as parameter
+- submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
