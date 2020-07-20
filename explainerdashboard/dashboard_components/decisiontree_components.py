@@ -19,8 +19,7 @@ from .connectors import ClassifierRandomIndexComponent, IndexConnector, Highligh
 
 
 class DecisionTreesComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision Trees",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision Trees", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
                     index=None, highlight=None):
@@ -31,8 +30,6 @@ class DecisionTreesComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision Trees".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -43,7 +40,7 @@ class DecisionTreesComponent(ExplainerComponent):
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree to highlight. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.hide_title = hide_title
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.hide_selector = hide_selector
@@ -55,7 +52,7 @@ class DecisionTreesComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("preds", "pred_probas")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(
                 html.H3("Decision trees:"), hide=self.hide_title),
@@ -110,8 +107,7 @@ class DecisionTreesComponent(ExplainerComponent):
             raise PreventUpdate
 
 class DecisionPathTableComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision path table",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision path table", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
                     index=None, highlight=None):
@@ -122,8 +118,6 @@ class DecisionPathTableComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision path table".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -151,7 +145,7 @@ class DecisionPathTableComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("decision_trees")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(
                 html.H3("Decision path:"), hide=self.hide_title),
@@ -199,8 +193,7 @@ class DecisionPathTableComponent(ExplainerComponent):
 
 
 class DecisionPathGraphComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision path graph",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision path graph", name=None,
                     hide_title=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
                     hide_selector=False,
@@ -212,8 +205,6 @@ class DecisionPathGraphComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision path graph".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -225,7 +216,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.hide_selector = hide_selector
         self.hide_title, self.hide_button = hide_title, hide_button
@@ -236,7 +227,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name)
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(
                 html.H3("Decision Tree Graph:"), hide=self.hide_title),

@@ -21,8 +21,7 @@ from dash.exceptions import PreventUpdate
 from .dashboard_methods import  *
 
 class ClassifierRandomIndexComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Select Random Index",
-                        header_mode="none", name=None,
+    def __init__(self, explainer, title="Select Random Index", name=None,
                         hide_index=False, hide_slider=False, 
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
@@ -35,8 +34,6 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Select Random Index".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -57,7 +54,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             pred_or_perc (str, optional): Whether to use prediction or 
                         percentiles slider. Defaults to 'predictions'.
         """
-        super().__init__(explainer,title, header_mode, name)
+        super().__init__(explainer,title, name)
 
         self.hide_index, self.hide_slider = hide_index, hide_slider
         self.hide_labels, self.hide_pred_or_perc = hide_labels, hide_pred_or_perc
@@ -88,13 +85,12 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         assert self.pred_or_perc in ['predictions', 'percentiles'], \
             "pred_or_perc should either be `predictions` or `percentiles`!"
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             html.H3("Select index:"),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                            #dbc.Label("Index:", html_for='random-index-clas-index-'+self.name),
                             dcc.Dropdown(id='random-index-clas-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
                                                     for idx in self.explainer.idxs],
@@ -181,8 +177,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             raise PreventUpdate
 
 class RegressionRandomIndexComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Select Random Index",
-                        header_mode="none", name=None,
+    def __init__(self, explainer, title="Select Random Index", name=None,
                         hide_index=False, hide_pred_slider=False, 
                         hide_residual_slider=False, hide_pred_or_y=False, 
                         hide_abs_residuals=False, hide_button=False, 
@@ -196,8 +191,6 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Select Random Index".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -269,7 +262,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
         assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             html.H3("Select index:"),
             dbc.Row([
@@ -501,8 +494,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
 
 class CutoffPercentileComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Global cutoff",
-                        header_mode="none", name=None,
+    def __init__(self, explainer, title="Global cutoff", name=None,
                         hide_cutoff=False, hide_percentile=False, 
                         hide_selector=False,
                         cutoff=0.5, percentile=None):
@@ -519,8 +511,6 @@ class CutoffPercentileComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Global Cutoff".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -530,7 +520,7 @@ class CutoffPercentileComponent(ExplainerComponent):
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_cutoff = hide_cutoff
         self.hide_percentile = hide_percentile
@@ -542,7 +532,7 @@ class CutoffPercentileComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies(['preds', 'pred_percentiles'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 dbc.Col([

@@ -19,8 +19,7 @@ from .dashboard_methods import *
 
 
 class ShapSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title='Shap Dependence Summary',
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title='Shap Dependence Summary', name=None,
                     hide_title=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_selector=False,
                     depth=None, summary_type="aggregate", cats=True):
@@ -31,8 +30,6 @@ class ShapSummaryComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Shap Dependence Summary".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -49,7 +46,7 @@ class ShapSummaryComponent(ExplainerComponent):
                         summary graph to show. Defaults to "aggregate".
             cats (bool, optional): group cats. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_depth,  = hide_title, hide_depth
         self.hide_type, self.hide_cats = hide_type, hide_cats
@@ -65,7 +62,7 @@ class ShapSummaryComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies('shap_values', 'shap_values_cats')
              
-    def _layout(self):
+    def layout(self):
         return dbc.Container([
             make_hideable(html.H3('Shap Summary'), hide=self.hide_title),
             dbc.Row([
@@ -145,8 +142,7 @@ class ShapSummaryComponent(ExplainerComponent):
 
 
 class ShapDependenceComponent(ExplainerComponent):
-    def __init__(self, explainer, title='Shap Dependence',
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title='Shap Dependence', name=None,
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_color_col=False, hide_highlight=False,
                     hide_selector=False,
@@ -158,8 +154,6 @@ class ShapDependenceComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Shap Dependence".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -175,7 +169,7 @@ class ShapDependenceComponent(ExplainerComponent):
                         Defaults to None.
             highlight (int, optional): Highlight a particular row. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_cats, self.hide_col = hide_title, hide_cats, hide_col
         self.hide_color_col, self.hide_highlight = hide_color_col, hide_highlight
@@ -190,7 +184,7 @@ class ShapDependenceComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies('shap_values', 'shap_values_cats')
              
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(html.H3('Shap Dependence Plot'), hide=self.hide_title),
             dbc.Row([
@@ -312,8 +306,7 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 
 
 class InteractionSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Interactions Summary",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Interactions Summary", name=None,
                     hide_title=False, hide_col=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_selector=False,
                     col=None, depth=None, summary_type="aggregate", cats=True):
@@ -324,8 +317,6 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Interactions Summary".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -340,7 +331,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
             cats (bool, optional): Group categorical features. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_col, self.hide_depth, self.hide_type, self.hide_cats = \
             hide_title, hide_col, hide_depth, hide_type, hide_cats
@@ -356,7 +347,7 @@ class InteractionSummaryComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(html.H3('Shap Interaction Summary'), hide=self.hide_title),
             dbc.Row([
@@ -443,8 +434,7 @@ class InteractionSummaryComponent(ExplainerComponent):
         
 
 class InteractionDependenceComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Interaction Dependence",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Interaction Dependence", name=None,
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_highlight=False,
                     hide_selector=False, hide_top=False, hide_bottom=False,
@@ -460,8 +450,6 @@ class InteractionDependenceComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Interactions Dependence".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -478,7 +466,7 @@ class InteractionDependenceComponent(ExplainerComponent):
             interact_col (str, optional): Feature to interact with. Defaults to None.
             highlight (int, optional): Index row to highlight Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_highlight = \
             hide_title, hide_cats, hide_col, hide_interact_col, hide_highlight
@@ -496,7 +484,7 @@ class InteractionDependenceComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(html.H3('Shap Interaction Plots'), hide=self.hide_title),
             dbc.Row([
@@ -628,8 +616,7 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
 
 class ShapContributionsGraphComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Contributions",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Contributions", name=None,
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_cats=False, hide_selector=False,
                     index=None, depth=None, cats=True):
@@ -640,8 +627,6 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Contributions".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -654,7 +639,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             depth (int, optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group cats. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
             hide_title, hide_index, hide_depth, hide_cats
@@ -669,7 +654,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies('shap_values', 'shap_values_cats')
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
             dbc.Row([
@@ -740,8 +725,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
 
 class ShapContributionsTableComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Contributions",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Contributions", name=None,
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_cats=False, 
                     hide_selector=False,
@@ -753,8 +737,6 @@ class ShapContributionsTableComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Contributions".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -767,7 +749,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             depth ([type], optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group categoricals. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
             hide_title, hide_index, hide_depth, hide_cats
@@ -782,7 +764,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name)
         self.register_dependencies('shap_values', 'shap_values_cats')
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
             dbc.Row([

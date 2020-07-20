@@ -17,8 +17,7 @@ from .dashboard_methods import *
 
 
 class PredictedVsActualComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Predicted vs Actual",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     hide_logs=False,
                     logs=False):
         """Shows a plot of predictions vs y.
@@ -28,20 +27,18 @@ class PredictedVsActualComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Predicted vs Actual".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_logs (bool, optional): Hide the logs toggle. Defaults to False.
             logs (bool, optional): Whether to use log axis. Defaults to False.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.hide_logs = hide_logs
         self.logs = logs
         self.register_dependencies(['preds'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 dbc.Col([
@@ -75,8 +72,7 @@ class PredictedVsActualComponent(ExplainerComponent):
             return self.explainer.plot_predicted_vs_actual(logs=logs)
 
 class ResidualsComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Residuals",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Residuals", name=None,
                     hide_pred_or_actual=False, hide_ratio=False,
                     pred_or_actual="vs_pred", ratio=False):
         """Residuals plot component
@@ -86,8 +82,6 @@ class ResidualsComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Residuals".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -100,7 +94,7 @@ class ResidualsComponent(ExplainerComponent):
             ratio (bool, optional): Show the residual/prediction or residual/actual 
                         ratio instead of raw residuals. Defaults to False.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_pred_or_actual = hide_pred_or_actual
         self.hide_ratio = hide_ratio
@@ -108,7 +102,7 @@ class ResidualsComponent(ExplainerComponent):
         self.ratio = ratio
         self.register_dependencies(['preds', 'residuals'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
                 dbc.Col([
@@ -160,8 +154,7 @@ class ResidualsComponent(ExplainerComponent):
             return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
 
 class ResidualsVsColComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Residuals vs feature",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Residuals vs feature", name=None,
                     hide_col=False, hide_ratio=False,
                     col=None, ratio=False):
         """Show residuals vs a particular Feature component
@@ -171,8 +164,6 @@ class ResidualsVsColComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Residuals vs feature".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -182,7 +173,7 @@ class ResidualsVsColComponent(ExplainerComponent):
             ratio (bool, optional): Whether to display residual ratio instead 
                         of residuals. Defaults to False.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_col, self.hide_ratio = hide_col, hide_ratio
         self.col = col
@@ -192,7 +183,7 @@ class ResidualsVsColComponent(ExplainerComponent):
         self.ratio = ratio
         self.register_dependencies(['preds', 'residuals'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dcc.Loading(id="loading-residuals-vs-col-graph-"+self.name, 
                                 children=[dcc.Graph(id='residuals-vs-col-graph-'+self.name)]),
@@ -230,8 +221,7 @@ class ResidualsVsColComponent(ExplainerComponent):
             return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
 
 class RegressionModelSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Model Summary",
-                    header_mode="none", name=None):
+    def __init__(self, explainer, title="Model Summary", name=None):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -239,16 +229,14 @@ class RegressionModelSummaryComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Model Summary".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.register_dependencies(['preds'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dcc.Loading(id='loading-model-summary-'+self.name, 
                                 children=[dcc.Markdown(id='model-summary-'+self.name)]),

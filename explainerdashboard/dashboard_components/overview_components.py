@@ -16,8 +16,7 @@ from dash.exceptions import PreventUpdate
 from .dashboard_methods import *
 
 class PredictionSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Prediction Summary",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Prediction Summary", name=None,
                     hide_index=False, hide_percentile=False, hide_selector=False,
                     index=None, percentile=True):
         """Shows a summary for a particular prediction
@@ -27,8 +26,6 @@ class PredictionSummaryComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Prediction Summary".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -38,7 +35,7 @@ class PredictionSummaryComponent(ExplainerComponent):
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
             percentile (bool, optional): Whether to add the prediction percentile. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_index, self.hide_percentile = hide_index, hide_percentile
         self.hide_selector = hide_selector
@@ -47,7 +44,7 @@ class PredictionSummaryComponent(ExplainerComponent):
         self.index_name = 'modelprediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name)
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             html.H3("Predictions summary:"),
             dbc.Row([
@@ -99,8 +96,7 @@ class PredictionSummaryComponent(ExplainerComponent):
 
 
 class ImportancesComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Importances",
-                        header_mode="none", name=None,
+    def __init__(self, explainer, title="Importances", name=None,
                         hide_type=False, hide_depth=False, hide_cats=False,
                         hide_selector=False,
                         importance_type="shap", depth=None, cats=True):
@@ -111,8 +107,6 @@ class ImportancesComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Importances".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -130,7 +124,7 @@ class ImportancesComponent(ExplainerComponent):
                         Defaults to None (=show all).
             cats (bool, optional): Group categoricals. Defaults to True.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_type = hide_type
         self.hide_depth = hide_depth
@@ -150,7 +144,7 @@ class ImportancesComponent(ExplainerComponent):
         self.register_dependencies(['shap_values', 'shap_values_cats',
             'permutation_importances', 'permutation_importances_cats'])
 
-    def _layout(self):
+    def layout(self):
         return dbc.Container([
             dbc.Row([dbc.Col([html.H2('Feature Importances:')])]),
             dbc.Row([
@@ -221,8 +215,7 @@ class ImportancesComponent(ExplainerComponent):
 
 
 class PdpComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Partial Dependence Plot",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Partial Dependence Plot", name=None,
                     hide_col=False, hide_index=False, hide_cats=False,
                     hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
@@ -236,8 +229,6 @@ class PdpComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Partial Dependence Plot".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -257,7 +248,7 @@ class PdpComponent(ExplainerComponent):
             gridlines (int, optional): Number of ice lines to display in plot. Defaults to 50.
             gridpoints (int, optional): Number of breakpoints on horizontal axis Defaults to 10.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_col, self.hide_index, self.hide_cats = hide_col, hide_index, hide_cats
         self.hide_selector = hide_selector
@@ -275,7 +266,7 @@ class PdpComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name)
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
                 html.H3('Partial Dependence Plot:'),
                 dbc.Row([
