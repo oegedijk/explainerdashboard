@@ -22,7 +22,8 @@ class ShapSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence Summary', name=None,
                     hide_title=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_selector=False,
-                    depth=None, summary_type="aggregate", cats=True):
+                    pos_label=None, depth=None, 
+                    summary_type="aggregate", cats=True):
         """Shows shap summary component
 
         Args:
@@ -41,6 +42,8 @@ class ShapSummaryComponent(ExplainerComponent):
                         (aggregated, detailed). Defaults to False.
             hide_cats (bool, optional): hide the group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             depth (int, optional): initial number of features to show. Defaults to None.
             summary_type (str, {'aggregate', 'detailed'}. optional): type of 
                         summary graph to show. Defaults to "aggregate".
@@ -59,7 +62,7 @@ class ShapSummaryComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(cats))
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
@@ -146,7 +149,8 @@ class ShapDependenceComponent(ExplainerComponent):
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_color_col=False, hide_highlight=False,
                     hide_selector=False,
-                    cats=True, col=None, color_col=None, highlight=None):
+                    pos_label=None, cats=True, col=None, 
+                    color_col=None, highlight=None):
         """Show shap dependence graph
 
         Args:
@@ -163,6 +167,8 @@ class ShapDependenceComponent(ExplainerComponent):
             hide_color_col (bool, optional): hide color feature selector Defaults to False.
             hide_highlight (bool, optional): hide highlight selector Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             cats (bool, optional): group cats. Defaults to True.
             col (str, optional): Feature to display. Defaults to None.
             color_col (str, optional): Color plot by values of this Feature. 
@@ -181,7 +187,7 @@ class ShapDependenceComponent(ExplainerComponent):
         if self.color_col is None:
             self.color_col = self.explainer.shap_top_interactions(self.col, cats=cats)[1]
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
@@ -309,7 +315,8 @@ class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary", name=None,
                     hide_title=False, hide_col=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_selector=False,
-                    col=None, depth=None, summary_type="aggregate", cats=True):
+                    pos_label=None, col=None, depth=None, 
+                    summary_type="aggregate", cats=True):
         """Show SHAP Interaciton values summary component
 
         Args:
@@ -326,6 +333,8 @@ class InteractionSummaryComponent(ExplainerComponent):
             hide_type (bool, optional): Hide summary type toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             col (str, optional): Feature to show interaction summary for. Defaults to None.
             depth (int, optional): Number of interaction features to display. Defaults to None.
             summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
@@ -344,7 +353,7 @@ class InteractionSummaryComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats)-1)
         
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
@@ -438,7 +447,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_highlight=False,
                     hide_selector=False, hide_top=False, hide_bottom=False,
-                    cats=True, col=None, interact_col=None, highlight=None):
+                    pos_label=None, cats=True, col=None, interact_col=None, highlight=None):
         """Interaction Dependence Component.
 
         Shows two graphs:
@@ -456,11 +465,18 @@ class InteractionDependenceComponent(ExplainerComponent):
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_col (bool, optional): Hide feature selector. Defaults to False.
-            hide_interact_col (bool, optional): Hide interaction feature selector. Defaults to False.
-            hide_highlight (bool, optional): Hide highlight index selector. Defaults to False.
-            hide_selector (bool, optional): hide pos label selector. Defaults to False.
-            hide_top (bool, optional): Hide the top interaction graph (col vs interact_col). Defaults to False.
-            hide_bottom (bool, optional): hide the bottom interaction graph (interact_col vs col). Defaults to False.
+            hide_interact_col (bool, optional): Hide interaction 
+                        feature selector. Defaults to False.
+            hide_highlight (bool, optional): Hide highlight index selector.
+                        Defaults to False.
+            hide_selector (bool, optional): hide pos label selector. 
+                        Defaults to False.
+            hide_top (bool, optional): Hide the top interaction graph 
+                        (col vs interact_col). Defaults to False.
+            hide_bottom (bool, optional): hide the bottom interaction graph 
+                        (interact_col vs col). Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             cats (bool, optional): group categorical features. Defaults to True.
             col (str, optional): Feature to find interactions for. Defaults to None.
             interact_col (str, optional): Feature to interact with. Defaults to None.
@@ -481,7 +497,7 @@ class InteractionDependenceComponent(ExplainerComponent):
         if self.interact_col is None:
             self.interact_col = explainer.shap_top_interactions(self.col, cats=cats)[1]
         
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
@@ -619,7 +635,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions", name=None,
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_cats=False, hide_selector=False,
-                    index=None, depth=None, cats=True):
+                    pos_label=None, index=None, depth=None, cats=True):
         """Display Shap contributions to prediction graph component
 
         Args:
@@ -635,6 +651,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
             depth (int, optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group cats. Defaults to True.
@@ -651,7 +669,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats))
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
 
     def layout(self):
@@ -729,7 +747,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_cats=False, 
                     hide_selector=False,
-                    index=None, depth=None, cats=True):
+                    pos_label=None, index=None, depth=None, cats=True):
         """Show SHAP values contributions to prediction in a table component
 
         Args:
@@ -745,6 +763,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide depth selector. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ([type], optional): Initial index to display. Defaults to None.
             depth ([type], optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group categoricals. Defaults to True.
@@ -761,7 +781,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats))
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
 
     def layout(self):

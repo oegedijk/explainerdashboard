@@ -17,12 +17,11 @@ from .dashboard_methods import *
 from .connectors import ClassifierRandomIndexComponent, IndexConnector, HighlightConnector
 
 
-
 class DecisionTreesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
-                    index=None, highlight=None):
+                    pos_label=None, index=None, highlight=None):
         """Show prediction from individual decision trees inside RandomForest component
 
         Args:
@@ -37,6 +36,8 @@ class DecisionTreesComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree to highlight. Defaults to None.
         """
@@ -49,7 +50,7 @@ class DecisionTreesComponent(ExplainerComponent):
         self.index_name = 'decisiontrees-index-'+self.name
         self.highlight_name = 'decisiontrees-highlight-'+self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas")
 
     def layout(self):
@@ -110,7 +111,7 @@ class DecisionPathTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path table", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
-                    index=None, highlight=None):
+                    pos_label=None, index=None, highlight=None):
         """Display a table of the decision path through a particular decision tree
 
         Args:
@@ -128,6 +129,8 @@ class DecisionPathTableComponent(ExplainerComponent):
                         Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                         Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display decision 
                         path for. Defaults to None.
             highlight (int, optional): Initial tree idx to display decision 
@@ -142,7 +145,7 @@ class DecisionPathTableComponent(ExplainerComponent):
         self.index_name = 'decisionpath-table-index-'+self.name
         self.highlight_name = 'decisionpath-table-highlight-'+self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("decision_trees")
 
     def layout(self):
@@ -197,7 +200,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                     hide_title=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
                     hide_selector=False,
-                    index=None, highlight=None):
+                    pos_label=None, index=None, highlight=None):
         """Display dtreeviz decision path
 
         Args:
@@ -213,6 +216,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
             hide_button (bool, optional): hide the button, Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
         """
@@ -225,7 +230,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
         self.index_name = 'decisionpath-index-'+self.name
         self.highlight_name = 'decisionpath-highlight-'+self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
     def layout(self):
         return html.Div([

@@ -19,7 +19,7 @@ class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary", name=None,
                     hide_index=False, hide_percentile=False, 
                     hide_title=False, hide_selector=False,
-                    index=None, percentile=True):
+                    pos_label=None, index=None, percentile=True):
         """Shows a summary for a particular prediction
 
         Args:
@@ -34,6 +34,8 @@ class PredictionSummaryComponent(ExplainerComponent):
             hide_percentile (bool, optional): hide percentile toggle. Defaults to False.
             hide_title (bool, optional): hide title. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
             percentile (bool, optional): Whether to add the prediction percentile. Defaults to True.
         """
@@ -44,7 +46,7 @@ class PredictionSummaryComponent(ExplainerComponent):
         self.index, self.percentile = index, percentile
 
         self.index_name = 'modelprediction-index-'+self.name
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
     def layout(self):
         return html.Div([
@@ -102,7 +104,7 @@ class ImportancesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Importances", name=None,
                         hide_type=False, hide_depth=False, hide_cats=False,
                         hide_title=False, hide_selector=False,
-                        importance_type="shap", depth=None, cats=True):
+                        pos_label=None, importance_type="shap", depth=None, cats=True):
         """Display features importances component
 
         Args:
@@ -122,6 +124,8 @@ class ImportancesComponent(ExplainerComponent):
             hide_title (bool, optional): hide title. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                         Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             importance_type (str, {'permuation', 'shap'} optional): 
                         initial importance type to display. Defaults to "shap".
             depth (int, optional): Initial number of top features to display. 
@@ -145,7 +149,7 @@ class ImportancesComponent(ExplainerComponent):
             depth = min(depth, len(explainer.columns_ranked_by_shap(cats)))
         self.depth = depth
         self.cats = cats
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies(['shap_values', 'shap_values_cats',
             'permutation_importances', 'permutation_importances_cats'])
 
@@ -228,7 +232,7 @@ class PdpComponent(ExplainerComponent):
                     hide_title=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False,
-                    col=None, index=None, cats=True,
+                    pos_label=None, col=None, index=None, cats=True,
                     dropna=True, sample=100, gridlines=50, gridpoints=10):
         """Show Partial Dependence Plot component
 
@@ -249,6 +253,8 @@ class PdpComponent(ExplainerComponent):
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
             hide_gridpoints (bool, optional): Hide gridpounts input. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             col (str, optional): Feature to display PDP for. Defaults to None.
             index ({int, str}, optional): Index to add ice line to plot. Defaults to None.
             cats (bool, optional): Group categoricals for feature selector. Defaults to True.
@@ -273,7 +279,7 @@ class PdpComponent(ExplainerComponent):
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
     def layout(self):
         return html.Div([

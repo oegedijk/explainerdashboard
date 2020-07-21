@@ -21,7 +21,7 @@ from .decisiontree_components import *
 
 class ClassifierModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Classification Stats", name=None,
-                    hide_title=False, hide_selector=True,
+                    hide_title=False, hide_selector=True, pos_label=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5):
         """Composite of multiple classifier related components: 
             - precision graph
@@ -41,6 +41,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title. Defaults to False.          
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             bin_size (float, optional): bin_size for precision plot. Defaults to 0.1.
             quantiles (int, optional): number of quantiles for precision plot. Defaults to 10.
             cutoff (float, optional): initial cutoff. Defaults to 0.5.
@@ -49,14 +50,14 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 
         self.hide_title = hide_title
 
-        self.precision = PrecisionComponent(explainer, hide_selector=hide_selector)
-        self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector)
-        self.liftcurve = LiftCurveComponent(explainer, hide_selector=hide_selector)
-        self.classification = ClassificationComponent(explainer, hide_selector=hide_selector)
-        self.rocauc = RocAucComponent(explainer, hide_selector=hide_selector)
-        self.prauc = PrAucComponent(explainer, hide_selector=hide_selector)
+        self.precision = PrecisionComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
+        self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
+        self.liftcurve = LiftCurveComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
+        self.classification = ClassificationComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
+        self.rocauc = RocAucComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
+        self.prauc = PrAucComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
 
-        self.cutoffpercentile = CutoffPercentileComponent(explainer, hide_selector=hide_selector)
+        self.cutoffpercentile = CutoffPercentileComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
                 [self.precision, self.confusionmatrix, self.liftcurve, 
                  self.classification, self.rocauc, self.prauc])
