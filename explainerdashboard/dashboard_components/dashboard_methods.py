@@ -156,6 +156,16 @@ class ExplainerComponent(ABC):
             else:
                 print(f"{comp.__name__} is not an ExplainerComponent so not adding to self.components")
 
+    def has_pos_label_connector(self):
+        if not hasattr(self, '_components'):
+            self._components = []
+        for comp in self._components:
+            if str(type(comp)).endswith("PosLabelConnector'>"):
+                return True
+            elif comp.has_pos_label_connector():
+                return True
+        return False
+            
     def register_dependencies(self, *dependencies):
         """register dependencies: lazily calculated explainer properties that
         you want to calculate *before* starting the dashboard"""
