@@ -591,9 +591,9 @@ class PosLabelConnector(ExplainerComponent):
     def __init__(self, input_pos_label, output_pos_labels):
         self.input_pos_label_name = self._get_pos_label(input_pos_label)
         self.output_pos_label_names = self._get_pos_labels(output_pos_labels)
-        if self.input_pos_label_name in self.output_pos_label_names: 
-            # avoid circulat callbacks
-            self.output_pos_label_names.remove(self.input_pos_label_name)
+        # if self.input_pos_label_name in self.output_pos_label_names: 
+        #     # avoid circulat callbacks
+        #     self.output_pos_label_names.remove(self.input_pos_label_name)
 
     def _get_pos_label(self, input_pos_label):
         if isinstance(input_pos_label, PosLabelSelector):

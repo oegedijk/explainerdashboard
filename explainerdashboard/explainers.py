@@ -1303,7 +1303,7 @@ class ClassifierExplainer(BaseExplainer):
 
     @pos_label.setter
     def pos_label(self, label):
-        if isinstance(label, int) and label >=0 and label <len(self.labels):
+        if label is None or isinstance(label, int) and label >=0 and label <len(self.labels):
             self._pos_label = label
         elif isinstance(label, str) and label in self.labels:
             self._pos_label = self.labels.index(label)
@@ -1322,9 +1322,9 @@ class ClassifierExplainer(BaseExplainer):
                 f"pos_label {pos_label} is larger than number of labels!"
             return pos_label
         elif isinstance(pos_label, str):
-            assert pos_label_str in self.labels, \
-                f"Unknown pos_label. {pos_label_str} not in self.labels!" 
-            return self.labels.index(pos_label_str)
+            assert pos_label in self.labels, \
+                f"Unknown pos_label. {pos_label} not in self.labels!" 
+            return self.labels.index(pos_label)
         raise ValueError("pos_label should either be int or str in self.labels!")
 
     def get_prop_for_label(self, prop:str, label):

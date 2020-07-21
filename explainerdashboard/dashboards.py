@@ -73,6 +73,8 @@ class ExplainerTabsLayout:
                  title='Model Explainer',
                  hide_title=False,
                  hide_selector=False,
+                 block_selector_callbacks=False,
+                 pos_label=None,
                  fluid=True,
                  **kwargs):
         """Generates a multi tab layout from a a list of ExplainerComponents.
@@ -88,19 +90,26 @@ class ExplainerTabsLayout:
             hide_title (bool, optional): Hide the title. Defaults to False.
             hide_selector (bool, optional): Hide the positive label selector. 
                         Defaults to False.
+            block_selector_callbacks (bool, optional): block the callback of the
+                        pos label selector. Useful to avoid clashes when you
+                        have your own PosLabelSelector in your layout. 
+                        Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
         self.title = title
         self.hide_title = hide_title
         self.hide_selector = hide_selector
+        self.block_selector_callbacks = block_selector_callbacks
         self.fluid = fluid
         
-        self.selector = PosLabelSelector(explainer)
+        self.selector = PosLabelSelector(explainer, pos_label=pos_label)
         self.tabs  = [instantiate_component(tab, explainer, **kwargs) for tab in tabs]
         assert len(self.tabs) > 0, 'When passing a list to tabs, need to pass at least one valid tab!'
+
         self.connector = PosLabelConnector(self.selector, self.tabs)
-        
-        
+   
     def layout(self):
         """returns a multitab layout plus ExplainerHeader"""
         return dbc.Container([
@@ -127,7 +136,12 @@ class ExplainerTabsLayout:
             except AttributeError:
                 print(f"Warning: {tab} does not have a register_callbacks method!")
                 
-        self.connector.register_callbacks(app)
+        if not self.block_selector_callbacks:
+            if any([tab.has_pos_label_connector() for tab in self.tabs]):
+                print("Warning: detected PosLabelConnectors already in the layout. "
+                    "This may clash with the global pos label selector and generate duplicate callback errors. "
+                    "If so set block_selector_callbacks=True.")
+            self.connector.register_callbacks(app)
 
     def calculate_dependencies(self):
         """Calculates dependencies for all tabs"""
@@ -143,6 +157,8 @@ class ExplainerPageLayout(ExplainerComponent):
                  title='Model Explainer',
                  hide_title=False,
                  hide_selector=False,
+                 block_selector_callbacks=False,
+                 pos_label=None,
                  fluid=False,
                  **kwargs):
         """Generates a single page layout from a single ExplainerComponent.
@@ -158,16 +174,23 @@ class ExplainerPageLayout(ExplainerComponent):
                         class definition or instance.
             title (str, optional): [description]. Defaults to 'Model Explainer'.
             hide_title (bool, optional): Hide the title. Defaults to False.
-            hide_selector (bool, optional): Hide the positive label selector. 
+            hide_selector (bool, optional): Hide the positive label selector.
                         Defaults to False.
+            block_selector_callbacks (bool, optional): block the callback of the
+                        pos label selector. Useful to avoid clashes when you
+                        have your own PosLabelSelector in your layout. 
+                        Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
         self.title = title
         self.hide_title = hide_title
         self.hide_selector = hide_selector
+        self.block_selector_callbacks = block_selector_callbacks
         self.fluid = fluid
         
-        self.selector = PosLabelSelector(explainer)
+        self.selector = PosLabelSelector(explainer, pos_label=pos_label)
         self.page  = instantiate_component(component, explainer, **kwargs) 
         self.connector = PosLabelConnector(self.selector, self.page)
         
@@ -195,7 +218,12 @@ class ExplainerPageLayout(ExplainerComponent):
             self.page.register_callbacks(app)
         except AttributeError:
             print(f"Warning: {self.page} does not have a register_callbacks method!")
-        self.connector.register_callbacks(app)
+        if not self.block_selector_callbacks:
+            if self.page.has_pos_label_connector():
+                print("Warning: detected PosLabelConnectors already in the layout. "
+                    "This may clash with the global pos label selector and generate duplicate callback errors. "
+                    "If so set block_selector_callbacks=True.")
+            self.connector.register_callbacks(app)
 
     def calculate_dependencies(self):
         """Calculate dependencies of page"""
@@ -210,6 +238,7 @@ class ExplainerDashboard:
                  title='Model Explainer',
                  header_hide_title=False,
                  header_hide_selector=False,
+                 block_selector_callbacks=False,
                  fluid=True,
                  mode="dash",
                  width=1000,
@@ -262,6 +291,10 @@ class ExplainerDashboard:
             title(str, optional): title of dashboard, defaults to 'Model Explainer'
             header_hide_title(bool, optional): hide the title, defaults to False
             header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
+            block_selector_callbacks (bool, optional): block the callback of the
+                        pos label selector. Useful to avoid clashes when you
+                        have your own PosLabelSelector in your layout. 
+                        Defaults to False.
             mode(str, {'dash', 'inline' , 'jupyterlab', 'external'}, optional): 
                 type of dash server to start. 'inline' runs in a jupyter notebook output cell. 
                 'jupyterlab' runs in a jupyterlab pane. 'external' runs in an external tab
@@ -320,12 +353,14 @@ class ExplainerDashboard:
             explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
                             hide_title=header_hide_title, 
                             hide_selector=header_hide_selector, 
+                            block_selector_callbacks=block_selector_callbacks,
                             fluid=fluid)
         else:
             tabs = self._convert_str_tabs(tabs)
             explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
                             hide_title=header_hide_title, 
                             hide_selector=header_hide_selector, 
+                            block_selector_callbacks=block_selector_callbacks,
                             fluid=fluid)
 
         self.app.layout = explainer_layout.layout()
