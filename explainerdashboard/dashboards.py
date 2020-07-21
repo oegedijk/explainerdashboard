@@ -102,6 +102,8 @@ class ExplainerTabsLayout:
         self.hide_title = hide_title
         self.hide_selector = hide_selector
         self.block_selector_callbacks = block_selector_callbacks
+        if self.block_selector_callbacks:
+            self.hide_selector = True
         self.fluid = fluid
         
         self.selector = PosLabelSelector(explainer, pos_label=pos_label)
@@ -188,6 +190,8 @@ class ExplainerPageLayout(ExplainerComponent):
         self.hide_title = hide_title
         self.hide_selector = hide_selector
         self.block_selector_callbacks = block_selector_callbacks
+        if self.block_selector_callbacks:
+            self.hide_selector = True
         self.fluid = fluid
         
         self.selector = PosLabelSelector(explainer, pos_label=pos_label)
