@@ -4,11 +4,16 @@
 ### Breaking Changes
 - Removed ExplainerHeader from ExplainerComponents
     - so also removed header_mode from ExplainerComponent parameters
-- You can now syncronize pos labels across components with a PosLabelSelector
-    and PosLabelConnector.
+    - You can now syncronize pos labels across components with a PosLabelSelector
+        and PosLabelConnector.
 
 ### New Features
 - added check all shap values >-1 and <1 for model_output=probability
+- added parameter pos_label to all components and ExplainerDashboard to set
+        the initial pos label
+- added parameter block_selector_callbacks to ExplainerDashboard to block
+    the global pos label selector's callbacks. If you already have PosLabelSelectors
+    in your layout, this prevents clashes. 
 
 ### Bug Fixes
 - Interaction connector bug fixed in detailed summary: click didn't work

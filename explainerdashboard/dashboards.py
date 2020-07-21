@@ -243,6 +243,7 @@ class ExplainerDashboard:
                  header_hide_title=False,
                  header_hide_selector=False,
                  block_selector_callbacks=False,
+                 pos_label=None,
                  fluid=True,
                  mode="dash",
                  width=1000,
@@ -299,6 +300,8 @@ class ExplainerDashboard:
                         pos label selector. Useful to avoid clashes when you
                         have your own PosLabelSelector in your layout. 
                         Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             mode(str, {'dash', 'inline' , 'jupyterlab', 'external'}, optional): 
                 type of dash server to start. 'inline' runs in a jupyter notebook output cell. 
                 'jupyterlab' runs in a jupyterlab pane. 'external' runs in an external tab
@@ -358,6 +361,7 @@ class ExplainerDashboard:
                             hide_title=header_hide_title, 
                             hide_selector=header_hide_selector, 
                             block_selector_callbacks=block_selector_callbacks,
+                            pos_label=pos_label,
                             fluid=fluid)
         else:
             tabs = self._convert_str_tabs(tabs)
@@ -365,6 +369,7 @@ class ExplainerDashboard:
                             hide_title=header_hide_title, 
                             hide_selector=header_hide_selector, 
                             block_selector_callbacks=block_selector_callbacks,
+                            pos_label=pos_label,
                             fluid=fluid)
 
         self.app.layout = explainer_layout.layout()
