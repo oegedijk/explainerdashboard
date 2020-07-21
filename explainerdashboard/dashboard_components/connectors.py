@@ -25,7 +25,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         hide_index=False, hide_slider=False, 
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
-                        index=None, slider= None, labels=None, 
+                        pos_label=None, index=None, slider= None, labels=None, 
                         pred_or_perc='predictions'):
         """Select a random index subject to constraints component
 
@@ -45,6 +45,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_button (bool, optional): Hide button. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. 
                         Defaults to None.
             slider ([float,float], optional): initial slider position 
@@ -71,7 +72,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         if self.labels is None:
             self.labels = self.explainer.labels
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
         assert (len(self.slider)==2 and 
                 self.slider[0]>=0 and self.slider[0]<=1 and 
@@ -497,7 +498,7 @@ class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff", name=None,
                         hide_cutoff=False, hide_percentile=False, 
                         hide_selector=False,
-                        cutoff=0.5, percentile=None):
+                        pos_label=None, cutoff=0.5, percentile=None):
         """
         Slider to set a cutoff for Classifier components, based on setting the
         cutoff at a certain percentile of predictions, e.g.:
@@ -517,6 +518,8 @@ class CutoffPercentileComponent(ExplainerComponent):
             hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
             hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
         """
@@ -529,7 +532,7 @@ class CutoffPercentileComponent(ExplainerComponent):
 
         self.cutoff_name = 'cutoffconnector-cutoff-'+self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies(['preds', 'pred_percentiles'])
 
     def layout(self):
@@ -591,7 +594,7 @@ class PosLabelConnector(ExplainerComponent):
         if self.input_pos_label_name in self.output_pos_label_names: 
             # avoid circulat callbacks
             self.output_pos_label_names.remove(self.input_pos_label_name)
-            
+
     def _get_pos_label(self, input_pos_label):
         if isinstance(input_pos_label, PosLabelSelector):
             return 'pos-label-' + input_pos_label.name

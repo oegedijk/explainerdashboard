@@ -21,7 +21,7 @@ from .dashboard_methods import *
 class PrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Precision Plot", name=None,
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
-                    hide_multiclass=False, hide_selector=False,
+                    hide_multiclass=False, hide_selector=False, pos_label=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5,
                     quantiles_or_binsize='bin_size', multiclass=False):
         """Shows a precision graph with toggles.
@@ -40,6 +40,7 @@ class PrecisionComponent(ExplainerComponent):
             hide_binmethod (bool, optional): Hide binsize/quantiles toggle. Defaults to False.
             hide_multiclass (bool, optional): Hide multiclass toggle. Defaults to False.
             hide_selector (bool, optional): Hide pos label selector. Default to True.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             bin_size (float, optional): Size of bins in probability space. Defaults to 0.1.
             quantiles (int, optional): Number of quantiles to divide plot. Defaults to 10.
             cutoff (float, optional): Cutoff to display in graph. Defaults to 0.5.
@@ -56,7 +57,7 @@ class PrecisionComponent(ExplainerComponent):
         self.quantiles_or_binsize, self.multiclass = quantiles_or_binsize, multiclass
         self.cutoff_name = 'precision-cutoff-' + self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -184,7 +185,7 @@ class PrecisionComponent(ExplainerComponent):
 class ConfusionMatrixComponent(ExplainerComponent):
     def __init__(self, explainer, title="Confusion Matrix", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
-                    hide_selector=False,
+                    hide_selector=False, pos_label=None,
                     cutoff=0.5, percentage=True, binary=True):
         """Display confusion matrix component
 
@@ -200,6 +201,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_binary (bool, optional): Hide binary toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Default cutoff. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
             binary (bool, optional): Show binary instead of multiclass confusion matrix. Defaults to True.
@@ -211,7 +213,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
         self.cutoff, self.percentage, self.binary = cutoff, percentage, binary
         self.cutoff_name = 'confusionmatrix-cutoff-' + self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -280,7 +282,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
 class LiftCurveComponent(ExplainerComponent):
     def __init__(self, explainer, title="Lift Curve", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
-                    cutoff=0.5, percentage=True):
+                    pos_label=None, cutoff=0.5, percentage=True):
         """Show liftcurve component
 
         Args:
@@ -294,6 +296,7 @@ class LiftCurveComponent(ExplainerComponent):
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Cutoff for lift curve. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
         """
@@ -304,7 +307,7 @@ class LiftCurveComponent(ExplainerComponent):
         self.cutoff, self.percentage = cutoff, percentage
         self.cutoff_name = 'liftcurve-cutoff-' + self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -358,7 +361,7 @@ class LiftCurveComponent(ExplainerComponent):
 class ClassificationComponent(ExplainerComponent):
     def __init__(self, explainer, title="Classification Plot", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
-                    cutoff=0.5, percentage=True):
+                    pos_label=None, cutoff=0.5, percentage=True):
         """Shows a barchart of the number of classes above the cutoff and below
         the cutoff.
 
@@ -373,6 +376,7 @@ class ClassificationComponent(ExplainerComponent):
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Cutoff for prediction. Defaults to 0.5.
             percentage (bool, optional): Show percentage instead of counts. Defaults to True.
         """
@@ -383,7 +387,7 @@ class ClassificationComponent(ExplainerComponent):
         self.cutoff, percentage = cutoff, percentage
         self.cutoff_name = 'classification-cutoff-' + self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -438,7 +442,7 @@ class ClassificationComponent(ExplainerComponent):
 class RocAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
                     hide_cutoff=False, hide_selector=False,
-                    cutoff=0.5):
+                    pos_label=None, cutoff=0.5):
         """Show ROC AUC curve component
 
         Args:
@@ -451,6 +455,7 @@ class RocAucComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
         super().__init__(explainer, title, name)
@@ -459,7 +464,7 @@ class RocAucComponent(ExplainerComponent):
         self.cutoff=cutoff
         self.cutoff_name = 'rocauc-cutoff-' + self.name
         
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -496,7 +501,7 @@ class RocAucComponent(ExplainerComponent):
 class PrAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="PR AUC Plot", name=None,
                     hide_cutoff=False, hide_selector=False,
-                    cutoff=0.5):
+                    pos_label=None, cutoff=0.5):
         """Display PR AUC plot component
 
         Args:
@@ -509,6 +514,7 @@ class PrAucComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
         super().__init__(explainer, title, name)
@@ -517,7 +523,7 @@ class PrAucComponent(ExplainerComponent):
         self.cutoff = cutoff
         self.cutoff_name = 'prauc-cutoff-' + self.name
 
-        self.selector = PosLabelSelector(explainer, name=self.name)
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):

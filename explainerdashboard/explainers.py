@@ -109,6 +109,7 @@ class BaseExplainer(ABC):
         self.permutation_cv = permutation_cv
         self.na_fill = na_fill
         self.columns = self.X.columns.tolist()
+        self.pos_label = None
         self.is_classifier = False
         self.is_regression = False
         self.interactions_should_work = True
@@ -1314,11 +1315,17 @@ class ClassifierExplainer(BaseExplainer):
         """return str label of self.pos_label"""
         return self.labels[self.pos_label]
 
-    def get_pos_label_index(self, pos_label_str):
+    def get_pos_label_index(self, pos_label):
         """return int index of pos_label_str"""
-        assert pos_label_str in self.labels, \
-            f"Unknown pos_label. {pos_label_str} not in self.labels!" 
-        return self.labels.index(pos_label_str)
+        if isinstance(pos_label, int):
+            assert pos_label <= len(self.labels), \
+                f"pos_label {pos_label} is larger than number of labels!"
+            return pos_label
+        elif isinstance(pos_label, str):
+            assert pos_label_str in self.labels, \
+                f"Unknown pos_label. {pos_label_str} not in self.labels!" 
+            return self.labels.index(pos_label_str)
+        raise ValueError("pos_label should either be int or str in self.labels!")
 
     def get_prop_for_label(self, prop:str, label):
         """return property for a specific pos_label

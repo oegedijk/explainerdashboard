@@ -250,7 +250,10 @@ class PosLabelSelector(ExplainerComponent):
                         explainer.pos_label.
         """
         super().__init__(explainer, title, name)
-        self.pos_label = pos_label if pos_label is not None else explainer.pos_label
+        if pos_label is not None:
+            self.pos_label = explainer.get_pos_label_index(pos_label)
+        else:
+            self.pos_label = explainer.pos_label
 
     def layout(self):
         if self.explainer.is_classifier:
