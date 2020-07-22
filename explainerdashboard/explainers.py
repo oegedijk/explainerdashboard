@@ -2030,58 +2030,83 @@ class RegressionExplainer(BaseExplainer):
         }
         return metrics_dict
 
-    def plot_predicted_vs_actual(self, round=2, logs=False, **kwargs):
+    def metrics_markdown(self, round=2, **kwargs):
+        """markdown makeup of self.metrics() dict
+
+        Args:
+          round:  (Default value = 2)
+          **kwargs: 
+
+        Returns:
+
+        """
+        metrics_dict = self.metrics(**kwargs)
+        
+        metrics_markdown = "# Model Summary: \n\n"
+        metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)}\n\n"
+        metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)}\n\n"
+        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)}\n\n"
+        
+        return metrics_markdown
+
+    def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, **kwargs):
         """plot with predicted value on x-axis and actual value on y axis.
 
         Args:
           round(int, optional): rounding to apply to outcome, defaults to 2
-          logs(bool, optional): whether to take logs of predicted and actual value, defaults to False
+          logs (bool, optional): log both x and y axis, defaults to False
+          log_y (bool, optional): only log x axis. Defaults to False.
+          log_x (bool, optional): only log y axis. Defaults to False.
           **kwargs: 
 
         Returns:
           Plotly fig
 
         """
-        return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, round=round, logs=logs)
+        return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, 
+                idxs=self.idxs, logs=logs, log_x=log_x, log_y=log_y, round=round)
     
-    def plot_residuals(self, vs_actual=False, round=2, ratio=False, **kwargs):
+    def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
         """plot of residuals. x-axis is the predicted outcome by default
 
         Args:
           vs_actual(bool, optional): use actual value for x-axis,   
                     defaults to False
           round(int, optional): rounding to perform on values, defaults to 2
-          ratio(bool, optional): whether to take the residual/prediction 
-                    ratio instead, defaults to False
-          **kwargs: 
-
+          residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
         Returns:
           Plotly fig
 
         """
-        return plotly_plot_residuals(self.y, self.preds, 
-                                     vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
+        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
+                                     vs_actual=vs_actual, units=self.units, 
+                                     residuals=residuals, round=round)
     
-    def plot_residuals_vs_feature(self, col, ratio=False, round=2, dropna=True, **kwargs):
+    def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
+                dropna=True, points=True, winsor=0):
         """Plot residuals vs individual features
 
         Args:
           col(str): Plot against feature col
-          ratio(bool, optional): display residual ratio instead of raw value, 
-                    defaults to False
-          round(int, optional: rounding to perform on residuals, defaults to 2
-          dropna(bool, optional: drop missing values from plot, defaults to True
-          **kwargs: 
+          residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
+          round(int, optional): rounding to perform on residuals, defaults to 2
+          dropna(bool, optional): drop missing values from plot, defaults to True.
+          points (bool, optional): display point cloud next to violin plot. 
+                    Defaults to True.
+          winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
 
         Returns:
           plotly fig
-
         """
-        assert col in self.columns, \
-            f'{col} not in columns!'
-        na_mask = self.X[col] != self.na_fill if dropna else np.array([True]*len(self.X))
-        return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], self.X[col][na_mask], 
-                                       ratio=ratio, units=self.units, round=round)
+        assert col in self.columns or col in self.columns_cats, \
+            f'{col} not in columns or columns_cats!'
+        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
+        return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                residuals=residuals, idxs=self.idxs, points=points, round=round, winsor=winsor)
 
 
 class RandomForestExplainer(BaseExplainer):

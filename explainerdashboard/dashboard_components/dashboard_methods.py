@@ -120,7 +120,7 @@ class ExplainerComponent(ABC):
         ExplainerComponent will register callbacks of subcomponents in addition
         to _register_callbacks() when calling register_callbacks()
     """
-    def __init__(self, explainer, title=None, name=None):
+    def __init__(self, explainer, title=None, name=None, header_mode=None):
         """initialize the ExplainerComponent
 
         Args:
@@ -131,6 +131,9 @@ class ExplainerComponent(ABC):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
+        if header_mode is not None:
+            raise ValueError("header_mode has been deprecated! You can just "
+                                "leave it from the constructor now.")
         self.explainer = explainer
         self.title = title
         self.name = name

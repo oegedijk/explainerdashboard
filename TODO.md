@@ -25,9 +25,7 @@
 - confusion matrix: display both count and percentage
 
 ### Regression plots:
-- regression plots: only take log of x-axis or y-axis
-- add cats option (violin plots?) to plot_residuals_vs_feature
-- add log ratio
+- fix pdp plot bug
 
 ## Explainers:
 
@@ -38,6 +36,8 @@
 
 ### Components
 - add pos_label_name property to PosLabelConnector search
+- group cats in interaction does not update col options anymore.
+- fix pdp component bug
 
 
 ## Methods:
@@ -60,6 +60,7 @@
 
 
 ## Library level:
+- Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
 - https://github.com/marketplace/actions/coveralls-python
 - submit pull request to dtreeviz to accept shadowtree as parameter

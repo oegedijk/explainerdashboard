@@ -605,7 +605,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     else:
         fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
-    fig.update_yaxes(range=[shaps.min()*1.3, shaps.max()*1.3])  
+    fig.update_yaxes(range=[shaps.min()*1.3 if shap.min() < 0 else shap.min()*0.76, shaps.max()*1.3])  
 
     for i, cat in enumerate(X[col_name].unique()):
         col = 1+i*2 if points or color_col is not None else 1+i
@@ -1204,21 +1204,34 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns):
     return fig
 
 
-def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
+def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False, log_x=False, log_y=False, idxs=None):
+    
+    if idxs is not None:
+        assert len(idxs)==len(preds)
+        idxs = [str(idx) for idx in idxs]
+    else:
+        idxs = [str(i) for i in range(len(preds))]
+        
+    marker_text=[f"Index: {idx}<br>Actual: {actual}<br>Prediction: {pred}" 
+                  for idx, actual, pred in zip(idxs, 
+                                                np.round(y, round), 
+                                                np.round(preds, round))] 
+    
     trace0 = go.Scatter(
         x = y,
         y = preds,
         mode='markers', 
         name='predicted',
-        text=[f"Predicted: {predicted}<br>Actual: {actual}" for actual, predicted in zip(np.round(y, round), np.round(preds, round))],
+        text=marker_text,
         hoverinfo="text",
     )
     
+    sorted_y = np.sort(y)
     trace1 = go.Scatter(
-        x = y,
-        y = y,
+        x = sorted_y,
+        y = sorted_y,
         mode='lines', 
-        name='actual',
+        name=f'actual {units}',
         hoverinfo="none",
     )
     
@@ -1233,35 +1246,75 @@ def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False):
             title=f'Actual {units}' 
         ),
         plot_bgcolor = '#fff',
+        hovermode = 'closest',
     )
     
     fig = go.Figure(data, layout)
     if logs:
         fig.update_layout(xaxis_type='log', yaxis_type='log')
+    if log_x:
+        fig.update_layout(xaxis_type='log')
+    if log_y:
+        fig.update_layout(yaxis_type='log')
     return fig
 
 
-def plotly_plot_residuals(y, preds, vs_actual=False, units="", round=2, ratio=False):
+def plotly_plot_residuals(y, preds, vs_actual=False, units="", residuals='difference', round=2, idxs=None):
+    """generates a residual plot
+
+    Args:
+        y (np.array, pd.Series): Actual values
+        preds (np.array, pd.Series): Predictions
+        vs_actual (bool, optional): Put actual values (y) on the x-axis. 
+                    Defaults to False (i.e. preds on the x-axis)
+        units (str, optional): units of the axis. Defaults to "".
+        residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
+        round (int, optional): [description]. Defaults to 2.
+        idxs ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
+    if idxs is not None:
+        assert len(idxs)==len(preds)
+        idxs = [str(idx) for idx in idxs]
+    else:
+        idxs = [str(i) for i in range(len(preds))]
+        
+    res= y - preds
+    res_ratio = y / preds
     
-    residuals = y - preds
-    residuals_ratio = residuals / y if vs_actual else residuals / preds
-    
+    if residuals == 'log-ratio':
+        residuals_display = np.log(res_ratio) 
+        residuals_name = 'residuals log ratio<br>(log(y/preds))'
+    elif residuals == 'ratio':
+        residuals_display = res_ratio
+        residuals_name = 'residuals ratio<br>(y/preds)'
+    elif residuals == 'difference':
+        residuals_display = res
+        residuals_name = 'residuals (y-preds)'
+    else:
+        raise ValueError(f"parameter residuals should be in ['difference', "
+                        f"'ratio', 'log-ratio'] but is equal to {residuals}!")
+        
+    residuals_text=[f"Index: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
+                  for idx, actual, pred, residual in zip(idxs, 
+                                                    np.round(y, round), 
+                                                    np.round(preds, round), 
+                                                    np.round(res, round))] 
     trace0 = go.Scatter(
         x=y if vs_actual else preds, 
-        y=residuals_ratio if ratio else residuals, 
+        y=residuals_display, 
         mode='markers', 
-        name='residual ratio' if ratio else 'residuals',
-        text=[f"Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}<br>Ratio: {res_ratio}" 
-                  for actual, pred, residual, res_ratio in zip(np.round(y, round), 
-                                                                np.round(preds, round), 
-                                                                np.round(residuals, round),
-                                                                np.round(residuals_ratio, round))],
+        name=residuals_name,
+        text=residuals_text,
         hoverinfo="text",
     )
     
     trace1 = go.Scatter(
         x=y if vs_actual else preds, 
-        y=np.zeros(len(preds)),
+        y=np.ones(len(preds)) if residuals=='ratio' else np.zeros(len(preds)),
         mode='lines', 
         name=f'Actual {units}' if vs_actual else f'Predicted {units}',
         hoverinfo="none",
@@ -1270,22 +1323,24 @@ def plotly_plot_residuals(y, preds, vs_actual=False, units="", round=2, ratio=Fa
     data = [trace0, trace1]
     
     layout = go.Layout(
-        title='Residuals vs Predicted',
+        title=f"Residuals vs {'actual' if vs_actual else 'predicted'}",
         yaxis=dict(
-            title='Relative Residuals' if ratio else 'Residuals'
+            title=residuals_name
         ),
         
         xaxis=dict(
             title=f'Actual {units}' if vs_actual else f'Predicted {units}' 
         ),
         plot_bgcolor = '#fff',
+        hovermode = 'closest',
     )
     
     fig = go.Figure(data, layout)
     return fig
     
 
-def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, units="", round=2, ratio=False):
+def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference',
+                            idxs=None, round=2, points=True, winsor=0, na_fill=-999):
     
     if col_name is None:
         try:
@@ -1293,43 +1348,115 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, cat=False, units="", r
         except:
             col_name = 'Feature' 
             
-    residuals = y - preds
-    residuals_ratio = residuals / y
-    
-    trace0 = go.Scatter(
-        x=col, 
-        y=residuals_ratio if ratio else residuals, 
-        mode='markers', 
-        name='residual ratio' if ratio else 'residuals',
-        text=[f"Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}<br>Ratio: {res_ratio}" 
-                  for actual, pred, residual, res_ratio in zip(np.round(y, round), 
-                                                                np.round(preds, round), 
-                                                                np.round(residuals, round),
-                                                                np.round(residuals_ratio, round))],
-        hoverinfo="text",
-    )
-    
-    trace1 = go.Scatter(
-        x=col, 
-        y=np.zeros(len(preds)),
-        mode='lines', 
-        name=col_name,
-        hoverinfo="none",
-    )
-    
-    data = [trace0, trace1]
-    
-    layout = go.Layout(
-        title=f'Residuals vs {col_name}',
-        yaxis=dict(
-            title='Relative Residuals' if ratio else 'Residuals'
-        ),
+    if idxs is not None:
+        assert len(idxs)==len(preds)
+        idxs = [str(idx) for idx in idxs]
+    else:
+        idxs = [str(i) for i in range(len(preds))]
         
-        xaxis=dict(
-            title=f'{col_name} value'
-        ),
-        plot_bgcolor = '#fff',
-    )
+    res = y - preds
+    res_ratio = y / preds
     
-    fig = go.Figure(data, layout)
-    return fig
+    if residuals == 'log-ratio':
+        residuals_display = np.log(res_ratio) 
+        residuals_name = 'residuals log ratio<br>(log(y/preds))'
+    elif residuals == 'ratio':
+        residuals_display = res_ratio
+        residuals_name = 'residuals ratio<br>(y/preds)'
+    elif residuals == 'difference':
+        residuals_display = res
+        residuals_name = 'residuals (y-preds)'
+    else:
+        raise ValueError(f"parameter residuals should be in ['difference', "
+                        f"'ratio', 'log-ratio'] but is equal to {residuals}!")
+
+    residuals_text=[f"Index: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
+                  for idx, actual, pred, residual in zip(idxs, 
+                                                    np.round(y, round), 
+                                                    np.round(preds, round), 
+                                                    np.round(res, round))] 
+    
+    if is_string_dtype(col):
+        n_cats = col.nunique()
+        
+        if points:
+            fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
+            showscale = True
+        else:
+            fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
+
+        fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
+                                np.percentile(residuals_display, 100-winsor)]) 
+
+        for i, cat in enumerate(col.unique()):
+            column = 1+i*2 if points else 1+i
+            fig.add_trace(go.Violin(
+                                x=col[col == cat],
+                                y=residuals_display[col == cat],
+                                name=cat,
+                                box_visible=True,
+                                meanline_visible=True,  
+                                showlegend=False),
+                         row=1, col=column)
+            if points:
+                fig.add_trace(go.Scatter(
+                                x=np.random.randn(len(col[col == cat])),
+                                y=residuals_display[col == cat],
+                                mode='markers',
+                                showlegend=False,
+                                text=residuals_text,
+                                hoverinfo="text",
+                                marker=dict(size=7, 
+                                        opacity=0.6,
+                                        color='blue'),
+                            ), row=1, col=column+1)
+
+        if points:
+            for i in range(n_cats):
+                fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
+                fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
+
+        fig.update_layout(title=f'Residuals vs {col_name}', 
+                          hovermode = 'closest')
+
+        return fig
+        
+    else:
+        col[col==na_fill] = np.nan
+        
+        trace0 = go.Scatter(
+            x=col, 
+            y=residuals_display, 
+            mode='markers', 
+            name=residuals_name,
+            text=residuals_text,
+            hoverinfo="text",
+        )
+
+        trace1 = go.Scatter(
+            x=col, 
+            y=np.ones(len(preds)) if residuals=='ratio' else np.zeros(len(preds)),
+            mode='lines', 
+            name=col_name,
+            hoverinfo="none",
+        )
+
+        data = [trace0, trace1]
+
+        layout = go.Layout(
+            title=f'Residuals vs {col_name}',
+            yaxis=dict(
+                title=residuals_name
+            ),
+
+            xaxis=dict(
+                title=f'{col_name} value'
+            ),
+            plot_bgcolor = '#fff',
+            hovermode = 'closest'
+        )
+
+        fig = go.Figure(data, layout)
+        fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
+                                np.percentile(residuals_display, 100-winsor)]) 
+        return fig

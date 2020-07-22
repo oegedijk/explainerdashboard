@@ -14,7 +14,8 @@ from .dashboard_components import *
 
 class ImportancesTab(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
-                    importance_type="shap", depth=None, cats=True):
+                    hide_selector=False, importance_type="shap", depth=None, 
+                    cats=True):
         """Overview tab of feature importances
 
         Can show both permutation importances and mean absolute shap values.
@@ -27,6 +28,7 @@ class ImportancesTab(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_selector(bool, optional) Hide pos label selector. Defaults to False.
             importance_type (str, {'permutation', 'shap'} optional): 
                         Type of importance to describe. Defaults to "shap".
             depth (int, optional): Number of features to display by default. Defaults to None.
@@ -34,7 +36,7 @@ class ImportancesTab(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.importances = ImportancesComponent(explainer, 
+        self.importances = ImportancesComponent(explainer, hide_selector=hide_selector,
                 importance_type=importance_type, depth=depth, cats=cats)
 
         self.register_components(self.importances)
@@ -48,7 +50,7 @@ class ImportancesTab(ExplainerComponent):
 class ModelSummaryTab(ExplainerComponent):
     def __init__(self, explainer, title="Model Performance", name=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5, 
-                    logs=False, pred_or_actual="vs_pred", ratio=False, col=None):
+                    logs=False, pred_or_actual="vs_pred", residuals='difference', col=None):
         """Tab shows a summary of model performance.
 
         Args:
@@ -64,7 +66,8 @@ class ModelSummaryTab(ExplainerComponent):
             cutoff (float, optional): cutoff for classifier plots. Defaults to 0.5.
             logs (bool, optional): use logs for regression plots. Defaults to False.
             pred_or_actual (str, optional): show residuals vs prediction or vs actual. Defaults to "vs_pred".
-            ratio (bool, optional): show residual ratio. Defaults to False.
+            residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
             col ([type], optional): Feature to show residuals against. Defaults to None.
 
         """
@@ -75,7 +78,7 @@ class ModelSummaryTab(ExplainerComponent):
                 bin_size=bin_size, quantiles=quantiles, cutoff=cutoff) 
         elif explainer.is_regression:
             self.model_stats = RegressionModelStatsComposite(explainer,
-                logs=logs, pred_or_actual=pred_or_actual, ratio=ratio)
+                logs=logs, pred_or_actual=pred_or_actual, residuals=residuals)
 
         self.register_components(self.model_stats)
 
