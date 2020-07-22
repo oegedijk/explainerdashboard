@@ -605,7 +605,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     else:
         fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
-    fig.update_yaxes(range=[shaps.min()*1.3 if shap.min() < 0 else shap.min()*0.76, shaps.max()*1.3])  
+    fig.update_yaxes(range=[shaps.min()*1.3 if shaps.min() < 0 else shap.min()*0.76, shaps.max()*1.3])  
 
     for i, cat in enumerate(X[col_name].unique()):
         col = 1+i*2 if points or color_col is not None else 1+i

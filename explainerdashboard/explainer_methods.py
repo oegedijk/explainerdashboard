@@ -668,7 +668,7 @@ def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
                             'Feature' : "",
                             'Condition' : "",
                             'Adjustment' : "Starting average",
-                            'New Prediction' : str(np.round(base_value, round)) + '%'
+                            'New Prediction' : str(np.round(base_value, round)) + ('%' if classifier else '')
                         }, ignore_index=True)
 
     for _, row in decisiontree_df.iterrows():

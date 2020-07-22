@@ -1,8 +1,9 @@
 
 # TODO:
 - find out why dtreeviz for regression no longer working
-- find a way to plot individual xgboost trees
+- find a way to plot individual xgboost trees (now in dtreeviz!)
 - replace custom permutation importances by sklearn permuation importances?
+    - or submit PR to sklearn to support multi col permuations?
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -14,18 +15,23 @@
 
 ## Plots:
 - Add options sorting contributions plot from most negative to most positive
-- Contributions: order by global mean_abs_shap or by specific shap
+- Contributions: order by global mean_abs_shap or by index specific shap
 - fix name of figure MEAN_ABS_SHAP
-- Add Altair (vega) plots for easy inclusion in websites
 - highlight id in violin plots
 - Add feature names to waterfall plot
 - replace -999 in contributions table by "MISSING"
+- add str indexes to shap detailed summary plots
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
 
 ### Regression plots:
-- fix pdp plot bug
+- make base contribution yellow
+- call base contribution "starting average"
+- add units to contributions table
+- add units to pdp y axis
+- add units to contributions graph y axis
+- add units to decision trees plot
 
 ## Explainers:
 
@@ -38,6 +44,7 @@
 - add pos_label_name property to PosLabelConnector search
 - group cats in interaction does not update col options anymore.
 - fix pdp component bug
+- add "number of indexes" indicator to RandomIndexComponents for current restrictions
 
 
 ## Methods:
@@ -60,6 +67,7 @@
 
 
 ## Library level:
+- Add Altair (vega) plots for easy inclusion in websites
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
 - https://github.com/marketplace/actions/coveralls-python

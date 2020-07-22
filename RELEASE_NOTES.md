@@ -35,9 +35,11 @@
     of _layout(). Should still define _register_callbacks() to define callbacks
     so that all subcomponents that have been registered will automatically
     get their callbacks registered as well. 
+- Fixed some UX issues with interations components
 
 ### Other Changes
 -   added hide_title parameter to all components with a title
+-   DecisionPathGraphComponent not available for RandomForestRegression models for now.
 
 
 ## version 0.2:
