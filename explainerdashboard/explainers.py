@@ -110,6 +110,7 @@ class BaseExplainer(ABC):
         self.na_fill = na_fill
         self.columns = self.X.columns.tolist()
         self.pos_label = None
+        self.units = ""
         self.is_classifier = False
         self.is_regression = False
         self.interactions_should_work = True
@@ -753,7 +754,7 @@ class BaseExplainer(ABC):
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(
                     self.contrib_df(idx, cats, topx, cutoff, sort, pos_label), 
-                round=round)
+                round=round, units=self.units)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
                             pos_label=None):
@@ -978,11 +979,17 @@ class BaseExplainer(ABC):
 
         """
         importances_df = self.importances_df(kind=kind, topx=topx, cats=cats, pos_label=pos_label)
+        if kind=='shap':
+            title = 'Average impact on prediction<br>(mean absolute SHAP value)' 
+            units = self.units
+        else:
+            title = 'Permutation Importances <br>(decrease in metric with randomized feature)'
+            units = ""
         if self.descriptions:
             descriptions = self.description_list(importances_df.Feature)
-            return plotly_importances_plot(importances_df, descriptions, round=round)
+            return plotly_importances_plot(importances_df, descriptions, round=round, units=units, title=title)
         else:
-            return plotly_importances_plot(importances_df, round=round)
+            return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
 
     def plot_interactions(self, col, cats=False, topx=None, pos_label=None):
@@ -1001,7 +1008,8 @@ class BaseExplainer(ABC):
         if col in self.cats:
             cats = True
         interactions_df = self.interactions_df(col, cats=cats, topx=topx, pos_label=pos_label)
-        return plotly_importances_plot(interactions_df)
+        title = f"Average interaction shap values for {col}"
+        return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
     def plot_shap_contributions(self, index, cats=True,
                                     topx=None, cutoff=None, sort='abs', round=2, pos_label=None):
@@ -1025,7 +1033,7 @@ class BaseExplainer(ABC):
 
         """
         contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, sort, pos_label)
-        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round)
+        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round, units=self.units)
 
     def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap value.
@@ -1075,10 +1083,11 @@ class BaseExplainer(ABC):
             cats = True
         interact_cols = self.shap_top_interactions(col, cats=cats, pos_label=pos_label)
         if topx is None: topx = len(interact_cols)
+        title = f"Shap interaction values for {col}"
 
         return plotly_shap_scatter_plot(
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
-                self.X_cats if cats else self.X, interact_cols[:topx])
+                self.X_cats if cats else self.X, interact_cols[:topx], title=title)
 
     def plot_shap_dependence(self, col, color_col=None, highlight_idx=None,pos_label=None):
         """plot shap dependence
@@ -1106,12 +1115,12 @@ class BaseExplainer(ABC):
                 return plotly_dependence_plot(self.X_cats, self.shap_values_cats(pos_label),
                                                 col, color_col,
                                                 highlight_idx=highlight_idx,
-                                                na_fill=self.na_fill)
+                                                na_fill=self.na_fill, units=self.units)
         else:
             return plotly_dependence_plot(self.X, self.shap_values(pos_label),
                                             col, color_col,
                                             highlight_idx=highlight_idx,
-                                            na_fill=self.na_fill)
+                                            na_fill=self.na_fill, units=self.units)
 
     def plot_shap_interaction(self, col, interact_col, highlight_idx=None, 
                                 pos_label=None):
@@ -1132,12 +1141,12 @@ class BaseExplainer(ABC):
             return plotly_shap_violin_plot(
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, interaction=True)
+                interact_col, col, interaction=True, units=self.units)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
                 interact_col, col, highlight_idx=highlight_idx,
-                interaction=True)
+                interaction=True, units=self.units)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, pos_label=None):
@@ -1175,14 +1184,16 @@ class BaseExplainer(ABC):
                                 display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
                                 index_feature_value=col_value, index_prediction=pred,
                                 feature_name=col,
-                                num_grid_lines=min(gridlines, sample, len(self.X)))
+                                num_grid_lines=min(gridlines, sample, len(self.X)),
+                                units=self.units)
             except:
                 return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(gridlines, sample, len(self.X)))
+                        num_grid_lines=min(gridlines, sample, len(self.X)), 
+                        units=self.units)
         else:
             return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(gridlines, sample, len(self.X)))
-
+                        num_grid_lines=min(gridlines, sample, len(self.X)), 
+                        units=self.units)
 
 
 class ClassifierExplainer(BaseExplainer):
@@ -2186,7 +2197,7 @@ class RandomForestExplainer(BaseExplainer):
         else:
             return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
 
-    def decisiontree_df_summary(self, tree_idx, index, round=2, pos_label=None):
+    def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
 
         Args:
@@ -2200,8 +2211,8 @@ class RandomForestExplainer(BaseExplainer):
 
         """
         idx=self.get_int_idx(index)
-        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
-                    classifier=self.is_classifier, round=round)
+        return get_decisiontree_summary_df(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
+                    classifier=self.is_classifier, round=round, units=self.units)
 
     def decision_path_file(self, tree_idx, index):
         """get a dtreeviz visualization of a particular tree in the random forest.
@@ -2297,10 +2308,11 @@ class RandomForestExplainer(BaseExplainer):
         if self.is_classifier:
             if pos_label is None: pos_label = self.pos_label
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
-                        highlight_tree=highlight_tree, round=round, pos_label=pos_label)
+                        highlight_tree=highlight_tree, round=round, 
+                        pos_label=pos_label)
         else:
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
-                        highlight_tree=highlight_tree, round=round)
+                        highlight_tree=highlight_tree, round=round, units=self.units)
 
     def calculate_properties(self, include_interactions=True):
         """

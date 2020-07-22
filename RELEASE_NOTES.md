@@ -8,6 +8,7 @@
         and PosLabelConnector.
 - In regression plots instead of boolean ratio=True/False, 
         you now pass residuals={'difference', 'ratio', 'log-ratio'}
+- decisiontree_df_summary renamed to decisiontree_summary_df (in line with contrib_summary_df)
 
 ### New Features
 - added check all shap values >-1 and <1 for model_output=probability
@@ -37,6 +38,9 @@
     of _layout(). Should still define _register_callbacks() to define callbacks
     so that all subcomponents that have been registered will automatically
     get their callbacks registered as well. 
+- Added regression units to prediction summary, shap plots, 
+        contributions plots/table, pdp plot and trees plot.
+- Clearer title for MEAN_ABS_SHAP importance and summary plots
 
 ### Other Changes
 -   added hide_title parameter to all components with a title
