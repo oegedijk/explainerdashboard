@@ -318,7 +318,7 @@ class ShapInteractionsComposite(ExplainerComponent):
         self.interaction_summary = InteractionSummaryComponent(
                 explainer, hide_selector=hide_selector, depth=depth, cats=cats)
         self.interaction_dependence = InteractionDependenceComponent(
-                explainer, hide_selector=hide_selector, cats=cats)
+                explainer, hide_selector=hide_selector, cats=cats, hide_cats=True)
         self.connector = InteractionSummaryDependenceConnector(
             self.interaction_summary, self.interaction_dependence)
         self.register_components(
@@ -358,20 +358,34 @@ class DecisionTreesComposite(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
         
-        self.index = ClassifierRandomIndexComponent(explainer, hide_selector=hide_selector)
         self.trees = DecisionTreesComponent(explainer, hide_selector=hide_selector)
         self.decisionpath_table = DecisionPathTableComponent(explainer, hide_selector=hide_selector)
-        self.decisionpath_graph = DecisionPathGraphComponent(explainer, hide_selector=hide_selector)
 
-        self.index_connector = IndexConnector(self.index, 
-            [self.trees, self.decisionpath_table, self.decisionpath_graph])
-        self.highlight_connector = HighlightConnector(self.trees, 
-            [self.decisionpath_table, self.decisionpath_graph])
+        if explainer.is_classifier:
+            self.index = ClassifierRandomIndexComponent(explainer, hide_selector=hide_selector)
+            self.decisionpath_graph = DecisionPathGraphComponent(explainer, hide_selector=hide_selector)
 
-        self.register_components(self.index, self.trees, 
-                self.decisionpath_table, self.decisionpath_graph, 
-                self.index_connector, self.highlight_connector)
+            self.index_connector = IndexConnector(self.index, 
+                [self.trees, self.decisionpath_table, self.decisionpath_graph])
+            self.highlight_connector = HighlightConnector(self.trees, 
+                [self.decisionpath_table, self.decisionpath_graph])
 
+            self.register_components(self.index, self.trees, 
+                    self.decisionpath_table, self.decisionpath_graph, 
+                    self.index_connector, self.highlight_connector)
+
+        elif explainer.is_regression:
+            self.index = RegressionRandomIndexComponent(explainer)
+            self.decisionpath_graph = DummyComponent()
+            self.index_connector = IndexConnector(self.index, 
+                    [self.trees, self.decisionpath_table])
+            self.highlight_connector = HighlightConnector(
+                    self.trees, self.decisionpath_table)
+
+            self.register_components(self.index, self.trees, self.decisionpath_table, 
+                    self.index_connector, self.highlight_connector)
+        
+        
     def layout(self):
         return html.Div([
             dbc.Row([

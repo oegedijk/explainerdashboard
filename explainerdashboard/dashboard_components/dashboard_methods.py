@@ -90,7 +90,7 @@ class DummyComponent:
         pass
 
     def layout(self):
-        pass
+        return None
 
     def register_callbacks(self, app):
         pass

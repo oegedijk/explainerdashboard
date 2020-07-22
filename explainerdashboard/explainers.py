@@ -770,7 +770,7 @@ class BaseExplainer(ABC):
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.MEAN_ABS_SHAP.min()
-        return importance_df[importance_df.MEAN_ABS_SHAP > cutoff].head(topx)
+        return importance_df[importance_df.MEAN_ABS_SHAP >= cutoff].head(topx)
     
     def formatted_contrib_df(self, index, round=None, lang='en', 
                                 pos_label=None):
@@ -2015,9 +2015,9 @@ class RegressionExplainer(BaseExplainer):
 
         """
         int_idx = self.get_int_idx(index)
-        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)}\n\n"
-        model_prediction += f"Actual Outcome: {np.round(self.y[int_idx], round)}\n\n"
-        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)}"
+        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Actual: {np.round(self.y[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}"
 
         return model_prediction
 
@@ -2043,9 +2043,9 @@ class RegressionExplainer(BaseExplainer):
         metrics_dict = self.metrics(**kwargs)
         
         metrics_markdown = "# Model Summary: \n\n"
-        metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)}\n\n"
-        metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)}\n\n"
-        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)}\n\n"
+        metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)} {self.units}\n\n"
+        metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)} {self.units}\n\n"
+        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)} {self.units}\n\n"
         
         return metrics_markdown
 

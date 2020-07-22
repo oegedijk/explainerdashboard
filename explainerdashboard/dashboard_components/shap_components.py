@@ -267,10 +267,13 @@ class ShapDependenceComponent(ExplainerComponent):
 
         @app.callback(
             Output('shap-dependence-col-'+self.name, 'options'),
-            [Input('shap-dependence-group-cats-'+self.name, 'checked')])
-        def update_dependence_shap_scatter_graph(cats):
-            return [{'label': col, 'value': col} 
+            [Input('shap-dependence-group-cats-'+self.name, 'checked')],
+            [State('shap-dependence-col-'+self.name, 'value')])
+        def update_dependence_shap_scatter_graph(cats, old_col):
+            options = [{'label': col, 'value': col} 
                                     for col in self.explainer.columns_ranked_by_shap(cats)]
+            return options
+            
 
 class ShapSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, shap_summary_component, shap_dependence_component):
@@ -418,27 +421,33 @@ class InteractionSummaryComponent(ExplainerComponent):
 
     def _register_callbacks(self, app):
         @app.callback(
-            [Output('interaction-summary-graph-'+self.name, 'figure'),
-             Output('interaction-summary-depth-'+self.name, 'options')],
+            [Output('interaction-summary-depth-'+self.name, 'options'),
+             Output('interaction-summary-col-'+self.name, 'options')],
+            [Input('interaction-summary-group-cats-'+self.name, 'checked'),
+             Input('pos-label-'+self.name, 'value')])
+        def update_interaction_scatter_graph(cats, pos_label):
+            depth_options = [{'label': str(i+1), 'value': i+1} 
+                                    for i in range(self.explainer.n_features(cats))]
+            new_cols = self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)
+            new_col_options = [{'label': col, 'value':col} for col in new_cols]
+            return depth_options, new_col_options
+
+        @app.callback(
+            Output('interaction-summary-graph-'+self.name, 'figure'),
             [Input('interaction-summary-col-'+self.name, 'value'),
              Input('interaction-summary-depth-'+self.name, 'value'),
              Input('interaction-summary-type-'+self.name, 'value'),
-             Input('interaction-summary-group-cats-'+self.name, 'checked'),
-             Input('pos-label-'+self.name, 'value')])
-        def update_interaction_scatter_graph(col, depth, summary_type, cats, pos_label):
+             Input('pos-label-'+self.name, 'value'),
+             Input('interaction-summary-group-cats-'+self.name, 'checked')])
+        def update_interaction_scatter_graph(col, depth, summary_type, pos_label, cats):
             if col is not None:
                 if summary_type=='aggregate':
-                    plot = self.explainer.plot_interactions(col, topx=depth, cats=cats, pos_label=pos_label)
+                    plot = self.explainer.plot_interactions(
+                        col, topx=depth, cats=cats, pos_label=pos_label)
                 elif summary_type=='detailed':
-                    plot = self.explainer.plot_shap_interaction_summary(col, topx=depth, cats=cats, pos_label=pos_label)
-                ctx = dash.callback_context
-                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-                if trigger == 'interaction-summary-group-cats-'+self.name:
-                    depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(cats))]
-                    return (plot, depth_options)
-                else:
-                    return (plot, dash.no_update)
+                    plot = self.explainer.plot_shap_interaction_summary(
+                        col, topx=depth, cats=cats, pos_label=pos_label)
+                return plot
             raise PreventUpdate
         
 
@@ -529,7 +538,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     ], md=3), hide=self.hide_col), 
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Interaction Feature:"),
+                        dbc.Label("Interaction:"),
                         dcc.Dropdown(id='interaction-dependence-interact-col-'+self.name, 
                             options=[{'label': col, 'value':col} 
                                         for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
@@ -558,14 +567,35 @@ class InteractionDependenceComponent(ExplainerComponent):
 
     def _register_callbacks(self, app):
         @app.callback(
+            Output('interaction-dependence-col-'+self.name, 'options'), 
+            [Input('interaction-dependence-group-cats-'+self.name, 'checked'),
+             Input('pos-label-'+self.name, 'value')])
+        def update_interaction_dependence_interact_col(cats, pos_label):
+            new_cols = self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)
+            new_col_options = [{'label': col, 'value':col} for col in new_cols]
+            return new_col_options
+
+        @app.callback(
+            Output('interaction-dependence-interact-col-'+self.name, 'options'),
+            [Input('interaction-dependence-col-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')],
+            [State('interaction-dependence-group-cats-'+self.name, 'checked'),
+             State('interaction-dependence-interact-col-'+self.name, 'value')])
+        def update_interaction_dependence_interact_col(col, pos_label, cats, old_interact_col):
+            if col is not None:
+                new_interact_cols = self.explainer.shap_top_interactions(col, cats=cats, pos_label=pos_label)
+                new_interact_options = [{'label': col, 'value':col} for col in new_interact_cols]
+                return new_interact_options
+            raise PreventUpdate
+
+        @app.callback(
             [Output('interaction-dependence-graph-'+self.name, 'figure'),
-            Output('interaction-dependence-reverse-graph-'+self.name, 'figure')],
+             Output('interaction-dependence-reverse-graph-'+self.name, 'figure')],
             [Input('interaction-dependence-interact-col-'+self.name, 'value'),
              Input('interaction-dependence-highlight-index-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')],
-            [State('interaction-dependence-col-'+self.name, 'value'),
-            State('interaction-dependence-group-cats-'+self.name, 'checked')])
-        def update_dependence_graph(interact_col, index, pos_label, col, cats):
+             Input('pos-label-'+self.name, 'value'),
+             Input('interaction-dependence-col-'+self.name, 'value')])
+        def update_dependence_graph(interact_col, index, pos_label, col):
             if col is not None and interact_col is not None:
                 return (self.explainer.plot_shap_interaction(
                             col, interact_col, highlight_idx=index, pos_label=pos_label),
@@ -573,19 +603,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                             interact_col, col, highlight_idx=index, pos_label=pos_label))
             raise PreventUpdate
 
-        @app.callback(
-            Output('interaction-dependence-interact-col-'+self.name, 'options'),
-            [Input('interaction-dependence-col-'+self.name, 'value'),
-             Input('interaction-dependence-group-cats-'+self.name, 'checked'),
-             Input('pos-label-'+self.name, 'value')],
-            [State('interaction-dependence-interact-col-'+self.name, 'value')])
-        def update_interaction_dependence_interact_col(col, cats, pos_label, old_interact_col):
-            if col is not None:
-                new_interact_cols = self.explainer.shap_top_interactions(col, cats=cats, pos_label=pos_label)
-                new_interact_options = [{'label': col, 'value':col} for col in new_interact_cols]
-                return new_interact_options
-            raise PreventUpdate
-
+        
 class InteractionSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, interaction_summary_component, interaction_dependence_component):
         """Connects a InteractionSummaryComponent with an InteractionDependenceComponent:
