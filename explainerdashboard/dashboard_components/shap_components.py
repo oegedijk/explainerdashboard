@@ -651,9 +651,9 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
 class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions", name=None,
-                    hide_title=False, hide_index=False, 
-                    hide_depth=False, hide_cats=False, hide_selector=False,
-                    pos_label=None, index=None, depth=None, cats=True):
+                    hide_title=False, hide_index=False, hide_depth=False, 
+                    hide_sort=False, hide_cats=False, hide_selector=False,
+                    pos_label=None, index=None, depth=None, sort='abs', cats=True):
         """Display Shap contributions to prediction graph component
 
         Args:
@@ -667,20 +667,23 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
+            hide_sort (bool, optional): Hide the sorting dropdown. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
             depth (int, optional): Initial number of features to display. Defaults to None.
+            sort ({'abs', 'high-to-low', 'low-to-high'}) sorting of shap values. 
+                        Defaults to 'abs'.
             cats (bool, optional): Group cats. Defaults to True.
         """
         super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
             hide_title, hide_index, hide_depth, hide_cats
-        self.hide_selector = hide_selector
-        self.index, self.depth, self.cats = index, depth, cats
+        self.hide_sort, self.hide_selector = hide_sort, hide_selector
+        self.index, self.depth, self.sort, self.cats = index, depth, sort, cats
 
         self.index_name = 'contributions-graph-index-'+self.name
 
@@ -710,6 +713,15 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                             for i in range(self.explainer.n_features(self.cats))],
                             value=self.depth)
                     ], md=2), hide=self.hide_depth),
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Sorting:"),
+                        dcc.Dropdown(id='contributions-graph-sorting-'+self.name, 
+                            options = [{'label': 'Absolute', 'value': 'abs'},
+                                        {'label': 'High to Low', 'value': 'high-to-low'},
+                                        {'label': 'Low to High', 'value': 'low-to-high'}],
+                            value=self.sort)
+                    ], md=2), hide=self.hide_sort),
                 make_hideable(
                         dbc.Col([self.selector.layout()
                     ], md=3), hide=self.hide_selector),
@@ -743,13 +755,16 @@ class ShapContributionsGraphComponent(ExplainerComponent):
              Output('contributions-graph-depth-'+self.name, 'options')],
             [Input('contributions-graph-index-'+self.name, 'value'),
              Input('contributions-graph-depth-'+self.name, 'value'),
+             Input('contributions-graph-sorting-'+self.name, 'value'),
              Input('contributions-graph-group-cats-'+self.name, 'checked'),
              Input('pos-label-'+self.name, 'value')])
-        def update_output_div(index, depth, cats, pos_label):
+        def update_output_div(index, depth, sort, cats, pos_label):
             if index is None:
                 raise PreventUpdate
 
-            plot = self.explainer.plot_shap_contributions(index, topx=depth, cats=cats, pos_label=pos_label)
+            plot = self.explainer.plot_shap_contributions(index, 
+                        topx=depth, cats=cats, sort=sort, pos_label=pos_label)
+            
             ctx = dash.callback_context
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'contributions-graph-group-cats-'+self.name:
@@ -763,9 +778,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 class ShapContributionsTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions", name=None,
                     hide_title=False, hide_index=False, 
-                    hide_depth=False, hide_cats=False, 
+                    hide_depth=False, hide_sort=False, hide_cats=False, 
                     hide_selector=False,
-                    pos_label=None, index=None, depth=None, cats=True):
+                    pos_label=None, index=None, depth=None, sort='abs', cats=True):
         """Show SHAP values contributions to prediction in a table component
 
         Args:
@@ -779,6 +794,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth selector. Defaults to False.
+            hide_sort (bool, optional): Hide sorting dropdown. Default to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
@@ -791,8 +807,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
             hide_title, hide_index, hide_depth, hide_cats
-        self.hide_selector = hide_selector
-        self.index, self.depth, self.cats = index, depth, cats
+        self.hide_sort, self.hide_selector = hide_sort, hide_selector
+        self.index, self.depth, self.sort, self.cats = index, depth, sort, cats
 
         self.index_name = 'contributions-table-index-'+self.name
 
@@ -823,9 +839,17 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             value=self.depth)
                     ], md=2), hide=self.hide_depth),
                 make_hideable(
+                    dbc.Col([
+                        dbc.Label("Sorting:"),
+                        dcc.Dropdown(id='contributions-table-sorting-'+self.name, 
+                            options = [{'label': 'Absolute', 'value': 'abs'},
+                                        {'label': 'High to Low', 'value': 'high-to-low'},
+                                        {'label': 'Low to High', 'value': 'low-to-high'}],
+                            value=self.sort)
+                    ], md=2), hide=self.hide_sort),
+                make_hideable(
                         dbc.Col([self.selector.layout()
                     ], width=2), hide=self.hide_selector),
-                
                 make_hideable(
                     dbc.Col([
                         dbc.Label("Grouping:"),
@@ -854,14 +878,16 @@ class ShapContributionsTableComponent(ExplainerComponent):
              Output('contributions-table-depth-'+self.name, 'options')],
             [Input('contributions-table-index-'+self.name, 'value'),
              Input('contributions-table-depth-'+self.name, 'value'),
+             Input('contributions-table-sorting-'+self.name, 'value'),
              Input('contributions-table-group-cats-'+self.name, 'checked'),
              Input('pos-label-'+self.name, 'value')])
-        def update_output_div(index, depth, cats, pos_label):
+        def update_output_div(index, depth, sort, cats, pos_label):
             if index is None:
                 raise PreventUpdate
 
             contributions_table = dbc.Table.from_dataframe(
-                self.explainer.contrib_summary_df(index, cats=cats, topx=depth, pos_label=pos_label))
+                self.explainer.contrib_summary_df(index, cats=cats, topx=depth, 
+                                sort=sort, pos_label=pos_label))
 
             tooltip_cols = {}
             for tr in contributions_table.children[1].children:

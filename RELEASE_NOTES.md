@@ -19,10 +19,12 @@
 - plot actual vs predicted now supported only logging x axis or only y axis
 - residuals plots now support option residuals='log-ratio'
 - residuals-vs-col plot now shows violin plot for categorical features
+- added sorting option to contributions plot/graph: sort={'abs', 'high-to-low', 'low-to-high'}
 
 ### Bug Fixes
 - Interaction connector bug fixed in detailed summary: click didn't work
 - pos label was ignored in explainer.plot_pdp()
+- Fixed some UX issues with interations components
 
 ### Improvements
 - All `State['tabs', 'value']` condition have been taken out of callbacks. This
@@ -35,11 +37,11 @@
     of _layout(). Should still define _register_callbacks() to define callbacks
     so that all subcomponents that have been registered will automatically
     get their callbacks registered as well. 
-- Fixed some UX issues with interations components
 
 ### Other Changes
 -   added hide_title parameter to all components with a title
 -   DecisionPathGraphComponent not available for RandomForestRegression models for now.
+-   In contributions graph base value now called 'population average' and colored yellow.
 
 
 ## version 0.2:

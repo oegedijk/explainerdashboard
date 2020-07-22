@@ -5,9 +5,9 @@
 - replace custom permutation importances by sklearn permuation importances?
     - or submit PR to sklearn to support multi col permuations?
 
+
 ## Layout:
 - Find a proper frontender to help :)
-- add RegressionRandomIndex to DecisionTrees tab
 
 ## dfs:
 - wrap shap values in pd.DataFrames?
@@ -16,6 +16,7 @@
 ## Plots:
 - Add options sorting contributions plot from most negative to most positive
 - Contributions: order by global mean_abs_shap or by index specific shap
+- vertical contributions graph
 - fix name of figure MEAN_ABS_SHAP
 - highlight id in violin plots
 - Add feature names to waterfall plot
@@ -35,17 +36,12 @@
 
 ## Explainers:
 
-
 ## Dashboard:
-- add option for vertical contributions?
- 
+- Add pandas profiling type col histograms
 
 ### Components
 - add pos_label_name property to PosLabelConnector search
-- group cats in interaction does not update col options anymore.
-- fix pdp component bug
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
-
 
 ## Methods:
 - Add LIME values
