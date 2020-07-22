@@ -190,7 +190,7 @@ class DecisionPathTableComponent(ExplainerComponent):
         )
         def update_decisiontree_table(index, highlight, pos_label):
             if index is not None and highlight is not None:
-                decisionpath_df = self.explainer.decisiontree_df_summary(highlight, index, pos_label=pos_label)
+                decisionpath_df = self.explainer.decisiontree_summary_df(highlight, index, pos_label=pos_label)
                 return dbc.Table.from_dataframe(decisionpath_df)
             raise PreventUpdate
 

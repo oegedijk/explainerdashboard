@@ -3,8 +3,7 @@
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees (now in dtreeviz!)
 - replace custom permutation importances by sklearn permuation importances?
-    - or submit PR to sklearn to support multi col permuations?
-
+    - or submit PR to sklearn to support multi col permuations for cats?
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -14,10 +13,8 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- Add options sorting contributions plot from most negative to most positive
 - Contributions: order by global mean_abs_shap or by index specific shap
 - vertical contributions graph
-- fix name of figure MEAN_ABS_SHAP
 - highlight id in violin plots
 - Add feature names to waterfall plot
 - replace -999 in contributions table by "MISSING"
@@ -27,17 +24,16 @@
 - confusion matrix: display both count and percentage
 
 ### Regression plots:
-- make base contribution yellow
-- call base contribution "starting average"
-- add units to contributions table
-- add units to pdp y axis
-- add units to contributions graph y axis
-- add units to decision trees plot
 
 ## Explainers:
 
+## notebooks:
+- update contributions example with sort
+- update residual plot examples
+- add binder/colab link on github
+
 ## Dashboard:
-- Add pandas profiling type col histograms
+- Add pandas profiling type col histograms, bar charts, correlation graphs, etc
 
 ### Components
 - add pos_label_name property to PosLabelConnector search

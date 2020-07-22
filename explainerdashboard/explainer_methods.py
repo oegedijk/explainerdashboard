@@ -519,7 +519,7 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
     return contrib_df
 
 
-def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
+def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units=""):
     """
     returns a DataFrame that summarizes a contrib_df as a pair of
     Reasons+Effect.
@@ -540,7 +540,7 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
         if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
         else:
-            effect +=  str(np.round(row['contribution'], round))
+            effect +=  str(np.round(row['contribution'], round)) + f" {units}"
 
 
         contrib_summary_df = contrib_summary_df.append(
@@ -549,7 +549,7 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
     if model_output == "probability":
         final_pred = str(np.round(100*contrib_df.contribution.sum(), round))+'%'
     else:
-        final_pred = str(np.round(contrib_df.contribution.sum(), round))
+        final_pred = str(np.round(contrib_df.contribution.sum(), round)) + f" {units}"
 
     contrib_summary_df = contrib_summary_df.append(
             dict(Reason="Final prediction", Effect=final_pred), ignore_index=True)
@@ -658,7 +658,7 @@ def get_decisiontree_df(decision_tree, observation, pos_label=1):
     return decisiontree_df
 
 
-def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
+def get_decisiontree_summary_df(decisiontree_df, classifier=False, round=2, units=""):
     if classifier:
         base_value = np.round(100*decisiontree_df.iloc[[0]]['average'].item(), round)
         prediction = np.round(100*(decisiontree_df.iloc[[-1]]['average'].item() \
@@ -674,7 +674,7 @@ def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
                             'Feature' : "",
                             'Condition' : "",
                             'Adjustment' : "Starting average",
-                            'New Prediction' : str(np.round(base_value, round)) + ('%' if classifier else '')
+                            'New Prediction' : str(np.round(base_value, round)) + ('%' if classifier else f' {units}')
                         }, ignore_index=True)
 
     for _, row in decisiontree_df.iterrows():
@@ -690,14 +690,14 @@ def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
                             'Feature' : row['feature'],
                             'Condition' : str(row['value']) + str(' >= ' if row['direction'] == 'right' else ' < ') + str(row['split']).ljust(10),
                             'Adjustment' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
-                            'New Prediction' : str(np.round((row['average']+row['diff']), round))
+                            'New Prediction' : str(np.round((row['average']+row['diff']), round)) + f" {units}"
                         }, ignore_index=True)
 
     decisiontree_summary_df = decisiontree_summary_df.append({
                         'Feature' : "",
                         'Condition' : "",
                         'Adjustment' : "Final Prediction",
-                        'New Prediction' : str(np.round(prediction, round)) + ('%' if classifier else '')
+                        'New Prediction' : str(np.round(prediction, round)) + ('%' if classifier else '') + f" {units}"
                     }, ignore_index=True)
 
     return decisiontree_summary_df

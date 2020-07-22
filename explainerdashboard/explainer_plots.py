@@ -12,7 +12,7 @@ from sklearn.metrics import (classification_report, confusion_matrix,
 
 def plotly_contribution_plot(contrib_df, target="target", 
                          model_output="raw", higher_is_better=False,
-                         include_base_value=True, round=2):
+                         include_base_value=True, round=2, units=""):
     """
     Takes in a DataFrame contrib_df with columns
     'col' -- name of columns
@@ -47,11 +47,11 @@ def plotly_contribution_plot(contrib_df, target="target",
         values[0] = ''
     
     if 'value' in contrib_df.columns:
-        hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib}" 
+        hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib} {units}" 
                   for col, value, contrib in zip(
                       cols, values, contribs)]
     else:
-        hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib}"  
+        hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib} {units}"  
                   for col, contrib in zip(cols, contribs)]
 
     fill_colour_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
@@ -98,7 +98,7 @@ def plotly_contribution_plot(contrib_df, target="target",
     elif model_output == "logodds":
         title = f'Contribution to prediction logodds = {prediction}'
     else:
-        title = f'Contribution to prediction {target} = {prediction}'
+        title = f'Contribution to prediction {target} = {prediction} {units}'
 
     data = [trace0, trace1]
     layout = go.Layout(
@@ -470,7 +470,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
 
 
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
-                            highlight_idx=None, interaction=False, na_fill=-999, round=2):
+                            highlight_idx=None, interaction=False, na_fill=-999, round=2, units=""):
     """
     Returns a partial dependence plot based on shap values.
 
@@ -568,7 +568,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
             showlegend=False,
             hovermode='closest',
             xaxis=dict(title=col_name),
-            yaxis=dict(title='SHAP value')
+            yaxis=dict(title=f"SHAP value ({units})" if units !="" else "SHAP value")
         )
         
     fig = go.Figure(data, layout)
@@ -597,7 +597,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     return fig
 
 
-def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, interaction=False):
+def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, interaction=False, units=""):
     """
     Returns a violin plot for categorical values. 
 
@@ -694,19 +694,25 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         for i in range(n_cats):
             fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
             fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
-        if color_col is not None:
-            fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}<br>(colored by {color_col})', hovermode='closest')
-        else:
-            fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}', hovermode='closest')
+
+    fig.update_layout(
+        yaxis=dict(title=f"SHAP value ({units})" if units !="" else "SHAP value"),
+        hovermode='closest')
+
+    if color_col is not None and interaction:
+        fig.update_layout(title=f'Interaction plot for {col_name} and {color_col}')
+    elif color_col is not None:
+        fig.update_layout(title=f'Shap values for {col_name}<br>(colored by {color_col})')
     else:
-        fig.update_layout(title=f'Shap {"interaction" if interaction else None} values for {col_name}')
+        fig.update_layout(title=f'Shap values for {col_name}')
     
     return fig
 
 
 def plotly_pdp(pdp_result, 
                display_index=None, index_feature_value=None, index_prediction=None,
-               absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None):
+               absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None,
+               units=""):
     """
     display_index: display the pdp of particular index
     index_feature_value: the actual feature value of the index to be highlighted
@@ -760,7 +766,8 @@ def plotly_pdp(pdp_result,
             )
 
     layout = go.Layout(title = f'pdp plot for {feature_name}',
-                        plot_bgcolor = '#fff',)
+                        plot_bgcolor = '#fff',
+                        yaxis=dict(title=units))
 
     fig = go.Figure(data=data, layout=layout)
 
@@ -823,9 +830,11 @@ def plotly_pdp(pdp_result,
     return fig
 
 
-def plotly_importances_plot(importance_df, descriptions=None, round=3):
+def plotly_importances_plot(importance_df, descriptions=None, round=3, units="", title=None, xaxis_title=None):
     
     importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
+    if title is None:
+        title = importance_name
     longest_feature_name = importance_df['Feature'].str.len().max()
 
     imp = importance_df.sort_values(importance_name)
@@ -846,13 +855,15 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3):
                 orientation='h')]
 
     layout = go.Layout(
-        title=importance_name,
+        title=title,
         plot_bgcolor = '#fff',
         showlegend=False
     )
     fig = go.Figure(data=data, layout=layout)
     fig.update_yaxes(automargin=True)
-    fig.update_xaxes(automargin=True)
+    if xaxis_title is None:
+        xaxis_title = units
+    fig.update_xaxes(automargin=True, title=xaxis_title)
 
     left_margin = longest_feature_name*7
     if np.isnan(left_margin):
@@ -869,7 +880,7 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3):
     return fig
 
 
-def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, pos_label=1):
+def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, pos_label=1, units=""):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
@@ -916,6 +927,7 @@ def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, po
     layout = go.Layout(
                 title='individual predictions trees',
                 plot_bgcolor = '#fff',
+                yaxis=dict(title=units)
             )
     fig = go.Figure(data = [trace0], layout=layout)
     shapes = [dict(
@@ -1138,7 +1150,7 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_shap_scatter_plot(shap_values, X, display_columns):
+def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values"):
     
     # make sure that columns are actually in X:
     display_columns = [col for col in display_columns if col in X.columns.tolist()]    
@@ -1203,7 +1215,8 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns):
         fig.update_yaxes(showgrid=False, zeroline=False, 
                          showticklabels=False, row=i+1, col=1)
     
-    fig.update_layout(height=100+len(display_columns)*50,
+    fig.update_layout(title=title + "<br>",
+                      height=100+len(display_columns)*50,
                       margin=go.layout.Margin(
                                 l=50,
                                 r=50,
