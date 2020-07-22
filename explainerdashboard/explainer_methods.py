@@ -444,7 +444,7 @@ def get_lift_curve_df(pred_probas, y, pos_label=1):
     return lift_df
     
 
-def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
+def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, sort='abs'):
     """
     Return a contrib_df DataFrame that lists the contribution of each input
     variable.
@@ -458,13 +458,14 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
     assert len(X_row.iloc[[0]].values[0].shape) == 1,\
         """X is not the right shape: len(X.values[0]) should be 1. 
             Try passing X.iloc[[index]]""" 
+    assert sort in ['abs', 'high-to-low', 'low-to-high']
 
     # start with the shap_base_value
     base_df = pd.DataFrame(
         {
             'col': ['base_value'],
             'contribution': [shap_base_value],
-            'value': ['-']
+            'value': ['']
         })
 
     contrib_df = pd.DataFrame(
@@ -476,8 +477,13 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
 
     # sort the df by absolute value from highest to lowest:
     contrib_df = contrib_df.reset_index(drop=True)
-    contrib_df = contrib_df.reindex(
-                    contrib_df.contribution.abs().sort_values(ascending=False).index)
+    if sort == 'abs':
+        contrib_df = contrib_df.reindex(
+                        contrib_df.contribution.abs().sort_values(ascending=False).index)
+    elif sort == 'high-to-low':
+        contrib_df = contrib_df.sort_values('contribution', ascending=False)
+    elif sort == 'low-to-high':
+        contrib_df = contrib_df.sort_values('contribution')
 
     contrib_df = pd.concat([base_df, contrib_df], ignore_index=True)
 

@@ -38,10 +38,36 @@ def plotly_contribution_plot(contrib_df, target="target",
 
     # prediction is the sum of all contributions:
     prediction = contrib_df['cumulative'].values[-1]
+    cols = contrib_df['col'].values.tolist()
+    values = contrib_df.value.tolist()
+    contribs = contrib_df.contribution.tolist()
+    
+    if include_base_value:
+        cols[0] = 'Population<br>average'
+        values[0] = ''
+    
+    if 'value' in contrib_df.columns:
+        hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib}" 
+                  for col, value, contrib in zip(
+                      cols, values, contribs)]
+    else:
+        hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib}"  
+                  for col, contrib in zip(cols, contribs)]
 
+    fill_colour_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
+    fill_colour_down='rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
+    line_colour_up='rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
+    line_colour_down='rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
+
+    fill_colors = [fill_colour_up if y > 0 else fill_colour_down for y in contribs]
+    line_colors = [line_colour_up if y > 0 else line_colour_down for y in contribs]
+    if include_base_value:
+        fill_colors[0] = 'rgba(230, 230, 30, 1.0)'
+        line_colors[0] = 'rgba(190, 190, 30, 1.0)'
+    
     # Base of each bar
     trace0 = go.Bar(
-        x=contrib_df['col'].values,
+        x=cols,
         y=contrib_df['base'].values,
         hoverinfo='skip',
         name="",
@@ -49,33 +75,19 @@ def plotly_contribution_plot(contrib_df, target="target",
             color='rgba(1,1,1, 0.0)',
         )
     )
-    if 'value' in contrib_df.columns:
-        hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib}" 
-                  for col, value, contrib in zip(
-                      contrib_df.col, contrib_df.value, contrib_df.contribution)]
-    else:
-        hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib}"  
-                  for col, contrib in zip(contrib_df.col, contrib_df.contribution)]
 
-    fill_colour_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
-    fill_colour_down='rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
-    line_colour_up='rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
-    line_colour_down='rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
-    
     # top of each bar (base + contribution)
     trace1 = go.Bar(
-        x=contrib_df['col'].values.tolist(),
+        x=cols,
         y=contrib_df['contribution'].values,
         text=hover_text,
         name="contribution",
         hoverinfo="text",
         marker=dict(
             # blue if positive contribution, red if negative
-            color=[fill_colour_up if y > 0 else fill_colour_down 
-                           for y in contrib_df['contribution'].values.tolist()],
+            color=fill_colors,
             line=dict(
-                color=[line_colour_up if y > 0 else line_colour_down
-                           for y in contrib_df['contribution'].values.tolist()],
+                color=line_colors,
                 width=2,
             )
         )

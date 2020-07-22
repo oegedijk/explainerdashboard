@@ -700,7 +700,7 @@ class BaseExplainer(ABC):
         elif kind=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats, pos_label)
 
-    def contrib_df(self, index, cats=True, topx=None, cutoff=None, 
+    def contrib_df(self, index, cats=True, topx=None, cutoff=None, sort='abs',
                     pos_label=None):
         """shap value contributions to the prediction for index.
         
@@ -713,6 +713,9 @@ class BaseExplainer(ABC):
                     called REST, defaults to None
           cutoff(float, optional, optional): only return features with at least 
                     cutoff contributions, defaults to None
+          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by 
+                    absolute shap value, or from high to low, or low to high. 
+                    Defaults to 'abs'.
           pos_label:  (Default value = None)
 
         Returns:
@@ -723,14 +726,14 @@ class BaseExplainer(ABC):
         if cats:
             return get_contrib_df(self.shap_base_value(pos_label), 
                                     self.shap_values_cats(pos_label)[idx],
-                                    self.X_cats.iloc[[idx]], topx, cutoff)
+                                    self.X_cats.iloc[[idx]], topx, cutoff, sort)
         else:
             return get_contrib_df(self.shap_base_value(pos_label), 
                                     self.shap_values(pos_label)[idx],
-                                    self.X.iloc[[idx]], topx, cutoff)
+                                    self.X.iloc[[idx]], topx, cutoff, sort)
 
-    def contrib_summary_df(self, index, cats=True,
-                            topx=None, cutoff=None, round=2, pos_label=None):
+    def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
+                            round=2, sort='abs', pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format
 
         Args:
@@ -739,6 +742,9 @@ class BaseExplainer(ABC):
           topx: Only show topx highest features(Default value = None)
           cutoff: Only show features above cutoff (Default value = None)
           round: round figures (Default value = 2)
+          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by 
+                    absolute shap value, or from high to low, or low to high. 
+                    Defaults to 'abs'.
           pos_label: Positive class (Default value = None)
 
         Returns:
@@ -746,8 +752,8 @@ class BaseExplainer(ABC):
         """
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(
-                    self.contrib_df(idx, cats, topx, cutoff, pos_label), 
-                    round=round)
+                    self.contrib_df(idx, cats, topx, cutoff, sort, pos_label), 
+                round=round)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
                             pos_label=None):
@@ -998,22 +1004,27 @@ class BaseExplainer(ABC):
         return plotly_importances_plot(interactions_df)
 
     def plot_shap_contributions(self, index, cats=True,
-                                    topx=None, cutoff=None, round=2, pos_label=None):
+                                    topx=None, cutoff=None, sort='abs', round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
 
         Args:
           index(int or str): index for which to display prediction
           cats(bool, optional, optional): Group categoricals, defaults to True
-          topx(int, optional, optional): Only display topx features, defaults to None
-          cutoff(float, optional, optional): Only display features with at least cutoff contribution, defaults to None
-          round(int, optional, optional): round contributions to round precision, defaults to 2
+          topx(int, optional, optional): Only display topx features, 
+                        defaults to None
+          cutoff(float, optional, optional): Only display features with at least 
+                        cutoff contribution, defaults to None
+          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by absolute shap value, or
+                        from high to low, or low to high. Defaults to 'abs'.
+          round(int, optional, optional): round contributions to round precision, 
+                        defaults to 2
           pos_label:  (Default value = None)
 
         Returns:
           plotly.Fig: fig
 
         """
-        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, pos_label)
+        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, sort, pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round)
 
     def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
