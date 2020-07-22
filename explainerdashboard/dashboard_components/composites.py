@@ -109,7 +109,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 class RegressionModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Regression Stats", name=None,
                     hide_title=False,
-                    logs=False, pred_or_actual="vs_pred", ratio=False,
+                    logs=False, pred_or_actual="vs_pred", residuals='difference',
                     col=None):
         """Composite for displaying multiple regression related graphs:
 
@@ -129,7 +129,8 @@ class RegressionModelStatsComposite(ExplainerComponent):
             logs (bool, optional): Use log axis. Defaults to False.
             pred_or_actual (str, optional): plot residuals vs predictions 
                         or vs y (actual). Defaults to "vs_pred".
-            ratio (bool, optional): Use residual ratios. Defaults to False.
+            residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
             col ({str, int}, optional): Feature to use for residuals plot. Defaults to None.
         """
         super().__init__(explainer, title, name)
@@ -141,9 +142,9 @@ class RegressionModelStatsComposite(ExplainerComponent):
         self.preds_vs_actual = PredictedVsActualComponent(explainer, logs=logs)
         self.modelsummary = RegressionModelSummaryComponent(explainer)
         self.residuals = ResidualsComponent(explainer, 
-                            pred_or_actual=pred_or_actual, ratio=ratio)
+                            pred_or_actual=pred_or_actual, residuals=residuals)
         self.residuals_vs_col = ResidualsVsColComponent(explainer, 
-                                    col=col, ratio=ratio)
+                                    col=col, residuals=residuals)
         self.register_components([self.preds_vs_actual, self.modelsummary,
                     self.residuals, self.residuals_vs_col])
 

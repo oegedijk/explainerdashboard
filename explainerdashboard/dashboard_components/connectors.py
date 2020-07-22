@@ -223,7 +223,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         residuals. Defaults to True.
             round (int, optional): rounding used for slider spacing. Defaults to 2.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
         self.hide_index, self.hide_button = hide_index, hide_button
         self.hide_pred_slider = hide_pred_slider
@@ -269,7 +269,6 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                            #dbc.Label("Index:", html_for='random-index-clas-index-'+self.name),
                             dcc.Dropdown(id='random-index-reg-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
                                                     for idx in self.explainer.idxs],

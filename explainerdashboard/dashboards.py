@@ -804,7 +804,6 @@ class InlineRegressionExplainer(InlineExplainerComponent):
     @delegates_doc(RegressionModelStatsComposite)
     def model_stats(self, title='Models Stats', **kwargs):
         """Runs model_stats inline in notebook"""
-
         comp = RegressionModelStatsComposite(self._explainer, **kwargs)
         self._run_component(comp, title)
     
@@ -812,7 +811,7 @@ class InlineRegressionExplainer(InlineExplainerComponent):
     @delegates_doc(PredictedVsActualComponent)
     def pred_vs_actual(self, title="Predicted vs Actual", **kwargs):
         "shows predicted vs actual for regression"
-        assert self.explainer.is_regression
+        assert self._explainer.is_regression
         comp = PredictedVsActualComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
@@ -820,7 +819,7 @@ class InlineRegressionExplainer(InlineExplainerComponent):
     @delegates_doc(ResidualsComponent)
     def residuals(self, title="Residuals", **kwargs):
         "shows residuals for regression"
-        assert self.explainer.is_regression
+        assert self._explainer.is_regression
         comp = ResidualsComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
@@ -828,7 +827,7 @@ class InlineRegressionExplainer(InlineExplainerComponent):
     @delegates_doc(ResidualsVsColComponent)
     def residuals_vs_col(self, title="Residuals vs col", **kwargs):
         "shows residuals vs col for regression"
-        assert self.explainer.is_regression
+        assert self._explainer.is_regression
         comp = ResidualsVsColComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 

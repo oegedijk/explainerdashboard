@@ -6,6 +6,8 @@
     - so also removed header_mode from ExplainerComponent parameters
     - You can now syncronize pos labels across components with a PosLabelSelector
         and PosLabelConnector.
+- In regression plots instead of boolean ratio=True/False, 
+        you now pass residuals={'difference', 'ratio', 'log-ratio'}
 
 ### New Features
 - added check all shap values >-1 and <1 for model_output=probability
@@ -14,6 +16,9 @@
 - added parameter block_selector_callbacks to ExplainerDashboard to block
     the global pos label selector's callbacks. If you already have PosLabelSelectors
     in your layout, this prevents clashes. 
+- plot actual vs predicted now supported only logging x axis or only y axis
+- residuals plots now support option residuals='log-ratio'
+- residuals-vs-col plot now shows violin plot for categorical features
 
 ### Bug Fixes
 - Interaction connector bug fixed in detailed summary: click didn't work
@@ -33,7 +38,7 @@
 
 ### Other Changes
 -   added hide_title parameter to all components with a title
--
+
 
 ## version 0.2:
 ### Breaking Changes
