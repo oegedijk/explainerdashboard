@@ -652,8 +652,10 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions", name=None,
                     hide_title=False, hide_index=False, hide_depth=False, 
-                    hide_sort=False, hide_cats=False, hide_selector=False,
-                    pos_label=None, index=None, depth=None, sort='abs', cats=True):
+                    hide_sort=False, hide_orientation=False, hide_cats=False, 
+                    hide_selector=False,
+                    pos_label=None, index=None, depth=None, sort='abs', 
+                    orientation='vertical', cats=True):
         """Display Shap contributions to prediction graph component
 
         Args:
@@ -668,22 +670,28 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_sort (bool, optional): Hide the sorting dropdown. Defaults to False.
+            hide_orientation (bool, optional): Hide the orientation dropdown. 
+                    Defaults to False
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
             depth (int, optional): Initial number of features to display. Defaults to None.
-            sort ({'abs', 'high-to-low', 'low-to-high'}) sorting of shap values. 
+            sort ({'abs', 'high-to-low', 'low-to-high'}, optional): sorting of shap values. 
                         Defaults to 'abs'.
+            orientation ({'vertical', 'horizontal'}, optional): orientation of bar chart.
+                        Defaults to 'vertical'.
             cats (bool, optional): Group cats. Defaults to True.
         """
         super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
             hide_title, hide_index, hide_depth, hide_cats
-        self.hide_sort, self.hide_selector = hide_sort, hide_selector
-        self.index, self.depth, self.sort, self.cats = index, depth, sort, cats
+        self.hide_sort, self.hide_orientation, self.hide_selector = \
+            hide_sort, hide_orientation, hide_selector
+        self.index, self.depth, self.sort, self.orientation, self.cats = \
+            index, depth, sort, orientation, cats
 
         self.index_name = 'contributions-graph-index-'+self.name
 
@@ -696,6 +704,11 @@ class ShapContributionsGraphComponent(ExplainerComponent):
     def layout(self):
         return html.Div([
             make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
+            dbc.Row([
+                make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], md=2), hide=self.hide_selector),
+            ], justify="right"),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -723,8 +736,13 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             value=self.sort)
                     ], md=2), hide=self.hide_sort),
                 make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], md=3), hide=self.hide_selector),
+                    dbc.Col([
+                        dbc.Label("Orientation:"),
+                        dcc.Dropdown(id='contributions-graph-orientation-'+self.name, 
+                            options = [{'label': 'Vertical', 'value': 'vertical'},
+                                        {'label': 'Horizontal', 'value': 'horizontal'}],
+                            value=self.orientation)
+                    ], md=2), hide=self.hide_orientation),
                 make_hideable(
                     dbc.Col([
                         dbc.Label("Grouping:"),
@@ -738,7 +756,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                     html_for='contributions-graph-group-cats-'+self.name, 
                                     className="form-check-label"),
                         ], check=True)
-                    ], md=3), hide=self.hide_cats),
+                    ], md=2), hide=self.hide_cats),
                 ], form=True),
                 
             dbc.Row([
@@ -747,6 +765,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         children=[dcc.Graph(id='contributions-graph-'+self.name)]),
                 ]),
             ]),
+            dbc.Row([
+                
+                ], form=True),
         ])
         
     def _register_callbacks(self, app):
@@ -756,14 +777,15 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             [Input('contributions-graph-index-'+self.name, 'value'),
              Input('contributions-graph-depth-'+self.name, 'value'),
              Input('contributions-graph-sorting-'+self.name, 'value'),
+             Input('contributions-graph-orientation-'+self.name, 'value'),
              Input('contributions-graph-group-cats-'+self.name, 'checked'),
              Input('pos-label-'+self.name, 'value')])
-        def update_output_div(index, depth, sort, cats, pos_label):
+        def update_output_div(index, depth, sort, orientation, cats, pos_label):
             if index is None:
                 raise PreventUpdate
 
-            plot = self.explainer.plot_shap_contributions(index, 
-                        topx=depth, cats=cats, sort=sort, pos_label=pos_label)
+            plot = self.explainer.plot_shap_contributions(index, topx=depth, 
+                        cats=cats, sort=sort, orientation=orientation, pos_label=pos_label)
             
             ctx = dash.callback_context
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]

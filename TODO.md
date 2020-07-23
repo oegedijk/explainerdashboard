@@ -2,8 +2,9 @@
 # TODO:
 - find out why dtreeviz for regression no longer working
 - find a way to plot individual xgboost trees (now in dtreeviz!)
-- replace custom permutation importances by sklearn permuation importances?
+- replace custom permutation importances by sklearn permutation importances?
     - or submit PR to sklearn to support multi col permuations for cats?
+    - or spend some time optimizing own permutation importance code?
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -27,6 +28,7 @@
 
 ## Explainers:
 
+
 ## notebooks:
 - update contributions example with sort
 - update residual plot examples
@@ -48,9 +50,12 @@
 - add ExplainerDashboard intergration test
 - Add tests for decisiontrees, extratrees
 - test model_output='probability' and 'raw' or 'logodds' seperately
+- add tests for explainer_methods
 - add test coverage (add a badge)
 
 ## Docs:
+- add docstrings to explainer_methods
+- add docstrings to explainer_plots
 - add screenshots of components to docs
 - move screenshots to separate folder
 - document PosLabelSelector and PosLabelConnector, e.g.:

@@ -463,7 +463,7 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
     # start with the shap_base_value
     base_df = pd.DataFrame(
         {
-            'col': ['base_value'],
+            'col': ['_BASE'],
             'contribution': [shap_base_value],
             'value': ['']
         })
@@ -474,49 +474,43 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
                         'contribution': shap_values,
                         'value': X_row.values[0]
                     })
+  
+    if cutoff is None and topx is not None:
+        cutoff = contrib_df.contribution.abs().nlargest(topx).min()
+    elif cutoff is None and topx is None:
+        cutoff = 0
+        
+    display_df = contrib_df[contrib_df.contribution.abs() >= cutoff]
+    display_df_neg = display_df[display_df.contribution<0]
+    display_df_pos = display_df[display_df.contribution>=0]
+    
+    rest_df = contrib_df[contrib_df.contribution.abs() < cutoff].sum().to_frame().T.assign(col="_REST", value="")
+    
 
     # sort the df by absolute value from highest to lowest:
-    contrib_df = contrib_df.reset_index(drop=True)
-    if sort == 'abs':
-        contrib_df = contrib_df.reindex(
-                        contrib_df.contribution.abs().sort_values(ascending=False).index)
-    elif sort == 'high-to-low':
-        contrib_df = contrib_df.sort_values('contribution', ascending=False)
-    elif sort == 'low-to-high':
-        contrib_df = contrib_df.sort_values('contribution')
+    if sort=='abs':
+        display_df = display_df.reindex(
+                            display_df.contribution.abs().sort_values(ascending=False).index)
+        contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
+    if sort=='high-to-low':
+        display_df_pos = display_df_pos.reindex(
+                            display_df_pos.contribution.abs().sort_values(ascending=False).index)
+        display_df_neg = display_df_neg.reindex(
+                            display_df_neg.contribution.abs().sort_values().index)
+        contrib_df = pd.concat([base_df, display_df_pos, rest_df, display_df_neg], ignore_index=True)
+    if sort=='low-to-high':
+        display_df_pos = display_df_pos.reindex(
+                            display_df_pos.contribution.abs().sort_values().index)
+        display_df_neg = display_df_neg.reindex(
+                            display_df_neg.contribution.abs().sort_values(ascending=False).index)
+        contrib_df = pd.concat([base_df, display_df_neg, rest_df, display_df_pos], ignore_index=True)
 
-    contrib_df = pd.concat([base_df, contrib_df], ignore_index=True)
-
-    # add cumulative contribution from top to bottom (for making graph):
+    # add cumulative contribution from top to bottom (for making bar chart):
     contrib_df['cumulative'] = contrib_df.contribution.cumsum()
+    contrib_df['base']= contrib_df['cumulative'] - contrib_df['contribution']  
 
-    # if a cutoff is given for minimum contribution to be displayed, calculate what topx rows to return:
-    if cutoff is not None:
-        cutoff = contrib_df.contribution[np.abs(contrib_df.contribution) >= cutoff].index.max()+1
-        if topx is not None and cutoff < topx:
-            topx = cutoff
-
-    # if only returning topx columns, sum the remainder contributions under 'REST'
-    if topx is not None:
-        if topx > len(contrib_df): topx = len(contrib_df)
-        old_cum = contrib_df.iloc[[topx - 1]].cumulative.item()
-        tot_cum = contrib_df.iloc[[-1]].cumulative.item()
-        diff = tot_cum-old_cum
-
-        rest_df = pd.DataFrame(
-            {
-                'col': ['REST'], 
-                'contribution': [diff], 
-                'value': ['-'], 
-                'cumulative': [tot_cum]
-            })
-
-        contrib_df = pd.concat([contrib_df.head(topx), rest_df], axis=0).reset_index(drop=True)
-
-    # add the cumulative before the current variable (i.e. the base of the
-    # bar in the graph):
-    contrib_df['base']= contrib_df['cumulative'] - contrib_df['contribution']
-    return contrib_df
+    pred_df = contrib_df.sum().to_frame().T.assign(col='_PREDICTION', value="", cumulative= lambda df:df.contribution, base=0)
+    return pd.concat([contrib_df, pred_df], ignore_index=True)
 
 
 def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units=""):
@@ -527,32 +521,32 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units=""):
     :param model_output: 'raw' or 'probability'
     :param round: rounding of contribution
     """
+    assert model_output in ['raw', 'probability', 'logodds']
     contrib_summary_df = pd.DataFrame(columns=['Reason', 'Effect'])
     
 
     for _, row in contrib_df.iterrows():
-        if row['col'] == 'base_value':
+        if row['col'] == '_BASE':
             reason = 'Average of population'
+            effect = ""
+        elif row['col'] == '_REST':
+            reason = 'Other features combined'
+            effect = f"{'+' if row['contribution'] >= 0 else ''}"
+        elif row['col'] == '_PREDICTION':
+            reason = 'Final prediction'
             effect = ""
         else:
             reason = f"{row['col']} = {row['value']}"
             effect = f"{'+' if row['contribution'] >= 0 else ''}"
         if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
+        elif model_output == 'logodds':
+            effect += str(np.round(100*row['contribution'], round))    
         else:
             effect +=  str(np.round(row['contribution'], round)) + f" {units}"
 
-
         contrib_summary_df = contrib_summary_df.append(
             dict(Reason=reason, Effect=effect), ignore_index=True)
-    
-    if model_output == "probability":
-        final_pred = str(np.round(100*contrib_df.contribution.sum(), round))+'%'
-    else:
-        final_pred = str(np.round(contrib_df.contribution.sum(), round)) + f" {units}"
-
-    contrib_summary_df = contrib_summary_df.append(
-            dict(Reason="Final prediction", Effect=final_pred), ignore_index=True)
     
     return contrib_summary_df.reset_index(drop=True)
 

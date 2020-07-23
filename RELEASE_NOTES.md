@@ -21,6 +21,7 @@
 - residuals plots now support option residuals='log-ratio'
 - residuals-vs-col plot now shows violin plot for categorical features
 - added sorting option to contributions plot/graph: sort={'abs', 'high-to-low', 'low-to-high'}
+- added final prediction to contributions plot
 
 ### Bug Fixes
 - Interaction connector bug fixed in detailed summary: click didn't work
@@ -41,6 +42,7 @@
 - Added regression units to prediction summary, shap plots, 
         contributions plots/table, pdp plot and trees plot.
 - Clearer title for MEAN_ABS_SHAP importance and summary plots
+
 
 ### Other Changes
 -   added hide_title parameter to all components with a title
