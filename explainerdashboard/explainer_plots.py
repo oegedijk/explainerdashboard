@@ -12,7 +12,8 @@ from sklearn.metrics import (classification_report, confusion_matrix,
 
 def plotly_contribution_plot(contrib_df, target="target", 
                          model_output="raw", higher_is_better=False,
-                         include_base_value=True, round=2, units=""):
+                         include_base_value=True, include_prediction=True, 
+                         orientation='vertical', round=2, units=""):
     """
     Takes in a DataFrame contrib_df with columns
     'col' -- name of columns
@@ -25,14 +26,27 @@ def plotly_contribution_plot(contrib_df, target="target",
 
     :param model_out 'raw' or 'probability' or 'logodds'
     """ 
+    if orientation not in ['vertical', 'horizontal']:
+        raise ValueError(f"orientation should be in ['vertical', 'horizontal'], but you passed orientation={orientation}")
+    if model_output not in ['raw', 'probability', 'logodds']:
+        raise ValueError(f"model_output should be in ['raw', 'probability', 'logodds'], but you passed orientation={model_output}")
+
     contrib_df = contrib_df.copy()
+    if not include_base_value:
+        contrib_df = contrib_df[contrib_df.col != '_BASE']
+    if not include_prediction:
+        contrib_df = contrib_df[contrib_df.col != '_PREDICTION']
+    contrib_df = contrib_df.replace({'_BASE': 'Population<br>average',
+                        '_REST': 'Other features combined',
+                        '_PREDICTION': 'Final Prediction'})
+    
     multiplier = 100 if model_output=='probability' else 1
-    contrib_df['base'] = np.round(multiplier * contrib_df['base'], round)
-    contrib_df['cumulative'] = np.round(multiplier * contrib_df['cumulative'], round)
-    contrib_df['contribution'] = np.round(multiplier * contrib_df['contribution'], round)
+    contrib_df['base'] = np.round(multiplier * contrib_df['base'].astype(float), round)
+    contrib_df['cumulative'] = np.round(multiplier * contrib_df['cumulative'].astype(float), round)
+    contrib_df['contribution'] = np.round(multiplier * contrib_df['contribution'].astype(float), round)
 
     if not include_base_value:
-        contrib_df = contrib_df[contrib_df.col != 'base_value']
+        contrib_df = contrib_df[contrib_df.col != '_BASE']
         
     longest_feature_name = contrib_df['col'].str.len().max()
 
@@ -40,11 +54,8 @@ def plotly_contribution_plot(contrib_df, target="target",
     prediction = contrib_df['cumulative'].values[-1]
     cols = contrib_df['col'].values.tolist()
     values = contrib_df.value.tolist()
+    bases = contrib_df.base.tolist()
     contribs = contrib_df.contribution.tolist()
-    
-    if include_base_value:
-        cols[0] = 'Population<br>average'
-        values[0] = ''
     
     if 'value' in contrib_df.columns:
         hover_text=[f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib} {units}" 
@@ -54,32 +65,45 @@ def plotly_contribution_plot(contrib_df, target="target",
         hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib} {units}"  
                   for col, contrib in zip(cols, contribs)]
 
-    fill_colour_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
-    fill_colour_down='rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
-    line_colour_up='rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
-    line_colour_down='rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
+    fill_color_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
+    fill_color_down='rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
+    line_color_up='rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
+    line_color_down='rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
 
-    fill_colors = [fill_colour_up if y > 0 else fill_colour_down for y in contribs]
-    line_colors = [line_colour_up if y > 0 else line_colour_down for y in contribs]
+    fill_colors = [fill_color_up if y > 0 else fill_color_down for y in contribs]
+    line_colors = [line_color_up if y > 0 else line_color_down for y in contribs]
     if include_base_value:
         fill_colors[0] = 'rgba(230, 230, 30, 1.0)'
         line_colors[0] = 'rgba(190, 190, 30, 1.0)'
+    if include_prediction:
+        fill_colors[-1] = 'rgba(50, 200, 50, 1.0)'
+        line_colors[-1] = 'rgba(40, 160, 50, 1.0)'
+        
+    
+    if orientation == 'horizontal':
+        cols = cols[::-1]
+        values = values[::-1]
+        contribs = contribs[::-1]
+        bases = bases[::-1]
+        fill_colors = fill_colors[::-1]
+        line_colors = line_colors[::-1]
     
     # Base of each bar
     trace0 = go.Bar(
-        x=cols,
-        y=contrib_df['base'].values,
+        x=bases if orientation=='horizontal' else cols,
+        y=cols if orientation=='horizontal' else bases,
         hoverinfo='skip',
         name="",
         marker=dict(
             color='rgba(1,1,1, 0.0)',
-        )
+        ),
+        orientation='h' if orientation=='horizontal' else None
     )
 
     # top of each bar (base + contribution)
     trace1 = go.Bar(
-        x=cols,
-        y=contrib_df['contribution'].values,
+        x=contribs if orientation=='horizontal' else cols,
+        y=cols if orientation=='horizontal' else contribs,
         text=hover_text,
         name="contribution",
         hoverinfo="text",
@@ -90,7 +114,8 @@ def plotly_contribution_plot(contrib_df, target="target",
                 color=line_colors,
                 width=2,
             )
-        )
+        ),
+        orientation='h' if orientation=='horizontal' else None
     )
     
     if model_output == "probability":
@@ -102,6 +127,7 @@ def plotly_contribution_plot(contrib_df, target="target",
 
     data = [trace0, trace1]
     layout = go.Layout(
+        height=600 if orientation=='vertical' else 100+35*len(cols),
         title=title,
         barmode='stack',
         plot_bgcolor = '#fff',
@@ -109,18 +135,19 @@ def plotly_contribution_plot(contrib_df, target="target",
     )
 
     fig = go.Figure(data=data, layout=layout)
-    #fig.update_xaxes(automargin=True)
+    if model_output=='probability':
+        fig.update_yaxes(range=[0, 100])
     fig.update_layout(margin=go.layout.Margin(
-                                l=50,
+                                l=longest_feature_name*7 if orientation=='horizontal' else 50,
                                 r=100,
-                                b=longest_feature_name*6,
+                                b=50 if orientation=='horizontal' else longest_feature_name*6 ,
                                 t=50,
                                 pad=4
                             ))
-    if model_output=="probability":
-        fig.update_yaxes(title_text='Prediction %')
+    if orientation == 'vertical':
+        fig.update_yaxes(title_text='Predicted ' + ('%' if model_output=="probability" else units))
     else:
-        fig.update_yaxes(title_text='Prediction')
+        fig.update_xaxes(title_text='Predicted ' + ('%' if model_output=="probability" else units))
     return fig
 
 

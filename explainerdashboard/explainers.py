@@ -1011,8 +1011,8 @@ class BaseExplainer(ABC):
         title = f"Average interaction shap values for {col}"
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
-    def plot_shap_contributions(self, index, cats=True,
-                                    topx=None, cutoff=None, sort='abs', round=2, pos_label=None):
+    def plot_shap_contributions(self, index, cats=True, topx=None, cutoff=None, 
+                        sort='abs', orientation='vertical', round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
 
         Args:
@@ -1024,6 +1024,9 @@ class BaseExplainer(ABC):
                         cutoff contribution, defaults to None
           sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by absolute shap value, or
                         from high to low, or low to high. Defaults to 'abs'.
+          orientation({'vertical', 'horizontal'}) Horizontal or vertical bar chart. 
+                    Horizontal may be better if you have lots of features. 
+                    Defaults to 'vertical'.
           round(int, optional, optional): round contributions to round precision, 
                         defaults to 2
           pos_label:  (Default value = None)
@@ -1032,8 +1035,10 @@ class BaseExplainer(ABC):
           plotly.Fig: fig
 
         """
+        assert orientation in ['vertical', 'horizontal']
         contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, sort, pos_label)
-        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round, units=self.units)
+        return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
+                    orientation=orientation, round=round, units=self.units)
 
     def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap value.
