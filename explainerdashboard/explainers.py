@@ -754,7 +754,7 @@ class BaseExplainer(ABC):
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(
                     self.contrib_df(idx, cats, topx, cutoff, sort, pos_label), 
-                round=round, units=self.units)
+                round=round, units=self.units, na_fill=self.na_fill)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
                             pos_label=None):
@@ -1669,26 +1669,6 @@ class ClassifierExplainer(BaseExplainer):
                 "no self.idxs property found..."
             return self.idxs[idx]
         return int(idx)
-
-    def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
-                            round=2, pos_label=None):
-        """Takes a contrib_df, and formats it to a more human readable format
-
-        Args:
-          index: 
-          cats:  group categorical columns together(Default value = True)
-          topx:  only show topx highest shap values(Default value = None)
-          cutoff:  only show shap values above cutoff(Default value = None)
-          round:  round shapvalues to round digits (Default value = 2)
-          pos_label: show shap value for positive class pos_label (Default value = None)
-
-        Returns:
-          pd.DataFrame
-
-        """
-        idx = self.get_int_idx(index) # if passed str convert to int index
-        return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label), 
-                                            model_output = self.model_output, round=round)
 
     def precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
                         round=3, pos_label=None):

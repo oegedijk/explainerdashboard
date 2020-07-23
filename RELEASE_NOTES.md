@@ -42,6 +42,7 @@
 - Added regression units to prediction summary, shap plots, 
         contributions plots/table, pdp plot and trees plot.
 - Clearer title for MEAN_ABS_SHAP importance and summary plots
+- replace na_fill value in contributions table by "MISSING"
 
 
 ### Other Changes

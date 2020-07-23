@@ -15,10 +15,7 @@
 
 ## Plots:
 - Contributions: order by global mean_abs_shap or by index specific shap
-- vertical contributions graph
 - highlight id in violin plots
-- Add feature names to waterfall plot
-- replace -999 in contributions table by "MISSING"
 - add str indexes to shap detailed summary plots
 
 ### Classifier plots:

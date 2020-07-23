@@ -654,7 +654,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     hide_title=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=False, hide_cats=False, 
                     hide_selector=False,
-                    pos_label=None, index=None, depth=None, sort='abs', 
+                    pos_label=None, index=None, depth=None, sort='high-to-low', 
                     orientation='vertical', cats=True):
         """Display Shap contributions to prediction graph component
 
@@ -679,7 +679,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             index ({int, bool}, optional): Initial index to display. Defaults to None.
             depth (int, optional): Initial number of features to display. Defaults to None.
             sort ({'abs', 'high-to-low', 'low-to-high'}, optional): sorting of shap values. 
-                        Defaults to 'abs'.
+                        Defaults to 'high-to-low'.
             orientation ({'vertical', 'horizontal'}, optional): orientation of bar chart.
                         Defaults to 'vertical'.
             cats (bool, optional): Group cats. Defaults to True.
