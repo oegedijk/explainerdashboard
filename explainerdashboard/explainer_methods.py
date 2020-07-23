@@ -513,7 +513,7 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
     return pd.concat([contrib_df, pred_df], ignore_index=True)
 
 
-def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units=""):
+def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units="", na_fill=None):
     """
     returns a DataFrame that summarizes a contrib_df as a pair of
     Reasons+Effect.
@@ -536,7 +536,11 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units=""):
             reason = 'Final prediction'
             effect = ""
         else:
-            reason = f"{row['col']} = {row['value']}"
+            if na_fill is not None and row['value']==na_fill:
+                reason = f"{row['col']} = MISSING"
+            else:
+                reason = f"{row['col']} = {row['value']}"
+
             effect = f"{'+' if row['contribution'] >= 0 else ''}"
         if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
