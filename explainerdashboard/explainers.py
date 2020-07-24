@@ -28,6 +28,8 @@ from .explainer_methods import *
 from .explainer_plots import *
 from .make_callables import make_callable, default_list, default_2darray
 
+import plotly.io as pio
+pio.templates.default = "none"
 
 class BaseExplainer(ABC):
     """ """
@@ -109,6 +111,8 @@ class BaseExplainer(ABC):
         self.permutation_cv = permutation_cv
         self.na_fill = na_fill
         self.columns = self.X.columns.tolist()
+        self.pos_label = None
+        self.units = ""
         self.is_classifier = False
         self.is_regression = False
         self.interactions_should_work = True
@@ -374,7 +378,7 @@ class BaseExplainer(ABC):
         elif col in self.cats:
             return retrieve_onehot_value(self.X, col)
         
-    def get_col_value_plus_prediction(self, index, col):
+    def get_col_value_plus_prediction(self, index, col, pos_label=None):
         """return value of col and prediction for index
 
         Args:
@@ -388,6 +392,7 @@ class BaseExplainer(ABC):
         assert index in self, f"index {index} not found"
         assert (col in self.X.columns) or (col in self.cats),\
             f"{col} not in columns of dataset"
+        
 
         idx = self.get_int_idx(index)
 
@@ -396,9 +401,13 @@ class BaseExplainer(ABC):
         elif col in self.cats:
             col_value = retrieve_onehot_value(self.X, col).iloc[idx]
 
-        try:
-            prediction = self.pred_probas[idx]
-        except:
+        if self.is_classifier:
+            if pos_label is None:
+                pos_label = self.pos_label
+            prediction = self.pred_probas(pos_label)[idx]
+            if self.model_output == 'probability':
+                prediction = 100*prediction
+        elif self.is_regression:
             prediction = self.preds[idx]
 
         return col_value, prediction
@@ -699,7 +708,7 @@ class BaseExplainer(ABC):
         elif kind=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats, pos_label)
 
-    def contrib_df(self, index, cats=True, topx=None, cutoff=None, 
+    def contrib_df(self, index, cats=True, topx=None, cutoff=None, sort='abs',
                     pos_label=None):
         """shap value contributions to the prediction for index.
         
@@ -712,6 +721,9 @@ class BaseExplainer(ABC):
                     called REST, defaults to None
           cutoff(float, optional, optional): only return features with at least 
                     cutoff contributions, defaults to None
+          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by 
+                    absolute shap value, or from high to low, or low to high. 
+                    Defaults to 'abs'.
           pos_label:  (Default value = None)
 
         Returns:
@@ -722,14 +734,14 @@ class BaseExplainer(ABC):
         if cats:
             return get_contrib_df(self.shap_base_value(pos_label), 
                                     self.shap_values_cats(pos_label)[idx],
-                                    self.X_cats.iloc[[idx]], topx, cutoff)
+                                    self.X_cats.iloc[[idx]], topx, cutoff, sort)
         else:
             return get_contrib_df(self.shap_base_value(pos_label), 
                                     self.shap_values(pos_label)[idx],
-                                    self.X.iloc[[idx]], topx, cutoff)
+                                    self.X.iloc[[idx]], topx, cutoff, sort)
 
-    def contrib_summary_df(self, index, cats=True,
-                            topx=None, cutoff=None, round=2, pos_label=None):
+    def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
+                            round=2, sort='abs', pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format
 
         Args:
@@ -738,6 +750,9 @@ class BaseExplainer(ABC):
           topx: Only show topx highest features(Default value = None)
           cutoff: Only show features above cutoff (Default value = None)
           round: round figures (Default value = 2)
+          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by 
+                    absolute shap value, or from high to low, or low to high. 
+                    Defaults to 'abs'.
           pos_label: Positive class (Default value = None)
 
         Returns:
@@ -745,8 +760,8 @@ class BaseExplainer(ABC):
         """
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(
-                    self.contrib_df(idx, cats, topx, cutoff, pos_label), 
-                    round=round)
+                    self.contrib_df(idx, cats, topx, cutoff, sort, pos_label), 
+                model_output=self.model_output, round=round, units=self.units, na_fill=self.na_fill)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
                             pos_label=None):
@@ -769,7 +784,7 @@ class BaseExplainer(ABC):
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.MEAN_ABS_SHAP.min()
-        return importance_df[importance_df.MEAN_ABS_SHAP > cutoff].head(topx)
+        return importance_df[importance_df.MEAN_ABS_SHAP >= cutoff].head(topx)
     
     def formatted_contrib_df(self, index, round=None, lang='en', 
                                 pos_label=None):
@@ -871,8 +886,7 @@ class BaseExplainer(ABC):
                         pd.Series(pdp_result[i].feature_grids).str.split(col+'_').str[1].values
             else:
                 pdp_result.feature_grids = \
-                        pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values
-                
+                        pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values        
         return pdp_result
 
     def get_dfs(self, cats=True, round=None, lang='en', pos_label=None):
@@ -971,11 +985,17 @@ class BaseExplainer(ABC):
 
         """
         importances_df = self.importances_df(kind=kind, topx=topx, cats=cats, pos_label=pos_label)
+        if kind=='shap':
+            title = 'Average impact on prediction<br>(mean absolute SHAP value)' 
+            units = self.units
+        else:
+            title = 'Permutation Importances <br>(decrease in metric with randomized feature)'
+            units = ""
         if self.descriptions:
             descriptions = self.description_list(importances_df.Feature)
-            return plotly_importances_plot(importances_df, descriptions, round=round)
+            return plotly_importances_plot(importances_df, descriptions, round=round, units=units, title=title)
         else:
-            return plotly_importances_plot(importances_df, round=round)
+            return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
 
     def plot_interactions(self, col, cats=False, topx=None, pos_label=None):
@@ -994,26 +1014,37 @@ class BaseExplainer(ABC):
         if col in self.cats:
             cats = True
         interactions_df = self.interactions_df(col, cats=cats, topx=topx, pos_label=pos_label)
-        return plotly_importances_plot(interactions_df)
+        title = f"Average interaction shap values for {col}"
+        return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
-    def plot_shap_contributions(self, index, cats=True,
-                                    topx=None, cutoff=None, round=2, pos_label=None):
+    def plot_shap_contributions(self, index, cats=True, topx=None, cutoff=None, 
+                        sort='abs', orientation='vertical', round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
 
         Args:
           index(int or str): index for which to display prediction
           cats(bool, optional, optional): Group categoricals, defaults to True
-          topx(int, optional, optional): Only display topx features, defaults to None
-          cutoff(float, optional, optional): Only display features with at least cutoff contribution, defaults to None
-          round(int, optional, optional): round contributions to round precision, defaults to 2
+          topx(int, optional, optional): Only display topx features, 
+                        defaults to None
+          cutoff(float, optional, optional): Only display features with at least 
+                        cutoff contribution, defaults to None
+          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by absolute shap value, or
+                        from high to low, or low to high. Defaults to 'abs'.
+          orientation({'vertical', 'horizontal'}) Horizontal or vertical bar chart. 
+                    Horizontal may be better if you have lots of features. 
+                    Defaults to 'vertical'.
+          round(int, optional, optional): round contributions to round precision, 
+                        defaults to 2
           pos_label:  (Default value = None)
 
         Returns:
           plotly.Fig: fig
 
         """
-        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, pos_label)
-        return plotly_contribution_plot(contrib_df, model_output=self.model_output, round=round)
+        assert orientation in ['vertical', 'horizontal']
+        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, sort, pos_label)
+        return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
+                    orientation=orientation, round=round, units=self.units)
 
     def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap value.
@@ -1035,13 +1066,13 @@ class BaseExplainer(ABC):
                                 self.shap_values_cats(pos_label),
                                 self.X_cats,
                                 self.importances_df(kind='shap', topx=topx, cats=True, pos_label=pos_label)\
-                                        ['Feature'].values.tolist())
+                                        ['Feature'].values.tolist(), idxs=self.idxs)
         else:
             return plotly_shap_scatter_plot(
                                 self.shap_values(pos_label),
                                 self.X,
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
-                                        ['Feature'].values.tolist())
+                                        ['Feature'].values.tolist(), idxs=self.idxs)
 
     def plot_shap_interaction_summary(self, col, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
@@ -1063,12 +1094,13 @@ class BaseExplainer(ABC):
             cats = True
         interact_cols = self.shap_top_interactions(col, cats=cats, pos_label=pos_label)
         if topx is None: topx = len(interact_cols)
+        title = f"Shap interaction values for {col}"
 
         return plotly_shap_scatter_plot(
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
-                self.X_cats if cats else self.X, interact_cols[:topx])
+                self.X_cats if cats else self.X, interact_cols[:topx], title=title, idxs=self.idxs)
 
-    def plot_shap_dependence(self, col, color_col=None, highlight_idx=None,pos_label=None):
+    def plot_shap_dependence(self, col, color_col=None, highlight_index=None, pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1087,21 +1119,39 @@ class BaseExplainer(ABC):
 
         """
         cats = self.check_cats(col, color_col)
+        highlight_idx = self.get_int_idx(highlight_index)
+
         if cats:
             if col in self.cats:
-                return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats(pos_label), col, color_col)
+                return plotly_shap_violin_plot(
+                            self.X_cats, 
+                            self.shap_values_cats(pos_label), 
+                            col, 
+                            color_col, 
+                            highlight_index=highlight_idx,
+                            idxs=self.idxs)
             else:
-                return plotly_dependence_plot(self.X_cats, self.shap_values_cats(pos_label),
-                                                col, color_col,
-                                                highlight_idx=highlight_idx,
-                                                na_fill=self.na_fill)
+                return plotly_dependence_plot(
+                            self.X_cats, 
+                            self.shap_values_cats(pos_label),
+                            col, 
+                            color_col, 
+                            na_fill=self.na_fill, 
+                            units=self.units, 
+                            highlight_index=highlight_idx,
+                            idxs=self.idxs)
         else:
-            return plotly_dependence_plot(self.X, self.shap_values(pos_label),
-                                            col, color_col,
-                                            highlight_idx=highlight_idx,
-                                            na_fill=self.na_fill)
+            return plotly_dependence_plot(
+                            self.X, 
+                            self.shap_values(pos_label),
+                            col, 
+                            color_col, 
+                            na_fill=self.na_fill, 
+                            units=self.units, 
+                            highlight_index=highlight_idx,
+                            idxs=self.idxs)
 
-    def plot_shap_interaction(self, col, interact_col, highlight_idx=None, 
+    def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
                                 pos_label=None):
         """plots a dependence plot for shap interaction effects
 
@@ -1116,16 +1166,19 @@ class BaseExplainer(ABC):
 
         """
         cats = self.check_cats(col, interact_col)
+        highlight_idx = self.get_int_idx(highlight_index)
+
         if cats and interact_col in self.cats:
             return plotly_shap_violin_plot(
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, interaction=True)
+                interact_col, col, interaction=True, units=self.units, 
+                highlight_index=highlight_idx, idxs=self.idxs)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, highlight_idx=highlight_idx,
-                interaction=True)
+                interact_col, col, interaction=True, units=self.units,
+                highlight_index=highlight_idx, idxs=self.idxs)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, pos_label=None):
@@ -1153,25 +1206,28 @@ class BaseExplainer(ABC):
           plotly.Fig: fig
 
         """
-        pdp_result = self.get_pdp_result(col, index,
-                            drop_na=drop_na, sample=sample,
-                            num_grid_points=gridpoints)
-
+        pdp_result = self.get_pdp_result(col, index, 
+                        num_grid_points=gridpoints, pos_label=pos_label)
+        units = "Predicted %" if self.model_output=='probability' else self.units
         if index is not None:
-            try:
-                col_value, pred = self.get_col_value_plus_prediction(index, col)
-                return plotly_pdp(pdp_result,
-                                display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
-                                index_feature_value=col_value, index_prediction=pred,
-                                feature_name=col,
-                                num_grid_lines=min(gridlines, sample, len(self.X)))
-            except:
-                return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(gridlines, sample, len(self.X)))
+            #try:
+            col_value, pred = self.get_col_value_plus_prediction(index, col, pos_label=pos_label)
+
+            return plotly_pdp(pdp_result,
+                            display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
+                            index_feature_value=col_value, index_prediction=pred,
+                            feature_name=col,
+                            num_grid_lines=min(gridlines, sample, len(self.X)),
+                            units=units)
+            # except Exception as e:
+            #     print(e)
+            #     return plotly_pdp(pdp_result, feature_name=col,
+            #             num_grid_lines=min(gridlines, sample, len(self.X)), 
+            #             units=units)
         else:
             return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(gridlines, sample, len(self.X)))
-
+                        num_grid_lines=min(gridlines, sample, len(self.X)), 
+                        units=units)
 
 
 class ClassifierExplainer(BaseExplainer):
@@ -1303,7 +1359,7 @@ class ClassifierExplainer(BaseExplainer):
 
     @pos_label.setter
     def pos_label(self, label):
-        if isinstance(label, int) and label >=0 and label <len(self.labels):
+        if label is None or isinstance(label, int) and label >=0 and label <len(self.labels):
             self._pos_label = label
         elif isinstance(label, str) and label in self.labels:
             self._pos_label = self.labels.index(label)
@@ -1315,11 +1371,17 @@ class ClassifierExplainer(BaseExplainer):
         """return str label of self.pos_label"""
         return self.labels[self.pos_label]
 
-    def get_pos_label_index(self, pos_label_str):
+    def get_pos_label_index(self, pos_label):
         """return int index of pos_label_str"""
-        assert pos_label_str in self.labels, \
-            f"Unknown pos_label. {pos_label_str} not in self.labels!" 
-        return self.labels.index(pos_label_str)
+        if isinstance(pos_label, int):
+            assert pos_label <= len(self.labels), \
+                f"pos_label {pos_label} is larger than number of labels!"
+            return pos_label
+        elif isinstance(pos_label, str):
+            assert pos_label in self.labels, \
+                f"Unknown pos_label. {pos_label} not in self.labels!" 
+            return self.labels.index(pos_label)
+        raise ValueError("pos_label should either be int or str in self.labels!")
 
     def get_prop_for_label(self, prop:str, label):
         """return property for a specific pos_label
@@ -1380,7 +1442,7 @@ class ClassifierExplainer(BaseExplainer):
     def permutation_importances(self):
         """Permutation importances"""
         if not hasattr(self, '_perm_imps'):
-            print("Calculating importances...")
+            print("Calculating permutation importances...")
             self._perm_imps = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric,
                             cv=self.permutation_cv,
@@ -1408,18 +1470,21 @@ class ClassifierExplainer(BaseExplainer):
             if isinstance(self._shap_base_value, np.ndarray) and len(self._shap_base_value) == 1:
                 self._shap_base_value = self._shap_base_value[0]
             if isinstance(self._shap_base_value, np.ndarray):
+            
                 self._shap_base_value = list(self._shap_base_value)
             if len(self.labels)==2 and isinstance(self._shap_base_value, (np.floating, float)):
                 if self.model_output == 'probability':
-                    assert self._shap_base_value >= 0.0 and self._shap_base_value <= 1.0, \
-                        (f"Shap base value does not look like a probability: {self._shap_base_value}. "
-                         "Try setting model_output='logodds'.")
                     self._shap_base_value = [1-self._shap_base_value, self._shap_base_value]
                 else: # assume logodds
                     self._shap_base_value = [-self._shap_base_value, self._shap_base_value]
             assert len(self._shap_base_value)==len(self.labels),\
                 f"len(shap_explainer.expected_value)={len(self._shap_base_value)}"\
                  + f"and len(labels)={len(self.labels)} do not match!"
+            if self.model_output == 'probability':
+                for shap_base_value in self._shap_base_value:
+                    assert shap_base_value >= 0.0 and shap_base_value <= 1.0, \
+                        (f"Shap base value does not look like a probability: {self._shap_base_value}. "
+                         "Try setting model_output='logodds'.")
         return default_list(self._shap_base_value, self.pos_label)
 
     @property
@@ -1430,14 +1495,20 @@ class ClassifierExplainer(BaseExplainer):
             self._shap_values = self.shap_explainer.shap_values(self.X)
             
             if not isinstance(self._shap_values, list) and len(self.labels)==2:
-                if self.model_output=='probability':
-                    self._shap_values = [1-self._shap_values, self._shap_values]
-                else: #assume logodds
                     self._shap_values = [-self._shap_values, self._shap_values]
 
             assert len(self._shap_values)==len(self.labels),\
                 f"len(shap_values)={len(self._shap_values)}"\
                 + f"and len(labels)={len(self.labels)} do not match!"
+            if self.model_output == 'probability':
+                for shap_values in self._shap_values:
+                    assert np.all(shap_values >= -1.0) , \
+                        (f"model_output=='probability but some shap values are < 1.0!"
+                         "Try setting model_output='logodds'.")
+                for shap_values in self._shap_values:
+                    assert np.all(shap_values <= 1.0) , \
+                        (f"model_output=='probability but some shap values are > 1.0!"
+                         "Try setting model_output='logodds'.")
         return default_list(self._shap_values, self.pos_label)
 
     @property
@@ -1567,16 +1638,28 @@ class ClassifierExplainer(BaseExplainer):
         if pos_label is None: pos_label = self.pos_label
         pdp_result = super().get_pdp_result(
                                 col, index, drop_na, sample, num_grid_points)
+        
         if len(self.labels)==2:
             # for binary classifer PDPBox only gives pdp for the positive class.
             # instead of a list of pdps for every class
-            # so we simply inverse when predicting the negative class
+            # so we simply inverse when predicting the negative 
+            if self.model_output == 'probability':
+                pdp_result.pdp = 100*pdp_result.pdp
+                pdp_result.ice_lines = pdp_result.ice_lines.multiply(100)
             if pos_label==0:
-                pdp_result.pdp = 1 - pdp_result.pdp
-                pdp_result.ice_lines = 1 - pdp_result.ice_lines
+                if self.model_output == 'probability':
+                    pdp_result.pdp = 100 - pdp_result.pdp
+                    pdp_result.ice_lines = 100 - pdp_result.ice_lines
+                elif self.model_output == 'logodds':
+                    pdp_result.pdp = -pdp_result.pdp
+                    pdp_result.ice_lines = -pdp_result.ice_lines
             return pdp_result
         else:
-             return pdp_result[pos_label]
+            pdp_result = pdp_result[pos_label]
+            if self.model_output == 'probability':
+                pdp_result.pdp = 100*pdp_result.pdp
+                pdp_result.ice_lines = pdp_result.ice_lines.multiply(100)
+            return pdp_result
 
     def random_index(self, y_values=None, return_str=False,
                     pred_proba_min=None, pred_proba_max=None,
@@ -1624,26 +1707,6 @@ class ClassifierExplainer(BaseExplainer):
                 "no self.idxs property found..."
             return self.idxs[idx]
         return int(idx)
-
-    def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
-                            round=2, pos_label=None):
-        """Takes a contrib_df, and formats it to a more human readable format
-
-        Args:
-          index: 
-          cats:  group categorical columns together(Default value = True)
-          topx:  only show topx highest shap values(Default value = None)
-          cutoff:  only show shap values above cutoff(Default value = None)
-          round:  round shapvalues to round digits (Default value = 2)
-          pos_label: show shap value for positive class pos_label (Default value = None)
-
-        Returns:
-          pd.DataFrame
-
-        """
-        idx = self.get_int_idx(index) # if passed str convert to int index
-        return get_contrib_summary_df(self.contrib_df(idx, cats, topx, cutoff, pos_label), 
-                                            model_output = self.model_output, round=round)
 
     def precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
                         round=3, pos_label=None):
@@ -1997,9 +2060,9 @@ class RegressionExplainer(BaseExplainer):
 
         """
         int_idx = self.get_int_idx(index)
-        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)}\n\n"
-        model_prediction += f"Actual Outcome: {np.round(self.y[int_idx], round)}\n\n"
-        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)}"
+        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Actual: {np.round(self.y[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}"
 
         return model_prediction
 
@@ -2012,58 +2075,83 @@ class RegressionExplainer(BaseExplainer):
         }
         return metrics_dict
 
-    def plot_predicted_vs_actual(self, round=2, logs=False, **kwargs):
+    def metrics_markdown(self, round=2, **kwargs):
+        """markdown makeup of self.metrics() dict
+
+        Args:
+          round:  (Default value = 2)
+          **kwargs: 
+
+        Returns:
+
+        """
+        metrics_dict = self.metrics(**kwargs)
+        
+        metrics_markdown = "# Model Summary: \n\n"
+        metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)} {self.units}\n\n"
+        metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)} {self.units}\n\n"
+        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)} {self.units}\n\n"
+        
+        return metrics_markdown
+
+    def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, **kwargs):
         """plot with predicted value on x-axis and actual value on y axis.
 
         Args:
           round(int, optional): rounding to apply to outcome, defaults to 2
-          logs(bool, optional): whether to take logs of predicted and actual value, defaults to False
+          logs (bool, optional): log both x and y axis, defaults to False
+          log_y (bool, optional): only log x axis. Defaults to False.
+          log_x (bool, optional): only log y axis. Defaults to False.
           **kwargs: 
 
         Returns:
           Plotly fig
 
         """
-        return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, round=round, logs=logs)
+        return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, 
+                idxs=self.idxs, logs=logs, log_x=log_x, log_y=log_y, round=round)
     
-    def plot_residuals(self, vs_actual=False, round=2, ratio=False, **kwargs):
+    def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
         """plot of residuals. x-axis is the predicted outcome by default
 
         Args:
           vs_actual(bool, optional): use actual value for x-axis,   
                     defaults to False
           round(int, optional): rounding to perform on values, defaults to 2
-          ratio(bool, optional): whether to take the residual/prediction 
-                    ratio instead, defaults to False
-          **kwargs: 
-
+          residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
         Returns:
           Plotly fig
 
         """
-        return plotly_plot_residuals(self.y, self.preds, 
-                                     vs_actual=vs_actual, units=self.units, round=round, ratio=ratio)
+        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
+                                     vs_actual=vs_actual, units=self.units, 
+                                     residuals=residuals, round=round)
     
-    def plot_residuals_vs_feature(self, col, ratio=False, round=2, dropna=True, **kwargs):
+    def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
+                dropna=True, points=True, winsor=0):
         """Plot residuals vs individual features
 
         Args:
           col(str): Plot against feature col
-          ratio(bool, optional): display residual ratio instead of raw value, 
-                    defaults to False
-          round(int, optional: rounding to perform on residuals, defaults to 2
-          dropna(bool, optional: drop missing values from plot, defaults to True
-          **kwargs: 
+          residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
+          round(int, optional): rounding to perform on residuals, defaults to 2
+          dropna(bool, optional): drop missing values from plot, defaults to True.
+          points (bool, optional): display point cloud next to violin plot. 
+                    Defaults to True.
+          winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
 
         Returns:
           plotly fig
-
         """
-        assert col in self.columns, \
-            f'{col} not in columns!'
-        na_mask = self.X[col] != self.na_fill if dropna else np.array([True]*len(self.X))
-        return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], self.X[col][na_mask], 
-                                       ratio=ratio, units=self.units, round=round)
+        assert col in self.columns or col in self.columns_cats, \
+            f'{col} not in columns or columns_cats!'
+        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
+        return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                residuals=residuals, idxs=np.array(self.idxs)[na_mask], points=points, round=round, winsor=winsor)
 
 
 class RandomForestExplainer(BaseExplainer):
@@ -2132,7 +2220,7 @@ class RandomForestExplainer(BaseExplainer):
         else:
             return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
 
-    def decisiontree_df_summary(self, tree_idx, index, round=2, pos_label=None):
+    def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
 
         Args:
@@ -2146,8 +2234,8 @@ class RandomForestExplainer(BaseExplainer):
 
         """
         idx=self.get_int_idx(index)
-        return decisiontree_df_summary(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
-                    classifier=self.is_classifier, round=round)
+        return get_decisiontree_summary_df(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
+                    classifier=self.is_classifier, round=round, units=self.units)
 
     def decision_path_file(self, tree_idx, index):
         """get a dtreeviz visualization of a particular tree in the random forest.
@@ -2243,10 +2331,11 @@ class RandomForestExplainer(BaseExplainer):
         if self.is_classifier:
             if pos_label is None: pos_label = self.pos_label
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
-                        highlight_tree=highlight_tree, round=round, pos_label=self.pos_label)
+                        highlight_tree=highlight_tree, round=round, 
+                        pos_label=pos_label)
         else:
             return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
-                        highlight_tree=highlight_tree, round=round)
+                        highlight_tree=highlight_tree, round=round, units=self.units)
 
     def calculate_properties(self, include_interactions=True):
         """

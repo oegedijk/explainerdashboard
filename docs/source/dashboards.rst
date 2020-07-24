@@ -82,10 +82,10 @@ However it would be easy to turn this custom ``FeatureListTab`` into a proper
 ``ExplainerComponent``::
 
    class FeatureListTab(ExplainerComponent):
-      def __init__(self, explainer, title="Feature List", header_mode="none", name=None):
-         super().__init__(explainer, title, header_mode, name)
+      def __init__(self, explainer):
+         super().__init__(explainer, title="Feature List")
 
-      def _layout(self):
+      def layout(self):
          return html.Div(f"Feature names: {self.explainer.columns}")
 
    ExplainerDashboard(explainer, FeatureListTab).run()
@@ -101,22 +101,23 @@ the different types discussed above. E.g.::
    ExplainerDashboard(explainer, [ImportancesTab, imp_tab, "importances", features]).run()
 
 This would start a dashboard with three importances tabs, plus our custom 
-feature list tab. 
+feature list tab. (not sure why you would do that, but you get the point :)
 
 
 Using Dash or JupyterDash
 -------------------------
 
-You can start the dashboard with the standard ``dash.Dash()`` or with the 
-new notebook friendly ``jupyter_dash`` library. The latter will allow you
+You can start the dashboard with the standard ``dash.Dash()`` server or with the 
+new notebook friendly ``jupyter_dash`` library server. The latter will allow you
 to keep working interactively in your notebook while the dashboard is running.
 
 The default dash server is started with ``mode='dash'``. There are three different 
-options for ``jupyter_dash`` ``mode='inline'`` for running the dashboard in an 
+options for ``jupyter_dash``: ``mode='inline'`` for running the dashboard in an 
 output cell in your notebook, ``mode='jupyterlab'`` for runnning the dashboard in 
 jupyterlab pane, or ``mode='external'`` which runs the dashboard in a seperate tab::
 
-   ExplainerDashboard(explainer, mode='dash').run() # default
+   ExplainerDashboard(explainer).run() # default mode='dash'
+   ExplainerDashboard(explainer, mode='dash').run() 
    ExplainerDashboard(explainer, mode='inline').run(port=8051)
    ExplainerDashboard(explainer, mode='jupyterlab').run(8052)
    ExplainerDashboard(explainer, mode='external').run()
@@ -156,7 +157,8 @@ For multiclass classification models it is convenient to be able to set the
 positive class for the entire dashboard with the dropdown in the header.
 However if you wish to this dropdown selector you can simply pass ``header_hide_selector=True``.
 
-In order to also hide the title itself pass ``header_hide_title=True``.
+In order to also hide the title itself pass ``header_hide_title=True``. Or to 
+hide the entire header ``hide_header=True``. 
 
 Choosing a port
 ---------------

@@ -17,10 +17,9 @@ from .dashboard_methods import *
 
 
 class PredictedVsActualComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Predicted vs Actual",
-                    header_mode="none", name=None,
-                    hide_logs=False,
-                    logs=False):
+    def __init__(self, explainer, title="Predicted vs Actual", name=None,
+                    hide_title=False, hide_log_x=False, hide_log_y=False,
+                    logs=False, log_x=False, log_y=False):
         """Shows a plot of predictions vs y.
 
         Args:
@@ -28,26 +27,47 @@ class PredictedVsActualComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Predicted vs Actual".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_logs (bool, optional): Hide the logs toggle. Defaults to False.
+            hide_title (bool, optional) Hide the title. Defaults to False.
+            hide_log_x (bool, optional): Hide the log_x toggle. Defaults to False.
+            hide_log_y (bool, optional): Hide the log_y toggle. Defaults to False.
             logs (bool, optional): Whether to use log axis. Defaults to False.
+            log_x (bool, optional): log only x axis. Defaults to False.
+            log_y (bool, optional): log only y axis. Defaults to False.
         """
-        super().__init__(explainer, title, header_mode, name)
-        self.hide_logs = hide_logs
-        self.logs = logs
+        super().__init__(explainer, title, name)
+        self.hide_title, self.hide_log_x, self.hide_log_y = \
+            hide_title, hide_log_x, hide_log_y
+        
+        self.logs, self.log_x, self.log_y = logs, log_x, log_y
         self.register_dependencies(['preds'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             dbc.Row([
+                make_hideable(html.H3("Predictions"), hide=self.hide_title)
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.FormGroup(
+                        [
+                            # html.Label("Log y"),
+                            dbc.RadioButton(
+                                id='pred-vs-actual-logy-'+self.name,
+                                className="form-check-input",
+                                checked=self.log_y),   
+                            dbc.Label("Log y",
+                                    html_for='pred-vs-actual-logy-'+self.name,
+                                    className="form-check-label"), 
+                        ], check=True),
+                    ], md=1, align="center"), hide=self.hide_log_y),
                 dbc.Col([
                     dcc.Loading(id="loading-pred-vs-actual-graph-"+self.name, 
                                 children=[dcc.Graph(id='pred-vs-actual-graph-'+self.name)]),
-                ])
+                ], md=11)
             ]),
             dbc.Row([
                 make_hideable(
@@ -55,31 +75,30 @@ class PredictedVsActualComponent(ExplainerComponent):
                         dbc.FormGroup(
                         [
                             dbc.RadioButton(
-                                id='pred-vs-actual-logs-'+self.name,
+                                id='pred-vs-actual-logx-'+self.name,
                                 className="form-check-input",
-                                checked=self.logs),
-                            dbc.Label("Take Logs",
-                                    html_for='pred-vs-actual-logs-'+self.name,
-                                    className="form-check-label"),
+                                checked=self.log_x),
+                            dbc.Label("Log x",
+                                    html_for='pred-vs-actual-logx-'+self.name,
+                                    className="form-check-label"),   
                         ], check=True),
-                    ]), hide=self.hide_logs),
-            ])   
+                    ], md=2), hide=self.hide_log_x),
+            ], justify="center")   
         ])
 
     def _register_callbacks(self, app):
         @app.callback(
             Output('pred-vs-actual-graph-'+self.name, 'figure'),
-            [Input('pred-vs-actual-logs-'+self.name, 'checked')],
-            [State('tabs', 'value')]
+            [Input('pred-vs-actual-logx-'+self.name, 'checked'),
+             Input('pred-vs-actual-logy-'+self.name, 'checked')],
         )
-        def update_predicted_vs_actual_graph(logs, tab):
-            return self.explainer.plot_predicted_vs_actual(logs=logs)
+        def update_predicted_vs_actual_graph(log_x, log_y):
+            return self.explainer.plot_predicted_vs_actual(log_x=log_x, log_y=log_y)
 
 class ResidualsComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Residuals",
-                    header_mode="none", name=None,
-                    hide_pred_or_actual=False, hide_ratio=False,
-                    pred_or_actual="vs_pred", ratio=False):
+    def __init__(self, explainer, title="Residuals", name=None,
+                    hide_title=False, hide_pred_or_actual=False, hide_ratio=False,
+                    pred_or_actual="vs_pred", residuals="difference"):
         """Residuals plot component
 
         Args:
@@ -87,30 +106,35 @@ class ResidualsComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Residuals".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional) Hide the title. Defaults to False.
             hide_pred_or_actual (bool, optional): hide vs predictions or vs 
                         actual for x-axis toggle. Defaults to False.
-            hide_ratio (bool, optional): hide ratio toggle. Defaults to False.
+            hide_ratio (bool, optional): hide residual type dropdown. Defaults to False.
             pred_or_actual (str, {'vs_actual', 'vs_pred'}, optional): Whether 
                         to plot actual or predictions on the x-axis. 
                         Defaults to "vs_pred".
-            ratio (bool, optional): Show the residual/prediction or residual/actual 
-                        ratio instead of raw residuals. Defaults to False.
+            residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
 
-        self.hide_pred_or_actual = hide_pred_or_actual
+        self.hide_title, self.hide_pred_or_actual = hide_title, hide_pred_or_actual
         self.hide_ratio = hide_ratio
         self.pred_or_actual = pred_or_actual
-        self.ratio = ratio
+        self.residuals = residuals
+        assert residuals in ['difference', 'ratio', 'log-ratio'], \
+            ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
+             f" but you passed residuals={residuals}")
         self.register_dependencies(['preds', 'residuals'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
+            dbc.Row([
+                make_hideable(html.H3("Residuals"), hide=self.hide_title)
+            ]),
             dbc.Row([
                 dbc.Col([
                     dcc.Loading(id="loading-residuals-graph-"+self.name, 
@@ -132,40 +156,35 @@ class ResidualsComponent(ExplainerComponent):
                                 inline=True,
                             ),
                         ]),
-                    ]), hide=self.hide_pred_or_actual),
+                    ], md=3), hide=self.hide_pred_or_actual),
                 make_hideable(
                     dbc.Col([
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='residuals-ratio-'+self.name,
-                                className="form-check-input",
-                                checked=self.ratio),
-                            dbc.Label("Display Ratio",
-                                    html_for='residuals-ratio-'+self.name,
-                                    className="form-check-label"),
-                        ], check=True),
-                    ]), hide=self.hide_ratio),
-
-            ])  
+                        html.Label('Residual type:'),
+                        dcc.Dropdown(id='residuals-type-'+self.name,
+                                options = [{'label': 'Difference', 'value': 'difference'},
+                                            {'label': 'Ratio', 'value': 'ratio'},
+                                            {'label': 'Log ratio', 'value': 'log-ratio'}],
+                                value=self.residuals),
+                    ], md=3), hide=self.hide_ratio),
+            ], justify="center")  
         ])
 
     def register_callbacks(self, app):
         @app.callback(
             Output('residuals-graph-'+self.name, 'figure'),
             [Input('residuals-pred-or-actual-'+self.name, 'value'),
-             Input('residuals-ratio-'+self.name, 'checked')],
-            [State('tabs', 'value')],
+             Input('residuals-type-'+self.name, 'value')],
         )
-        def update_residuals_graph(pred_or_actual, ratio, tab):
+        def update_residuals_graph(pred_or_actual, residuals):
             vs_actual = pred_or_actual=='vs_actual'
-            return self.explainer.plot_residuals(vs_actual=vs_actual, ratio=ratio)
+            return self.explainer.plot_residuals(vs_actual=vs_actual, residuals=residuals)
 
 class ResidualsVsColComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Residuals vs feature",
-                    header_mode="none", name=None,
-                    hide_col=False, hide_ratio=False,
-                    col=None, ratio=False):
+    def __init__(self, explainer, title="Residuals vs feature", name=None,
+                    hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
+                    hide_points=False, hide_winsor=False,
+                    col=None, residuals='difference', cats=True, 
+                    points=True, winsor=0):
         """Show residuals vs a particular Feature component
 
         Args:
@@ -173,68 +192,127 @@ class ResidualsVsColComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Residuals vs feature".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional) Hide the title. Defaults to False.
             hide_col (bool, optional): Hide de column selector. Defaults to False.
-            hide_ratio (bool, optional): Hide the ratio toggle. Defaults to False.
+            hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_points (bool, optional): Hide group points toggle. Defaults to False.
+            hide_winsor (bool, optional): Hide winsor input. Defaults to False.
             col ([type], optional): Initial feature to display. Defaults to None.
-            ratio (bool, optional): Whether to display residual ratio instead 
-                        of residuals. Defaults to False.
+            residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
+                    How to calcualte residuals. Defaults to 'difference'.
+            cats (bool, optional): group categorical columns. Defaults to True.
+            points (bool, optional): display point cloud next to violin plot 
+                    for categorical cols. Defaults to True
+            winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
         """
-        super().__init__(explainer, title, header_mode, name)
-
-        self.hide_col, self.hide_ratio = hide_col, hide_ratio
-        self.col = col
+        super().__init__(explainer, title, name)
+        self.hide_title = hide_title
+        self.hide_col, self.hide_ratio, self.hide_cats, self.hide_points, self.hide_winsor = \
+            hide_col, hide_ratio, hide_cats, hide_points, hide_winsor
+        self.col, self.residuals, self.cats, self.points, self.winsor = \
+            col, residuals, cats, points, winsor
         if self.col is None:
-            self.col = self.explainer.mean_abs_shap_df(cats=False)\
-                                                .Feature.tolist()[0]
-        self.ratio = ratio
+            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+        
+        assert residuals in ['difference', 'ratio', 'log-ratio'], \
+            ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
+             f" but you passed residuals={residuals}")
         self.register_dependencies(['preds', 'residuals'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
-            dcc.Loading(id="loading-residuals-vs-col-graph-"+self.name, 
+            dbc.Row([
+                make_hideable(html.H3("Residuals vs Feature"), hide=self.hide_title)
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Column:"),
+                        dcc.Dropdown(id='residuals-vs-col-col-'+self.name,
+                            options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                            value=self.col),
+                    ], md=4), hide=self.hide_col),
+                make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='residuals-vs-col-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='residuals-vs-col-group-cats-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True),
+                        ], md=2), self.hide_cats),
+            ]),
+            dbc.Row([
+                dcc.Loading(id="loading-residuals-vs-col-graph-"+self.name, 
                                 children=[dcc.Graph(id='residuals-vs-col-graph-'+self.name)]),
-            make_hideable(
-                html.Div([
-                    dbc.Label("Column:"),
-                    dcc.Dropdown(id='residuals-vs-col-col-'+self.name,
-                        options = [{'label': col, 'value': col} 
-                                        for col in self.explainer.mean_abs_shap_df(cats=False)\
-                                                        .Feature.tolist()],
-                        value=self.col),
-                ]), hide=self.hide_col),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup(
-                    [
-                        dbc.RadioButton(
-                            id='residuals-vs-col-ratio-'+self.name,
-                            className="form-check-input",
-                            checked=self.ratio),
-                        dbc.Label("Display Ratio",
-                                html_for='residuals-vs-col-ratio-'+self.name,
-                                className="form-check-label"),
-                    ], check=True),
-                ]), hide=self.hide_ratio),
+            ]),
+            dbc.Row([
+                make_hideable(
+                        dbc.Col([
+                            html.Label('Residual type:'),
+                            dcc.Dropdown(id='residuals-vs-col-residuals-type-'+self.name,
+                                    options = [{'label': 'Difference', 'value': 'difference'},
+                                                {'label': 'Ratio', 'value': 'ratio'},
+                                                {'label': 'Log ratio', 'value': 'log-ratio'}],
+                                    value=self.residuals),
+                        ], md=3), hide=self.hide_ratio),
+                make_hideable(
+                        dbc.Col([ 
+                            dbc.Label("Winsor:"),
+                            dbc.Input(id='residuals-vs-col-winsor-'+self.name, 
+                                    value=self.winsor,
+                                type="number", min=0, max=49, step=1),
+                        ], md=2), hide=self.hide_winsor),  
+                make_hideable(
+                        dbc.Col([
+                            dbc.Label("Points:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='residuals-vs-col-show-points-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.points),
+                                dbc.Label("Show points",
+                                        html_for='residuals-vs-col-show-points-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True),
+                        ],  md=3), self.hide_points),
+            ]),
         ])
 
     def register_callbacks(self, app):
         @app.callback(
             Output('residuals-vs-col-graph-'+self.name, 'figure'),
             [Input('residuals-vs-col-col-'+self.name, 'value'),
-             Input('residuals-vs-col-ratio-'+self.name, 'checked')],
-            [State('tabs', 'value')],
+             Input('residuals-vs-col-residuals-type-'+self.name, 'value'),
+             Input('residuals-vs-col-show-points-'+self.name, 'checked'),
+             Input('residuals-vs-col-winsor-'+self.name, 'value')],
         )
-        def update_residuals_graph(col, ratio, tab):
-            return self.explainer.plot_residuals_vs_feature(col, ratio=ratio, dropna=True)
+        def update_residuals_graph(col, residuals, points, winsor):
+            return self.explainer.plot_residuals_vs_feature(
+                        col, residuals=residuals, points=points, 
+                        winsor=winsor, dropna=True)
+
+        @app.callback(
+            Output('residuals-vs-col-col-'+self.name, 'options'),
+            [Input('residuals-vs-col-group-cats-'+self.name, 'checked')])
+        def update_dependence_shap_scatter_graph(cats):
+            return [{'label': col, 'value': col} 
+                for col in self.explainer.columns_ranked_by_shap(cats)]
 
 class RegressionModelSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Model Summary",
-                    header_mode="none", name=None):
+    def __init__(self, explainer, title="Model Summary", name=None):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -242,26 +320,14 @@ class RegressionModelSummaryComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Model Summary".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
-        self.register_dependencies(['preds'])
+        super().__init__(explainer, title, name)
+        self.register_dependencies(['preds', 'residuals'])
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
-            dcc.Loading(id='loading-model-summary-'+self.name, 
-                                children=[dcc.Markdown(id='model-summary-'+self.name)]),
+            dcc.Markdown(id='model-summary-'+self.name, children=self.explainer.metrics_markdown())
         ])
-
-    def _register_callbacks(self, app):
-        @app.callback(
-            Output('model-summary-'+self.name, 'children'),
-            [Input('pos-label', 'value')],
-            [State('tabs', 'value')]
-        )
-        def update_model_summary(pos_label, tab):
-            return self.explainer.metrics_markdown()

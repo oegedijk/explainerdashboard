@@ -1,8 +1,11 @@
 
 # TODO:
 - find out why dtreeviz for regression no longer working
-- find a way to plot individual xgboost trees
-- replace custom permutation importances by sklearn permuation importances
+- find a way to plot individual xgboost trees (now in dtreeviz!)
+- replace custom permutation importances by sklearn permutation importances?
+    - or submit PR to sklearn to support multi col permuations for cats?
+    - or spend some time optimizing own permutation importance code?
+
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -12,36 +15,29 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- Add options sorting contributions plot from most negative to most positive
-- Contributions: order by global mean_abs_shap or by specific shap
-- fix name of figure MEAN_ABS_SHAP
-- Add Altair (vega) plots for easy inclusion in websites
-- highlight id in violin plots
-- Add feature names to waterfall plot
-- replace -999 in contributions table by "MISSING"
-- add wizard curve to lift curve plot
+- Contributions: order by global mean_abs_shap or by index specific shap
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
+- pdp: add multiclass option
+- add classification model summary
+- include cumulative lift curve to standard dashboard
+- add cost calculator: cost of FPs and FNs
 
 ### Regression plots:
-- regression plots: only take log of x-axis or y-axis
-- add cats option (violin plots?) to plot_residuals_vs_feature
-- add log ratio
 
 ## Explainers:
 
+
+## notebooks:
+- add binder/colab link on github
+
 ## Dashboard:
-- make alternative tight layout for mode='inline' 
-- add option for vertical contributions?
-- remove tabs from state
-- remove global pos-label
- 
+- Add pandas profiling type col histograms, bar charts, correlation graphs, etc
 
 ### Components
-- add hide_title to all components
-- try removing State('tabs')
-- add pos_label selector to all components and make PosLabelConnector
+- add pos_label_name property to PosLabelConnector search
+- add "number of indexes" indicator to RandomIndexComponents for current restrictions
 
 ## Methods:
 - Add LIME values
@@ -53,15 +49,23 @@
 - add ExplainerDashboard intergration test
 - Add tests for decisiontrees, extratrees
 - test model_output='probability' and 'raw' or 'logodds' seperately
+- add tests for explainer_methods
 - add test coverage (add a badge)
 
 ## Docs:
+- add docstrings to explainer_methods
+- add docstrings to explainer_plots
+- add screenshots of components to docs
+- move screenshots to separate folder
+- document PosLabelSelector and PosLabelConnector, e.g.:
+        self.connector = PosLabelConnector(self.roc_auc, self)
+        self.register_components(self.connector)
 
 
 ## Library level:
-- add @delegates_kwargs_and_doc_to() 
+- Add Altair (vega) plots for easy inclusion in websites
+- Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
-- add badges to README: https://github.com/badges/shields
--> https://github.com/oegedijk/explainerdashboard/workflows/explainerdashboard/badge.svg
 - https://github.com/marketplace/actions/coveralls-python
 - submit pull request to dtreeviz to accept shadowtree as parameter
+- submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723

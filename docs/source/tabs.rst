@@ -36,14 +36,14 @@ Decisiontrees Tab
 ExplainerTabsLayout
 ===================
 
-.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerTabsLayout
+.. autoclass:: explainerdashboard.dashboards.ExplainerTabsLayout
    :members:
 
 
 ExplainerPageLayout
 ===================
 
-.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerPageLayout
+.. autoclass:: explainerdashboard.dashboards.ExplainerPageLayout
    :members:
 
 
