@@ -68,7 +68,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
 """,
     license='MIT',
     packages=find_packages(),
-    package_dir={'explainerdashboard': 'explainerdashboard'}, # the one line where all the magic happens
+    package_dir={'explainerdashboard': 'explainerdashboard'},  # the one line where all the magic happens
     package_data={
         'explainerdashboard': ['assets/*', 'datasets/*'],
     },
