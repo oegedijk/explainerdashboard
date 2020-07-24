@@ -677,7 +677,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         if isinstance(highlight_index, int):
             highlight_idx = highlight_index
             highlight_name = idxs[highlight_idx]
-        elif isinstance(hightlight_index, str):
+        elif isinstance(highlight_index, str):
             assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
             highlight_idx = np.where(idxs==highlight_index)[0].item()
             highlight_name = highlight_index
