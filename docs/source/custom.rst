@@ -57,7 +57,6 @@ A very simple example would be::
     app.title = "Titanic Explainer"
     app.layout = layout
     shap_dependence.register_callbacks(app)
-    shap_dependence.calculate_dependencies()
     app.run_server() 
 
 
@@ -69,8 +68,8 @@ For all the options for the different ExplainerComponent check the :ref:`documen
 If you wrap your components into a custom ``ExplainerComponent``, and remember to
 ``register_components()``, then you don't need to seperately call `register_callbacks()`
 on each component, but only on the composite component. If you then start the 
-``ExplainerComponent`` using ``ExplainerTab()``,  ``calculate_dependencies()`` 
-will be automatically be run as well.
+``ExplainerComponent`` using ``ExplainerDashboard()``,  ``calculate_dependencies()`` 
+will automatically be run as well.
 
 Below you can see three different design patterns on how to construct your
 own custom dashboard.
@@ -88,15 +87,16 @@ registering the callbacks, and starting the app::
     precision = PrecisionComponent(explainer, 
                             hide_cutoff=True, hide_binsize=True, 
                             hide_binmethod=True, hide_multiclass=True,
+                            hide_selector=True,
                             cutoff=None)
     shap_summary = ShapSummaryComponent(explainer, 
-                            hide_title=True,
+                            hide_title=True, hide_selector=True,
                             hide_depth=True, depth=8, 
                             hide_cats=True, cats=True)
     shap_dependence = ShapDependenceComponent(explainer, 
-                            hide_title=True,
+                            hide_title=True, hide_selector=True,
                             hide_cats=True, cats=True, 
-                            hide_highlight=True,
+                            hide_index=True,
                             col='Fare', color_col="PassengerClass")
     connector = ShapSummaryDependenceConnector(shap_summary, shap_dependence)
             
@@ -192,15 +192,16 @@ that does exactly this::
             self.precision = PrecisionComponent(explainer, 
                                     hide_cutoff=True, hide_binsize=True, 
                                     hide_binmethod=True, hide_multiclass=True,
+                                    hide_selector=True,
                                     cutoff=None)
             self.shap_summary = ShapSummaryComponent(explainer, 
-                                    hide_title=True,
+                                    hide_title=True, hide_selector=True,
                                     hide_depth=True, depth=8, 
                                     hide_cats=True, cats=True)
             self.shap_dependence = ShapDependenceComponent(explainer, 
-                                    hide_title=True,
+                                    hide_title=True, hide_selector=True,
                                     hide_cats=True, cats=True, 
-                                    hide_highlight=True,
+                                    hide_index=True,
                                     col='Fare', color_col="PassengerClass")
             self.connector = ShapSummaryDependenceConnector(self.shap_summary, self.shap_dependence)
             
@@ -301,15 +302,16 @@ layout and components::
             self.precision = PrecisionComponent(explainer, 
                                     hide_cutoff=True, hide_binsize=True, 
                                     hide_binmethod=True, hide_multiclass=True,
+                                    hide_selector=True,
                                     cutoff=None)
             self.shap_summary = ShapSummaryComponent(explainer, 
-                                    hide_title=True,
+                                    hide_title=True, hide_selector=True,
                                     hide_depth=True, depth=8, 
                                     hide_cats=True, cats=True)
             self.shap_dependence = ShapDependenceComponent(explainer, 
-                                    hide_title=True,
+                                    hide_title=True, hide_selector=True,
                                     hide_cats=True, cats=True, 
-                                    hide_highlight=True,
+                                    hide_index=True,
                                     col='Fare', color_col="PassengerClass")
             self.connector = ShapSummaryDependenceConnector(self.shap_summary, self.shap_dependence)
             
@@ -371,7 +373,7 @@ layout and components::
                 ])
             ])
     
-    ExplainerDashboard(explainer, CustomComponent, header_hide_selector=True).run()
+    ExplainerDashboard(explainer, CustomComponent, hide_header=True).run()
 
 
 

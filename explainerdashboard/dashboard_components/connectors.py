@@ -614,9 +614,7 @@ class PosLabelConnector(ExplainerComponent):
                 return [str]
             elif hasattr(o, 'pos_labels'):
                 return o.pos_labels
-            else:
-                raise ValueError(f"{o} is not a PosLabelSelector, nor is a str,"
-                            " nor has a property .pos_labels!")
+            return []
 
         if hasattr(output_pos_labels, '__iter__'):
             pos_labels = []
@@ -627,12 +625,13 @@ class PosLabelConnector(ExplainerComponent):
             return get_pos_labels(output_pos_labels)
 
     def _register_callbacks(self, app):
-        @app.callback(
-            [Output(pos_label_name, 'value') for pos_label_name in self.output_pos_label_names],
-            [Input(self.input_pos_label_name, 'value')]
-        )
-        def update_pos_labels(pos_label):
-            return tuple(pos_label for i in range(len(self.output_pos_label_names)))
+        if self.output_pos_label_names:
+            @app.callback(
+                [Output(pos_label_name, 'value') for pos_label_name in self.output_pos_label_names],
+                [Input(self.input_pos_label_name, 'value')]
+            )
+            def update_pos_labels(pos_label):
+                return tuple(pos_label for i in range(len(self.output_pos_label_names)))
 
 
 

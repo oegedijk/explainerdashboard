@@ -28,6 +28,8 @@ from .explainer_methods import *
 from .explainer_plots import *
 from .make_callables import make_callable, default_list, default_2darray
 
+import plotly.io as pio
+pio.templates.default = "none"
 
 class BaseExplainer(ABC):
     """ """
@@ -2152,7 +2154,7 @@ class RegressionExplainer(BaseExplainer):
         col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=self.idxs, points=points, round=round, winsor=winsor)
+                residuals=residuals, idxs=np.array(self.idxs)[na_mask], points=points, round=round, winsor=winsor)
 
 
 class RandomForestExplainer(BaseExplainer):
