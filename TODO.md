@@ -10,15 +10,12 @@
 ## Layout:
 - Find a proper frontender to help :)
 
-
 ## dfs:
 - wrap shap values in pd.DataFrames?
 - wrap predictions in pd.Series?
 
-
 ## Plots:
 - Contributions: order by global mean_abs_shap or by index specific shap
-
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
@@ -27,15 +24,12 @@
 - include cumulative lift curve to standard dashboard
 - add cost calculator: cost of FPs and FNs
 
-
 ### Regression plots:
 
 ## Explainers:
 
 
 ## notebooks:
-- update contributions example with sort
-- update residual plot examples
 - add binder/colab link on github
 
 ## Dashboard:
