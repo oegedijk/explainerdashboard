@@ -25,7 +25,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = RegressionExplainer(
-                            model, X_test, y_test, r2_score, 
+                            model, X_test, y_test, r2_score,
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names)
@@ -65,7 +65,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
     def test_permutation_importances(self):
         self.assertIsInstance(self.explainer.permutation_importances, pd.DataFrame)
         self.assertIsInstance(self.explainer.permutation_importances_cats, pd.DataFrame)
-        
+
     def test_X_cats(self):
         self.assertIsInstance(self.explainer.X_cats, pd.DataFrame)
 
@@ -125,9 +125,9 @@ class RegressionBaseExplainerTests(unittest.TestCase):
 
     def test_shap_interaction_values_by_col(self):
         self.assertIsInstance(self.explainer.shap_interaction_values_by_col("Age"), np.ndarray)
-        self.assertEquals(self.explainer.shap_interaction_values_by_col("Age").shape, 
+        self.assertEquals(self.explainer.shap_interaction_values_by_col("Age").shape,
                         self.explainer.shap_values.shape)
-        self.assertEquals(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape, 
+        self.assertEquals(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape,
                         self.explainer.shap_values_cats.shape)
 
     def test_pdp_result(self):

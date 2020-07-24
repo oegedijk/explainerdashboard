@@ -1,7 +1,6 @@
 import unittest
 
 import pandas as pd
-import numpy as np
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score

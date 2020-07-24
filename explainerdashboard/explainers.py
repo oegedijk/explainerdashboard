@@ -9,8 +9,7 @@ __all__ = ['BaseExplainer',
             'RandomForestRegressionBunch', # deprecated
             ]
 
-from abc import ABC, abstractmethod
-import warnings
+from abc import ABC
 import base64
 
 import numpy as np

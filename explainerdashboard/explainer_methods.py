@@ -509,7 +509,11 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
     contrib_df['cumulative'] = contrib_df.contribution.cumsum()
     contrib_df['base']= contrib_df['cumulative'] - contrib_df['contribution']  
 
-    pred_df = contrib_df.sum().to_frame().T.assign(col='_PREDICTION', value="", cumulative= lambda df:df.contribution, base=0)
+    pred_df = contrib_df.sum().to_frame().T.assign(
+            col='_PREDICTION', 
+            value="", 
+            cumulative = lambda df:df.contribution, 
+            base=0)
     return pd.concat([contrib_df, pred_df], ignore_index=True)
 
 

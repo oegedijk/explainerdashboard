@@ -10,7 +10,6 @@ __all__ = [
 
 import numpy as np
 
-import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
@@ -20,42 +19,43 @@ from dash.exceptions import PreventUpdate
 
 from .dashboard_methods import  *
 
+
 class ClassifierRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
-                        hide_index=False, hide_slider=False, 
+                        hide_index=False, hide_slider=False,
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
-                        pos_label=None, index=None, slider= None, labels=None, 
+                        pos_label=None, index=None, slider= None, labels=None,
                         pred_or_perc='predictions'):
         """Select a random index subject to constraints component
 
         Args:
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
-            title (str, optional): Title of tab or page. Defaults to 
+            title (str, optional): Title of tab or page. Defaults to
                         "Select Random Index".
-            name (str, optional): unique name to add to Component elements. 
-                        If None then random uuid is generated to make sure 
+            name (str, optional): unique name to add to Component elements.
+                        If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
             hide_index (bool, optional): Hide index selector. Defaults to False.
-            hide_slider (bool, optional): Hide prediction/percentile slider. 
+            hide_slider (bool, optional): Hide prediction/percentile slider.
                         Defaults to False.
             hide_labels (bool, optional): Hide label selector Defaults to False.
-            hide_pred_or_perc (bool, optional): Hide prediction/percentiles 
+            hide_pred_or_perc (bool, optional): Hide prediction/percentiles
                         toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_button (bool, optional): Hide button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
-            index ({str, int}, optional): Initial index to display. 
+            index ({str, int}, optional): Initial index to display.
                         Defaults to None.
-            slider ([float,float], optional): initial slider position 
+            slider ([float,float], optional): initial slider position
                         [lower bound, upper bound]. Defaults to None.
-            labels ([str], optional): list of initial labels(str) to include. 
+            labels ([str], optional): list of initial labels(str) to include.
                         Defaults to None.
-            pred_or_perc (str, optional): Whether to use prediction or 
+            pred_or_perc (str, optional): Whether to use prediction or
                         percentiles slider. Defaults to 'predictions'.
         """
-        super().__init__(explainer,title, name)
+        super().__init__(explainer, title, name)
 
         self.hide_index, self.hide_slider = hide_index, hide_slider
         self.hide_labels, self.hide_pred_or_perc = hide_labels, hide_pred_or_perc
@@ -74,14 +74,14 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
-        assert (len(self.slider)==2 and 
-                self.slider[0]>=0 and self.slider[0]<=1 and 
-                self.slider[1]>=0.0 and self.slider[1]<=1.0 and 
-                self.slider[0]<=self.slider[1]), \
+        assert (len(self.slider) == 2 and
+                self.slider[0] >= 0 and self.slider[0] <=1 and
+                self.slider[1] >= 0.0 and self.slider[1] <= 1.0 and
+                self.slider[0] <= self.slider[1]), \
                     "slider should be e.g. [0.5, 1.0]"
 
         assert all([lab in self.explainer.labels for lab in self.labels]), \
-            f"These labels are not in explainer.labels: {[lab for lab in labs if lab not in explainer.labels]}!"
+            f"These labels are not in explainer.labels: {[lab for lab in self.labels if lab not in explainer.labels]}!"
 
         assert self.pred_or_perc in ['predictions', 'percentiles'], \
             "pred_or_perc should either be `predictions` or `percentiles`!"
@@ -92,8 +92,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                            dcc.Dropdown(id='random-index-clas-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
+                            dcc.Dropdown(id='random-index-clas-index-'+self.name,
+                                    options = [{'label': str(idx), 'value':idx}
                                                     for idx in self.explainer.idxs],
                                     value=self.index)
                         ], md=8), hide=self.hide_index),
@@ -118,14 +118,14 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                     dbc.Col([
                         html.Div([
                             dbc.Label(id='random-index-clas-slider-label-'+self.name,
-                                children="Predictions range:", 
+                                children="Predictions range:",
                                 html_for='prediction-range-slider-'+self.name,),
                             dcc.RangeSlider(
                                 id='random-index-clas-slider-'+self.name,
                                 min=0.0, max=1.0, step=0.01,
                                 value=self.slider,  allowCross=False,
-                                marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3', 
-                                        0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7', 
+                                marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3',
+                                        0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7',
                                         0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
                                 tooltip = {'always_visible' : False})
                         ], style={'margin-bottom':25})
@@ -145,9 +145,9 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                     dbc.Col([
                         self.selector.layout()
                     ], md=3), hide=self.hide_selector),
-            ], justify="start"),  
+            ], justify="start"),
         ])
-    
+
     def _register_callbacks(self, app):
         @app.callback(
             Output('random-index-clas-index-'+self.name, 'value'),
@@ -158,12 +158,12 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
              State('pos-label-'+self.name, 'value')])
         def update_index(n_clicks, slider_range, labels, pred_or_perc, pos_label):
             if pred_or_perc == 'predictions':
-                return self.explainer.random_index(y_values=labels, 
-                    pred_proba_min=slider_range[0], pred_proba_max=slider_range[1], 
+                return self.explainer.random_index(y_values=labels,
+                    pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
                     return_str=True, pos_label=pos_label)
             elif pred_or_perc == 'percentiles':
-                return self.explainer.random_index(y_values=labels, 
-                    pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1], 
+                return self.explainer.random_index(y_values=labels,
+                    pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1],
                     return_str=True, pos_label=pos_label)
 
         @app.callback(
@@ -179,10 +179,10 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
 class RegressionRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
-                        hide_index=False, hide_pred_slider=False, 
-                        hide_residual_slider=False, hide_pred_or_y=False, 
-                        hide_abs_residuals=False, hide_button=False, 
-                        index=None, pred_slider=None, y_slider=None, 
+                        hide_index=False, hide_pred_slider=False,
+                        hide_residual_slider=False, hide_pred_or_y=False,
+                        hide_abs_residuals=False, hide_button=False,
+                        index=None, pred_slider=None, y_slider=None,
                         residual_slider=None, abs_residual_slider=None,
                         pred_or_y="preds", abs_residuals=True, round=2):
         """Select a random index subject to constraints component
@@ -190,36 +190,36 @@ class RegressionRandomIndexComponent(ExplainerComponent):
         Args:
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
-            title (str, optional): Title of tab or page. Defaults to 
+            title (str, optional): Title of tab or page. Defaults to
                         "Select Random Index".
-            name (str, optional): unique name to add to Component elements. 
-                        If None then random uuid is generated to make sure 
+            name (str, optional): unique name to add to Component elements.
+                        If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
-            hide_index (bool, optional): Hide index selector. 
+            hide_index (bool, optional): Hide index selector.
                         Defaults to False.
-            hide_pred_slider (bool, optional): Hide prediction slider. 
+            hide_pred_slider (bool, optional): Hide prediction slider.
                         Defaults to False.
-            hide_residual_slider (bool, optional): hide residuals slider. 
+            hide_residual_slider (bool, optional): hide residuals slider.
                         Defaults to False.
-            hide_pred_or_y (bool, optional): hide prediction or actual toggle. 
+            hide_pred_or_y (bool, optional): hide prediction or actual toggle.
                         Defaults to False.
-            hide_abs_residuals (bool, optional): hide absolute residuals toggle. 
+            hide_abs_residuals (bool, optional): hide absolute residuals toggle.
                         Defaults to False.
             hide_button (bool, optional): hide button. Defaults to False.
-            index ({str, int}, optional): Initial index to display. 
+            index ({str, int}, optional): Initial index to display.
                         Defaults to None.
-            pred_slider ([lb, ub], optional): Initial values for prediction 
+            pred_slider ([lb, ub], optional): Initial values for prediction
                         values slider [lowerbound, upperbound]. Defaults to None.
-            y_slider ([lb, ub], optional): Initial values for y slider 
+            y_slider ([lb, ub], optional): Initial values for y slider
                         [lower bound, upper bound]. Defaults to None.
-            residual_slider ([lb, ub], optional): Initial values for residual slider 
+            residual_slider ([lb, ub], optional): Initial values for residual slider
                         [lower bound, upper bound]. Defaults to None.
-            abs_residual_slider ([lb, ub], optional): Initial values for absolute 
-                        residuals slider [lower bound, upper bound] 
+            abs_residual_slider ([lb, ub], optional): Initial values for absolute
+                        residuals slider [lower bound, upper bound]
                         Defaults to None.
-            pred_or_y (str, {'preds', 'y'}, optional): Initial use predictions 
+            pred_or_y (str, {'preds', 'y'}, optional): Initial use predictions
                         or y slider. Defaults to "preds".
-            abs_residuals (bool, optional): Initial use residuals or absolute 
+            abs_residuals (bool, optional): Initial use residuals or absolute
                         residuals. Defaults to True.
             round (int, optional): rounding used for slider spacing. Defaults to 2.
         """
@@ -269,8 +269,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                            dcc.Dropdown(id='random-index-reg-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
+                            dcc.Dropdown(id='random-index-reg-index-'+self.name,
+                                    options = [{'label': str(idx), 'value':idx}
                                                     for idx in self.explainer.idxs],
                                     value=self.index)
                         ], md=8), hide=self.hide_index),
@@ -289,12 +289,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                         html_for='random-index-reg-pred-slider-'+self.name),
                                     dcc.RangeSlider(
                                         id='random-index-reg-pred-slider-'+self.name,
-                                        min=self.explainer.preds.min(), 
-                                        max=self.explainer.preds.max(), 
+                                        min=self.explainer.preds.min(),
+                                        max=self.explainer.preds.max(),
                                         step=np.float_power(10, -self.round),
-                                        value=[self.pred_slider[0], self.pred_slider[1]], 
+                                        value=[self.pred_slider[0], self.pred_slider[1]],
                                         marks={self.explainer.preds.min(): str(np.round(self.explainer.preds.min(), self.round)),
-                                            self.explainer.preds.max(): str(np.round(self.explainer.preds.max(), self.round))}, 
+                                            self.explainer.preds.max(): str(np.round(self.explainer.preds.max(), self.round))},
                                         allowCross=False,
                                         tooltip = {'always_visible' : False}
                                     )
@@ -310,18 +310,18 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                         html_for='random-index-reg-y-slider-'+self.name),
                                     dcc.RangeSlider(
                                         id='random-index-reg-y-slider-'+self.name,
-                                        min=self.explainer.y.min(), 
-                                        max=self.explainer.y.max(), 
+                                        min=self.explainer.y.min(),
+                                        max=self.explainer.y.max(),
                                         step=np.float_power(10, -self.round),
-                                        value=[self.y_slider[0], self.y_slider[1]], 
+                                        value=[self.y_slider[0], self.y_slider[1]],
                                         marks={self.explainer.y.min(): str(np.round(self.explainer.y.min(), self.round)),
-                                            self.explainer.y.max(): str(np.round(self.explainer.y.max(), self.round))}, 
+                                            self.explainer.y.max(): str(np.round(self.explainer.y.max(), self.round))},
                                         allowCross=False,
                                         tooltip = {'always_visible' : False}
                                     )
                                 ], style={'margin-bottom':0})
                             ]),
-                    ]), 
+                    ]),
                 ], id='random-index-reg-y-slider-div-'+self.name),
                 ]), hide=self.hide_pred_slider),
             make_hideable(
@@ -334,12 +334,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                     html_for='random-index-reg-residual-slider-'+self.name),
                                 dcc.RangeSlider(
                                     id='random-index-reg-residual-slider-'+self.name,
-                                    min=self.explainer.residuals.min(), 
-                                    max=self.explainer.residuals.max(), 
+                                    min=self.explainer.residuals.min(),
+                                    max=self.explainer.residuals.max(),
                                     step=np.float_power(10, -self.round),
-                                    value=[self.residual_slider[0], self.residual_slider[1]], 
+                                    value=[self.residual_slider[0], self.residual_slider[1]],
                                     marks={self.explainer.residuals.min(): str(np.round(self.explainer.residuals.min(), self.round)),
-                                        self.explainer.residuals.max(): str(np.round(self.explainer.residuals.max(), self.round))}, 
+                                        self.explainer.residuals.max(): str(np.round(self.explainer.residuals.max(), self.round))},
                                     allowCross=False,
                                     tooltip={'always_visible' : False}
                                 )
@@ -355,12 +355,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                     html_for='random-index-reg-abs-residual-slider-'+self.name),
                                 dcc.RangeSlider(
                                     id='random-index-reg-abs-residual-slider-'+self.name,
-                                    min=self.explainer.abs_residuals.min(), 
-                                    max=self.explainer.abs_residuals.max(), 
+                                    min=self.explainer.abs_residuals.min(),
+                                    max=self.explainer.abs_residuals.max(),
                                     step=np.float_power(10, -self.round),
-                                    value=[self.abs_residual_slider[0], self.abs_residual_slider[1]], 
+                                    value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
                                     marks={self.explainer.abs_residuals.min(): str(np.round(self.explainer.abs_residuals.min(), self.round)),
-                                        self.explainer.abs_residuals.max(): str(np.round(self.explainer.abs_residuals.max(), self.round))}, 
+                                        self.explainer.abs_residuals.max(): str(np.round(self.explainer.abs_residuals.max(), self.round))},
                                     allowCross=False,
                                     tooltip={'always_visible' : False}
                                 )
@@ -394,9 +394,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                     className="form-check-label"),
                         ], check=True),
                     ]), hide=self.hide_abs_residuals),
-            ]),       
+            ]),
         ])
-    
+
     def _register_callbacks(self, app):
         @app.callback(
             [Output('random-index-reg-pred-slider-div-'+self.name, 'style'),
@@ -445,7 +445,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 max_residuals = self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max()
                 min_abs_residuals = self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min()
                 max_abs_residuals = self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max()
-                
+
             new_residuals_range = [max(min_residuals, residuals_range[0]), min(max_residuals, residuals_range[1])]
             new_abs_residuals_range = [max(min_abs_residuals, abs_residuals_range[0]), min(max_abs_residuals, abs_residuals_range[1])]
             residuals_marks = {min_residuals: str(np.round(min_residuals, self.round)),
@@ -468,56 +468,56 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             if preds_or_y == 'preds':
                 if abs_residuals:
                     return self.explainer.random_index(
-                                pred_min=pred_range[0], pred_max=pred_range[1], 
-                                abs_residuals_min=abs_residuals_range[0], 
-                                abs_residuals_max=abs_residuals_range[1], 
+                                pred_min=pred_range[0], pred_max=pred_range[1],
+                                abs_residuals_min=abs_residuals_range[0],
+                                abs_residuals_max=abs_residuals_range[1],
                                 return_str=True)
                 else:
                     return self.explainer.random_index(
-                                pred_min=pred_range[0], pred_max=pred_range[1], 
-                                residuals_min=residuals_range[0], 
-                                residuals_max=residuals_range[1], 
-                                return_str=True)       
+                                pred_min=pred_range[0], pred_max=pred_range[1],
+                                residuals_min=residual_range[0],
+                                residuals_max=residual_range[1],
+                                return_str=True)
             elif preds_or_y == 'y':
                 if abs_residuals:
                     return self.explainer.random_index(
-                                y_min=y_range[0], y_max=y_range[1], 
-                                abs_residuals_min=abs_residuals_range[0], 
-                                abs_residuals_max=abs_residuals_range[1], 
+                                y_min=y_range[0], y_max=y_range[1],
+                                abs_residuals_min=abs_residuals_range[0],
+                                abs_residuals_max=abs_residuals_range[1],
                                 return_str=True)
                 else:
                     return self.explainer.random_index(
-                                y_min=pred_range[0], y_max=pred_range[1], 
-                                residuals_min=residuals_range[0], 
-                                residuals_max=residuals_range[1], 
-                                return_str=True)      
+                                y_min=pred_range[0], y_max=pred_range[1],
+                                residuals_min=residual_range[0],
+                                residuals_max=residual_range[1],
+                                return_str=True)
 
 
 class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff", name=None,
-                        hide_cutoff=False, hide_percentile=False, 
+                        hide_cutoff=False, hide_percentile=False,
                         hide_selector=False,
                         pos_label=None, cutoff=0.5, percentile=None):
         """
         Slider to set a cutoff for Classifier components, based on setting the
         cutoff at a certain percentile of predictions, e.g.:
         percentile=0.8 means "mark the 20% highest scores as positive".
-        
+
         This cutoff can then be conencted with other components like e.g.
         RocAucComponent with a CutoffConnector.
 
         Args:
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
-            title (str, optional): Title of tab or page. Defaults to 
+            title (str, optional): Title of tab or page. Defaults to
                         "Global Cutoff".
-            name (str, optional): unique name to add to Component elements. 
-                        If None then random uuid is generated to make sure 
+            name (str, optional): unique name to add to Component elements.
+                        If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
             hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
             hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
-            pos_label ({int, str}, optional): initial pos label. 
+            pos_label ({int, str}, optional): initial pos label.
                         Defaults to explainer.pos_label
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
@@ -543,10 +543,10 @@ class CutoffPercentileComponent(ExplainerComponent):
                             dbc.Col([
                                 html.Div([
                                     html.Label('Cutoff prediction probability:'),
-                                    dcc.Slider(id='cutoffconnector-cutoff-'+self.name, 
+                                    dcc.Slider(id='cutoffconnector-cutoff-'+self.name,
                                                 min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                        0.75: '0.75', 0.99: '0.99'}, 
+                                                        0.75: '0.75', 0.99: '0.99'},
                                                 included=False,
                                                 tooltip = {'always_visible' : False})
                                 ], style={'margin-bottom': 15}),
@@ -557,10 +557,10 @@ class CutoffPercentileComponent(ExplainerComponent):
                             dbc.Col([
                                 html.Div([
                                     html.Label('Cutoff percentile of samples:'),
-                                    dcc.Slider(id='cutoffconnector-percentile-'+self.name, 
+                                    dcc.Slider(id='cutoffconnector-percentile-'+self.name,
                                                 min = 0.01, max = 0.99, step=0.01, value=self.percentile,
                                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                        0.75: '0.75', 0.99: '0.99'}, 
+                                                        0.75: '0.75', 0.99: '0.99'},
                                                 included=False,
                                                 tooltip = {'always_visible' : False})
                                 ], style={'margin-bottom': 15}),
@@ -571,7 +571,7 @@ class CutoffPercentileComponent(ExplainerComponent):
                     dbc.Col([
                         self.selector.layout()
                     ], width=2), hide=self.hide_selector),
-            ])  
+            ])
         ])
 
 
@@ -590,7 +590,7 @@ class PosLabelConnector(ExplainerComponent):
     def __init__(self, input_pos_label, output_pos_labels):
         self.input_pos_label_name = self._get_pos_label(input_pos_label)
         self.output_pos_label_names = self._get_pos_labels(output_pos_labels)
-        # if self.input_pos_label_name in self.output_pos_label_names: 
+        # if self.input_pos_label_name in self.output_pos_label_names:
         #     # avoid circulat callbacks
         #     self.output_pos_label_names.remove(self.input_pos_label_name)
 
@@ -639,18 +639,18 @@ class CutoffConnector(ExplainerComponent):
     def __init__(self, input_cutoff, output_cutoffs):
         """Connect the cutoff selector of input_cutoff with those of output_cutoffs.
 
-        You can use this to connect a CutoffPercentileComponent with a 
+        You can use this to connect a CutoffPercentileComponent with a
         RocAucComponent for example,
 
         When you change the cutoff in input_cutoff, all the cutoffs in output_cutoffs
         will automatically be updated.
 
         Args:
-            input_cutoff ([{str, ExplainerComponent}]): Either a str or an 
-                        ExplainerComponent. If str should be equal to the 
+            input_cutoff ([{str, ExplainerComponent}]): Either a str or an
+                        ExplainerComponent. If str should be equal to the
                         name of the cutoff property. If ExplainerComponent then
                         should have a .cutoff_name property.
-            output_cutoffs (list(str, ExplainerComponent)): list of str of 
+            output_cutoffs (list(str, ExplainerComponent)): list of str of
                         ExplainerComponents.
         """
         self.input_cutoff_name = self.cutoff_name(input_cutoff)
@@ -667,7 +667,7 @@ class CutoffConnector(ExplainerComponent):
                     raise ValueError(f"{o} does not have an .cutoff_name property!")
                 return o.cutoff_name
             raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .cutoff_name property")
-        
+
         if hasattr(cutoffs, '__iter__'):
             cutoff_name_list = []
             for cutoff in cutoffs:
@@ -689,18 +689,18 @@ class IndexConnector(ExplainerComponent):
     def __init__(self, input_index, output_indexes):
         """Connect the index selector of input_index with those of output_indexes.
 
-        You can use this to connect a RandomIndexComponent with a 
+        You can use this to connect a RandomIndexComponent with a
         PredictionSummaryComponent for example.
 
         When you change the index in input_index, all the indexes in output_indexes
         will automatically be updated.
 
         Args:
-            input_index ([{str, ExplainerComponent}]): Either a str or an 
-                        ExplainerComponent. If str should be equal to the 
+            input_index ([{str, ExplainerComponent}]): Either a str or an
+                        ExplainerComponent. If str should be equal to the
                         name of the index property. If ExplainerComponent then
                         should have a .index_name property.
-            output_indexes (list(str, ExplainerComponent)): list of str of 
+            output_indexes (list(str, ExplainerComponent)): list of str of
                         ExplainerComponents.
         """
         self.input_index_name = self.index_name(input_index)
@@ -717,7 +717,7 @@ class IndexConnector(ExplainerComponent):
                     raise ValueError(f"{o} does not have an .index_name property!")
                 return o.index_name
             raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .index_name property")
-        
+
         if hasattr(indexes, '__iter__'):
             index_name_list = []
             for index in indexes:
@@ -739,18 +739,18 @@ class HighlightConnector(ExplainerComponent):
     def __init__(self, input_highlight, output_highlights):
         """Connect the highlight selector of input_highlight with those of output_highlights.
 
-        You can use this to connect a DecisionTreesComponent component to a 
+        You can use this to connect a DecisionTreesComponent component to a
         DecisionPathGraphComponent for example.
 
         When you change the highlight in input_highlight, all the highlights in output_highlights
         will automatically be updated.
 
         Args:
-            input_highlight ([{str, ExplainerComponent}]): Either a str or an 
-                        ExplainerComponent. If str should be equal to the 
+            input_highlight ([{str, ExplainerComponent}]): Either a str or an
+                        ExplainerComponent. If str should be equal to the
                         name of the highlight property. If ExplainerComponent then
                         should have a .highlight_name property.
-            output_highlights (list(str, ExplainerComponent)): list of str of 
+            output_highlights (list(str, ExplainerComponent)): list of str of
                         ExplainerComponents.
         """
         self.input_highlight_name = self.highlight_name(input_highlight)
@@ -767,7 +767,7 @@ class HighlightConnector(ExplainerComponent):
                     raise ValueError(f"{o} does not have an .highlight_name property!")
                 return o.highlight_name
             raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .highlight_name property")
-        
+
         if hasattr(highlights, '__iter__'):
             highlight_name_list = []
             for highlight in highlights:
