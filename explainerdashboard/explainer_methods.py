@@ -595,24 +595,7 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     # In any case, it assigns our news diagonal values to siv:
     siv.reshape(s0,-1)[:,::s2+1] = diags
     return siv
-
-
-def get_decision_trees(rf_model, X, y):
-    """
-    Returns a list of ShadowDecTree from the dtreeviz package
-
-    """
-    assert hasattr(rf_model, 'estimators_'), \
-        """The model does not have an estimators_ attribute, so probably not
-        actually a sklearn compatible random forest?"""
-    decision_trees = [ShadowDecTree(decision_tree,
-                                  X,
-                                  y,
-                                  feature_names=X.columns.tolist(),
-                                  class_names = ['Neg', 'Pos'])
-                        for decision_tree in rf_model.estimators_]
-    return decision_trees
-
+    
 
 def get_decisiontree_df(decision_tree, observation, pos_label=1):
     _, nodes = decision_tree.predict(observation)
@@ -620,7 +603,7 @@ def get_decisiontree_df(decision_tree, observation, pos_label=1):
     decisiontree_df = pd.DataFrame(columns=['node_id', 'average', 'feature',
                                      'value', 'split', 'direction',
                                      'left', 'right', 'diff'])
-    if decision_tree.isclassifier()[0]:
+    if decision_tree.is_classifier():
         def node_pred_proba(node):
             return node.class_counts()[pos_label]/ sum(node.class_counts())
         for node in nodes:

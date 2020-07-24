@@ -36,7 +36,7 @@ class ClassifierBunchTests(unittest.TestCase):
     def test_decision_trees(self):
         dt = self.explainer.decision_trees
         self.assertIsInstance(dt, list)
-        self.assertIsInstance(dt[0], dtreeviz.shadow.ShadowDecTree)
+        self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
     def test_decisiontree_df(self):
         df = self.explainer.decisiontree_df(tree_idx=0, index=0)
@@ -82,7 +82,7 @@ class RegressionBunchTests(unittest.TestCase):
     def test_decision_trees(self):
         dt = self.explainer.decision_trees
         self.assertIsInstance(dt, list)
-        self.assertIsInstance(dt[0], dtreeviz.shadow.ShadowDecTree)
+        self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
     def test_decisiontree_df(self):
         df = self.explainer.decisiontree_df(tree_idx=0, index=0)

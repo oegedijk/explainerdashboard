@@ -17,7 +17,8 @@ import pandas as pd
 
 from pdpbox import pdp
 import shap
-from dtreeviz.trees import *
+
+from dtreeviz.trees import ShadowDecTree, dtreeviz
 
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_score, recall_score, log_loss
@@ -2190,7 +2191,18 @@ class RandomForestExplainer(BaseExplainer):
         """a list of ShadowDecTree objects"""
         if not hasattr(self, '_decision_trees'):
             print("Generating ShadowDecTree for each individual decision tree...")
-            self._decision_trees = get_decision_trees(self.model, self.X, self.y)
+            assert hasattr(self.model, 'estimators_'), \
+                """self.model does not have an estimators_ attribute, so probably not
+                actually a sklearn RandomForest?"""
+                
+            self._decision_trees = [
+                ShadowDecTree.get_shadow_tree(decision_tree,
+                                        self.X,
+                                        self.y,
+                                        feature_names=self.X.columns.tolist(),
+                                        target_name='target',
+                                        class_names = self.labels if self.is_classifier else None)
+                            for decision_tree in self.model.estimators_]
         return self._decision_trees
 
     def decisiontree_df(self, tree_idx, index, pos_label=None):
@@ -2236,12 +2248,14 @@ class RandomForestExplainer(BaseExplainer):
         return get_decisiontree_summary_df(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
                     classifier=self.is_classifier, round=round, units=self.units)
 
-    def decision_path_file(self, tree_idx, index):
+    def decision_path_file(self, tree_idx, index, show_just_path=False):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
           tree_idx: the n'th tree in the random forest
           index: row index
+          show_just_path (bool, optional): show only the path not rest of the 
+                    tree. Defaults to False. 
 
         Returns:
           the path where the .svg file is stored.
@@ -2252,29 +2266,20 @@ class RandomForestExplainer(BaseExplainer):
             return None
 
         idx = self.get_int_idx(index)
-        if self.is_regression:
-            viz = dtreeviz(self.model.estimators_[tree_idx],
-               self.X, self.y, 
-               target_name='Target',
-               #orientation ='LR',  # left-right orientation
-               feature_names=self.columns,
-               X=self.X.iloc[idx, :])
-        elif self.is_classifier:
-            viz = dtreeviz(self.model.estimators_[tree_idx],
-               self.X, self.y, 
-               target_name='Target',
-               #orientation ='LR',  # left-right orientation
-               feature_names=self.columns,
-               class_names=self.labels,
-               X=self.X.iloc[idx, :]) 
+        viz = dtreeviz(self.decision_trees[tree_idx], X=self.X.iloc[idx, :], 
+                        fancy=True,
+                        show_node_labels = True,
+                        show_just_path=show_just_path) 
         return viz.save_svg()
 
-    def decision_path(self, tree_idx, index):
+    def decision_path(self, tree_idx, index, show_just_path=False):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
           tree_idx: the n'th tree in the random forest
           index: row index
+          show_just_path (bool, optional): show only the path not rest of the 
+                    tree. Defaults to False. 
 
         Returns:
           a IPython display SVG object for e.g. jupyter notebook.
@@ -2285,15 +2290,17 @@ class RandomForestExplainer(BaseExplainer):
             return None
 
         from IPython.display import SVG
-        svg_file = self.decision_path_file(tree_idx, index)
+        svg_file = self.decision_path_file(tree_idx, index, show_just_path)
         return SVG(open(svg_file,'rb').read())
 
-    def decision_path_encoded(self, tree_idx, index):
+    def decision_path_encoded(self, tree_idx, index, show_just_path=False):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
           tree_idx: the n'th tree in the random forest
           index: row index
+          show_just_path (bool, optional): show only the path not rest of the 
+                    tree. Defaults to False. 
 
         Returns:
           a base64 encoded image, for inclusion in websites (e.g. dashboard)
@@ -2304,9 +2311,8 @@ class RandomForestExplainer(BaseExplainer):
             print("No graphviz 'dot' executable available!")
             return None
         
-        svg_file = self.decision_path_file(tree_idx, index)
+        svg_file = self.decision_path_file(tree_idx, index, show_just_path)
         encoded = base64.b64encode(open(svg_file,'rb').read()) 
-        #encoded = base64.b64encode(viz.svg()) 
         svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
         return svg_encoded
 
@@ -2323,7 +2329,6 @@ class RandomForestExplainer(BaseExplainer):
         Returns:
 
         """
-        #print('explainer call')
         idx=self.get_int_idx(index)
         assert idx is not None, 'invalid index'
         
