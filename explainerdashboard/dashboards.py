@@ -49,20 +49,16 @@ def instantiate_component(component, explainer, **kwargs):
     if inspect.isclass(component) and issubclass(component, ExplainerComponent):
         return component(explainer,  **kwargs)
     elif isinstance(component, ExplainerComponent):
-        component.header.mode = header_mode
         return component
     elif (not inspect.isclass(component)
           and hasattr(component, "layout")):
         if not (hasattr(component, "name") and isinstance(component.name, str)):
-            try:
-                component_name  = component.__name__
-            except:
-                component_name = shortuuid.ShortUUID().random(length=10)
+            component_name = shortuuid.ShortUUID().random(length=10)
             print(f"Warning: setting {component}.name to {component_name}")
             component.name = component_name
         if not hasattr(component, "title"):
             print(f"Warning: setting {component}.title to 'CustomTab'")
-            component.title = "CustomTab"
+            component.title = "Custom"
         return component
     else:
         raise ValueError(f"{component} is not a valid component...")
@@ -223,7 +219,7 @@ class ExplainerPageLayout(ExplainerComponent):
         except AttributeError:
             print(f"Warning: {self.page} does not have a register_callbacks method!")
         if not self.block_selector_callbacks:
-            if self.page.has_pos_label_connector():
+            if hasattr(self.page, "has_pos_label_connector") and self.page.has_pos_label_connector():
                 print("Warning: detected PosLabelConnectors already in the layout. "
                     "This may clash with the global pos label selector and generate duplicate callback errors. "
                     "If so set block_selector_callbacks=True.")
@@ -240,6 +236,7 @@ class ExplainerPageLayout(ExplainerComponent):
 class ExplainerDashboard:
     def __init__(self, explainer=None, tabs=None,
                  title='Model Explainer',
+                 hide_header=False,
                  header_hide_title=False,
                  header_hide_selector=False,
                  block_selector_callbacks=False,
@@ -294,6 +291,7 @@ class ExplainerDashboard:
             explainer(): explainer object
             tabs(): single component or list of components
             title(str, optional): title of dashboard, defaults to 'Model Explainer'
+            hide_header (bool, optional) hide the header (title+selector), defaults to False.
             header_hide_title(bool, optional): hide the title, defaults to False
             header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
             block_selector_callbacks (bool, optional): block the callback of the
@@ -319,9 +317,12 @@ class ExplainerDashboard:
             shap_interaction(bool, optional): include InteractionsTab if model allows it, defaults to True.
             decision_trees(bool, optional): include DecisionTreesTab if model allows it, defaults to True.
         """
+        if hide_header:
+            header_hide_title = True
+            header_hide_selector = True
         self.mode, self.width, self.height = mode, width, height
-        self.header_hide_title, self.header_hide_selector = \
-            header_hide_title, header_hide_selector
+        self.hide_header, self.header_hide_title, self.header_hide_selector = \
+            hide_header, header_hide_title, header_hide_selector
         self.external_stylesheets = external_stylesheets
         self.server, self.url_base_pathname = server, url_base_pathname
         

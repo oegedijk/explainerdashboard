@@ -157,7 +157,8 @@ For multiclass classification models it is convenient to be able to set the
 positive class for the entire dashboard with the dropdown in the header.
 However if you wish to this dropdown selector you can simply pass ``header_hide_selector=True``.
 
-In order to also hide the title itself pass ``header_hide_title=True``.
+In order to also hide the title itself pass ``header_hide_title=True``. Or to 
+hide the entire header ``hide_header=True``. 
 
 Choosing a port
 ---------------

@@ -136,14 +136,20 @@ def plotly_contribution_plot(contrib_df, target="target",
 
     fig = go.Figure(data=data, layout=layout)
     if model_output=='probability':
-        fig.update_yaxes(range=[0, 100])
+        if orientation=='vertical':
+            fig.update_yaxes(range=[0, 100])
+        elif orientation=='horizontal':
+            fig.update_xaxes(range=[0, 100])
+
     fig.update_layout(margin=go.layout.Margin(
                                 l=longest_feature_name*7 if orientation=='horizontal' else 50,
                                 r=100,
                                 b=50 if orientation=='horizontal' else longest_feature_name*6 ,
                                 t=50,
                                 pad=4
-                            ))
+                            ),
+                        title_x=0.5)
+
     if orientation == 'vertical':
         fig.update_yaxes(title_text='Predicted ' + ('%' if model_output=="probability" else units))
     else:
