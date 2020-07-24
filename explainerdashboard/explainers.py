@@ -1495,9 +1495,6 @@ class ClassifierExplainer(BaseExplainer):
             self._shap_values = self.shap_explainer.shap_values(self.X)
             
             if not isinstance(self._shap_values, list) and len(self.labels)==2:
-                if self.model_output=='probability':
-                    self._shap_values = [1-self._shap_values, self._shap_values]
-                else: #assume logodds
                     self._shap_values = [-self._shap_values, self._shap_values]
 
             assert len(self._shap_values)==len(self.labels),\
