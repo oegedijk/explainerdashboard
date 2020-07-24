@@ -6,20 +6,27 @@
     - or submit PR to sklearn to support multi col permuations for cats?
     - or spend some time optimizing own permutation importance code?
 
+
 ## Layout:
 - Find a proper frontender to help :)
+
 
 ## dfs:
 - wrap shap values in pd.DataFrames?
 - wrap predictions in pd.Series?
 
+
 ## Plots:
 - Contributions: order by global mean_abs_shap or by index specific shap
-- highlight id in violin plots
-- add str indexes to shap detailed summary plots
+
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
+- pdp: add multiclass option
+- add classification model summary
+- include cumulative lift curve to standard dashboard
+- add cost calculator: cost of FPs and FNs
+
 
 ### Regression plots:
 

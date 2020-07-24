@@ -376,7 +376,7 @@ class BaseExplainer(ABC):
         elif col in self.cats:
             return retrieve_onehot_value(self.X, col)
         
-    def get_col_value_plus_prediction(self, index, col):
+    def get_col_value_plus_prediction(self, index, col, pos_label=None):
         """return value of col and prediction for index
 
         Args:
@@ -390,6 +390,7 @@ class BaseExplainer(ABC):
         assert index in self, f"index {index} not found"
         assert (col in self.X.columns) or (col in self.cats),\
             f"{col} not in columns of dataset"
+        
 
         idx = self.get_int_idx(index)
 
@@ -398,9 +399,13 @@ class BaseExplainer(ABC):
         elif col in self.cats:
             col_value = retrieve_onehot_value(self.X, col).iloc[idx]
 
-        try:
-            prediction = self.pred_probas[idx]
-        except:
+        if self.is_classifier:
+            if pos_label is None:
+                pos_label = self.pos_label
+            prediction = self.pred_probas(pos_label)[idx]
+            if self.model_output == 'probability':
+                prediction = 100*prediction
+        elif self.is_regression:
             prediction = self.preds[idx]
 
         return col_value, prediction
@@ -754,7 +759,7 @@ class BaseExplainer(ABC):
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(
                     self.contrib_df(idx, cats, topx, cutoff, sort, pos_label), 
-                round=round, units=self.units, na_fill=self.na_fill)
+                model_output=self.model_output, round=round, units=self.units, na_fill=self.na_fill)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
                             pos_label=None):
@@ -879,8 +884,7 @@ class BaseExplainer(ABC):
                         pd.Series(pdp_result[i].feature_grids).str.split(col+'_').str[1].values
             else:
                 pdp_result.feature_grids = \
-                        pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values
-                
+                        pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values        
         return pdp_result
 
     def get_dfs(self, cats=True, round=None, lang='en', pos_label=None):
@@ -1060,13 +1064,13 @@ class BaseExplainer(ABC):
                                 self.shap_values_cats(pos_label),
                                 self.X_cats,
                                 self.importances_df(kind='shap', topx=topx, cats=True, pos_label=pos_label)\
-                                        ['Feature'].values.tolist())
+                                        ['Feature'].values.tolist(), idxs=self.idxs)
         else:
             return plotly_shap_scatter_plot(
                                 self.shap_values(pos_label),
                                 self.X,
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
-                                        ['Feature'].values.tolist())
+                                        ['Feature'].values.tolist(), idxs=self.idxs)
 
     def plot_shap_interaction_summary(self, col, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
@@ -1092,9 +1096,9 @@ class BaseExplainer(ABC):
 
         return plotly_shap_scatter_plot(
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
-                self.X_cats if cats else self.X, interact_cols[:topx], title=title)
+                self.X_cats if cats else self.X, interact_cols[:topx], title=title, idxs=self.idxs)
 
-    def plot_shap_dependence(self, col, color_col=None, highlight_idx=None,pos_label=None):
+    def plot_shap_dependence(self, col, color_col=None, highlight_index=None, pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1113,21 +1117,39 @@ class BaseExplainer(ABC):
 
         """
         cats = self.check_cats(col, color_col)
+        highlight_idx = self.get_int_idx(highlight_index)
+
         if cats:
             if col in self.cats:
-                return plotly_shap_violin_plot(self.X_cats, self.shap_values_cats(pos_label), col, color_col)
+                return plotly_shap_violin_plot(
+                            self.X_cats, 
+                            self.shap_values_cats(pos_label), 
+                            col, 
+                            color_col, 
+                            highlight_index=highlight_idx,
+                            idxs=self.idxs)
             else:
-                return plotly_dependence_plot(self.X_cats, self.shap_values_cats(pos_label),
-                                                col, color_col,
-                                                highlight_idx=highlight_idx,
-                                                na_fill=self.na_fill, units=self.units)
+                return plotly_dependence_plot(
+                            self.X_cats, 
+                            self.shap_values_cats(pos_label),
+                            col, 
+                            color_col, 
+                            na_fill=self.na_fill, 
+                            units=self.units, 
+                            highlight_index=highlight_idx,
+                            idxs=self.idxs)
         else:
-            return plotly_dependence_plot(self.X, self.shap_values(pos_label),
-                                            col, color_col,
-                                            highlight_idx=highlight_idx,
-                                            na_fill=self.na_fill, units=self.units)
+            return plotly_dependence_plot(
+                            self.X, 
+                            self.shap_values(pos_label),
+                            col, 
+                            color_col, 
+                            na_fill=self.na_fill, 
+                            units=self.units, 
+                            highlight_index=highlight_idx,
+                            idxs=self.idxs)
 
-    def plot_shap_interaction(self, col, interact_col, highlight_idx=None, 
+    def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
                                 pos_label=None):
         """plots a dependence plot for shap interaction effects
 
@@ -1142,16 +1164,19 @@ class BaseExplainer(ABC):
 
         """
         cats = self.check_cats(col, interact_col)
+        highlight_idx = self.get_int_idx(highlight_index)
+
         if cats and interact_col in self.cats:
             return plotly_shap_violin_plot(
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, interaction=True, units=self.units)
+                interact_col, col, interaction=True, units=self.units, 
+                highlight_index=highlight_idx, idxs=self.idxs)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, highlight_idx=highlight_idx,
-                interaction=True, units=self.units)
+                interact_col, col, interaction=True, units=self.units,
+                highlight_index=highlight_idx, idxs=self.idxs)
 
     def plot_pdp(self, col, index=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, pos_label=None):
@@ -1181,24 +1206,26 @@ class BaseExplainer(ABC):
         """
         pdp_result = self.get_pdp_result(col, index, 
                         num_grid_points=gridpoints, pos_label=pos_label)
-
+        units = "Predicted %" if self.model_output=='probability' else self.units
         if index is not None:
-            try:
-                col_value, pred = self.get_col_value_plus_prediction(index, col)
-                return plotly_pdp(pdp_result,
-                                display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
-                                index_feature_value=col_value, index_prediction=pred,
-                                feature_name=col,
-                                num_grid_lines=min(gridlines, sample, len(self.X)),
-                                units=self.units)
-            except:
-                return plotly_pdp(pdp_result, feature_name=col,
-                        num_grid_lines=min(gridlines, sample, len(self.X)), 
-                        units=self.units)
+            #try:
+            col_value, pred = self.get_col_value_plus_prediction(index, col, pos_label=pos_label)
+
+            return plotly_pdp(pdp_result,
+                            display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
+                            index_feature_value=col_value, index_prediction=pred,
+                            feature_name=col,
+                            num_grid_lines=min(gridlines, sample, len(self.X)),
+                            units=units)
+            # except Exception as e:
+            #     print(e)
+            #     return plotly_pdp(pdp_result, feature_name=col,
+            #             num_grid_lines=min(gridlines, sample, len(self.X)), 
+            #             units=units)
         else:
             return plotly_pdp(pdp_result, feature_name=col,
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
-                        units=self.units)
+                        units=units)
 
 
 class ClassifierExplainer(BaseExplainer):
@@ -1612,16 +1639,28 @@ class ClassifierExplainer(BaseExplainer):
         if pos_label is None: pos_label = self.pos_label
         pdp_result = super().get_pdp_result(
                                 col, index, drop_na, sample, num_grid_points)
+        
         if len(self.labels)==2:
             # for binary classifer PDPBox only gives pdp for the positive class.
             # instead of a list of pdps for every class
-            # so we simply inverse when predicting the negative class
+            # so we simply inverse when predicting the negative 
+            if self.model_output == 'probability':
+                pdp_result.pdp = 100*pdp_result.pdp
+                pdp_result.ice_lines = pdp_result.ice_lines.multiply(100)
             if pos_label==0:
-                pdp_result.pdp = 1 - pdp_result.pdp
-                pdp_result.ice_lines = 1 - pdp_result.ice_lines
+                if self.model_output == 'probability':
+                    pdp_result.pdp = 100 - pdp_result.pdp
+                    pdp_result.ice_lines = 100 - pdp_result.ice_lines
+                elif self.model_output == 'logodds':
+                    pdp_result.pdp = -pdp_result.pdp
+                    pdp_result.ice_lines = -pdp_result.ice_lines
             return pdp_result
         else:
-             return pdp_result[pos_label]
+            pdp_result = pdp_result[pos_label]
+            if self.model_output == 'probability':
+                pdp_result.pdp = 100*pdp_result.pdp
+                pdp_result.ice_lines = pdp_result.ice_lines.multiply(100)
+            return pdp_result
 
     def random_index(self, y_values=None, return_str=False,
                     pred_proba_min=None, pred_proba_max=None,

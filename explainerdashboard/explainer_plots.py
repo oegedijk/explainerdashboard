@@ -497,7 +497,8 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
 
 
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
-                            highlight_idx=None, interaction=False, na_fill=-999, round=2, units=""):
+                            interaction=False, na_fill=-999, round=2, units="", 
+                            highlight_index=None, idxs=None):
     """
     Returns a partial dependence plot based on shap values.
 
@@ -506,6 +507,21 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
     assert (interact_col_name is None and not interaction) or interact_col_name in X.columns.tolist(),\
             f'{interact_col_name} not in X.columns'
+
+    if idxs is not None:
+        assert len(idxs)==X.shape[0]
+        idxs = [str(idx) for idx in idxs]
+    else:
+        idxs = [str(i) for i in range(X.shape[0])]
+
+    if highlight_index is not None:
+        if isinstance(highlight_index, int):
+            highlight_idx = highlight_index
+            highlight_name = idxs[highlight_idx]
+        elif isinstance(hightlight_index, str):
+            assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
+            highlight_idx = np.where(idxs==highlight_index)[0].item()
+            highlight_name = highlight_index
     
     x = X[col_name].replace({-999:np.nan})
     if len(shap_values.shape)==2:
@@ -516,36 +532,38 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
     
     if interact_col_name is not None:
-        text = np.array([f'{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                    for col_val, col_col_val, shap_val in zip(x, X[interact_col_name], np.round(y, round))])
+        text = np.array([f'index={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
+                    for index, col_val, col_col_val, shap_val in zip(idxs, x, X[interact_col_name], np.round(y, round))])
     else:
-        text = np.array([f'{col_name}={col_val}<br>SHAP={shap_val}' 
-                    for col_val, shap_val in zip(x, np.round(y, round))])  
+        text = np.array([f'index={index}<br>{col_name}={col_val}<br>SHAP={shap_val}' 
+                    for index, col_val, shap_val in zip(idxs, x, np.round(y, round))])  
         
     data = []
     
     if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
         for onehot_col in X[interact_col_name].unique().tolist():
-                data.append(go.Scatter(
-                                x=X[X[interact_col_name]==onehot_col][col_name].replace({-999:np.nan}),
-                                y=shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)],
-                                mode='markers',
-                                marker=dict(
-                                      size=7,
-                                      showscale=False,
-                                      opacity=0.6,
-                                  ),
-                                
-                                showlegend=True,
-                                opacity=0.8,
-                                hoverinfo="text",
-                                name=onehot_col,
-                                text=[f'{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                                        for col_val, col_col_val, shap_val in zip(
-                                            X[X[interact_col_name]==onehot_col][col_name], 
-                                            X[X[interact_col_name]==onehot_col][interact_col_name], 
-                                            np.round(shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)], round))],
-                                ))
+                data.append(
+                    go.Scatter(
+                        x=X[X[interact_col_name]==onehot_col][col_name].replace({-999:np.nan}),
+                        y=shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)],
+                        mode='markers',
+                        marker=dict(
+                                size=7,
+                                showscale=False,
+                                opacity=0.6,
+                            ),
+                        
+                        showlegend=True,
+                        opacity=0.8,
+                        hoverinfo="text",
+                        name=onehot_col,
+                        text=[f'index={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
+                                for index, col_val, col_col_val, shap_val in zip(idxs,
+                                    X[X[interact_col_name]==onehot_col][col_name], 
+                                    X[X[interact_col_name]==onehot_col][interact_col_name], 
+                                    np.round(shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)], round))],
+                        )
+                    )
                 
     elif interact_col_name is not None and is_numeric_dtype(X[interact_col_name]):
         data.append(go.Scatter(
@@ -603,8 +621,9 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
         fig.update_layout(showlegend=True)
                                                       
-    if isinstance(highlight_idx, int) and highlight_idx > 0 and highlight_idx < len(x):
-        fig.add_trace(go.Scatter(
+    if highlight_index is not None:
+        fig.add_trace(
+            go.Scatter(
                 x=[x[highlight_idx]], 
                 y=[y[highlight_idx]], 
                 mode='markers',
@@ -617,14 +636,18 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         width=4
                     )
                 ),
-                name = f"index {highlight_idx}",
-                text=f"index {highlight_idx}",
-                hoverinfo="text"))
+                name = f"index {highlight_name}",
+                text=f"index {highlight_name}",
+                hoverinfo="text",
+                showlegend=False,
+            ),
+        )
     fig.update_traces(selector = dict(mode='markers'))
     return fig
 
 
-def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, interaction=False, units=""):
+def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, 
+        interaction=False, units="", highlight_index=None, idxs=None):
     """
     Returns a violin plot for categorical values. 
 
@@ -634,10 +657,25 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     assert is_string_dtype(X[col_name]), \
         f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
         
-    x = X[col_name]
+    x = X[col_name].reset_index(drop=True)
     shaps = shap_values[:, X.columns.get_loc(col_name)]
     n_cats = X[col_name].nunique()
     
+    if idxs is not None:
+        assert len(idxs)==X.shape[0]
+        idxs = np.array([str(idx) for idx in idxs])
+    else:
+        idxs = np.array([str(i) for i in range(X.shape[0])])
+
+    if highlight_index is not None:
+        if isinstance(highlight_index, int):
+            highlight_idx = highlight_index
+            highlight_name = idxs[highlight_idx]
+        elif isinstance(hightlight_index, str):
+            assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
+            highlight_idx = np.where(idxs==highlight_index)[0].item()
+            highlight_name = highlight_index
+
     if points or color_col is not None:
         fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
         showscale = True
@@ -666,10 +704,11 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                                 mode='markers',
                                 showlegend=False,
                                 hoverinfo="text",
-                                hovertemplate = 
-                                "<i>shap</i>: %{y:.2f}<BR>" +
-                                f"<i>{color_col}" + ": %{marker.color}",
-                                text = [f"shap: {shap}<>{color_col}: {col}" for shap, col in zip(shaps[x == cat], X[color_col][x==cat])],
+                                # hovertemplate = 
+                                # "<i>shap</i>: %{y:.2f}<BR>" +
+                                # f"<i>{color_col}" + ": %{marker.color}",
+                                text = [f"index: {index}<br>shap: {shap}<br>{color_col}: {col}" 
+                                            for index, shap, col in zip(idxs[x==cat], shaps[x == cat], X[color_col][x==cat])],
                                 marker=dict(size=7, 
                                         opacity=0.6,
                                         cmin=X[color_col].min(),
@@ -694,9 +733,14 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                                     mode='markers',
                                     showlegend=showscale,
                                     hoverinfo="text",
-                                    hovertemplate = 
-                                    "<i>shap</i>: %{y:.2f}<BR>" +
-                                    f"<i>{color_col}: {color_cat}",
+                                    text = [f"index: {index}<br>shap: {shap}<br>{color_col}: {col}" 
+                                                for index, shap, col in zip(
+                                                                idxs[(x == cat) & (X[color_col] == color_cat)], 
+                                                                shaps[(x == cat) & (X[color_col] == color_cat)], 
+                                                                X[color_col][(x == cat) & (X[color_col] == color_cat)])],
+                                    # hovertemplate = 
+                                    # "<i>shap</i>: %{y:.2f}<BR>" +
+                                    # f"<i>{color_col}: {color_cat}",
                                     marker=dict(size=7, 
                                                 opacity=0.8,
                                                 color=color)           
@@ -710,12 +754,35 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                             y=shaps[x == cat],
                             mode='markers',
                             showlegend=False,
-                            hovertemplate = 
-                            "<i>shap</i>: %{y:.2f}",
+                            # hovertemplate = 
+                            # "<i>shap</i>: %{y:.2f}",
+                            hoverinfo="text",
+                                    text = [f"index: {index}<br>shap: {shap}" 
+                                                for index, shap in zip(idxs[(x == cat)], shaps[x == cat])],
                             marker=dict(size=7, 
                                     opacity=0.6,
                                        color='blue'),
                         ), row=1, col=col+1)
+        if highlight_index is not None and X[col_name][highlight_idx]==cat:
+            fig.add_trace(
+                go.Scatter(
+                    x=[0], 
+                    y=[shaps[highlight_idx]], 
+                    mode='markers',
+                    marker=dict(
+                        color='LightSkyBlue',
+                        size=25,
+                        opacity=0.5,
+                        line=dict(
+                            color='MediumPurple',
+                            width=4
+                        )
+                    ),
+                    name = f"index {highlight_name}",
+                    text=f"index {highlight_name}",
+                    hoverinfo="text",
+                    showlegend=False,
+                ), row=1, col=col+1)
 
     if points or color_col is not None:
         for i in range(n_cats):
@@ -739,7 +806,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
 def plotly_pdp(pdp_result, 
                display_index=None, index_feature_value=None, index_prediction=None,
                absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None,
-               units=""):
+               round=2, units=""):
     """
     display_index: display the pdp of particular index
     index_feature_value: the actual feature value of the index to be highlighted
@@ -753,8 +820,8 @@ def plotly_pdp(pdp_result,
 
     trace0 = go.Scatter(
             x = pdp_result.feature_grids,
-            y = pdp_result.pdp.round(2) if absolute else (
-                    pdp_result.pdp - pdp_result.pdp[0]).round(2),
+            y = pdp_result.pdp.round(round) if absolute else (
+                    pdp_result.pdp - pdp_result.pdp[0]).round(round),
             mode = 'lines+markers',
             line = dict(color='grey', width = 4),
             name = f'average prediction <br>for different values of <br>{pdp_result.feature}'
@@ -762,11 +829,10 @@ def plotly_pdp(pdp_result,
     data = [trace0]
 
     if display_index is not None:
-        # pdp_result.ice_lines.index = X.index
         trace1 = go.Scatter(
             x = pdp_result.feature_grids,
-            y = pdp_result.ice_lines.iloc[display_index].values.round(2) if absolute else \
-                pdp_result.ice_lines.iloc[display_index].values - pdp_result.ice_lines.iloc[display_index].values[0],
+            y = pdp_result.ice_lines.iloc[display_index].round(round).values if absolute else \
+                pdp_result.ice_lines.iloc[display_index].round(round).values - pdp_result.ice_lines.iloc[display_index].round(round).values[0],
             mode = 'lines+markers',
             line = dict(color='blue', width = 4),
             name = f'prediction for index {display_index} <br>for different values of <br>{pdp_result.feature}'
@@ -847,7 +913,7 @@ def plotly_pdp(pdp_result,
         annotations.append(
             go.layout.Annotation(
                 x=pdp_result.feature_grids[
-                            round(0.5*len(pdp_result.feature_grids))], 
+                            int(0.5*len(pdp_result.feature_grids))], 
                 y=index_prediction, 
                 text=f"baseline pred = {np.round(index_prediction,2)}"))
 
@@ -1177,8 +1243,14 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values"):
+def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values", idxs=None):
     
+    if idxs is not None:
+        assert len(idxs)==X.shape[0]
+        idxs = np.array([str(idx) for idx in idxs])
+    else:
+        idxs = np.array([str(i) for i in range(X.shape[0])])
+        
     # make sure that columns are actually in X:
     display_columns = [col for col in display_columns if col in X.columns.tolist()]    
     shap_df = pd.DataFrame(shap_values, columns=X.columns)
@@ -1207,9 +1279,8 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{col}={onehot_col}<br>shap={np.round(shap,3)}<br>index={i}" 
-                                      for i, shap in zip(shap_df[X[col]==onehot_col].index,
-                                                       shap_df[X[col]==onehot_col][col])],
+                                text=[f"index={i}<br>{col}={onehot_col}<br>shap={np.round(shap,3)}" 
+                                      for i, shap in zip(idxs[X[col]==onehot_col], shap_df[X[col]==onehot_col][col])],
                                 ),
                      row=i+1, col=1);
         else:
@@ -1231,10 +1302,8 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{col}={value}<br>shap={np.round(shap,3)}<br>index={i}" 
-                                      for i, (shap, value) in enumerate(zip(
-                                            shap_df[col], 
-                                            X[col].replace({-999:np.nan})))],
+                                text=[f"index={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
+                                      for i, shap, value in zip(idxs, shap_df[col], X[col].replace({-999:np.nan}))],
                                 ),
                      row=i+1, col=1);
         fig.update_xaxes(showgrid=False, zeroline=False, 
