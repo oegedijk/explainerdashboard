@@ -14,7 +14,7 @@ from .dashboard_components import *
 
 class ImportancesTab(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
-                    hide_selector=False, importance_type="shap", depth=None, 
+                    hide_selector=True, importance_type="shap", depth=None, 
                     cats=True):
         """Overview tab of feature importances
 

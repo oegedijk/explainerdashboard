@@ -147,10 +147,10 @@ class ShapSummaryComponent(ExplainerComponent):
 class ShapDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence', name=None,
                     hide_title=False, hide_cats=False, hide_col=False, 
-                    hide_color_col=False, hide_highlight=False,
+                    hide_color_col=False, hide_index=False,
                     hide_selector=False,
                     pos_label=None, cats=True, col=None, 
-                    color_col=None, highlight=None):
+                    color_col=None, index=None):
         """Show shap dependence graph
 
         Args:
@@ -165,7 +165,7 @@ class ShapDependenceComponent(ExplainerComponent):
             hide_cats (bool, optional): hide group cats toggle. Defaults to False.
             hide_col (bool, optional): hide feature selector. Defaults to False.
             hide_color_col (bool, optional): hide color feature selector Defaults to False.
-            hide_highlight (bool, optional): hide highlight selector Defaults to False.
+            hide_index (bool, optional): hide index selector Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
@@ -173,26 +173,32 @@ class ShapDependenceComponent(ExplainerComponent):
             col (str, optional): Feature to display. Defaults to None.
             color_col (str, optional): Color plot by values of this Feature. 
                         Defaults to None.
-            highlight (int, optional): Highlight a particular row. Defaults to None.
+            index (int, optional): Highlight a particular index. Defaults to None.
         """
         super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_cats, self.hide_col = hide_title, hide_cats, hide_col
-        self.hide_color_col, self.hide_highlight = hide_color_col, hide_highlight
+        self.hide_color_col, self.hide_index = hide_color_col, hide_index
         self.hide_selector = hide_selector
         self.cats = cats
-        self.col, self.color_col, self.highlight = col, color_col, highlight
+        self.col, self.color_col, self.index = col, color_col, index
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         if self.color_col is None:
             self.color_col = self.explainer.shap_top_interactions(self.col, cats=cats)[1]
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_name = 'shap-dependence-index-'+self.name
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
         return html.Div([
             make_hideable(html.H3('Shap Dependence Plot'), hide=self.hide_title),
+            dbc.Row([
+                make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector),    
+            ]),
             dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -224,16 +230,13 @@ class ShapDependenceComponent(ExplainerComponent):
                                 value=self.color_col),   
                     ], md=3), self.hide_color_col),
                     make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
-                    make_hideable(
                         dbc.Col([
-                                html.Label('Highlight:'),
-                                dbc.Input(id='shap-dependence-highlight-index-'+self.name, 
-                                        placeholder="Highlight index...",
-                                        debounce=True,
-                                        value=self.highlight)
-                    ], md=2), self.hide_highlight),       
+                            dbc.Label("Index:"),
+                            dcc.Dropdown(id='shap-dependence-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=self.index)
+                        ], md=4), hide=self.hide_index),         
             ], form=True),
             dcc.Loading(id="loading-dependence-graph-"+self.name, 
                          children=[dcc.Graph(id='shap-dependence-graph-'+self.name)]),
@@ -256,13 +259,13 @@ class ShapDependenceComponent(ExplainerComponent):
         @app.callback(
             Output('shap-dependence-graph-'+self.name, 'figure'),
             [Input('shap-dependence-color-col-'+self.name, 'value'),
-             Input('shap-dependence-highlight-index-'+self.name, 'value'),
+             Input('shap-dependence-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
             [State('shap-dependence-col-'+self.name, 'value')])
-        def update_dependence_graph(color_col, idx, pos_label, col):
+        def update_dependence_graph(color_col, index, pos_label, col):
             if color_col is not None:
                 return self.explainer.plot_shap_dependence(
-                            col, color_col, highlight_idx=idx, pos_label=pos_label)
+                            col, color_col, highlight_index=index, pos_label=pos_label)
             raise PreventUpdate
 
         @app.callback(
@@ -297,16 +300,15 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
             return cats
 
         @app.callback(
-            [Output('shap-dependence-highlight-index-'+self.dep_name, 'value'),
+            [Output('shap-dependence-index-'+self.dep_name, 'value'),
              Output('shap-dependence-col-'+self.dep_name, 'value')],
             [Input('shap-summary-graph-'+self.sum_name, 'clickData')])
         def display_scatter_click_data(clickdata):
             if clickdata is not None and clickdata['points'][0] is not None:
                 if isinstance(clickdata['points'][0]['y'], float): # detailed
-                    # if detailed, clickdata returns scatter marker location -> type==float
-                    idx = clickdata['points'][0]['pointIndex']
-                    col = clickdata['points'][0]['text'].split('=')[0]                             
-                    return (idx, col)
+                    index = clickdata['points'][0]['text'].split('=')[1].split('<br>')[0]
+                    col = clickdata['points'][0]['text'].split('=')[1].split('<br>')[1]                        
+                    return (index, col)
                 elif isinstance(clickdata['points'][0]['y'], str): # aggregate
                     # in aggregate clickdata returns col name -> type==str
                     col = clickdata['points'][0]['y'].split(' ')[1]
@@ -454,9 +456,9 @@ class InteractionSummaryComponent(ExplainerComponent):
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence", name=None,
                     hide_title=False, hide_cats=False, hide_col=False, 
-                    hide_interact_col=False, hide_highlight=False,
+                    hide_interact_col=False, hide_index=False,
                     hide_selector=False, hide_top=False, hide_bottom=False,
-                    pos_label=None, cats=True, col=None, interact_col=None, highlight=None):
+                    pos_label=None, cats=True, col=None, interact_col=None, index=None):
         """Interaction Dependence Component.
 
         Shows two graphs:
@@ -493,13 +495,13 @@ class InteractionDependenceComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title, self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_highlight = \
-            hide_title, hide_cats, hide_col, hide_interact_col, hide_highlight
+        self.hide_title, self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_index = \
+            hide_title, hide_cats, hide_col, hide_interact_col, hide_index
         self.hide_selector = hide_selector
         self.hide_top, self.hide_bottom = hide_top, hide_bottom
 
-        self.cats, self.col, self.interact_col, self.highlight = \
-            cats, col, interact_col, highlight
+        self.cats, self.col, self.interact_col, self.index = \
+            cats, col, interact_col, index
 
         if self.col is None:
             self.col = explainer.columns_ranked_by_shap(cats)[0]
@@ -512,6 +514,11 @@ class InteractionDependenceComponent(ExplainerComponent):
     def layout(self):
         return html.Div([
             make_hideable(html.H3('Shap Interaction Plots'), hide=self.hide_title),
+            dbc.Row([
+                make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+            ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -546,14 +553,13 @@ class InteractionDependenceComponent(ExplainerComponent):
                         ),
                     ], md=3), hide=self.hide_interact_col), 
                 make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Highlight:"),
-                        dbc.Input(id='interaction-dependence-highlight-index-'+self.name, 
-                            placeholder="Highlight index...", debounce=True)],
-                        md=2), hide=self.hide_highlight), 
+                        dbc.Col([
+                            dbc.Label("Index:"),
+                            dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=self.index)
+                        ], md=4), hide=self.hide_index), 
                 ], form=True),
             make_hideable(
                 dcc.Loading(id='loading-interaction-dependence-graph-'+self.name, 
@@ -592,15 +598,15 @@ class InteractionDependenceComponent(ExplainerComponent):
             [Output('interaction-dependence-graph-'+self.name, 'figure'),
              Output('interaction-dependence-reverse-graph-'+self.name, 'figure')],
             [Input('interaction-dependence-interact-col-'+self.name, 'value'),
-             Input('interaction-dependence-highlight-index-'+self.name, 'value'),
+             Input('interaction-dependence-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
              Input('interaction-dependence-col-'+self.name, 'value')])
         def update_dependence_graph(interact_col, index, pos_label, col):
             if col is not None and interact_col is not None:
                 return (self.explainer.plot_shap_interaction(
-                            col, interact_col, highlight_idx=index, pos_label=pos_label),
+                            col, interact_col, highlight_index=index, pos_label=pos_label),
                         self.explainer.plot_shap_interaction(
-                            interact_col, col, highlight_idx=index, pos_label=pos_label))
+                            interact_col, col, highlight_index=index, pos_label=pos_label))
             raise PreventUpdate
 
         
@@ -629,17 +635,16 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
         @app.callback(
             [Output('interaction-dependence-col-'+self.dep_name, 'value'),
-             Output('interaction-dependence-highlight-index-'+self.dep_name, 'value'),
+             Output('interaction-dependence-index-'+self.dep_name, 'value'),
              Output('interaction-dependence-interact-col-'+self.dep_name, 'value')],
             [Input('interaction-summary-col-'+self.sum_name, 'value'),
              Input('interaction-summary-graph-'+self.sum_name, 'clickData')])
         def update_interact_col_highlight(col, clickdata):
             if clickdata is not None and clickdata['points'][0] is not None:
                 if isinstance(clickdata['points'][0]['y'], float): # detailed
-                    # if detailed, clickdata returns scatter marker location -> type==float
-                    idx = clickdata['points'][0]['pointIndex']
-                    interact_col = clickdata['points'][0]['text'].split('=')[0]                          
-                    return (col, idx, interact_col)
+                    index = clickdata['points'][0]['text'].split('=')[1].split('<br>')[0]
+                    interact_col = clickdata['points'][0]['text'].split('=')[1].split('<br>')[1]                          
+                    return (col, index, interact_col)
                 elif isinstance(clickdata['points'][0]['y'], str): # aggregate
                     # in aggregate clickdata returns col name -> type==str
                     interact_col = clickdata['points'][0]['y'].split(' ')[1]

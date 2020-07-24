@@ -43,6 +43,10 @@
         contributions plots/table, pdp plot and trees plot.
 - Clearer title for MEAN_ABS_SHAP importance and summary plots
 - replace na_fill value in contributions table by "MISSING"
+- add string idxs to shap and interactions summary and dependence plots, 
+        including the violing plots
+- pdp plot for classification now showing percentages instead of fractions
+
 
 
 ### Other Changes
