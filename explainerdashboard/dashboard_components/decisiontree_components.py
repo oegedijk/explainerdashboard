@@ -17,12 +17,11 @@ from .dashboard_methods import *
 from .connectors import ClassifierRandomIndexComponent, IndexConnector, HighlightConnector
 
 
-
 class DecisionTreesComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision Trees",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision Trees", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
-                    index=None, highlight=None):
+                    hide_selector=False,
+                    pos_label=None, index=None, highlight=None):
         """Show prediction from individual decision trees inside RandomForest component
 
         Args:
@@ -30,26 +29,31 @@ class DecisionTreesComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision Trees".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title, Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree to highlight. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.hide_title = hide_title
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
+        self.hide_selector = hide_selector
         self.index, self.highlight = index, highlight
 
         self.index_name = 'decisiontrees-index-'+self.name
         self.highlight_name = 'decisiontrees-highlight-'+self.name
 
-    def _layout(self):
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.register_dependencies("preds", "pred_probas")
+
+    def layout(self):
         return html.Div([
             make_hideable(
                 html.H3("Decision trees:"), hide=self.hide_title),
@@ -70,6 +74,9 @@ class DecisionTreesComponent(ExplainerComponent):
                                             for tree in range(self.explainer.no_of_trees)],
                             value=self.highlight)
                     ], md=2), hide=self.hide_highlight), 
+                make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector)
             ]),
             dbc.Row([
                 dbc.Col([
@@ -84,10 +91,9 @@ class DecisionTreesComponent(ExplainerComponent):
             Output("decisiontrees-graph-"+self.name, 'figure'),
             [Input('decisiontrees-index-'+self.name, 'value'),
              Input('decisiontrees-highlight-'+self.name, 'value'),
-             Input('pos-label', 'value')],
-            [State('tabs', 'value')]
+             Input('pos-label-'+self.name, 'value')],
         )
-        def update_tree_graph(index, highlight, pos_label, tab):
+        def update_tree_graph(index, highlight, pos_label):
             if index is not None:
                 return self.explainer.plot_trees(index, highlight_tree=highlight, pos_label=pos_label)
             return {}
@@ -102,10 +108,10 @@ class DecisionTreesComponent(ExplainerComponent):
             raise PreventUpdate
 
 class DecisionPathTableComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision path table",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision path table", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
-                    index=None, highlight=None):
+                    hide_selector=False,
+                    pos_label=None, index=None, highlight=None):
         """Display a table of the decision path through a particular decision tree
 
         Args:
@@ -113,8 +119,6 @@ class DecisionPathTableComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision path table".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -123,21 +127,28 @@ class DecisionPathTableComponent(ExplainerComponent):
                         Defaults to False.
             hide_highlight (bool, optional): Hide tree index selector. 
                         Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. 
+                        Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display decision 
                         path for. Defaults to None.
             highlight (int, optional): Initial tree idx to display decision 
                         path for. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
         self.hide_title, self.hide_index, self.hide_highlight = \
             hide_title, hide_index, hide_highlight
+        self.hide_selector = hide_selector
         self.index, self.highlight = index, highlight
 
         self.index_name = 'decisionpath-table-index-'+self.name
         self.highlight_name = 'decisionpath-table-highlight-'+self.name
+
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("decision_trees")
 
-    def _layout(self):
+    def layout(self):
         return html.Div([
             make_hideable(
                 html.H3("Decision path:"), hide=self.hide_title),
@@ -157,7 +168,10 @@ class DecisionPathTableComponent(ExplainerComponent):
                             options = [{'label': str(tree), 'value': tree} 
                                             for tree in range(self.explainer.no_of_trees)],
                             value=self.highlight)
-                    ], md=2), hide=self.hide_highlight), 
+                    ], md=2), hide=self.hide_highlight),
+                    make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector)
             ]),
             dbc.Row([
                 dbc.Col([
@@ -172,22 +186,21 @@ class DecisionPathTableComponent(ExplainerComponent):
             Output("decisionpath-table-"+self.name, 'children'),
             [Input('decisionpath-table-index-'+self.name, 'value'),
              Input('decisionpath-table-highlight-'+self.name, 'value'),
-             Input('pos-label', 'value')],
-            [State('tabs', 'value')]
+             Input('pos-label-'+self.name, 'value')],
         )
-        def update_decisiontree_table(index, highlight, pos_label, tab):
+        def update_decisiontree_table(index, highlight, pos_label):
             if index is not None and highlight is not None:
-                decisionpath_df = self.explainer.decisiontree_df_summary(highlight, index, pos_label=pos_label)
+                decisionpath_df = self.explainer.decisiontree_summary_df(highlight, index, pos_label=pos_label)
                 return dbc.Table.from_dataframe(decisionpath_df)
             raise PreventUpdate
 
 
 class DecisionPathGraphComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Decision path graph",
-                    header_mode="none", name=None,
+    def __init__(self, explainer, title="Decision path graph", name=None,
                     hide_title=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
-                    index=None, highlight=None):
+                    hide_selector=False,
+                    pos_label=None, index=None, highlight=None):
         """Display dtreeviz decision path
 
         Args:
@@ -195,8 +208,6 @@ class DecisionPathGraphComponent(ExplainerComponent):
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision path graph".
-            header_mode (str, optional): {"standalone", "hidden" or "none"}. 
-                        Defaults to "none".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -204,18 +215,26 @@ class DecisionPathGraphComponent(ExplainerComponent):
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
             hide_button (bool, optional): hide the button, Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                        Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
         """
-        super().__init__(explainer, title, header_mode, name)
+        super().__init__(explainer, title, name)
+        if explainer.is_regression:
+            raise ValueError("DecisionPathGraphComponent only available for classifiers for now!")
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
+        self.hide_selector = hide_selector
         self.hide_title, self.hide_button = hide_title, hide_button
         self.index, self.highlight = index, highlight
 
         self.index_name = 'decisionpath-index-'+self.name
         self.highlight_name = 'decisionpath-highlight-'+self.name
 
-    def _layout(self):
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+
+    def layout(self):
         return html.Div([
             make_hideable(
                 html.H3("Decision Tree Graph:"), hide=self.hide_title),
@@ -237,10 +256,13 @@ class DecisionPathGraphComponent(ExplainerComponent):
                             value=self.highlight)
                     ], md=2), hide=self.hide_highlight), 
                     make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+                    make_hideable(
                     dbc.Col([
                         dbc.Button("Generate Tree Graph", color="primary", 
                                     id='decisionpath-button-'+self.name)
-                    ], md=2, align="end"), hide=self.hide_button), 
+                    ], md=2, align="end"), hide=self.hide_button),           
             ]),
             dbc.Row([
                 dbc.Col([
@@ -256,10 +278,9 @@ class DecisionPathGraphComponent(ExplainerComponent):
             [Input('decisionpath-button-'+self.name, 'n_clicks')],
             [State('decisionpath-index-'+self.name, 'value'),
              State('decisionpath-highlight-'+self.name, 'value'),
-             State('pos-label', 'value'),
-             State('tabs', 'value')]
+             State('pos-label-'+self.name, 'value')]
         )
-        def update_tree_graph(n_clicks, index, highlight, pos_label, tab):
+        def update_tree_graph(n_clicks, index, highlight, pos_label):
             if n_clicks is not None and index is not None and highlight is not None:
                 return self.explainer.decision_path_encoded(highlight, index)
             raise PreventUpdate

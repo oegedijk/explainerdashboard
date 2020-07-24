@@ -444,7 +444,7 @@ def get_lift_curve_df(pred_probas, y, pos_label=1):
     return lift_df
     
 
-def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
+def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, sort='abs'):
     """
     Return a contrib_df DataFrame that lists the contribution of each input
     variable.
@@ -458,13 +458,14 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
     assert len(X_row.iloc[[0]].values[0].shape) == 1,\
         """X is not the right shape: len(X.values[0]) should be 1. 
             Try passing X.iloc[[index]]""" 
+    assert sort in ['abs', 'high-to-low', 'low-to-high']
 
     # start with the shap_base_value
     base_df = pd.DataFrame(
         {
-            'col': ['base_value'],
+            'col': ['_BASE'],
             'contribution': [shap_base_value],
-            'value': ['-']
+            'value': ['']
         })
 
     contrib_df = pd.DataFrame(
@@ -473,47 +474,46 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None):
                         'contribution': shap_values,
                         'value': X_row.values[0]
                     })
+  
+    if cutoff is None and topx is not None:
+        cutoff = contrib_df.contribution.abs().nlargest(topx).min()
+    elif cutoff is None and topx is None:
+        cutoff = 0
+        
+    display_df = contrib_df[contrib_df.contribution.abs() >= cutoff]
+    display_df_neg = display_df[display_df.contribution<0]
+    display_df_pos = display_df[display_df.contribution>=0]
+    
+    rest_df = contrib_df[contrib_df.contribution.abs() < cutoff].sum().to_frame().T.assign(col="_REST", value="")
+    
 
     # sort the df by absolute value from highest to lowest:
-    contrib_df = contrib_df.reset_index(drop=True)
-    contrib_df = contrib_df.reindex(
-                    contrib_df.contribution.abs().sort_values(ascending=False).index)
+    if sort=='abs':
+        display_df = display_df.reindex(
+                            display_df.contribution.abs().sort_values(ascending=False).index)
+        contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
+    if sort=='high-to-low':
+        display_df_pos = display_df_pos.reindex(
+                            display_df_pos.contribution.abs().sort_values(ascending=False).index)
+        display_df_neg = display_df_neg.reindex(
+                            display_df_neg.contribution.abs().sort_values().index)
+        contrib_df = pd.concat([base_df, display_df_pos, rest_df, display_df_neg], ignore_index=True)
+    if sort=='low-to-high':
+        display_df_pos = display_df_pos.reindex(
+                            display_df_pos.contribution.abs().sort_values().index)
+        display_df_neg = display_df_neg.reindex(
+                            display_df_neg.contribution.abs().sort_values(ascending=False).index)
+        contrib_df = pd.concat([base_df, display_df_neg, rest_df, display_df_pos], ignore_index=True)
 
-    contrib_df = pd.concat([base_df, contrib_df], ignore_index=True)
-
-    # add cumulative contribution from top to bottom (for making graph):
+    # add cumulative contribution from top to bottom (for making bar chart):
     contrib_df['cumulative'] = contrib_df.contribution.cumsum()
+    contrib_df['base']= contrib_df['cumulative'] - contrib_df['contribution']  
 
-    # if a cutoff is given for minimum contribution to be displayed, calculate what topx rows to return:
-    if cutoff is not None:
-        cutoff = contrib_df.contribution[np.abs(contrib_df.contribution) >= cutoff].index.max()+1
-        if topx is not None and cutoff < topx:
-            topx = cutoff
-
-    # if only returning topx columns, sum the remainder contributions under 'REST'
-    if topx is not None:
-        if topx > len(contrib_df): topx = len(contrib_df)
-        old_cum = contrib_df.iloc[[topx - 1]].cumulative.item()
-        tot_cum = contrib_df.iloc[[-1]].cumulative.item()
-        diff = tot_cum-old_cum
-
-        rest_df = pd.DataFrame(
-            {
-                'col': ['REST'], 
-                'contribution': [diff], 
-                'value': ['-'], 
-                'cumulative': [tot_cum]
-            })
-
-        contrib_df = pd.concat([contrib_df.head(topx), rest_df], axis=0).reset_index(drop=True)
-
-    # add the cumulative before the current variable (i.e. the base of the
-    # bar in the graph):
-    contrib_df['base']= contrib_df['cumulative'] - contrib_df['contribution']
-    return contrib_df
+    pred_df = contrib_df.sum().to_frame().T.assign(col='_PREDICTION', value="", cumulative= lambda df:df.contribution, base=0)
+    return pd.concat([contrib_df, pred_df], ignore_index=True)
 
 
-def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
+def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units="", na_fill=None):
     """
     returns a DataFrame that summarizes a contrib_df as a pair of
     Reasons+Effect.
@@ -521,32 +521,36 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2):
     :param model_output: 'raw' or 'probability'
     :param round: rounding of contribution
     """
+    assert model_output in ['raw', 'probability', 'logodds']
     contrib_summary_df = pd.DataFrame(columns=['Reason', 'Effect'])
     
 
     for _, row in contrib_df.iterrows():
-        if row['col'] == 'base_value':
+        if row['col'] == '_BASE':
             reason = 'Average of population'
             effect = ""
+        elif row['col'] == '_REST':
+            reason = 'Other features combined'
+            effect = f"{'+' if row['contribution'] >= 0 else ''}"
+        elif row['col'] == '_PREDICTION':
+            reason = 'Final prediction'
+            effect = ""
         else:
-            reason = f"{row['col']} = {row['value']}"
+            if na_fill is not None and row['value']==na_fill:
+                reason = f"{row['col']} = MISSING"
+            else:
+                reason = f"{row['col']} = {row['value']}"
+
             effect = f"{'+' if row['contribution'] >= 0 else ''}"
         if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
+        elif model_output == 'logodds':
+            effect += str(np.round(100*row['contribution'], round))    
         else:
-            effect +=  str(np.round(row['contribution'], round))
-
+            effect +=  str(np.round(row['contribution'], round)) + f" {units}"
 
         contrib_summary_df = contrib_summary_df.append(
             dict(Reason=reason, Effect=effect), ignore_index=True)
-    
-    if model_output == "probability":
-        final_pred = str(np.round(100*contrib_df.contribution.sum(), round))+'%'
-    else:
-        final_pred = str(np.round(contrib_df.contribution.sum(), round))
-
-    contrib_summary_df = contrib_summary_df.append(
-            dict(Reason="Final prediction", Effect=final_pred), ignore_index=True)
     
     return contrib_summary_df.reset_index(drop=True)
 
@@ -652,7 +656,7 @@ def get_decisiontree_df(decision_tree, observation, pos_label=1):
     return decisiontree_df
 
 
-def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
+def get_decisiontree_summary_df(decisiontree_df, classifier=False, round=2, units=""):
     if classifier:
         base_value = np.round(100*decisiontree_df.iloc[[0]]['average'].item(), round)
         prediction = np.round(100*(decisiontree_df.iloc[[-1]]['average'].item() \
@@ -668,7 +672,7 @@ def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
                             'Feature' : "",
                             'Condition' : "",
                             'Adjustment' : "Starting average",
-                            'New Prediction' : str(np.round(base_value, round)) + '%'
+                            'New Prediction' : str(np.round(base_value, round)) + ('%' if classifier else f' {units}')
                         }, ignore_index=True)
 
     for _, row in decisiontree_df.iterrows():
@@ -684,14 +688,14 @@ def decisiontree_df_summary(decisiontree_df, classifier=False, round=2):
                             'Feature' : row['feature'],
                             'Condition' : str(row['value']) + str(' >= ' if row['direction'] == 'right' else ' < ') + str(row['split']).ljust(10),
                             'Adjustment' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
-                            'New Prediction' : str(np.round((row['average']+row['diff']), round))
+                            'New Prediction' : str(np.round((row['average']+row['diff']), round)) + f" {units}"
                         }, ignore_index=True)
 
     decisiontree_summary_df = decisiontree_summary_df.append({
                         'Feature' : "",
                         'Condition' : "",
                         'Adjustment' : "Final Prediction",
-                        'New Prediction' : str(np.round(prediction, round)) + ('%' if classifier else '')
+                        'New Prediction' : str(np.round(prediction, round)) + ('%' if classifier else '') + f" {units}"
                     }, ignore_index=True)
 
     return decisiontree_summary_df
