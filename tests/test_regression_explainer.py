@@ -52,6 +52,9 @@ class RegressionBunchTests(unittest.TestCase):
         fig = self.explainer.plot_predicted_vs_actual(logs=True)
         self.assertIsInstance(fig, go.Figure)
 
+        fig = self.explainer.plot_predicted_vs_actual(log_x=True, log_y=True)
+        self.assertIsInstance(fig, go.Figure)
+
     def test_plot_residuals(self):
         fig = self.explainer.plot_residuals()
         self.assertIsInstance(fig, go.Figure)
@@ -59,20 +62,29 @@ class RegressionBunchTests(unittest.TestCase):
         fig = self.explainer.plot_residuals(vs_actual=True)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals(ratio=True)
+        fig = self.explainer.plot_residuals(residuals='ratio')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals(ratio=True, vs_actual=True)
+        fig = self.explainer.plot_residuals(residuals='log-ratio')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_residuals(residuals='log-ratio', vs_actual=True)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_residuals_vs_feature(self):
         fig = self.explainer.plot_residuals_vs_feature("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Age", ratio=True)
+        fig = self.explainer.plot_residuals_vs_feature("Age", residuals='log-ratio')
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_residuals_vs_feature("Age", dropna=True)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_residuals_vs_feature("Sex", points=False)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_residuals_vs_feature("Sex", winsor=10)
         self.assertIsInstance(fig, go.Figure)
 
 
