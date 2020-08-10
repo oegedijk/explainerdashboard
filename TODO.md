@@ -16,6 +16,10 @@
 
 ## Plots:
 - Contributions: order by global mean_abs_shap or by index specific shap
+- importances: descriptions are gone
+- shap dependence: add option color_col = None
+- undo percentage y-axis 0-100 for model_output=='probability' 
+    (doesn't work for unbalanced datasets)
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
@@ -23,17 +27,29 @@
 - add classification model summary
 - include cumulative lift curve to standard dashboard
 - add cost calculator: cost of FPs and FNs
+- classification plot:
+    - round percentage to 1 digit
+    - add `<br>` between count and percentage
 
 ### Regression plots:
 
 ## Explainers:
-
+- add target name
+- add plain language explanations
+- add pred_percentiles to calculate_properties
+- add calcualte shap_base_value to shap_values property
+Calculating pred_percentiles...
+Calculating residuals...
+Calculating absolute residuals...
+Calculating pred_percentiles..
 
 ## notebooks:
 - add binder/colab link on github
 
 ## Dashboard:
+- Add ColConnector
 - Add pandas profiling type col histograms, bar charts, correlation graphs, etc
+
 
 ### Components
 - add pos_label_name property to PosLabelConnector search
@@ -44,6 +60,7 @@
 - Add this method: https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add kernal shap tests
 - add multiclass classifier tests
 - add dashboard integration tests using dash tests
 - add ExplainerDashboard intergration test
@@ -63,6 +80,7 @@
 
 
 ## Library level:
+- adjust pypi release level from pre-alpha to alpha
 - Add Altair (vega) plots for easy inclusion in websites
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/

@@ -474,17 +474,19 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
                         'contribution': shap_values,
                         'value': X_row.values[0]
                     })
-  
+
     if cutoff is None and topx is not None:
         cutoff = contrib_df.contribution.abs().nlargest(topx).min()
     elif cutoff is None and topx is None:
         cutoff = 0
         
     display_df = contrib_df[contrib_df.contribution.abs() >= cutoff]
-    display_df_neg = display_df[display_df.contribution<0]
-    display_df_pos = display_df[display_df.contribution>=0]
+    display_df_neg = display_df[display_df.contribution < 0]
+    display_df_pos = display_df[display_df.contribution >= 0]
     
-    rest_df = contrib_df[contrib_df.contribution.abs() < cutoff].sum().to_frame().T.assign(col="_REST", value="")
+    rest_df = (contrib_df[contrib_df.contribution.abs() < cutoff]
+                   .sum().to_frame().T
+                   .assign(col="_REST", value=""))
     
 
     # sort the df by absolute value from highest to lowest:
@@ -509,10 +511,10 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
     contrib_df['cumulative'] = contrib_df.contribution.cumsum()
     contrib_df['base']= contrib_df['cumulative'] - contrib_df['contribution']  
 
-    pred_df = contrib_df.sum().to_frame().T.assign(
+    pred_df = contrib_df[['contribution']].sum().to_frame().T.assign(
             col='_PREDICTION', 
             value="", 
-            cumulative = lambda df:df.contribution, 
+            cumulative=lambda df:df.contribution, 
             base=0)
     return pd.concat([contrib_df, pred_df], ignore_index=True)
 

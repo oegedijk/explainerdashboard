@@ -530,13 +530,13 @@ class BaseExplainer(ABC):
         Returns:
 
         """
-        _ = (self.preds, self.permutation_importances,
+        _ = (self.preds, self.permutation_importances, self.pred_percentiles,
                 self.shap_base_value, self.shap_values,
                 self.mean_abs_shap)
         if self.cats is not None:
             _ = (self.mean_abs_shap_cats, self.X_cats,
                     self.shap_values_cats)
-        if include_interactions:
+        if self.interactions_should_work and include_interactions:
             _ = self.shap_interaction_values
             if self.cats is not None:
                 _ = self.shap_interaction_values_cats
@@ -1346,7 +1346,7 @@ class ClassifierExplainer(BaseExplainer):
                 print("Generating self.shap_explainer = shap.KernelExplainer(model, "
                              f"{'X_background' if self.X_background is not None else 'X'}"
                              ", link='identity')")
-                self._shap_explainer = shap.KernelExplainer(model.predict_proba, 
+                self._shap_explainer = shap.KernelExplainer(self.model.predict_proba, 
                                             self.X_background if self.X_background is not None else self.X,
                                             link="identity")
             print("Final note: You can always monkeypatch self.shap_explainer if desired...")

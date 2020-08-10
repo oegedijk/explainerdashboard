@@ -355,7 +355,7 @@ class ExplainerDashboard:
 
         if isinstance(tabs, list) and len(tabs)==1:
             tabs = tabs[0]
-                    
+        print("Generating layout...")  
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
@@ -374,7 +374,10 @@ class ExplainerDashboard:
                             fluid=fluid)
 
         self.app.layout = explainer_layout.layout()
+
+        print("Calculating dependencies...")  
         explainer_layout.calculate_dependencies()
+        print("registering callbacks...")
         explainer_layout.register_callbacks(self.app)
 
     def _convert_str_tabs(self, component):

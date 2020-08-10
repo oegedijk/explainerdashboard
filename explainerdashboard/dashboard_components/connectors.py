@@ -22,7 +22,7 @@ from .dashboard_methods import  *
 
 class ClassifierRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
-                        hide_index=False, hide_slider=False,
+                        hide_title=False, hide_index=False, hide_slider=False,
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
                         pos_label=None, index=None, slider= None, labels=None,
@@ -37,6 +37,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements.
                         If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
+            hide_title (bool, optional): Hide title. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_slider (bool, optional): Hide prediction/percentile slider.
                         Defaults to False.
@@ -57,7 +58,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_index, self.hide_slider = hide_index, hide_slider
+        self.hide_title, self.hide_index, self.hide_slider = \
+            hide_title, hide_index, hide_slider
         self.hide_labels, self.hide_pred_or_perc = hide_labels, hide_pred_or_perc
         self.hide_selector, self.hide_button = hide_selector, hide_button
 
@@ -88,7 +90,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-            html.H3("Select index:"),
+            make_hideable(html.H3("Select index:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
