@@ -16,7 +16,6 @@
 
 ## Plots:
 - Contributions: order by global mean_abs_shap or by index specific shap
-- importances: descriptions are gone
 - shap dependence: add option color_col = None
 - undo percentage y-axis 0-100 for model_output=='probability' 
     (doesn't work for unbalanced datasets)
@@ -36,18 +35,14 @@
 ## Explainers:
 - add target name
 - add plain language explanations
-- add pred_percentiles to calculate_properties
-- add calcualte shap_base_value to shap_values property
-Calculating pred_percentiles...
-Calculating residuals...
-Calculating absolute residuals...
-Calculating pred_percentiles..
+
 
 ## notebooks:
-- add binder/colab link on github
+- add binder/colab links on github
 
 ## Dashboard:
 - Add ColConnector
+    - although in practice difficult when col already callback target?
 - Add pandas profiling type col histograms, bar charts, correlation graphs, etc
 
 
@@ -80,10 +75,8 @@ Calculating pred_percentiles..
 
 
 ## Library level:
-- adjust pypi release level from pre-alpha to alpha
-- Add Altair (vega) plots for easy inclusion in websites
+- Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
-- https://github.com/marketplace/actions/coveralls-python
-- submit pull request to dtreeviz to accept shadowtree as parameter
+- add test coverage: https://github.com/marketplace/actions/coveralls-python
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723

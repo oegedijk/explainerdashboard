@@ -73,7 +73,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         'explainerdashboard': ['assets/*', 'datasets/*'],
     },
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Environment :: Web Environment",
         "Framework :: Dash",
         "Framework :: Flask",

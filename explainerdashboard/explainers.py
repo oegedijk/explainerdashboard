@@ -466,6 +466,7 @@ class BaseExplainer(ABC):
     def shap_values(self):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, '_shap_values'):
+            _ = self.shap_base_value
             print("Calculating shap values...")
             self._shap_values = self.shap_explainer.shap_values(self.X)
         return make_callable(self._shap_values)
