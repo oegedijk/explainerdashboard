@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics import r2_score, roc_auc_score
 
 import pdpbox
+import shap
 import plotly.graph_objects as go
 
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -194,6 +195,28 @@ class LogisticRegressionTests(unittest.TestCase):
 
     def test_prediction_result_markdown(self):
         self.assertIsInstance(self.explainer.prediction_result_markdown(0), str)
+
+
+class LogisticRegressionKernelTests(unittest.TestCase):
+    def setUp(self):
+        X_train, y_train, X_test, y_test = titanic_survive()
+        train_names, test_names = titanic_names()
+
+        model = LogisticRegression()
+        model.fit(X_train, y_train)
+
+        self.explainer = ClassifierExplainer(
+                            model, X_test, y_test, 
+                            shap='kernel', model_output='probability', 
+                            X_background=shap.sample(X_train, 5),
+                            cats=['Sex', 'Cabin', 'Embarked'],
+                            labels=['Not survived', 'Survived'],
+                            idxs=test_names)
+    def test_shap_values(self):
+        self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
+        self.assertTrue(self.explainer.shap_values.shape == (len(self.explainer), len(self.explainer.columns)))
+        self.assertIsInstance(self.explainer.shap_values, np.ndarray)
+        self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
     
 

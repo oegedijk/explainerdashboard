@@ -1,10 +1,33 @@
 # Release Notes
 
+## Version 2.2.1
+
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-   kernel shap bug fixed
+-   contrib_df bug with topx fixed
+
+### Improvements
+-   
+-
+
+### Other Changes
+-
+-
+
+
 ## Version 2.1:
 ### Breaking Changes
 - Removed ExplainerHeader from ExplainerComponents
-    - so also removed header_mode from ExplainerComponent parameters
-    - You can now syncronize pos labels across components with a PosLabelSelector
+    - so also removed parameter `header_mode` from ExplainerComponent parameters
+    - You can now instead syncronize pos labels across components with a PosLabelSelector
         and PosLabelConnector.
 - In regression plots instead of boolean ratio=True/False, 
         you now pass residuals={'difference', 'ratio', 'log-ratio'}
@@ -39,7 +62,7 @@
     of _layout(). Should still define _register_callbacks() to define callbacks
     so that all subcomponents that have been registered will automatically
     get their callbacks registered as well. 
-- Added regression units to prediction summary, shap plots, 
+- Added regression `self.units` to prediction summary, shap plots, 
         contributions plots/table, pdp plot and trees plot.
 - Clearer title for MEAN_ABS_SHAP importance and summary plots
 - replace na_fill value in contributions table by "MISSING"
