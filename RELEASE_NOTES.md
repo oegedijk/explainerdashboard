@@ -19,7 +19,7 @@
 -
 
 ### Other Changes
--
+-   approximate_interactions now imported from utils instead of common with shap >0.36
 -
 
 
