@@ -36,8 +36,12 @@ class ImportancesTab(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.importances = ImportancesComponent(explainer, hide_selector=hide_selector,
-                importance_type=importance_type, depth=depth, cats=cats)
+        self.importances = ImportancesComponent(
+                explainer, 
+                hide_selector=hide_selector,
+                importance_type=importance_type, 
+                depth=depth, 
+                cats=cats)
 
         self.register_components(self.importances)
 

@@ -23,6 +23,7 @@ import plotly.io as pio
 
 from .dashboard_components import *
 from .dashboard_tabs import *
+from .explainers import BaseExplainer
 
 
 def instantiate_component(component, explainer, **kwargs):
@@ -328,6 +329,10 @@ class ExplainerDashboard:
         
         self.app = self._get_dash_app()
         self.app.title = title
+
+        assert isinstance(explainer, BaseExplainer), \
+            ("explainer should be an instance of BaseExplainer, such as "
+            "ClassifierExplainer or RegressionExplainer!")
         
         if tabs is None:
             tabs = []
