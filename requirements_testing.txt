@@ -8,4 +8,4 @@ scikit-learn
 shap
 catboost
 lightgbm
-xgboost==0.90
+xgboost
