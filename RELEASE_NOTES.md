@@ -1,29 +1,14 @@
 # Release Notes
 
-## Version 2.2.1
-
-### Breaking Changes
-- 
-- 
-
-### New Features
--
--
+## Version 0.2.2
 
 ### Bug Fixes
 -   kernel shap bug fixed
 -   contrib_df bug with topx fixed
-
-### Improvements
--   
--
-
-### Other Changes
--   approximate_interactions now imported from utils instead of common with shap >0.36
--
+-   fix for shap v0.36: import approximate_interactions from shap.utils instead of shap.common
 
 
-## Version 2.1:
+## Version 0.2.1:
 ### Breaking Changes
 - Removed ExplainerHeader from ExplainerComponents
     - so also removed parameter `header_mode` from ExplainerComponent parameters
