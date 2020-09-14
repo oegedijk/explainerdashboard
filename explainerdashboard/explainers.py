@@ -455,7 +455,8 @@ class BaseExplainer(ABC):
         """
         if not hasattr(self, '_shap_base_value'):
             # CatBoost needs shap values calculated before expected value
-            _ = self.shap_values() 
+            if not hasattr(self, "_shap_values"):
+                _ = self.shap_values
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
                 # shap library now returns an array instead of float
@@ -466,7 +467,6 @@ class BaseExplainer(ABC):
     def shap_values(self):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, '_shap_values'):
-            _ = self.shap_base_value
             print("Calculating shap values...")
             self._shap_values = self.shap_explainer.shap_values(self.X)
         return make_callable(self._shap_values)
@@ -628,8 +628,14 @@ class BaseExplainer(ABC):
                             self.shap_interaction_values(
                                 pos_label)[:, col_idx, :]).mean(0))].tolist()
             else:
-                interaction_idxs = shap.common.approximate_interactions(
-                    col, self.shap_values(pos_label), self.X)
+                if hasattr(shap, "utils"):
+                    interaction_idxs = shap.utils.approximate_interactions(
+                        col, self.shap_values(pos_label), self.X)
+                elif hasattr(shap, "common"):
+                    # shap < 0.35 has approximate interactions in common
+                    interaction_idxs = shap.common.approximate_interactions(
+                        col, self.shap_values(pos_label), self.X)
+
                 top_interactions = self.X.columns[interaction_idxs].tolist()
                 #put col first
                 top_interactions.insert(0, top_interactions.pop(-1)) 
