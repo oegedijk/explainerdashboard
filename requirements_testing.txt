@@ -1,4 +1,5 @@
-dash>=1.8.0
+dash
+dash[testing]
 dash-bootstrap-components
 dtreeviz
 numpy
