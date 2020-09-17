@@ -9,3 +9,4 @@ shap
 catboost
 lightgbm
 xgboost
+selenium
