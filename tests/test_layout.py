@@ -27,5 +27,5 @@ def test_importances_tab(dash_duo):
     db = ExplainerDashboard(explainer, ImportancesTab, title="testing")
 
     dash_duo.start_server(db.app)
-    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=4)
+    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
