@@ -12,6 +12,18 @@ from sklearn.model_selection import StratifiedKFold
 
 
 def guess_shap(model):
+    """guesses which SHAP explainer to use for a particular model, based
+    on str(type(model)). Returns 'tree' for tree based models such as 
+    RandomForest and XGBoost that need shap.TreeExplainer, and 'linear' 
+    for linear models such as LinearRegression or Elasticnet that can use
+    shap.LinearExplainer. 
+
+    Args:
+        model: a fitted (sklearn-compatible) model
+
+    Returns:
+        str: {'tree', 'linear', None}
+    """
     tree_models = ['RandomForestClassifier', 'RandomForestRegressor',
                    'DecisionTreeClassifier', 'DecisionTreeRegressor',
                    'ExtraTreesClassifier', 'ExtraTreesRegressor',
@@ -38,34 +50,36 @@ def guess_shap(model):
     return None
 
 
-def get_feature_dict(all_cols, cats=None):
-    """
-    This helper function makes it easy to loop though columns in a dataframe
-    and group onehot encoded columns together.
+def get_feature_dict(cols, cats=None, sep="_"):
+    """helper function to get a dictionary with onehot-encoded columns
+    grouped per category. 
 
-    :param all_cols: all columns of a dataframe
-    :type all_cols: list
-    :param cats: categorical columns that have been onehotencoded, defaults to None
-    :type cats: list, optional
-    :return: returns a dict with as key all original (not one hot encoded) columns
-        and as items a list of columns associated with that column.
+    Example:
+        get_features_dict(["Age", "Sex_Male", "Sex_Female"], cats=["Sex"])
+        will return {"Age": ["Age"], "Sex": ["Sex_Male", "Sex_Female"]}
 
-        e.g. {'Age': ['Age'],
-              'Gender' : ['Gender_Male', 'Gender_Female']}
-    :rtype: dict
+    Args:
+        cols (list of str): list of column names
+        cats (list of str, optional): list of categorically encoded columns. 
+            All columns names starting with such a column name will be grouped together. 
+            Defaults to None.
+        sep (str), seperator used between the category and encoding. Defaults to '_' 
+
+    Returns:
+        dict
     """
     feature_dict = {}
 
     if cats is None:
-        return {col: [col] for col in all_cols}
+        return {col: [col] for col in cols}
 
     for col in cats:
-        cat_cols = [c for c in all_cols if c.startswith(col)]
+        cat_cols = [c for c in cols if c.startswith(col + sep)]
         if len(cat_cols) > 1:
             feature_dict[col] = cat_cols
 
     # add all the individual features
-    other_cols = list(set(all_cols) - set([item for sublist in list(feature_dict.values())
+    other_cols = list(set(cols) - set([item for sublist in list(feature_dict.values())
                                                 for item in sublist]))
 
     for col in other_cols:
@@ -73,17 +87,26 @@ def get_feature_dict(all_cols, cats=None):
     return feature_dict
 
 
-def retrieve_onehot_value(X, encoded_col):
+def retrieve_onehot_value(X, encoded_col, sep="_"):
     """
-    Returns a pd.Series with the original values that were onehot encoded.
+    Reverses a onehot encoding. 
 
     i.e. Finds the column name starting with encoded_col_ that has a value of 1.
-        if no such column exists (they are all 0), then return 'NOT_ENCODED'
+        if no such column exists (e.g. they are all 0), then return 'NOT_ENCODED'
+
+    Args:
+        X (pd.DataFrame): dataframe from which to retrieve onehot column
+        encoded_col (str): onehotencoded column, e.g. "Sex" for onehot-columns 
+            "Sex_Male" and "Sex_Female".
+        sep (str): seperator between category and value, e.g. '_' for Sex_Male.
+    
+    Returns:
+        pd.Series with categories. If no category is found, coded as "NOT_ENCODED". 
     """
-    cat_cols = [c for c in X.columns if c.startswith(encoded_col + '_')]
+    cat_cols = [c for c in X.columns if c.startswith(encoded_col + sep)]
 
     assert len(cat_cols) > 0, \
-        f"No columns that start with {encoded_col} in DataFrame"
+        f"No columns that start with {encoded_col + sep} in DataFrame"
 
     feature_value = np.argmax(X[cat_cols].values, axis=1)
 
@@ -95,27 +118,48 @@ def retrieve_onehot_value(X, encoded_col):
     return pd.Series(feature_value).map(mapping)
 
 
-def merge_categorical_columns(X, cats=None):
+def merge_categorical_columns(X, cats=None, sep="_"):
     """
     Returns a new feature Dataframe X_cats where the onehotencoded
     categorical features have been merged back with the old value retrieved
     from the encodings.
+
+    Args:
+        X (pd.DataFrame): original dataframe with onehotencoded columns, e.g.
+            columns=['Age', 'Sex_Male', 'Sex_Female"].
+        cats (list of str): list of categorical features that were encoded,
+            e.g. ["Sex"]
+        sep (str): separator used in the encoding, e.g. "_" for Sex_Male. 
+            Defaults to "_".
+    
+    Returns:
+        pd.DataFrame, with onehot encodings merged back into categorical columns.
     """
-    feature_dict = get_feature_dict(X.columns, cats)
+    feature_dict = get_feature_dict(X.columns, cats, sep)
     X_cats = X.copy()
     for col_name, col_list in feature_dict.items():
         if len(col_list) > 1:
-            X_cats[col_name] = retrieve_onehot_value(X, col_name)
+            X_cats[col_name] = retrieve_onehot_value(X, col_name, sep)
             X_cats.drop(col_list, axis=1, inplace=True)
     return X_cats
 
-def merge_categorical_shap_values(X, shap_values, cats=None):
+
+def merge_categorical_shap_values(X, shap_values, cats=None, sep="_"):
     """
-    Returns a new feature Dataframe X_cats and new shap values np.array
+    Returns a new feature new shap values np.array
     where the shap values of onehotencoded categorical features have been
     added up.
+
+    Args:
+        X (pd.DataFrame): dataframe whose columns correspond to the columns
+            in the shap_values np.ndarray.
+        shap_values (np.ndarray): numpy array of shap values, output of
+            e.g. shap.TreeExplainer(X).shap_values()
+        cats (list of str): list of onehodencoded categorical columns.
+        sep (str): seperator used between variable and category. 
+            Defaults to "_".
     """
-    feature_dict = get_feature_dict(X.columns, cats)
+    feature_dict = get_feature_dict(X.columns, cats, sep)
     shap_df = pd.DataFrame(shap_values, columns=X.columns)
     for col_name, col_list in feature_dict.items():
         if len(col_list) > 1:
@@ -124,15 +168,27 @@ def merge_categorical_shap_values(X, shap_values, cats=None):
     return shap_df.values
 
 
-def merge_categorical_shap_interaction_values(old_columns, new_columns,
-                                                shap_interaction_values):
+def merge_categorical_shap_interaction_values(old_columns, new_columns, 
+        shap_interaction_values):
     """
-    Returns a 3d numpy array shap_interaction_values where the categorical
-    columns have been added up.
+    Returns a 3d numpy array shap_interaction_values where the onehot-encoded 
+    categorical columns have been added up together.
 
-    Caution:
-    Column names in new_columns that are not found in old_columns are
-    assumed to be categorical feature names.
+    Warning:
+        Column names in new_columns that are not found in old_columns are
+        assumed to be categorical feature names.
+    
+    Args:
+        old_columns (list of str): list of column names with onehotencodings, 
+            e.g. ["Age", "Sex_Male", "Sex_Female"]
+        new_columns (list of str): list of column names with merged onehot 
+            encodings. E.g. ["Age", "Sex"]
+        shap_interaction_values (np.ndarray): shap_interaction output from
+            e.g. shap.TreeExplainer(X).shap_interaction_values().
+
+    Returns:
+        np.ndarray: shap_interaction values with all the onehot-encoded features
+            summed together. 
     """
 
     if isinstance(old_columns, pd.DataFrame):
@@ -152,6 +208,7 @@ def merge_categorical_shap_interaction_values(old_columns, new_columns,
                     len(new_columns),
                     len(new_columns)))
 
+    # note: given the for loops here, this code could probably be optimized.
     for new_col1 in new_columns:
         for new_col2 in new_columns:
             newcol_idx1 = new_columns.index(new_col1)
@@ -163,14 +220,22 @@ def merge_categorical_shap_interaction_values(old_columns, new_columns,
             siv[:, newcol_idx1, newcol_idx2] = \
                 shap_interaction_values[:, oldcol_idxs1, :][:, :, oldcol_idxs2]\
                 .sum(axis=(1, 2))
-
     return siv
 
 
-def make_one_vs_all_scorer(metric, pos_label, greater_is_better=True):
+def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
     """
     Returns a binary one vs all scorer for a single class('pos_label') of a
-    multiclass classifier
+    multiclass classifier metric. 
+
+    Args:
+        metric (function): classification metric of the form metric(y_true, y_pred)
+        pos_label (int): index of the positive label. Defaults to 1.
+        greater_is_better (bool): does a higher metric correspond to a better model. 
+            Defaults to True.
+
+    Returns:
+        a binary sklearn-compatible scorer function. 
     """
     def one_vs_all_metric(metric, pos_label, y_true, y_pred):
         return metric((y_true == pos_label).astype(int), y_pred[:, pos_label])
@@ -187,10 +252,27 @@ def make_one_vs_all_scorer(metric, pos_label, greater_is_better=True):
 
 def permutation_importances(model, X, y, metric, cats=None,
                             greater_is_better=True, needs_proba=False,
-                            pos_label=None,
+                            pos_label=1,
                             sort=True, verbose=0):
     """
-    adapted from rfpimp
+    adapted from rfpimp, returns permutation importances, optionally grouping 
+    onehot-encoded features together.
+
+    Args:
+        model: fitted model for which you'd like to calculate importances.
+        X (pd.DataFrame): dataframe of features
+        y (pd.Series): series of targets
+        metric: metric to be evaluated (usually R2 for regression, roc_auc for 
+            classification)
+        cats (list of str): list of onehot-encoded variables, e.g. ['Sex', 'Deck']
+        greater_is_better (bool): indicates whether the higher score on the metric
+            indicates a better model.
+        needs_proba (bool): does the metric need a classification probability
+            or direct prediction?
+        pos_label (int): for classification, the label to use a positive label. 
+            Defaults to 1.
+        sort (bool): sort the output from highest importances to lowest. 
+        verbose (int): set to 1 to print output for debugging. Defaults to 0.
     """
     X = X.copy()
 
@@ -206,6 +288,7 @@ def permutation_importances(model, X, y, metric, cats=None,
     baseline = scorer(model, X, y)
     imp = pd.DataFrame({'Importance': []})
 
+    # note: parallelize this with joblib:
     for col_name, col_list in feature_dict.items():
         old_cols = X[col_list].copy()
         X[col_list] = np.random.permutation(X[col_list])
@@ -227,6 +310,23 @@ def cv_permutation_importances(model, X, y, metric, cats=None, greater_is_better
                                 needs_proba=False, pos_label=None, cv=None, verbose=0):
     """
     Returns the permutation importances averages over `cv` cross-validated folds.
+
+    Args:
+        model: fitted model for which you'd like to calculate importances.
+        X (pd.DataFrame): dataframe of features
+        y (pd.Series): series of targets
+        metric: metric to be evaluated (usually R2 for regression, roc_auc for 
+            classification)
+        cats (list of str): list of onehot-encoded variables, e.g. ['Sex', 'Deck']
+        greater_is_better (bool): indicates whether the higher score on the metric
+            indicates a better model.
+        needs_proba (bool): does the metric need a classification probability
+            or direct prediction?
+        pos_label (int): for classification, the label to use a positive label. 
+            Defaults to 1.
+        cv (int): number of cross-validation folds to apply.
+        sort (bool): sort the output from highest importances to lowest. 
+        verbose (int): set to 1 to print output for debugging. Defaults to 0.
     """
     if cv is None:
         return permutation_importances(model, X, y, metric, cats,
@@ -262,6 +362,15 @@ def cv_permutation_importances(model, X, y, metric, cats=None, greater_is_better
 def mean_absolute_shap_values(columns, shap_values, cats=None):
     """
     Returns a dataframe with the mean absolute shap values for each feature.
+
+    Args:
+        columns (list of str): list of column names
+        shap_values (np.ndarray): 2d array of SHAP values
+        cats (list of str): list of onehot-encoded categorical features to group
+            together. 
+
+    Returns:
+        pd.DataFrame with columns 'Feature' and 'MEAN_ABS_SHAP'.
     """
     feature_dict = get_feature_dict(columns, cats)
 
@@ -283,12 +392,31 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None,
                         round=3, pos_label=1):
     """
     returns a pd.DataFrame with the predicted probabilities and
-    the observed frequency per bin_size.
+    the observed frequency per bin_size or quantile.
 
     If pred_probas has one dimension (i.e. only probabilities of positive class)
     only returns a single precision. If pred_probas containts probabilities for
     every class (typically a multiclass classifier), also returns precision
     for every class in every bin.
+
+    Args:
+        pred_probas (np.ndarray): result of model.predict_proba(X). Can either
+            be probabilities of a single class or multiple classes. 
+        y_true (np.ndarray): array of true class labels.
+        bin_size (float): bin sizes to bin by. E.g. 0.1 to bin all prediction 
+            between 0 and 0.1, between 0.1 and 0.2, etc. If setting bin_size
+            you cannot set quantiles.
+        quantiles (int): number of quantiles to divide pred_probas in.
+            e.g. if quantiles=4, set bins such that the lowest 25% of pred_probas
+            go into first bin, next 25% go in second bin, etc. Each bin will
+            have (approximatly the same amount of observations). If setting
+            quantiles you cannot set bin_size. 
+        round (int): the number of figures to round the output by. Defaults to 3.
+        pos_label (int): the label of the positive class. Defaults to 1. 
+        
+    Returns:
+        pd.DataFrame with columns ['p_min', 'p_max', 'p_avg', 'bin_width', 
+        'precision', 'count']
     """
     if bin_size is None and quantiles is None:
         bin_size = 0.1
@@ -416,15 +544,16 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None,
 
 def get_lift_curve_df(pred_probas, y, pos_label=1):
     """returns a pd.DataFrame that can be used to generate a lift curve plot.
+
+    Args:
+        pred_probas (np.ndarray): predicted probabilities of the positive class
+        y (np.ndarray): the actual labels (y_true), encoded 0, 1 [, 2, 3, etc]
+        pos_label (int): label of the positive class. Defaults to 1.
     
-    :param pred_probas: predicted probabilities of the positive class
-    :type pred_probas: pd.Series, list of np.array
-    :param y: the actual outcomes, encoded 0, 1 [, 2, 3, etc]
-    :type y: pd.Series, list of np.array
-    :param pos_label: the label of the positive class [defaults to 1]
-    :type pos_label: int
-    :return: lift_df
-    :rtype: pd.DataFrame
+    Returns:
+        pd.DataFrame with columns=['pred_proba', 'y', 'index', 'index_percentage', 
+                'positives', 'precision', 'cumulative_percentage_pos', 
+                'random_pos', 'random_precision', 'random_cumulative_percentage_pos']
     """
     lift_df = pd.DataFrame(
         {
@@ -446,19 +575,36 @@ def get_lift_curve_df(pred_probas, y, pos_label=1):
 
 def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, sort='abs'):
     """
-    Return a contrib_df DataFrame that lists the contribution of each input
-    variable.
+    Return a contrib_df DataFrame that lists the SHAP contribution of each input
+    variable for a single prediction, formatted in a way that makes it easy to
+    plot a waterfall plot. 
 
-    X_row should be a single row of features, generated using X.iloc[[index]]
-    if topx is given, only returns the highest topx contributions
-    if cutoff is given only returns contributions above cutoff.
+    Args:
+        shap_base_value (float): the value of shap.Explainer.expected_value
+        shap_values (np.ndarray): single array of shap values for a specific 
+            prediction, corresponding to X_row
+        X_row (pd.DataFrame): a single row of data, generated with e.g. X.iloc[[index]]
+        topx (int): only display the topx highest impact features.
+        cutoff (float): only display features with a SHAP value of at least
+            cutoff.
+        sort ({'abs', 'high-to-low', 'low-to-high'}), sort the shap value 
+            contributions either from highest absolute shap to lowest absolute 
+            shap ('abs'), or from most positive to most negative ('high-to-low')
+            or from most negative to most positive ('low-to-high'). Defaults
+            to 'abs'.
+
+    Features below topx or cutoff are summed together under _REST. Final 
+    prediction is added as _PREDICTION.
+    
+    Returns:
+        pd.DataFrame with columns=['col', 'contribution', 'value', 'cumulative', 'base']
     """
     assert isinstance(X_row, pd.DataFrame),\
         'X_row should be a pd.DataFrame! Use X.iloc[[index]]'
     assert len(X_row.iloc[[0]].values[0].shape) == 1,\
         """X is not the right shape: len(X.values[0]) should be 1. 
             Try passing X.iloc[[index]]""" 
-    assert sort in ['abs', 'high-to-low', 'low-to-high']
+    assert sort in {'abs', 'high-to-low', 'low-to-high'}
 
     # start with the shap_base_value
     base_df = pd.DataFrame(
@@ -488,7 +634,6 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
                    .sum().to_frame().T
                    .assign(col="_REST", value=""))
     
-
     # sort the df by absolute value from highest to lowest:
     if sort=='abs':
         display_df = display_df.reindex(
@@ -524,10 +669,17 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units="", na
     returns a DataFrame that summarizes a contrib_df as a pair of
     Reasons+Effect.
 
-    :param model_output: 'raw' or 'probability'
-    :param round: rounding of contribution
+    Args:
+        contrib_df (pd.DataFrame): output from get_contrib_df(...)
+        model_output (str, {'raw', 'probability', 'logodds'}): the type of 
+            predictions that the model produces. 'probability' multiplies by 100
+            and adds '%'. 
+        round (int): number of decimals to round the output to. Defaults to 1.
+        units (str): units to add to output. Defaults to "".
+        na_fill (int, str): if value equals na_fill replace with "MISSING".
+
     """
-    assert model_output in ['raw', 'probability', 'logodds']
+    assert model_output in {'raw', 'probability', 'logodds'}
     contrib_summary_df = pd.DataFrame(columns=['Reason', 'Effect'])
     
 
@@ -561,9 +713,6 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units="", na
     return contrib_summary_df.reset_index(drop=True)
 
 
-
-
-
 def normalize_shap_interaction_values(shap_interaction_values, shap_values=None):
     """
     Normalizes shap_interaction_values to make sure that the rows add up to
@@ -573,9 +722,13 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     shap_interaction_values of a RandomForestClassifier are set equal to the
     shap_values instead of the main effect.
 
-    Opened an issue here: https://github.com/slundberg/shap/issues/723
+    I Opened an issue here: https://github.com/slundberg/shap/issues/723
 
     (so far doesn't seem to be fixed)
+
+    Args:
+        shap_interaction_values (np.ndarray): output of shap.Explainer.shap_interaction_values()
+        shap_values (np.ndarray): output of shap.Explainer.shap_values()
     """
     siv = shap_interaction_values.copy()
 
@@ -593,13 +746,25 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     s0, s1, s2 = siv.shape
 
     # should have commented this bit of code earlier:
-    #   (can't really explain it anymore, but it works!)
-    # In any case, it assigns our news diagonal values to siv:
+    #   (can't really explain it anymore, but it works! :)
+    # In any case, it assigns our new diagonal values to siv:
     siv.reshape(s0,-1)[:,::s2+1] = diags
     return siv
     
 
 def get_decisiontree_df(decision_tree, observation, pos_label=1):
+    """summarize the path through a DecisionTree for a specific observation.
+
+    Args:
+        decision_tree (DecisionTreeClassifier or DecisionTreeRegressor): 
+            a fitted DecisionTree model. 
+        observation ([type]): single row of data to display tree path for.
+        pos_label (int, optional): label of positive class. Defaults to 1.
+
+    Returns:
+        pd.DataFrame: columns=['node_id', 'average', 'feature', 
+            'value', 'split', 'direction', 'left', 'right', 'diff']
+    """
     _, nodes = decision_tree.predict(observation)
 
     decisiontree_df = pd.DataFrame(columns=['node_id', 'average', 'feature',
@@ -646,6 +811,18 @@ def get_decisiontree_df(decision_tree, observation, pos_label=1):
 
 
 def get_decisiontree_summary_df(decisiontree_df, classifier=False, round=2, units=""):
+    """generate a pd.DataFrame with a more readable summary of a dataframe
+    generated with get_decisiontree_df(...)
+
+    Args:
+        decisiontree_df (pd.DataFrame): dataframe generated with get_decisiontree_df(...)
+        classifier (bool, optional): model is a classifier. Defaults to False.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        units (str, optional): units of target to display. Defaults to "".
+
+    Returns:
+        pd.DataFrame: columns=['Feature', 'Condition', 'Adjustment', 'New Prediction']
+    """
     if classifier:
         base_value = np.round(100*decisiontree_df.iloc[[0]]['average'].item(), round)
         prediction = np.round(100*(decisiontree_df.iloc[[-1]]['average'].item() \
