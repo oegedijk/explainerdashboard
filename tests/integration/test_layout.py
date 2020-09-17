@@ -7,6 +7,8 @@ from explainerdashboard.datasets import titanic_survive, titanic_names
 from explainerdashboard.dashboard_tabs import ImportancesTab
 from explainerdashboard.dashboards import *
 
+from selenium.webdriver.chrome.options import Options
+
 def get_explainer():
     X_train, y_train, X_test, y_test = titanic_survive()
     train_names, test_names = titanic_names()
@@ -21,7 +23,17 @@ def get_explainer():
                         idxs=test_names)
     return explainer
 
+
+
+
+def pytest_setup_options():
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+    return options
+
 def test_importances_tab(dash_duo):
+
     explainer = get_explainer()
 
     db = ExplainerDashboard(explainer, ImportancesTab, title="testing")
