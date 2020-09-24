@@ -32,6 +32,11 @@ def plotly_contribution_plot(contrib_df, target="target",
         raise ValueError(f"model_output should be in ['raw', 'probability', 'logodds'], but you passed orientation={model_output}")
 
     contrib_df = contrib_df.copy()
+    try:
+        base_value = contrib_df.query("col=='_BASE'")['contribution'].item()
+    except:
+        base_value = None
+
     if not include_base_value:
         contrib_df = contrib_df[contrib_df.col != '_BASE']
     if not include_prediction:
@@ -135,7 +140,8 @@ def plotly_contribution_plot(contrib_df, target="target",
     )
 
     fig = go.Figure(data=data, layout=layout)
-    if model_output=='probability':
+    if model_output=='probability' and base_value is not None and base_value > 0.3 and base_value < 0.7:
+        # stretch out probability axis to entire probability range (0-100)
         if orientation=='vertical':
             fig.update_yaxes(range=[0, 100])
         elif orientation=='horizontal':
@@ -979,7 +985,7 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3, units="",
     return fig
 
 
-def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, pos_label=1, units=""):
+def plotly_tree_predictions(model, observation, y=None, highlight_tree=None, round=2, pos_label=1, units=""):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
@@ -1031,24 +1037,38 @@ def plotly_tree_predictions(model, observation, highlight_tree=None, round=2, po
     fig = go.Figure(data = [trace0], layout=layout)
     shapes = [dict(
                 type='line',
-                xref='x',
-                yref='y',
-                x0=0,
-                x1=preds_df.model.max(),
-                y0=preds_df.prediction.mean(),
-                y1=preds_df.prediction.mean(),
+                xref='x', yref='y',
+                x0=0, x1=preds_df.model.max(), 
+                y0=preds_df.prediction.mean(), y1=preds_df.prediction.mean(),
                 line=dict(
                     color="darkslategray",
                     width=4,
                     dash="dot"),
                 )]
     
-    annotations = [go.layout.Annotation(x=preds_df.model.mean(), 
-                                         y=preds_df.prediction.mean(),
-                                         text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}")]
+    annotations = [go.layout.Annotation(
+        x=preds_df.model.mean(), 
+        y=preds_df.prediction.mean(),
+        text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}",
+        bgcolor="white")]
 
-    fig.update_layout(annotations=annotations)
+    if y is not None:
+        shapes.append(dict(
+                type='line',
+                xref='x', yref='y',
+                x0=0, x1=preds_df.model.max(), 
+                y0=y, y1=y,
+                line=dict(
+                    color="red",
+                    width=4,
+                    dash="dashdot"),
+                ))
+        annotations.append(go.layout.Annotation(
+            x=preds_df.model.mean(), y=y, text=f"y={y}", bgcolor="red"))
+
     fig.update_layout(shapes=shapes)
+    fig.update_layout(annotations=annotations)
+    
     return fig 
 
 
@@ -1587,3 +1607,120 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
                                 np.percentile(residuals_display, 100-winsor)]) 
         return fig
+
+
+def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,  pos_label=1, units=""):
+    """
+    returns a plot with all the individual predictions of the 
+    DecisionTrees that make up the RandomForest.
+    """
+        
+    xgboost_preds_df['color'] = 'blue'
+    xgboost_preds_df.loc[0, 'color'] = 'yellow'
+    if highlight_tree is not None:
+        xgboost_preds_df.loc[highlight_tree+1, 'color'] = 'red'
+        
+    trees = xgboost_preds_df.tree.values[1:]
+    colors = xgboost_preds_df.color.values[1:]
+    
+    is_classifier = True if 'pred_proba' in xgboost_preds_df.columns else False
+
+    colors = xgboost_preds_df.color.values
+    if is_classifier:
+        final_prediction = xgboost_preds_df.pred_proba.values[-1]
+        base_prediction = xgboost_preds_df.pred_proba.values[0]
+        preds = xgboost_preds_df.pred_proba.values[1:]
+        bases = xgboost_preds_df.pred_proba.values[:-1]
+        diffs = xgboost_preds_df.pred_proba_diff.values[1:]
+        
+        texts=[f"tree no {t}:<br>change = {np.round(100*d, round)}%<br> click for detailed info"
+                             for (t, d) in zip(trees, diffs)]
+        texts.insert(0, f"Base prediction: <br>proba = {np.round(100*base_prediction, round)}%")
+        texts.append(f"Final Prediction: <br>proba = {np.round(100*final_prediction, round)}%")
+    else:
+        final_prediction = xgboost_preds_df.pred.values[-1]
+        base_prediction = xgboost_preds_df.pred.values[0]
+        preds = xgboost_preds_df.pred.values[1:]
+        bases = xgboost_preds_df.pred.values[:-1]
+        diffs = xgboost_preds_df.pred_diff.values[1:]
+        
+        texts=[f"tree no {t}:<br>change = {np.round(d, round)}<br> click for detailed info"
+                             for (t, d) in zip(trees, diffs)]
+        texts.insert(0, f"Base prediction: <br>pred = {np.round(base_prediction, round)}")
+        texts.append(f"Final Prediction: <br>pred = {np.round(final_prediction, round)}")
+        
+    fill_color_up='rgba(55, 128, 191, 0.7)' 
+    fill_color_down='rgba(219, 64, 82, 0.7)' 
+    line_color_up='rgba(55, 128, 191, 1.0)'
+    line_color_down='rgba(219, 64, 82, 1.0)'
+
+    fill_colors = [fill_color_up if diff > 0 else fill_color_down for diff in diffs]
+    line_colors = [line_color_up if diff > 0 else line_color_down for diff in diffs]
+
+    fill_colors.insert(0, 'rgba(230, 230, 30, 1.0)')
+    line_colors.insert(0, 'rgba(190, 190, 30, 1.0)')
+
+    fill_colors.append('rgba(50, 200, 50, 1.0)')
+    line_colors.append('rgba(40, 160, 50, 1.0)')
+        
+            
+    trees = np.append(trees, len(trees))
+    trees = np.insert(trees, 0, -1)
+    bases = np.insert(bases, 0, 0)  
+    bases = np.append(bases,  0)  
+    diffs = np.insert(diffs, 0, base_prediction)
+    diffs = np.append(diffs, final_prediction)
+    
+    trace0 = go.Bar(x=trees, 
+                    y=bases, 
+                    hoverinfo='skip',
+                    name="",
+                    showlegend=False,
+                    marker=dict(color='rgba(1,1,1, 0.0)'))
+    
+    
+    trace1 = go.Bar(x=trees, 
+                    y=diffs, 
+                    text=texts,
+                    name="",
+                    hoverinfo="text",
+                    showlegend=False,
+                    marker=dict(
+                        color=fill_colors,
+                        line=dict(
+                            color=line_colors,
+                            width=2,
+                        )
+                    ),
+                   )
+    
+    layout = go.Layout(
+                title='individual xgboost prediction trees',
+                barmode='stack',
+                plot_bgcolor = '#fff',
+                yaxis=dict(title=units)
+            )
+    
+    fig = go.Figure(data = [trace0, trace1], layout=layout)
+    
+    shapes = []
+    annotations = []
+    
+    if y is not None:
+        shapes.append(dict(
+                type='line',
+                xref='x', yref='y',
+                x0=trees.min(), x1=trees.max(), 
+                y0=y, y1=y,
+                line=dict(
+                    color="black",
+                    width=4,
+                    dash="dashdot"),
+                ))
+        annotations.append(go.layout.Annotation(
+            x=0.75*trees.max(), y=y, text=f"actual={y}", bgcolor="white"))
+
+    fig.update_layout(shapes=shapes)
+    fig.update_layout(annotations=annotations)
+    
+    return fig 

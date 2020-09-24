@@ -1,5 +1,6 @@
 
 from functools import partial
+import re
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,8 @@ from dtreeviz.trees import ShadowDecTree
 from sklearn.metrics import make_scorer
 from sklearn.base import clone
 from sklearn.model_selection import StratifiedKFold
+
+from joblib import Parallel, delayed
 
 
 def guess_shap(model):
@@ -252,10 +255,9 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
 
 def permutation_importances(model, X, y, metric, cats=None,
                             greater_is_better=True, needs_proba=False,
-                            pos_label=1,
-                            sort=True, verbose=0):
+                            pos_label=1, n_repeats=1, n_jobs=None, sort=True, verbose=0):
     """
-    adapted from rfpimp, returns permutation importances, optionally grouping 
+    adapted from rfpimp package, returns permutation importances, optionally grouping 
     onehot-encoded features together.
 
     Args:
@@ -271,6 +273,9 @@ def permutation_importances(model, X, y, metric, cats=None,
             or direct prediction?
         pos_label (int): for classification, the label to use a positive label. 
             Defaults to 1.
+        n_repeats (int): number of time to permute each column to take the average score.
+            Defaults to 1.
+        n_jobs (int): number of jobs for joblib parallel. Defaults to None. 
         sort (bool): sort the output from highest importances to lowest. 
         verbose (int): set to 1 to print output for debugging. Defaults to 0.
     """
@@ -279,35 +284,40 @@ def permutation_importances(model, X, y, metric, cats=None,
     feature_dict = get_feature_dict(X.columns, cats)
 
     if isinstance(metric, str):
-        scorer = make_scorer(metric, greater_is_better, needs_proba)
+        scorer = make_scorer(metric, greater_is_better=greater_is_better, needs_proba=needs_proba)
     elif not needs_proba or pos_label is None:
-        scorer = make_scorer(metric, greater_is_better, needs_proba)
+        scorer = make_scorer(metric, greater_is_better=greater_is_better, needs_proba=needs_proba)
     else:
         scorer = make_one_vs_all_scorer(metric, pos_label, greater_is_better)
 
     baseline = scorer(model, X, y)
-    imp = pd.DataFrame({'Importance': []})
 
-    # note: parallelize this with joblib:
-    for col_name, col_list in feature_dict.items():
-        old_cols = X[col_list].copy()
-        X[col_list] = np.random.permutation(X[col_list])
-
-        permutation_score = scorer(model, X, y)
-
-        drop_in_metric = baseline - permutation_score
-        imp = imp.append(pd.DataFrame({'Importance': [drop_in_metric]}, index=[col_name]))
-        X[col_list] = old_cols
-
-    imp.index.name = 'Feature'
+    def _permutation_importance(model, X, y, scorer, col_name, col_list, baseline, n_repeats=1):
+        X = X.copy()
+        scores = []
+        for i in range(n_repeats):
+            old_cols = X[col_list].copy()
+            X[col_list] = np.random.permutation(X[col_list])
+            scores.append(scorer(model, X, y))
+            X[col_list] = old_cols
+        return col_name, np.mean(scores)
+    
+    scores = Parallel(n_jobs=n_jobs)(delayed(_permutation_importance)(
+                    model, X, y, scorer, col_name, col_list, baseline, n_repeats
+            ) for col_name, col_list in feature_dict.items())
+    
+    importances_df = pd.DataFrame(scores, columns=['Feature', 'Score'])
+    importances_df['Importance'] = baseline - importances_df['Score']
+    importances_df = importances_df[['Feature', 'Importance', 'Score']]
     if sort:
-        return imp.sort_values('Importance', ascending=False)
+        return importances_df.sort_values('Importance', ascending=False)
     else:
-        return imp
+        return importances_df
 
 
 def cv_permutation_importances(model, X, y, metric, cats=None, greater_is_better=True,
-                                needs_proba=False, pos_label=None, cv=None, verbose=0):
+                                needs_proba=False, pos_label=None, cv=None, 
+                                n_repeats=1, n_jobs=None, verbose=0):
     """
     Returns the permutation importances averages over `cv` cross-validated folds.
 
@@ -333,6 +343,8 @@ def cv_permutation_importances(model, X, y, metric, cats=None, greater_is_better
                                         greater_is_better=greater_is_better,
                                         needs_proba=needs_proba,
                                         pos_label=pos_label,
+                                        n_repeats=n_repeats,
+                                        n_jobs=n_jobs,
                                         sort=False,
                                         verbose=verbose)
 
@@ -348,6 +360,8 @@ def cv_permutation_importances(model, X, y, metric, cats=None, greater_is_better
                                         greater_is_better=greater_is_better,
                                         needs_proba=needs_proba,
                                         pos_label=pos_label,
+                                        n_repeats=n_repeats,
+                                        n_jobs=n_jobs,
                                         sort=False,
                                         verbose=verbose)
         if i == 0:
@@ -573,7 +587,7 @@ def get_lift_curve_df(pred_probas, y, pos_label=1):
     return lift_df
     
 
-def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, sort='abs'):
+def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, sort='abs', cols=None):
     """
     Return a contrib_df DataFrame that lists the SHAP contribution of each input
     variable for a single prediction, formatted in a way that makes it easy to
@@ -592,6 +606,8 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
             shap ('abs'), or from most positive to most negative ('high-to-low')
             or from most negative to most positive ('low-to-high'). Defaults
             to 'abs'.
+        cols (list of str): particular list of columns to display, in that order. Will
+            override topx, cutoff, sort, etc.
 
     Features below topx or cutoff are summed together under _REST. Final 
     prediction is added as _PREDICTION.
@@ -604,7 +620,7 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
     assert len(X_row.iloc[[0]].values[0].shape) == 1,\
         """X is not the right shape: len(X.values[0]) should be 1. 
             Try passing X.iloc[[index]]""" 
-    assert sort in {'abs', 'high-to-low', 'low-to-high'}
+    assert sort in {'abs', 'high-to-low', 'low-to-high', 'importance', None}
 
     # start with the shap_base_value
     base_df = pd.DataFrame(
@@ -620,37 +636,43 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
                         'contribution': shap_values,
                         'value': X_row.values[0]
                     })
+    if cols is None:
+        if cutoff is None and topx is not None:
+            cutoff = contrib_df.contribution.abs().nlargest(topx).min()
+        elif cutoff is None and topx is None:
+            cutoff = 0
 
-    if cutoff is None and topx is not None:
-        cutoff = contrib_df.contribution.abs().nlargest(topx).min()
-    elif cutoff is None and topx is None:
-        cutoff = 0
-        
-    display_df = contrib_df[contrib_df.contribution.abs() >= cutoff]
-    display_df_neg = display_df[display_df.contribution < 0]
-    display_df_pos = display_df[display_df.contribution >= 0]
-    
-    rest_df = (contrib_df[contrib_df.contribution.abs() < cutoff]
-                   .sum().to_frame().T
-                   .assign(col="_REST", value=""))
-    
-    # sort the df by absolute value from highest to lowest:
-    if sort=='abs':
-        display_df = display_df.reindex(
-                            display_df.contribution.abs().sort_values(ascending=False).index)
+        display_df = contrib_df[contrib_df.contribution.abs() >= cutoff]
+        display_df_neg = display_df[display_df.contribution < 0]
+        display_df_pos = display_df[display_df.contribution >= 0]
+
+        rest_df = (contrib_df[contrib_df.contribution.abs() < cutoff]
+                       .sum().to_frame().T
+                       .assign(col="_REST", value=""))
+
+        # sort the df by absolute value from highest to lowest:
+        if sort=='abs':
+            display_df = display_df.reindex(
+                                display_df.contribution.abs().sort_values(ascending=False).index)
+            contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
+        if sort=='high-to-low':
+            display_df_pos = display_df_pos.reindex(
+                                display_df_pos.contribution.abs().sort_values(ascending=False).index)
+            display_df_neg = display_df_neg.reindex(
+                                display_df_neg.contribution.abs().sort_values().index)
+            contrib_df = pd.concat([base_df, display_df_pos, rest_df, display_df_neg], ignore_index=True)
+        if sort=='low-to-high':
+            display_df_pos = display_df_pos.reindex(
+                                display_df_pos.contribution.abs().sort_values().index)
+            display_df_neg = display_df_neg.reindex(
+                                display_df_neg.contribution.abs().sort_values(ascending=False).index)
+            contrib_df = pd.concat([base_df, display_df_neg, rest_df, display_df_pos], ignore_index=True)
+    else:
+        display_df = contrib_df[contrib_df.col.isin(cols)].set_index('col').reindex(cols).reset_index()
+        rest_df = (contrib_df[~contrib_df.col.isin(cols)]
+                       .sum().to_frame().T
+                       .assign(col="_REST", value=""))
         contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
-    if sort=='high-to-low':
-        display_df_pos = display_df_pos.reindex(
-                            display_df_pos.contribution.abs().sort_values(ascending=False).index)
-        display_df_neg = display_df_neg.reindex(
-                            display_df_neg.contribution.abs().sort_values().index)
-        contrib_df = pd.concat([base_df, display_df_pos, rest_df, display_df_neg], ignore_index=True)
-    if sort=='low-to-high':
-        display_df_pos = display_df_pos.reindex(
-                            display_df_pos.contribution.abs().sort_values().index)
-        display_df_neg = display_df_neg.reindex(
-                            display_df_neg.contribution.abs().sort_values(ascending=False).index)
-        contrib_df = pd.concat([base_df, display_df_neg, rest_df, display_df_pos], ignore_index=True)
 
     # add cumulative contribution from top to bottom (for making bar chart):
     contrib_df['cumulative'] = contrib_df.contribution.cumsum()
@@ -865,5 +887,195 @@ def get_decisiontree_summary_df(decisiontree_df, classifier=False, round=2, unit
                     }, ignore_index=True)
 
     return decisiontree_summary_df
+
+
+def get_xgboost_node_dict(xgboost_treedump):
+    """Turns the output of a xgboostmodel.get_dump() into a dictionary
+    of nodes for easy parsing a prediction path through individual trees
+    in the model.
+    
+    Args:
+        xgboost_treedump (str): a single element of the list output from
+            xgboost model.get_dump() that represents a single tree in the
+            ensemble.
+    Returns:
+        dict
+    """
+    node_dict = {}
+    for row in xgboost_treedump.splitlines():
+        s = row.strip()
+        node = int(re.search("^(.*)\:", s).group(1))
+        is_leaf = re.search(":(.*)\=", s).group(1) == "leaf"
+
+        leaf_value = re.search("leaf=(.*)$", s).group(1) if is_leaf else None
+        feature = re.search('\[(.*)\<', s).group(1) if not is_leaf else None
+        cutoff = float(re.search('\<(.*)\]', s).group(1)) if not is_leaf else None
+        left_node = int(re.search('yes=(.*)\,no', s).group(1)) if not is_leaf else None
+        right_node = int(re.search('no=(.*)\,', s).group(1)) if not is_leaf else None
+        node_dict[node] = dict(
+            node=node, 
+            is_leaf=is_leaf, 
+            leaf_value=leaf_value,
+            feature=feature, 
+            cutoff=cutoff, 
+            left_node=left_node, 
+            right_node=right_node
+        )
+    return node_dict
+
+def get_xgboost_path_df(xgbmodel, X_row, n_tree=None):
+    """returns a pd.DataFrame of the prediction path through
+    an individual tree in a xgboost ensemble.
+    
+    Args:
+        xgbmodel: either a fitted xgboost model, or the output of a get_dump()
+        X_row: single row from a dataframe (e.g. X_test.iloc[0])
+        n_tree: the tree number to display:
+        
+    Returns:
+        pd.DataFrame
+    """
+    if isinstance(xgbmodel, str) and xgbmodel.startswith("0:"):
+        xgbmodel_treedump = xgbmodel
+    elif str(type(xgbmodel)).endswith("xgboost.core.Booster'>"):
+        xgbmodel_treedump = xgbmodel.get_dump()[n_tree]
+    elif str(type(xgbmodel)).endswith("XGBClassifier'>") or str(type(xgbmodel)).endswith("XGBRegressor'>"):
+        xgbmodel_treedump = xgbmodel.get_booster().get_dump()[n_tree]
+    else:
+        raise ValueError("Couldn't extract a treedump. Please pass a fitted xgboost model.")
+        
+    node_dict = get_xgboost_node_dict(xgbmodel_treedump)
+    
+    prediction_path_df = pd.DataFrame(columns = ['node', 'feature', 'cutoff', 'value'])
+    
+    node = node_dict[0]
+    while not node['is_leaf']:
+        prediction_path_df = prediction_path_df.append(
+            dict(
+                node=node['node'], 
+                feature=node['feature'], 
+                cutoff=node['cutoff'], 
+                value=float(X_row[node['feature']])
+            ), ignore_index=True)
+        if np.isnan(X_row[node['feature']]) or X_row[node['feature']] < node['cutoff']:
+            node = node_dict[node['left_node']]
+        else:
+            node = node_dict[node['right_node']]
+    
+    if node['is_leaf']:
+        prediction_path_df = prediction_path_df.append(dict(node=node['node'], feature="_PREDICTION", value=node['leaf_value']), ignore_index=True)
+    return prediction_path_df
+
+
+def get_xgboost_path_summary_df(xgboost_path_df, output="margin"):
+    """turn output of get_xgboost_path_df output into a formatted dataframe
+
+    Args:
+        xgboost_path_df (pd.DataFrame): output of get_xgboost_path_df
+        prediction (str, {'logodds', 'margin'}): Type of output prediction. 
+            Defaults to "margin".
+
+    Returns:
+        pd.DataFrame: dataframe with nodes and split conditions
+    """
+    xgboost_path_summary_df = pd.DataFrame(columns=['node', 'split_condition'])
+
+    for row in xgboost_path_df.itertuples():
+        if row.feature == "_PREDICTION":
+            xgboost_path_summary_df = xgboost_path_summary_df.append(
+                dict(
+                    node=row.node, 
+                    split_condition=f"prediction ({output}) = {row.value}" 
+                ), ignore_index=True
+            )   
+        elif row.value < row.cutoff:
+            xgboost_path_summary_df = xgboost_path_summary_df.append(
+                dict(
+                    node=row.node, 
+                    split_condition=f"{row.feature} = {row.value} < {row.cutoff}"
+                ), ignore_index=True
+            )
+        else:
+            xgboost_path_summary_df = xgboost_path_summary_df.append(
+                dict(
+                    node=row.node, 
+                    split_condition=f"{row.feature} = {row.value} >= {row.cutoff}"
+                ), ignore_index=True
+            )
+    return xgboost_path_summary_df
+
+
+def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
+    """ returns the marginal contributions of each tree in
+    an xgboost ensemble
+    
+    Args:
+        xgbmodel: a fitted sklearn-comptaible xgboost model
+            (i.e. XGBClassifier or XGBRegressor)
+        X_row: a single row of data, e.g X_train.iloc[0]
+        pos_label: for classifier the label to be used as positive label
+            Defaults to 1.
+    
+    Returns:
+        pd.DataFrame
+    """
+    if str(type(xgbmodel)).endswith("XGBClassifier'>"):
+        is_classifier=True
+        n_classes = len(xgbmodel.classes_)
+        if n_classes == 2:
+            if pos_label==1:
+                base_proba = xgbmodel.get_params()['base_score']
+            elif pos_label==0:
+                base_proba = 1 - xgbmodel.get_params()['base_score']
+            else:
+                raise ValueError("pos_label should be either 0 or 1!")
+            n_trees = len(xgbmodel.get_booster().get_dump())
+            base_score = np.log(base_proba/(1-base_proba))
+        else:
+            base_proba = 1.0 / n_classes
+            base_score = xgbmodel.get_params()['base_score']
+            n_trees = int(len(xgbmodel.get_booster().get_dump()) / n_classes)
+                
+    elif str(type(xgbmodel)).endswith("XGBRegressor'>"):
+        is_classifier=False
+        base_score = xgbmodel.get_params()['base_score']
+        n_trees = len(xgbmodel.get_booster().get_dump())
+    else:
+        raise ValueError("Pass either an XGBClassifier or XGBRegressor!")
+        
+
+    if is_classifier:
+        if n_classes == 2:
+            if pos_label==1:
+                preds = [xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+            elif pos_label==0:
+                preds = [-xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+            pred_probas = (np.exp(preds)/(1+np.exp(preds))).tolist()
+        else:
+            margins = [xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+            preds = [margin[pos_label] for margin in margins]
+            pred_probas = [(np.exp(margin)/ np.exp(margin).sum())[pos_label] for margin in margins]
+            
+    else:
+        preds = [xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+             
+    
+    xgboost_preds_df = pd.DataFrame(
+        dict(
+            tree=range(-1, n_trees),
+            pred=[base_score] + preds
+        )
+    )
+    xgboost_preds_df['pred_diff'] = xgboost_preds_df.pred.diff()
+    xgboost_preds_df.loc[0, "pred_diff"] = xgboost_preds_df.loc[0, "pred"]
+    
+    if is_classifier:
+        xgboost_preds_df['pred_proba'] = [base_proba] + pred_probas
+        xgboost_preds_df['pred_proba_diff'] = xgboost_preds_df.pred_proba.diff()
+        xgboost_preds_df.loc[0, "pred_proba_diff"] =   xgboost_preds_df.loc[0, "pred_proba"]
+    return xgboost_preds_df
+
+
+
 
     

@@ -1,11 +1,8 @@
 
 # TODO:
-- find out why dtreeviz for regression no longer working
+- try to get dtreeviz to work for regression with only test data
+    - seems tricky as DecisionTree does not store individual samples...
 - find a way to plot individual xgboost trees (now in dtreeviz!)
-- replace custom permutation importances by sklearn permutation importances?
-    - or submit PR to sklearn to support multi col permuations for cats?
-    - or spend some time optimizing own permutation importance code?
-
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -15,10 +12,7 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- Contributions: order by global mean_abs_shap or by index specific shap
-- shap dependence: add option color_col = None
-- undo percentage y-axis 0-100 for model_output=='probability' 
-    (doesn't work for unbalanced datasets)
+
 
 ### Classifier plots:
 - confusion matrix: display both count and percentage
@@ -41,8 +35,7 @@
 - add binder/colab links on github
 
 ## Dashboard:
-- Add ColConnector
-    - although in practice difficult when col already callback target?
+- open dtreeviz in seperate tab
 - Add pandas profiling type col histograms, bar charts, correlation graphs, etc
 
 
@@ -52,20 +45,15 @@
 
 ## Methods:
 - Add LIME values
-- Add this method: https://arxiv.org/abs/2006.04750?
+    - but tricky how to set kernel, model, etc
+    - Lime values take a lot more DS judgement than SHAP values
+- Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add kernal shap tests
-- add multiclass classifier tests
-- add dashboard integration tests using dash tests
-- add ExplainerDashboard intergration test
-- Add tests for decisiontrees, extratrees
 - test model_output='probability' and 'raw' or 'logodds' seperately
-- add tests for explainer_methods
 - add test coverage (add a badge)
 
 ## Docs:
-- add docstrings to explainer_methods
 - add docstrings to explainer_plots
 - add screenshots of components to docs
 - move screenshots to separate folder
@@ -75,6 +63,8 @@
 
 
 ## Library level:
+- Add launch from colab option:
+    - https://amitness.com/2020/06/google-colaboratory-tips/?s=03
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/

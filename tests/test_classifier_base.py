@@ -93,12 +93,18 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(0, cats=False), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(0, topx=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_df(0, sort='high-to-low'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_df(0, sort='low-to-high'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_df(0, sort='importance'), pd.DataFrame)
 
     def test_contrib_summary_df(self):
         self.assertIsInstance(self.explainer.contrib_summary_df(0), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, cats=False), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, topx=3), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, round=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='low-to-high'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='high-to-low'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='importance'), pd.DataFrame)
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
@@ -177,6 +183,15 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_contributions(0, cutoff=0.05)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_contributions(0, sort='high-to-low')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_contributions(0, sort='low-to-high')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_contributions(0, sort='importance')
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_summary(self):
