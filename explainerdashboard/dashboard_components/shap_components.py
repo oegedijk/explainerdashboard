@@ -263,7 +263,7 @@ class ShapDependenceComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')],
             [State('shap-dependence-col-'+self.name, 'value')])
         def update_dependence_graph(color_col, index, pos_label, col):
-            if color_col is not None:
+            if col is not None:
                 return self.explainer.plot_shap_dependence(
                             col, color_col, highlight_index=index, pos_label=pos_label)
             raise PreventUpdate
@@ -683,7 +683,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
             depth (int, optional): Initial number of features to display. Defaults to None.
-            sort ({'abs', 'high-to-low', 'low-to-high'}, optional): sorting of shap values. 
+            sort ({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sorting of shap values. 
                         Defaults to 'high-to-low'.
             orientation ({'vertical', 'horizontal'}, optional): orientation of bar chart.
                         Defaults to 'vertical'.
@@ -737,7 +737,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         dcc.Dropdown(id='contributions-graph-sorting-'+self.name, 
                             options = [{'label': 'Absolute', 'value': 'abs'},
                                         {'label': 'High to Low', 'value': 'high-to-low'},
-                                        {'label': 'Low to High', 'value': 'low-to-high'}],
+                                        {'label': 'Low to High', 'value': 'low-to-high'},
+                                        {'label': 'Importance', 'value': 'importance'}],
                             value=self.sort)
                     ], md=2), hide=self.hide_sort),
                 make_hideable(

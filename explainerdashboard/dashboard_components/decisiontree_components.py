@@ -222,8 +222,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
         """
         super().__init__(explainer, title, name)
-        if explainer.is_regression:
-            raise ValueError("DecisionPathGraphComponent only available for classifiers for now!")
+        # if explainer.is_regression:
+        #     raise ValueError("DecisionPathGraphComponent only available for classifiers for now!")
         self.hide_index, self.hide_highlight = hide_index, hide_highlight
         self.hide_selector = hide_selector
         self.hide_title, self.hide_button = hide_title, hide_button

@@ -5,6 +5,7 @@ __all__ = [
     'ShapDependenceComposite',
     'ShapInteractionsComposite',
     'DecisionTreesComposite',
+    'XGBoostTreesComposite'
 ]
 
 import dash_bootstrap_components as dbc
@@ -17,6 +18,7 @@ from .overview_components import *
 from .connectors import *
 from .shap_components import *
 from .decisiontree_components import *
+from .xgboost_components import *
 
 
 class ClassifierModelStatsComposite(ExplainerComponent):
@@ -348,7 +350,7 @@ class DecisionTreesComposite(ExplainerComponent):
 
         Args:
             explainer (Explainer): explainer object constructed with either
-                        ClassifierExplainer() or RegressionExplainer()
+                        RandomForestClassifierExplainer() or RandomForestRegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
                         "Decision Trees".
             name (str, optional): unique name to add to Component elements. 
@@ -363,7 +365,85 @@ class DecisionTreesComposite(ExplainerComponent):
 
         if explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(explainer, hide_selector=hide_selector)
-            self.decisionpath_graph = DecisionPathGraphComponent(explainer, hide_selector=hide_selector)
+        elif explainer.is_regression:
+            self.index = RegressionRandomIndexComponent(explainer)
+
+        self.decisionpath_graph = DecisionPathGraphComponent(explainer, hide_selector=hide_selector)
+
+        self.index_connector = IndexConnector(self.index, 
+            [self.trees, self.decisionpath_table, self.decisionpath_graph])
+        self.highlight_connector = HighlightConnector(self.trees, 
+            [self.decisionpath_table, self.decisionpath_graph])
+
+        self.register_components(self.index, self.trees, 
+                self.decisionpath_table, self.decisionpath_graph, 
+                self.index_connector, self.highlight_connector)
+
+        # elif explainer.is_regression:
+        #     self.index = RegressionRandomIndexComponent(explainer)
+        #     self.decisionpath_graph = DecisionPathGraphComponent(explainer, hide_selector=hide_selector)# DummyComponent()
+        #     self.index_connector = IndexConnector(self.index, 
+        #             [self.trees, self.decisionpath_table])
+        #     self.highlight_connector = HighlightConnector(
+        #             self.trees, [self.decisionpath_table, self.decisionpath_graph])
+
+        #     self.register_components(
+        #             self.index, self.trees, self.decisionpath_table,
+        #             self.decisionpath_graph, self.index_connector, 
+        #             self.highlight_connector)
+        
+    def layout(self):
+        return html.Div([
+            dbc.Row([
+                dbc.Col([
+                    self.index.layout(),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    self.trees.layout(),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    self.decisionpath_table.layout()
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    self.decisionpath_graph.layout()
+                ])
+            ]),
+        ])
+
+
+class XGBoostTreesComposite(ExplainerComponent):
+    def __init__(self, explainer, title="Decision Trees", name=None,
+                    hide_selector=True):
+        """Composite of decision tree related components:
+        
+        - individual decision trees barchart
+        - decision path table
+        - deciion path graph
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        XGBClassifierExplainer() or XGBRegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Decision Trees".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
+        """
+        super().__init__(explainer, title, name)
+        
+        self.trees = XGBoostTreesComponent(explainer, hide_selector=hide_selector)
+        self.decisionpath_table = XGBoostPathTableComponent(explainer, hide_selector=hide_selector)
+
+        if explainer.is_classifier:
+            self.index = ClassifierRandomIndexComponent(explainer, hide_selector=hide_selector)
+            self.decisionpath_graph = XGBoostPathGraphComponent(explainer, hide_selector=hide_selector)
 
             self.index_connector = IndexConnector(self.index, 
                 [self.trees, self.decisionpath_table, self.decisionpath_graph])

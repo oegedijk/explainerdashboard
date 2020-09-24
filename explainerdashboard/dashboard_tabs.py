@@ -5,6 +5,7 @@ __all__ = [
     'ShapDependenceTab',
     'ShapInteractionsTab',
     'DecisionTreesTab',
+    'XGBoostTreesTab'
 ]
 
 import dash_html_components as html
@@ -187,8 +188,32 @@ class DecisionTreesTab(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-    
         self.trees = DecisionTreesComposite(explainer)
+        self.register_components(self.trees)
+
+    def layout(self):
+        return html.Div([
+            self.trees.layout()
+        ])
+
+
+class XGBoostTreesTab(ExplainerComponent):
+    def __init__(self, explainer, title="XGBoost Trees", name=None):
+        """Tab showing individual decision trees from xgboost model
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        'Decision Trees'.
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+        """
+        super().__init__(explainer, title, name)
+
+    
+        self.trees = XGBoostTreesComposite(explainer)
         self.register_components(self.trees)
 
     def layout(self):

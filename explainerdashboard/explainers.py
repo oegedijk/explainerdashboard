@@ -3,6 +3,8 @@ __all__ = ['BaseExplainer',
             'RegressionExplainer', 
             'RandomForestClassifierExplainer', 
             'RandomForestRegressionExplainer',
+            'XGBClassifierExplainer',
+            'XGBRegressionExplainer',
             'ClassifierBunch', # deprecated
             'RegressionBunch', # deprecated
             'RandomForestClassifierBunch', # deprecated
@@ -36,7 +38,7 @@ class BaseExplainer(ABC):
     def __init__(self, model, X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
                     cats=None, idxs=None, descriptions=None, 
-                    permutation_cv=None, na_fill=-999):
+                    n_jobs=None, permutation_cv=None, na_fill=-999):
         """Defines the basic functionality of an ExplainerBunch
 
         :param model: a model with a scikit-learn compatible .fit and .predict method
@@ -60,6 +62,9 @@ class BaseExplainer(ABC):
         :param idxs: list of row identifiers. Can be names, id's, etc. Get 
             converted to str, defaults to None
         :type idxs: list, optional
+        :param n_jobs: for jobs that can be parallelized using joblib,
+            how many processes to split the job in. For now only used
+            for calculating permutation importances. Defaults to None.
         :param permutation_cv: If given permutation importances get calculated 
             using cross validation, defaults to None
         :type permutation_cv: int, optional
@@ -108,6 +113,7 @@ class BaseExplainer(ABC):
         else:
             self.idxs = [str(i) for i in range(len(X))]
         self.descriptions = {} if descriptions is None else descriptions
+        self.n_jobs = n_jobs
         self.permutation_cv = permutation_cv
         self.na_fill = na_fill
         self.columns = self.X.columns.tolist()
@@ -257,8 +263,8 @@ class BaseExplainer(ABC):
     def preds(self):
         """returns model model predictions"""
         if not hasattr(self, '_preds'):
-            print("Calculating predictions...")
-            self._preds = self.model.predict(self.X)
+            print("Calculating predictions...", flush=True)
+            self._preds = self.model.predict(self.X).astype(np.float64)
             
         return self._preds
     
@@ -266,7 +272,7 @@ class BaseExplainer(ABC):
     def pred_percentiles(self):
         """returns percentile rank of model predictions"""
         if not hasattr(self, '_pred_percentiles'):
-            print("Calculating prediction percentiles...")
+            print("Calculating prediction percentiles...", flush=True)
             self._pred_percentiles = (pd.Series(self.preds)
                                 .rank(method='min')
                                 .divide(len(self.preds))
@@ -416,10 +422,11 @@ class BaseExplainer(ABC):
     def permutation_importances(self):
         """Permutation importances """
         if not hasattr(self, '_perm_imps'):
-            print("Calculating importances...")
+            print("Calculating importances...", flush=True)
             self._perm_imps = cv_permutation_importances(
                             self.model, self.X, self.y, self.metric,
                             cv=self.permutation_cv,
+                            n_jobs=self.n_jobs,
                             needs_proba=self.is_classifier)
         return make_callable(self._perm_imps)
 
@@ -430,6 +437,7 @@ class BaseExplainer(ABC):
             self._perm_imps_cats = cv_permutation_importances(
                             self.model, self.X, self.y, self.metric, self.cats,
                             cv=self.permutation_cv,
+                            n_jobs=self.n_jobs,
                             needs_proba=self.is_classifier)
         return make_callable(self._perm_imps_cats)
 
@@ -467,7 +475,7 @@ class BaseExplainer(ABC):
     def shap_values(self):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, '_shap_values'):
-            print("Calculating shap values...")
+            print("Calculating shap values...", flush=True)
             self._shap_values = self.shap_explainer.shap_values(self.X)
         return make_callable(self._shap_values)
     
@@ -475,7 +483,6 @@ class BaseExplainer(ABC):
     def shap_values_cats(self):
         """SHAP values when categorical features have been grouped"""
         if not hasattr(self, '_shap_values_cats'):
-            print("Calculating shap values...")
             self._shap_values_cats = merge_categorical_shap_values(
                     self.X, self.shap_values, self.cats)
         return make_callable(self._shap_values_cats)
@@ -487,7 +494,7 @@ class BaseExplainer(ABC):
             "Unfortunately shap.LinearExplainer does not provide " \
             "shap interaction values! So no interactions tab!"
         if not hasattr(self, '_shap_interaction_values'):
-            print("Calculating shap interaction values...")
+            print("Calculating shap interaction values...", flush=True)
             self._shap_interaction_values = \
                 self.shap_explainer.shap_interaction_values(self.X)
         return make_callable(self._shap_interaction_values)
@@ -496,7 +503,6 @@ class BaseExplainer(ABC):
     def shap_interaction_values_cats(self):
         """SHAP interaction values with categorical features grouped"""
         if not hasattr(self, '_shap_interaction_values_cats'):
-            print("Calculating shap interaction values...")
             self._shap_interaction_values_cats = \
                 merge_categorical_shap_interaction_values(
                     self.X, self.X_cats, self.shap_interaction_values)
@@ -683,15 +689,13 @@ class BaseExplainer(ABC):
 
         """
         if cats:
-            importance_df = (self.permutation_importances_cats(pos_label)
-                                .reset_index()) 
+            importance_df = self.permutation_importances_cats(pos_label)
         else:
-            importance_df = (self.permutation_importances(pos_label)
-                                .reset_index())
+            importance_df = self.permutation_importances(pos_label)
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.Importance.min()
-        return importance_df[importance_df.Importance > cutoff].head(topx)
+        return importance_df[importance_df.Importance >= cutoff].head(topx)
 
     def importances_df(self, kind="shap", topx=None, cutoff=None, cats=False, 
                         pos_label=None):
@@ -728,8 +732,9 @@ class BaseExplainer(ABC):
                     called REST, defaults to None
           cutoff(float, optional, optional): only return features with at least 
                     cutoff contributions, defaults to None
-          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by 
-                    absolute shap value, or from high to low, or low to high. 
+          sort({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sort by 
+                    absolute shap value, or from high to low, low to high, or
+                    ordered by the global shap importances.
                     Defaults to 'abs'.
           pos_label:  (Default value = None)
 
@@ -738,14 +743,23 @@ class BaseExplainer(ABC):
 
         """
         idx = self.get_int_idx(index)
+        if sort =='importance':
+            if cutoff is None:
+                cols = self.columns_ranked_by_shap(self.cats)
+            else:
+                cols = self.mean_abs_shap_df(cats=True).query(f"MEAN_ABS_SHAP > {cutoff}").Feature.tolist()
+            if topx is not None:
+                cols = cols[:topx]
+        else:
+            cols =  None
         if cats:
             return get_contrib_df(self.shap_base_value(pos_label), 
                                     self.shap_values_cats(pos_label)[idx],
-                                    self.X_cats.iloc[[idx]], topx, cutoff, sort)
+                                    self.X_cats.iloc[[idx]], topx, cutoff, sort, cols)
         else:
             return get_contrib_df(self.shap_base_value(pos_label), 
                                     self.shap_values(pos_label)[idx],
-                                    self.X.iloc[[idx]], topx, cutoff, sort)
+                                    self.X.iloc[[idx]], topx, cutoff, sort, cols)
 
     def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
                             round=2, sort='abs', pos_label=None):
@@ -757,8 +771,9 @@ class BaseExplainer(ABC):
           topx: Only show topx highest features(Default value = None)
           cutoff: Only show features above cutoff (Default value = None)
           round: round figures (Default value = 2)
-          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by 
-                    absolute shap value, or from high to low, or low to high. 
+          sort({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sort by 
+                    absolute shap value, or from high to low, or low to high, or
+                    ordered by the global shap importances.
                     Defaults to 'abs'.
           pos_label: Positive class (Default value = None)
 
@@ -1035,8 +1050,10 @@ class BaseExplainer(ABC):
                         defaults to None
           cutoff(float, optional, optional): Only display features with at least 
                         cutoff contribution, defaults to None
-          sort({'abs', 'high-to-low', 'low-to-high'}, optional): sort by absolute shap value, or
-                        from high to low, or low to high. Defaults to 'abs'.
+          sort({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): 
+                sort by absolute shap value, or from high to low, 
+                or low to high, or by order of shap feature importance.
+                Defaults to 'abs'.
           orientation({'vertical', 'horizontal'}) Horizontal or vertical bar chart. 
                     Horizontal may be better if you have lots of features. 
                     Defaults to 'vertical'.
@@ -1242,7 +1259,7 @@ class ClassifierExplainer(BaseExplainer):
     def __init__(self, model,  X, y=None,  permutation_metric=roc_auc_score, 
                     shap='guess', X_background=None, model_output="probability",
                     cats=None, idxs=None, descriptions=None,
-                    permutation_cv=None, na_fill=-999,
+                    n_jobs=None, permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
         """
         Explainer for classification models. Defines the shap values for
@@ -1263,7 +1280,7 @@ class ClassifierExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
-                            cats, idxs, descriptions, permutation_cv, na_fill)
+                            cats, idxs, descriptions, n_jobs, permutation_cv, na_fill)
 
         if labels is not None:
             self.labels = labels
@@ -1418,7 +1435,7 @@ class ClassifierExplainer(BaseExplainer):
     def pred_probas_raw(self):
         """returns pred_probas with probability for each class"""
         if not hasattr(self, '_pred_probas'):
-            print("Calculating prediction probabilities...")
+            print("Calculating prediction probabilities...", flush=True)
             assert hasattr(self.model, 'predict_proba'), \
                 "model does not have a predict_proba method!"
             self._pred_probas =  self.model.predict_proba(self.X)
@@ -1428,7 +1445,7 @@ class ClassifierExplainer(BaseExplainer):
     def pred_percentiles_raw(self):
         """ """
         if not hasattr(self, '_pred_percentiles_raw'):
-            print("Calculating pred_percentiles...")
+            print("Calculating pred_percentiles...", flush=True)
             self._pred_percentiles_raw = (pd.DataFrame(self.pred_probas_raw)
                                 .rank(method='min')
                                 .divide(len(self.pred_probas_raw))
@@ -1449,7 +1466,7 @@ class ClassifierExplainer(BaseExplainer):
     def permutation_importances(self):
         """Permutation importances"""
         if not hasattr(self, '_perm_imps'):
-            print("Calculating permutation importances...")
+            print("Calculating permutation importances (if slow, try setting n_jobs parameter)...", flush=True)
             self._perm_imps = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric,
                             cv=self.permutation_cv,
@@ -1461,8 +1478,10 @@ class ClassifierExplainer(BaseExplainer):
     def permutation_importances_cats(self):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
+            print("Calculating categorical permutation importances (if slow, try setting n_jobs parameter)...", flush=True)
             self._perm_imps_cats = [cv_permutation_importances(
-                            self.model, self.X, self.y, self.metric, self.cats,
+                            self.model, self.X, self.y, self.metric, 
+                            cats=self.cats,
                             cv=self.permutation_cv,
                             needs_proba=self.is_classifier,
                             pos_label=label) for label in range(len(self.labels))]
@@ -1498,7 +1517,7 @@ class ClassifierExplainer(BaseExplainer):
     def shap_values(self):
         """SHAP Values"""
         if not hasattr(self, '_shap_values'):
-            print("Calculating shap values...")
+            print("Calculating shap values...", flush=True)
             self._shap_values = self.shap_explainer.shap_values(self.X)
             
             if not isinstance(self._shap_values, list) and len(self.labels)==2:
@@ -1534,7 +1553,7 @@ class ClassifierExplainer(BaseExplainer):
     def shap_interaction_values(self):
         """SHAP interaction values"""
         if not hasattr(self, '_shap_interaction_values'):
-            print("Calculating shap interaction values...")
+            print("Calculating shap interaction values...", flush=True)
             _ = self.shap_values #make sure shap values have been calculated
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(self.X)
             
@@ -1962,7 +1981,7 @@ class RegressionExplainer(BaseExplainer):
     def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
                     cats=None, idxs=None, descriptions=None, 
-                    permutation_cv=None, na_fill=-999,
+                    n_jobs=None, permutation_cv=None, na_fill=-999,
                     units=""):
         """Explainer for regression models.
 
@@ -1976,7 +1995,7 @@ class RegressionExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
-                            cats, idxs, descriptions, permutation_cv, na_fill)
+                            cats, idxs, descriptions, n_jobs, permutation_cv, na_fill)
         self.units = units
         self.is_regression = True
     
@@ -2197,7 +2216,7 @@ class RandomForestExplainer(BaseExplainer):
     def decision_trees(self):
         """a list of ShadowDecTree objects"""
         if not hasattr(self, '_decision_trees'):
-            print("Generating ShadowDecTree for each individual decision tree...")
+            print("Generating ShadowDecTree for each individual decision tree...", flush=True)
             assert hasattr(self.model, 'estimators_'), \
                 """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
@@ -2273,9 +2292,10 @@ class RandomForestExplainer(BaseExplainer):
             return None
 
         idx = self.get_int_idx(index)
-        viz = dtreeviz(self.decision_trees[tree_idx], X=self.X.iloc[idx, :], 
-                        fancy=True,
-                        show_node_labels = True,
+        viz = dtreeviz(self.decision_trees[tree_idx], 
+                        X=self.X.iloc[idx, :], 
+                        fancy=False,
+                        show_node_labels = False,
                         show_just_path=show_just_path) 
         return viz.save_svg()
 
@@ -2341,11 +2361,14 @@ class RandomForestExplainer(BaseExplainer):
         
         if self.is_classifier:
             if pos_label is None: pos_label = self.pos_label
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]],
+            y = 100*self.y_binary(pos_label)[idx] 
+
+            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], y,
                         highlight_tree=highlight_tree, round=round, 
                         pos_label=pos_label)
         else:
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], 
+            y = self.y[idx]
+            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], y,
                         highlight_tree=highlight_tree, round=round, units=self.units)
 
     def calculate_properties(self, include_interactions=True):
@@ -2362,6 +2385,223 @@ class RandomForestExplainer(BaseExplainer):
         super().calculate_properties(include_interactions=include_interactions)
 
 
+class XGBExplainer(BaseExplainer):
+    """XGBExplainer allows for the analysis of individual DecisionTrees that
+    make up the xgboost model.
+    """
+    @property
+    def model_dump_list(self):
+        if not hasattr(self, "_model_dump_list"):
+            print("Generating model dump...", flush=True)
+            self._model_dump_list = self.model.get_booster().get_dump()
+        return self._model_dump_list
+
+    @property
+    def no_of_trees(self):
+        """The number of trees in the RandomForest model"""
+        if self.is_classifier and len(self.labels) > 2:
+            return int(len(self.model_dump_list) / len(self.labels))
+        return len(self.model_dump_list)
+        
+    @property
+    def graphviz_available(self):
+        """ """
+        if not hasattr(self, '_graphviz_available'):
+            try:
+                import graphviz.backend as be
+                cmd = ["dot", "-V"]
+                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
+            except:
+                print("""
+                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
+                so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
+
+                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz 
+                for dtreeviz. 
+                """)
+                self._graphviz_available = False
+            else:
+                self._graphviz_available = True
+        return self._graphviz_available
+
+    @property
+    def decision_trees(self):
+        """a list of ShadowDecTree objects"""
+        if not hasattr(self, '_decision_trees'):
+            print("Generating ShadowDecTree for each individual decision tree...", flush=True)
+                
+            self._decision_trees = [
+                ShadowDecTree.get_shadow_tree(self.model.get_booster(),
+                                        self.X,
+                                        self.y,
+                                        feature_names=self.X.columns.tolist(),
+                                        target_name='target',
+                                        class_names = self.labels if self.is_classifier else None,
+                                        tree_index=i)
+                            for i in range(len(self.model_dump_list))]
+        return self._decision_trees
+
+    def decisiontree_df(self, tree_idx, index, pos_label=None):
+        """dataframe with all decision nodes of a particular decision tree
+
+        Args:
+          tree_idx: the n'th tree in the random forest
+          index: row index
+          round:  (Default value = 2)
+          pos_label:  positive class (Default value = None)
+
+        Returns:
+          dataframe with summary of the decision tree path
+
+        """
+        assert tree_idx >= 0 and tree_idx < self.no_of_trees, \
+            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        idx = self.get_int_idx(index)
+        assert idx >= 0 and idx < len(self.X), \
+            f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
+        
+        if self.is_classifier:
+            if pos_label is None: 
+                pos_label = self.pos_label
+            if len(self.labels) > 2:
+                tree_idx = tree_idx * len(self.labels) + pos_label
+        return get_xgboost_path_df(self.model_dump_list[tree_idx], self.X.iloc[idx])
+
+
+    def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
+        """formats decisiontree_df in a slightly more human readable format.
+
+        Args:
+          tree_idx: the n'th tree in the random forest
+          index: row index
+          round:  (Default value = 2)
+          pos_label:  positive class (Default value = None)
+
+        Returns:
+          dataframe with summary of the decision tree path
+
+        """
+        idx = self.get_int_idx(index)
+        return get_xgboost_path_summary_df(self.decisiontree_df(tree_idx, idx, pos_label=pos_label))
+
+
+    def decision_path_file(self, tree_idx, index, show_just_path=False, pos_label=None):
+        """get a dtreeviz visualization of a particular tree in the random forest.
+
+        Args:
+          tree_idx: the n'th tree in the random forest
+          index: row index
+          show_just_path (bool, optional): show only the path not rest of the 
+                    tree. Defaults to False. 
+          pos_label: for classifiers, positive label class
+
+        Returns:
+          the path where the .svg file is stored.
+
+        """
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!") 
+            return None
+
+        idx = self.get_int_idx(index)
+        if self.is_classifier:
+            if pos_label is None: 
+                pos_label = self.pos_label
+            if len(self.labels) > 2:
+                tree_idx = tree_idx * len(self.labels) + pos_label
+
+        viz = dtreeviz(self.decision_trees[tree_idx], 
+                        X=self.X.iloc[idx], 
+                        fancy=False,
+                        show_node_labels = False,
+                        show_just_path=show_just_path) 
+        return viz.save_svg()
+
+    def decision_path(self, tree_idx, index, show_just_path=False, pos_label=None):
+        """get a dtreeviz visualization of a particular tree in the random forest.
+
+        Args:
+          tree_idx: the n'th tree in the random forest
+          index: row index
+          show_just_path (bool, optional): show only the path not rest of the 
+                    tree. Defaults to False. 
+
+        Returns:
+          a IPython display SVG object for e.g. jupyter notebook.
+
+        """
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!") 
+            return None
+
+        from IPython.display import SVG
+        svg_file = self.decision_path_file(tree_idx, index, show_just_path, pos_label)
+        return SVG(open(svg_file,'rb').read())
+
+    def decision_path_encoded(self, tree_idx, index, show_just_path=False, pos_label=None):
+        """get a dtreeviz visualization of a particular tree in the random forest.
+
+        Args:
+          tree_idx: the n'th tree in the random forest
+          index: row index
+          show_just_path (bool, optional): show only the path not rest of the 
+                    tree. Defaults to False. 
+
+        Returns:
+          a base64 encoded image, for inclusion in websites (e.g. dashboard)
+        
+
+        """
+        if not self.graphviz_available:
+            print("No graphviz 'dot' executable available!")
+            return None
+        
+        svg_file = self.decision_path_file(tree_idx, index, show_just_path, pos_label)
+        encoded = base64.b64encode(open(svg_file,'rb').read()) 
+        svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
+        return svg_encoded
+
+
+    def plot_trees(self, index, highlight_tree=None, round=2, pos_label=None):
+        """plot barchart predictions of each individual prediction tree
+
+        Args:
+          index: index to display predictions for
+          highlight_tree:  tree to highlight in plot (Default value = None)
+          round: rounding of numbers in plot (Default value = 2)
+          pos_label: positive class (Default value = None)
+
+        Returns:
+
+        """
+        idx=self.get_int_idx(index)
+        assert idx is not None, 'invalid index'
+        if self.is_classifier:
+            if pos_label is None: 
+                pos_label = self.pos_label
+            y = self.y_binary(pos_label)[idx]
+            xgboost_preds_df = get_xgboost_preds_df(
+                self.model, self.X.iloc[[idx]], pos_label=pos_label)
+            return plotly_xgboost_trees(xgboost_preds_df, y=y, highlight_tree=highlight_tree)
+        else:
+            y = self.y[idx]
+            xgboost_preds_df = get_xgboost_preds_df(
+                self.model, self.X.iloc[[idx]])
+            return plotly_xgboost_trees(xgboost_preds_df, y=y, highlight_tree=highlight_tree)
+
+    def calculate_properties(self, include_interactions=True):
+        """
+
+        Args:
+          include_interactions:  If False do not calculate shap interaction value
+            (Default value = True)
+
+        Returns:
+
+        """
+        _ = self.decision_trees, self.model_dump_list
+        super().calculate_properties(include_interactions=include_interactions)
+
 
 class RandomForestClassifierExplainer(RandomForestExplainer, ClassifierExplainer):
     """RandomForestClassifierBunch inherits from both RandomForestExplainer and
@@ -2370,6 +2610,17 @@ class RandomForestClassifierExplainer(RandomForestExplainer, ClassifierExplainer
 
 
 class RandomForestRegressionExplainer(RandomForestExplainer, RegressionExplainer):
+    """RandomForestClassifierBunch inherits from both RandomForestExplainer and
+    RegressionExplainer.
+    """
+
+class XGBClassifierExplainer(XGBExplainer, ClassifierExplainer):
+    """RandomForestClassifierBunch inherits from both RandomForestExplainer and
+    ClassifierExplainer.
+    """
+
+
+class XGBRegressionExplainer(XGBExplainer, RegressionExplainer):
     """RandomForestClassifierBunch inherits from both RandomForestExplainer and
     RegressionExplainer.
     """

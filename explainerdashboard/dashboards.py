@@ -318,6 +318,7 @@ class ExplainerDashboard:
             shap_interaction(bool, optional): include InteractionsTab if model allows it, defaults to True.
             decision_trees(bool, optional): include DecisionTreesTab if model allows it, defaults to True.
         """
+        print("Building ExplainerDashboard..", flush=True)  
         if hide_header:
             header_hide_title = True
             header_hide_selector = True
@@ -338,11 +339,11 @@ class ExplainerDashboard:
             tabs = []
             if shap_interaction and not explainer.interactions_should_work:
                 print("For this type of model and model_output interactions don't "
-                          "work, so setting shap_interaction=False...")
+                          "work, so setting shap_interaction=False...", flush=True)
                 shap_interaction = False
             if decision_trees and not hasattr(explainer, 'decision_trees'):
                 print("the explainer object has no decision_trees property. so "
-                        "setting decision_trees=False...")
+                        "setting decision_trees=False...", flush=True)
                 decision_trees = False
         
             if importances:
@@ -380,9 +381,9 @@ class ExplainerDashboard:
 
         self.app.layout = explainer_layout.layout()
 
-        print("Calculating dependencies...")  
+        print("Calculating dependencies...", flush=True)  
         explainer_layout.calculate_dependencies()
-        print("registering callbacks...")
+        print("registering callbacks...", flush=True)
         explainer_layout.register_callbacks(self.app)
 
     def _convert_str_tabs(self, component):
@@ -450,10 +451,10 @@ class ExplainerDashboard:
         self.port = port
         
         if self.mode == 'dash':
-            print(f"Starting ExplainerDashboard on http://localhost:{port}")
+            print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
             self.app.run_server(port=port, **kwargs)
         elif self.mode == 'external':
-            print(f"Starting ExplainerDashboard on http://localhost:{port}")
+            print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
             self.app.run_server(port=port, mode=self.mode, **kwargs)
         elif self.mode in ['inline', 'jupyterlab']:
             self.app.run_server(port=port, mode=self.mode, 
