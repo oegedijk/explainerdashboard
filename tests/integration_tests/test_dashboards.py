@@ -37,7 +37,7 @@ def get_regression_explainer():
 
 def get_multiclass_explainer():
     X_train, y_train, X_test, y_test = titanic_embarked()
-    train_names, test_names = titanic_names()§
+    train_names, test_names = titanic_names()
     model = RandomForestClassifier(n_estimators=50, max_depth=10).fit(X_train, y_train)
     multi_explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
                                     cats=['Sex', 'Deck'], 
