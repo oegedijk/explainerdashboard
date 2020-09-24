@@ -1,8 +1,5 @@
 
 # TODO:
-- try to get dtreeviz to work for regression with only test data
-    - seems tricky as DecisionTree does not store individual samples...
-- find a way to plot individual xgboost trees (now in dtreeviz!)
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -35,9 +32,7 @@
 - add binder/colab links on github
 
 ## Dashboard:
-- open dtreeviz in seperate tab
 - Add pandas profiling type col histograms, bar charts, correlation graphs, etc
-
 
 ### Components
 - add pos_label_name property to PosLabelConnector search
@@ -51,9 +46,13 @@
 
 ## Tests:
 - test model_output='probability' and 'raw' or 'logodds' seperately
-- add test coverage (add a badge)
+- write tests for explainer_methods
+- write tests for explainer_plots
+- write tests for XGBoostExplainers
+- add test coverage 
 
 ## Docs:
+- add documentation for XGBExplainers
 - add docstrings to explainer_plots
 - add screenshots of components to docs
 - move screenshots to separate folder
@@ -63,7 +62,7 @@
 
 
 ## Library level:
-- Add launch from colab option:
+- Add launch from colab option (mode='colab'?):
     - https://amitness.com/2020/06/google-colaboratory-tips/?s=03
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - Long term: add option to load from directory with pickled model, data csv and config file
