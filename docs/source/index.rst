@@ -58,7 +58,7 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
 
     from sklearn.ensemble import RandomForestClassifier
 
-    from explainerdashboard.explainers import RandomForestClassifierExplainer
+    from explainerdashboard.explainers import ClassifierExplainer
     from explainerdashboard.dashboards import ExplainerDashboard
     from explainerdashboard.datasets import titanic_survive, titanic_names
 

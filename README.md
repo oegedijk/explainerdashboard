@@ -4,7 +4,7 @@
 # explainerdashboard
 by: Oege Dijk
 
-This package makes it convenient to quickly explain the workings of a (scikit-learn compatible)
+This python package makes it convenient to quickly explain the workings of a (scikit-learn compatible)
 fitted machine learning model using either interactive plots in e.g. Jupyter Notebook or 
 deploying an interactive dashboard (based on Flask/Dash) that allows you to quickly explore
 the impact of different features on model predictions. Example deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
@@ -26,7 +26,7 @@ The library includes:
 - *Permutation importances* (how much does the model metric deteriorate when you shuffle a feature?)
 - *Partial dependence plots* (how does the model prediction change when you vary a single feature?
 - *Shap interaction values* (decompose the shap value into a direct effect an interaction effects)
-- For Random Forests: what is the prediction of each *individual decision tree*, and what is the path through each tree? (using `dtreeviz`)
+- For Random Forests and xgboost models: what is the prediction of each *individual decision tree*, and what is the path through each tree? (using `dtreeviz`)
 - Plus for classifiers: precision plots, confusion matrix, ROC AUC plot, PR AUC plot, etc
 - For regression models: goodness-of-fit plots, residual plots, etc. 
 
@@ -54,7 +54,7 @@ train_names, test_names = titanic_names()
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
-explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
+explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 
                                 labels=['Not survived', 'Survived'])
@@ -70,8 +70,9 @@ db.run(port=8051)
 
 ```
 
-When working inside jupyter you can use `JupyterExplainerDashboard()` instead
-to use `JupyterDash` instead of `dash.Dash()` to start the app.
+When working inside jupyter or Google Colab you can use `ExplainerDashboard(mode='inline')` 
+or `ExplainerDashboard(mode='external')` instead to use `JupyterDash` instead of 
+`dash.Dash()` to start the app.
 
 You can also use e.g. `InlineExplainer(explainer).tab.dependence()` to see a 
 single specific tab or component inline in your notebook. 
@@ -123,7 +124,7 @@ train_names, test_names = titanic_names()
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
-explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
+explainer = ClassifierExplainer(model, X_test, y_test, 
                                 X_background=None, model_output='probability',
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 

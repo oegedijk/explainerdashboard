@@ -27,7 +27,7 @@ The code below is from `the deployed example to heroku <https://github.com/oeged
     model = RandomForestClassifier(n_estimators=50, max_depth=5)
     model.fit(X_train, y_train)
 
-    explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
+    explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 
                                 labels=['Not survived', 'Survived'])

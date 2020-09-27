@@ -3,16 +3,22 @@
 ## Version 0.2.3
 
 ### Breaking Changes
-- 
+- RandomForestClassifierExplainer and RandomForestRegressionExplainer will be 
+    deprecated: can now simply use ClassifierExplainer or RegressionExplainer and the
+    mixin class will automatically be loaded.
 - 
 
 ### New Features
-- Now also support for visualizing individual XGBoost trees with the new
-    XGBCLassifierExplainer and XGBRegressionExplainer. 
+- Now also support for visualizing individual trees for XGBoost models!
+    (XGBClassifier and XGBRegressor). The XGBExplainer mixin class will be 
+    automatically loaded and make decisiontree_df(), decision_path() and plot_trees()
+    methods available, Decision Trees tab and components now also work for
+    XGBoost models. 
 - new parameter n_jobs for calculations that can be parallelized (e.g. permutation importances)
 - contrib_df, plot_shap_contributions: can order by global shap feature 
-    'importance' (as well as 'abs', 'high-to-low' and 'low-to-high')
-- added actual outcome to plot_trees
+    importance with sort='importance' (as well as 'abs', 'high-to-low' 
+     'low-to-high')
+- added actual outcome to plot_trees (for both RandomForest and XGB)
 
 ### Bug Fixes
 -
