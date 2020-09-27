@@ -8,8 +8,8 @@ from xgboost import XGBClassifier, XGBRegressor
 import plotly.graph_objects as go
 import dtreeviz 
 
-from explainerdashboard.explainers import XGBRegressionExplainer
-from explainerdashboard.explainers import XGBClassifierExplainer
+from explainerdashboard.explainers import RegressionExplainer
+from explainerdashboard.explainers import ClassifierExplainer
 from explainerdashboard.datasets import *
 
 
@@ -22,7 +22,7 @@ class XGBClassifierExplainerTests(unittest.TestCase):
         model = XGBClassifier(n_estimators=5)
         model.fit(X_train, y_train)
 
-        self.explainer = XGBClassifierExplainer(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, 
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names, 
@@ -65,7 +65,7 @@ class XGBMultiClassifierExplainerTests(unittest.TestCase):
         model = XGBClassifier(n_estimators=5)
         model.fit(X_train, y_train)
 
-        self.explainer = XGBClassifierExplainer(
+        self.explainer = ClassifierExplainer(
                             model, X_test, y_test, model_output='raw',
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names, 
@@ -118,7 +118,7 @@ class XGBRegressionExplainerTests(unittest.TestCase):
         model = XGBRegressor(n_estimators=5, max_depth=2)
         model.fit(X_train, y_train)
 
-        self.explainer = XGBRegressionExplainer(
+        self.explainer = RegressionExplainer(
                             model, X_test, y_test, 
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names)

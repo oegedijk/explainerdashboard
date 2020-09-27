@@ -5,15 +5,12 @@ Simple example
 ==============
 
 In order to start an ``ExplainerDashboard`` you first need to construct an 
-``Explainer`` instance. They come in six flavours and at its most basic they 
+``Explainer`` instance. They come in two flavours and at its most basic they 
 only need a model, and a test set X and y::
 
     explainer = ClassifierExplainer(model, X_test, y_test)
     explainer = RegressionExplainer(model, X_test, y_test)
     explainer = RandomForestClassifierExplainer(model, X_test, y_test)
-    explainer = RandomForestRegressionExplainer(model, X_test, y_test)
-    explainer = XGBClassifierExplainer(model, X_test, y_test)
-    explainer = XGBRegressionExplainer(model, X_test, y_test)
 
 This is enough to launch an ExplainerDashboard::
 
@@ -361,14 +358,9 @@ And for dtreeviz visualization of individual decision trees (svg format)::
     explainer.decision_path_file(tree_idx, index)
     explainer.decision_path_encoded(tree_idx, index)
 
-These methods are not available with the standard ``ClassifierExplainer`` and 
-``RegressionExplainer`` classes so you need to instantiate with the specific
-Explainer classes for these models::
-
-    explainer = RandomForestClassifierExplainer(model, X, y)
-    explainer = RandomForestRegressionExplainer(model, X, y)
-    explainer = XGBClassifierExplainer(model, X, y)
-    explainer = XGBRegressionExplainer(model, X, y)
+These methods are part of the ``RandomForestExplainer`` and XGBExplainer`` mixin
+classes that get automatically loaded when you pass either a RandomForest
+or XGBoost model.
 
 
 plot_trees
@@ -514,14 +506,18 @@ random_index
 .. automethod:: explainerdashboard.explainers.RegressionExplainer.random_index
 
 
-RandomForest outputs
---------------------
+RandomForest and XGBoost outputs
+-------------------------------
 
-For ``RandomForestExplainer``::
+For RandomForest and XGBoost models mixin classes that visualize individual 
+decision trees will be loaded: ``RandomForestExplainer`` and ``XGBExplainer``
+with the following additional methods::
 
     decisiontree_df(tree_idx, index, pos_label=None)
     decisiontree_summary_df(tree_idx, index, round=2, pos_label=None)
     decision_path_file(tree_idx, index)
+    decision_path_encoded(tree_idx, index)
+    decision_path(tree_idx, index)
 
 
 decisiontree_df
@@ -538,6 +534,17 @@ decision_path_file
 ^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
+
+decision_path_encoded
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_encoded
+
+decision_path
+^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path
+
 
 Calculated Properties
 =====================
@@ -664,7 +671,8 @@ The ``RandomForestExplainer`` mixin class provides additional functionality
 in order to explore individual decision trees within the RandomForest.
 This can be very useful for showing stakeholders that a RandomForest is
 indeed just a collection of simple decision trees that you then calculate
-the average off. 
+the average off. This Mixin class will be automatically included
+whenever you pass a ``RandomForestClassifier`` or ``RandomForestRegressor`` model.
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer
    :members: decisiontree_df, decisiontree_summary_df, plot_trees, decision_path
@@ -672,21 +680,7 @@ the average off.
    :exclude-members: 
    :noindex:
 
-RandomForestClassifierExplainer
--------------------------------
 
-.. autoclass:: explainerdashboard.explainers.RandomForestClassifierExplainer
-   :member-order: bysource
-   :exclude-members: __init__
-   :noindex:
-
-RandomForestRegressionExplainer
--------------------------------
-
-.. autoclass:: explainerdashboard.explainers.RandomForestRegressionExplainer
-   :member-order: bysource
-   :exclude-members: __init__
-   :noindex:
 
 
 XGBExplainer
@@ -696,6 +690,8 @@ The ``XGBExplainer`` mixin class provides additional functionality
 in order to explore individual decision trees within an xgboost ensemble model.
 This can be very useful for showing stakeholders that a xgboost is
 indeed just a collection of simple decision trees that get summed together. 
+This Mixin class will be automatically included
+whenever you pass a ``XGBClassifier`` or ``XGBRegressor`` model.
 
 
 .. autoclass:: explainerdashboard.explainers.XGBExplainer
@@ -704,21 +700,7 @@ indeed just a collection of simple decision trees that get summed together.
    :exclude-members: 
    :noindex:
 
-XGBClassifierExplainer
-----------------------
 
-.. autoclass:: explainerdashboard.explainers.XGBClassifierExplainer
-   :member-order: bysource
-   :exclude-members: __init__
-   :noindex:
-
-XGBRegressionExplainer
-----------------------
-
-.. autoclass:: explainerdashboard.explainers.XGBRegressionExplainer
-   :member-order: bysource
-   :exclude-members: __init__
-   :noindex:
 
 
 
