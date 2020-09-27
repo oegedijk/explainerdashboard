@@ -94,22 +94,23 @@ However it would be easy to turn this custom ``FeatureListTab`` into a proper
 Starting a multitab dashboard
 -----------------------------
 
-Besided using the booleans as described above, you can also pass a list of 
+Besided the single page dashboard above you can also pass a list of 
 ``ExplainerComponents`` to construct multiple tabs. These can be a mix of 
 the different types discussed above. E.g.::
 
    ExplainerDashboard(explainer, [ImportancesTab, imp_tab, "importances", features]).run()
 
 This would start a dashboard with three importances tabs, plus our custom 
-feature list tab. (not sure why you would do that, but you get the point :)
+feature list tab. (not sure why you would do that, but hopefully you get the point :)
 
 
-Using Dash or JupyterDash
--------------------------
+Using explainerdashboard inside Jupyter notebook or google colab
+----------------------------------------------------------------
 
 You can start the dashboard with the standard ``dash.Dash()`` server or with the 
-new notebook friendly ``jupyter_dash`` library server. The latter will allow you
+new notebook friendly ``jupyter_dash`` server. The latter will allow you
 to keep working interactively in your notebook while the dashboard is running.
+Also, this allows you to run an explainerdashboard from within google colab!
 
 The default dash server is started with ``mode='dash'``. There are three different 
 options for ``jupyter_dash``: ``mode='inline'`` for running the dashboard in an 
@@ -136,7 +137,7 @@ it with the ``external_stylesheets`` parameter. Additional info on styling boots
 layout can be found at:  https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
 
 You can add a theme by putting it in an ``/assets/`` subfolder, or by linking to it directly.
-`dash_bootstrap_components` offer a convenient way of inserting these::
+``dash_bootstrap_components`` offer a convenient way of inserting these::
 
    import dash_bootstrap_components as dbc
    ExplainerDashboard(explainer, ["contributions", "model_summary"], 
@@ -190,6 +191,7 @@ You then start the dashboard on the commandline with::
 
    gunicorn dashboard:server
 
+See the deployment section for more info on using explainerdashboard in production.
 
 ExplainerDashboard documentation
 --------------------------------

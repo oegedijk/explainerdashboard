@@ -11,7 +11,7 @@
     XGBCLassifierExplainer and XGBRegressionExplainer. 
 - new parameter n_jobs for calculations that can be parallelized (e.g. permutation importances)
 - contrib_df, plot_shap_contributions: can order by global shap feature 
-    'importance' (as well as 'abs', 'high-to-low', 'low-to-high')
+    'importance' (as well as 'abs', 'high-to-low' and 'low-to-high')
 - added actual outcome to plot_trees
 
 ### Bug Fixes
@@ -19,15 +19,14 @@
 -
 
 ### Improvements
-
-- added selenium integration tests for dashboards (also working with github actions)
-- added tests for multiclass classsification, DecisionTree and ExtraTrees models
-- added proper docstrings to explainer_methods.py
 - optimized code for calculating permutation importance, adding possibility to calculate in parallel
 - shap dependence component: if no color col selected, output standard blue dots instead of ignoring update
 
 ### Other Changes
--
+- added selenium integration tests for dashboards (also working with github actions)
+- added tests for multiclass classsification, DecisionTree and ExtraTrees models
+- added tests for XGBExplainers
+- added proper docstrings to explainer_methods.py
 
 ## Version 0.2.2
 

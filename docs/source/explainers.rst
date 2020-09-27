@@ -5,13 +5,15 @@ Simple example
 ==============
 
 In order to start an ``ExplainerDashboard`` you first need to construct an 
-``Explainer`` instance. They come in four flavours and at its most basic they 
+``Explainer`` instance. They come in six flavours and at its most basic they 
 only need a model, and a test set X and y::
 
     explainer = ClassifierExplainer(model, X_test, y_test)
     explainer = RegressionExplainer(model, X_test, y_test)
     explainer = RandomForestClassifierExplainer(model, X_test, y_test)
     explainer = RandomForestRegressionExplainer(model, X_test, y_test)
+    explainer = XGBClassifierExplainer(model, X_test, y_test)
+    explainer = XGBRegressionExplainer(model, X_test, y_test)
 
 This is enough to launch an ExplainerDashboard::
 
@@ -78,7 +80,7 @@ For the titanic example this would be:
 So you would pass ``cats=['Sex', 'Deck', 'Embarked']``. You can now use these 
 categorical features directly as input for plotting methods, e.g. 
 ``explainer.plot_shap_dependence("Deck")``. For other methods you can pass
-a parameter ``shap=True``, to indicate that you'd like to group the categorical
+a parameter ``cats=True``, to indicate that you'd like to group the categorical
 features in your output. 
 
 idxs
@@ -89,7 +91,7 @@ If you pass these the the Explainer object, you can index using both the
 numerical index, e.g. ``explainer.contrib_df(0)`` for the first row, or using the 
 identifier, e.g. ``explainer.contrib_df("Braund, Mr. Owen Harris")``.
 
-The proper name or idx will be use used in all ``ExplainerComponents`` that
+The proper name or idxs will be use used in all ``ExplainerComponents`` that
 allow index selection.
 
 descriptions
@@ -169,7 +171,7 @@ LogisticRegression::
 permutation_cv
 --------------
 
-Normally permuation importances get calculated over a single fold (assuming the
+Normally permutation importances get calculated over a single fold (assuming the
 data is the test set). However if you pass the training set to the explainer,
 you may wish to cross-validate calculate the permutation importances. In that
 case pass the number of folds to ``permutation_cv``.
@@ -179,7 +181,7 @@ na_fill
 
 If you fill missing values with some extreme value such as ``-999`` (typical for
 tree based methods), these can mess with the horizontal axis of your plots. 
-In order to filter these out, you need to tell the expaliner what the extreme value 
+In order to filter these out, you need to tell the explainer what the extreme value 
 is that you used to fill. Defaults to ``-999``.
 
 Plots
@@ -336,12 +338,12 @@ plot_residuals_vs_feature
 .. automethod:: explainerdashboard.explainers.RegressionExplainer.plot_residuals_vs_feature
 
 
-RandomForest Plots
+DecisionTree Plots
 ------------------
 
-There is an additional mixin class specifically for ``sklearn`` ``RandomForests``
-that defines additional methods and plots to investigate and visualize 
-individual decision trees within the random forest. ``RandomForestExplainer``
+There are additional mixin classes specifically for ``sklearn`` ``RandomForests``
+and for xgboost models that define additional methods and plots to investigate and visualize 
+individual decision trees within the ensemblke. These
 uses the ``dtreeviz`` library to visualize individual decision trees.
 
 You can get a pd.DataFrame summary of the path that a specific index row took 
@@ -350,7 +352,7 @@ You can also plot the individual predictions of each individual tree for
 specific row in your data indentified by ``index``::
 
     explainer.decisiontree_df(tree_idx, index)
-    explainer.decisiontree_df_summary(tree_idx, index)
+    explainer.decisiontree_summary_df(tree_idx, index)
     explainer.plot_trees(index)
 
 And for dtreeviz visualization of individual decision trees (svg format)::
@@ -359,10 +361,14 @@ And for dtreeviz visualization of individual decision trees (svg format)::
     explainer.decision_path_file(tree_idx, index)
     explainer.decision_path_encoded(tree_idx, index)
 
-This also works with classifiers and regression models::
+These methods are not available with the standard ``ClassifierExplainer`` and 
+``RegressionExplainer`` classes so you need to instantiate with the specific
+Explainer classes for these models::
 
     explainer = RandomForestClassifierExplainer(model, X, y)
     explainer = RandomForestRegressionExplainer(model, X, y)
+    explainer = XGBClassifierExplainer(model, X, y)
+    explainer = XGBRegressionExplainer(model, X, y)
 
 
 plot_trees
@@ -514,7 +520,7 @@ RandomForest outputs
 For ``RandomForestExplainer``::
 
     decisiontree_df(tree_idx, index, pos_label=None)
-    decisiontree_df_summary(tree_idx, index, round=2, pos_label=None)
+    decisiontree_summary_df(tree_idx, index, round=2, pos_label=None)
     decision_path_file(tree_idx, index)
 
 
@@ -523,10 +529,10 @@ decisiontree_df
 
 .. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_df
 
-decisiontree_df_summary
+decisiontree_summary_df
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_df_summary
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_summary_df
 
 decision_path_file
 ^^^^^^^^^^^^^^^^^^
@@ -654,8 +660,14 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
 RandomForestExplainer
 =====================
 
+The ``RandomForestExplainer`` mixin class provides additional functionality
+in order to explore individual decision trees within the RandomForest.
+This can be very useful for showing stakeholders that a RandomForest is
+indeed just a collection of simple decision trees that you then calculate
+the average off. 
+
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer
-   :members: decisiontree_df, decisiontree_df_summary, plot_trees, decision_path
+   :members: decisiontree_df, decisiontree_summary_df, plot_trees, decision_path
    :member-order: bysource
    :exclude-members: 
    :noindex:
@@ -672,6 +684,38 @@ RandomForestRegressionExplainer
 -------------------------------
 
 .. autoclass:: explainerdashboard.explainers.RandomForestRegressionExplainer
+   :member-order: bysource
+   :exclude-members: __init__
+   :noindex:
+
+
+XGBExplainer
+============
+
+The ``XGBExplainer`` mixin class provides additional functionality
+in order to explore individual decision trees within an xgboost ensemble model.
+This can be very useful for showing stakeholders that a xgboost is
+indeed just a collection of simple decision trees that get summed together. 
+
+
+.. autoclass:: explainerdashboard.explainers.XGBExplainer
+   :members: decisiontree_df, decisiontree_summary_df, plot_trees, decision_path
+   :member-order: bysource
+   :exclude-members: 
+   :noindex:
+
+XGBClassifierExplainer
+----------------------
+
+.. autoclass:: explainerdashboard.explainers.XGBClassifierExplainer
+   :member-order: bysource
+   :exclude-members: __init__
+   :noindex:
+
+XGBRegressionExplainer
+----------------------
+
+.. autoclass:: explainerdashboard.explainers.XGBRegressionExplainer
    :member-order: bysource
    :exclude-members: __init__
    :noindex:

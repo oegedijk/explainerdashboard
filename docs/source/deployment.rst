@@ -7,7 +7,7 @@ server but use more robust and scalable options like ``gunicorn`` and ``nginx``.
 Deploying a single dashboard instance
 =====================================
 
-``Dash`` is built on top of ``Flask``, and so the dashbaord instance 
+``Dash`` is built on top of ``Flask``, and so the dashboard instance 
 contains a Flask server. You can simply expose this server to host your dashboard.
 
 The server can be found in ``ExplainerDashboard().app.server`` or with
@@ -21,21 +21,17 @@ The code below is from `the deployed example to heroku <https://github.com/oeged
     from explainerdashboard.dashboards import *
     from explainerdashboard.datasets import *
 
-    print('loading data...')
     X_train, y_train, X_test, y_test = titanic_survive()
     train_names, test_names = titanic_names()
 
-    print('fitting model...')
     model = RandomForestClassifier(n_estimators=50, max_depth=5)
     model.fit(X_train, y_train)
 
-    print('building Explainer...')
     explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
                                 idxs=test_names, 
                                 labels=['Not survived', 'Survived'])
 
-    print('Building ExplainerDashboard...')
     db = ExplainerDashboard(explainer)
 
     server = db.app.server
@@ -53,7 +49,6 @@ If you want to have multiple workers to speed up your dashboard, you need
 to preload the app before starting::
 
         gunicorn -w 3 --preload localhost:8050 dashboard:server
-
 
 
 Deploying dashboard as part of Flask app on specific route
@@ -84,7 +79,40 @@ Now you can start the dashboard by::
 
 And you can visit the dashboard on ``http://localhost:8050/dashboard``.
 
+Avoid timeout by precalculating explainers and loading with joblib
+==================================================================
+
+Some of the calculations in order to generate e.g. the SHAP values and permutation
+importances can take quite a longtime (especially shap interaction values). 
+Long enough the break the startup timeout of gunicorn. Therefore it is better
+to first calculate all these values, save the explainer to disk, and then load
+the explainer when starting the dashboard::
+
+    import joblib
+    from explainerdashboard.explainer import ClassifierExplainer
+    
+    explainer = ClassifierExplainer(model, X_test, y_test, 
+                               cats=['Sex', 'Deck', 'Embarked'],
+                               labels=['Not survived', 'Survived'])
+    explainer.calculate_properties()
+    joblib.dump(explainer, "explainer.pkl")
+
+Then in ``dashboard.py`` load the explainer and start the dashboard:: 
+
+    import joblib
+    from explainerdashboard.dashboards import ExplainerDashboard
+
+    explainer = joblib.load("explainer.pkl")
+    db = ExplainerDashboard(clas_explainer)
+    server = db.app.server 
+
+And start the thing with gunicorn::
+
+    gunicorn -b localhost:8050 dashboard:server
+
+
 Deploying as part of a multipage dash app
 =========================================
 
 **Under Construction**
+

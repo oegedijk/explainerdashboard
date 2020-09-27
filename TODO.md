@@ -27,7 +27,6 @@
 - add target name 
 - add plain language explanations
 
-
 ## notebooks:
 - add binder/colab links on github
 
@@ -48,11 +47,9 @@
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
-- write tests for XGBoostExplainers
 - add test coverage 
 
 ## Docs:
-- add documentation for XGBExplainers
 - add docstrings to explainer_plots
 - add screenshots of components to docs
 - move screenshots to separate folder
@@ -62,8 +59,6 @@
 
 
 ## Library level:
-- Add launch from colab option (mode='colab'?):
-    - https://amitness.com/2020/06/google-colaboratory-tips/?s=03
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/

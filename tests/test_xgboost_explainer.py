@@ -66,7 +66,7 @@ class XGBMultiClassifierExplainerTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = XGBClassifierExplainer(
-                            model, X_test, y_test, 
+                            model, X_test, y_test, model_output='raw',
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names, 
                             labels=['Queenstown', 'Southampton', 'Cherbourgh'])
