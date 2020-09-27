@@ -4,7 +4,7 @@ InlineExplainer
 As datascientists you often work inside a notebook environment where you 
 quickly interactively like to explore your data. The ``InlineExplainer`` allows
 you to do this by running ``ExplainerComponents`` (or whole tabs) inline 
-inside your Jupyter notebook.
+inside your Jupyter notebook (also works in google colab!).
 
 .. image:: inline_screenshot.png
 

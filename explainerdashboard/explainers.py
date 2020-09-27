@@ -122,8 +122,23 @@ class BaseExplainer(ABC):
         self.is_classifier = False
         self.is_regression = False
         self.interactions_should_work = True
+        model_str = str(type(self.model))
+        if model_str.endswith("RandomForestClassifier'>") or model_str.endswith("RandomForestRegressor'>"):
+            print(f"Loading RandomForestExplainer mixin class...", flush=True)
+            self._add_mixin_class(RandomForestExplainer)
+        if model_str.endswith("XGBClassifier'>") or model_str.endswith("XGBRegressor'>"):
+            print(f"Loading XGBExplainer mixin class...", flush=True)
+            self._add_mixin_class(XGBExplainer)
         _ = self.shap_explainer
 
+    def _add_mixin_class(self, mixin_cls):
+        """extends the instance with class definition mixin_cls"""
+        base_cls = self.__class__
+        base_cls_name = self.__class__.__name__
+        mixin_name = mixin_cls.__name__
+        self.__class__ = type(
+            f"{mixin_name}_{base_cls_name}", (base_cls, mixin_cls), self.__dict__)
+    
     def __len__(self):
         return len(self.X)
 
@@ -2607,23 +2622,43 @@ class RandomForestClassifierExplainer(RandomForestExplainer, ClassifierExplainer
     """RandomForestClassifierBunch inherits from both RandomForestExplainer and
     ClassifierExplainer.
     """
+    def __init__(self, *args, **kwargs):
+        print("WARNING: RandomForestClassifierExplainer will de be deprecated! "
+        "From now on you can use the regular ClassifierExplainer and the "
+        "RandomForestExplainer mixin class will be automatically loaded!")
+        super().__init__(*args, **kwargs)
 
 
 class RandomForestRegressionExplainer(RandomForestExplainer, RegressionExplainer):
     """RandomForestClassifierBunch inherits from both RandomForestExplainer and
     RegressionExplainer.
     """
+    def __init__(self, *args, **kwargs):
+        print("WARNING: RandomForestRegressionExplainer will de be deprecated! "
+        "From now on you can use the regular RegressionExplainer and the "
+        "RandomForestExplainer mixin class will be automatically loaded!")
+        super().__init__(*args, **kwargs)
 
 class XGBClassifierExplainer(XGBExplainer, ClassifierExplainer):
     """RandomForestClassifierBunch inherits from both RandomForestExplainer and
     ClassifierExplainer.
     """
+    def __init__(self, *args, **kwargs):
+        print("WARNING: XGBClassifierExplainer will de be deprecated! From now on"
+        " you can use the regular ClassifierExplainer and the XGBExplainer "
+        "mixin class will be automatically loaded!")
+        super().__init__(*args, **kwargs)
 
 
 class XGBRegressionExplainer(XGBExplainer, RegressionExplainer):
-    """RandomForestClassifierBunch inherits from both RandomForestExplainer and
+    """XGBRegressionExplainer inherits from both XGBExplainer and
     RegressionExplainer.
     """
+    def __init__(self, *args, **kwargs):
+        print("WARNING: XGBRegressionExplainer will de be deprecated! From now on"
+        " you can use the regular ClassifierExplainer and the XGBExplainer "
+        "mixin class will be automatically loaded!")
+        super().__init__(*args, **kwargs)
 
 
 
