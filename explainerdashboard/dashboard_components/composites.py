@@ -157,10 +157,10 @@ class RegressionModelStatsComposite(ExplainerComponent):
             ]),
             dbc.Row([
                 dbc.Col([
-                    self.preds_vs_actual.layout()
+                    self.modelsummary.layout()     
                 ], md=6),
                 dbc.Col([
-                    self.modelsummary.layout()     
+                    self.preds_vs_actual.layout()
                 ], md=6),
             ], align="start"),
             dbc.Row([
@@ -222,30 +222,30 @@ class IndividualPredictionsComposite(ExplainerComponent):
             self.pdp, self.contributions_list, self.index_connector)
 
     def layout(self):
-        return html.Div([
+        return dbc.Container([
                 dbc.Row([
                     dbc.Col([
                         self.index.layout()
-                    ]),
+                    ], md=6),
                     dbc.Col([
                         self.summary.layout()
-                    ])
+                    ], md=6)
                 ]),
                 dbc.Row([
                     dbc.Col([
                         self.contributions.layout()
-                    ]),
+                    ], md=6),
                     dbc.Col([
                         self.pdp.layout()
-                    ]),
+                    ], md=6),
                 ]),
                 dbc.Row([
                     dbc.Col([
                         self.contributions_list.layout()
-                    ]),
+                    ], md=6),
                     dbc.Col([
                         html.Div([]),
-                    ]),
+                    ], md=6),
                 ])
         ])
 
@@ -325,16 +325,16 @@ class ShapInteractionsComposite(ExplainerComponent):
             self.interaction_summary, self.interaction_dependence, self.connector)
         
     def layout(self):
-        return html.Div([
+        return dbc.Container([
                 dbc.Row([
                     dbc.Col([
                         self.interaction_summary.layout()
-                    ], width=6),
+                    ], md=6),
                     dbc.Col([
                         self.interaction_dependence.layout()
-                    ], width=6),
+                    ], md=6),
                 ]) 
-        ])
+        ], fluid=True)
 
 
 class DecisionTreesComposite(ExplainerComponent):
@@ -376,19 +376,6 @@ class DecisionTreesComposite(ExplainerComponent):
         self.register_components(self.index, self.trees, 
                 self.decisionpath_table, self.decisionpath_graph, 
                 self.index_connector, self.highlight_connector)
-
-        # elif explainer.is_regression:
-        #     self.index = RegressionRandomIndexComponent(explainer)
-        #     self.decisionpath_graph = DecisionPathGraphComponent(explainer, hide_selector=hide_selector)# DummyComponent()
-        #     self.index_connector = IndexConnector(self.index, 
-        #             [self.trees, self.decisionpath_table])
-        #     self.highlight_connector = HighlightConnector(
-        #             self.trees, [self.decisionpath_table, self.decisionpath_graph])
-
-        #     self.register_components(
-        #             self.index, self.trees, self.decisionpath_table,
-        #             self.decisionpath_graph, self.index_connector, 
-        #             self.highlight_connector)
         
     def layout(self):
         return html.Div([

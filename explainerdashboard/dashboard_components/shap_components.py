@@ -362,7 +362,7 @@ class InteractionSummaryComponent(ExplainerComponent):
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
-        return html.Div([
+        return dbc.Container([
             make_hideable(html.H3('Shap Interaction Summary'), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
@@ -417,9 +417,13 @@ class InteractionSummaryComponent(ExplainerComponent):
                         dbc.Col([self.selector.layout()
                     ], width=2), hide=self.hide_selector),
                 ], form=True),
-            dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
+            dbc.Row([
+                dbc.Col([
+                    dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
                          children=[dcc.Graph(id='interaction-summary-graph-'+self.name, )])
-        ])
+                ])
+            ]), 
+        ], fluid=True)
 
     def _register_callbacks(self, app):
         @app.callback(
@@ -512,7 +516,7 @@ class InteractionDependenceComponent(ExplainerComponent):
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
-        return html.Div([
+        return dbc.Container([
             make_hideable(html.H3('Shap Interaction Plots'), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
@@ -561,15 +565,23 @@ class InteractionDependenceComponent(ExplainerComponent):
                                 value=self.index)
                         ], md=4), hide=self.hide_index), 
                 ], form=True),
-            make_hideable(
+        dbc.Row([
+            dbc.Col([
+                make_hideable(
                 dcc.Loading(id='loading-interaction-dependence-graph-'+self.name, 
                          children=[dcc.Graph(id='interaction-dependence-graph-'+self.name)]),
                          hide=self.hide_top),
-            make_hideable(
+            ])
+        ]),
+        dbc.Row([
+            dbc.Col([
+                make_hideable(
                 dcc.Loading(id='loading-reverse-interaction-graph-'+self.name, 
                          children=[dcc.Graph(id='interaction-dependence-reverse-graph-'+self.name)]),
                          hide=self.hide_bottom),
-        ])
+            ])
+        ]),
+        ], fluid=True)
 
     def _register_callbacks(self, app):
         @app.callback(

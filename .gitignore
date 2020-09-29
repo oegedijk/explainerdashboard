@@ -135,7 +135,9 @@ catboost_info/learn/events.out.tfevents
 .vscode/settings.json
 .vscode/settings.json
 scratch_notebook.ipynb
+scratch_import.py
 show_and_tell_draft.md
+
 db_test.py
 .DS_Store
 .DS_Store
