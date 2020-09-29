@@ -2007,10 +2007,10 @@ class RegressionExplainer(BaseExplainer):
 
         if str(type(self.model)).endswith("RandomForestRegressor'>"):
             print(f"Changing class type to RandomForestRegressionExplainer...", flush=True)
-            self.__class__ = RandomForestClassifierExplainer 
+            self.__class__ = RandomForestRegressionExplainer 
         if str(type(self.model)).endswith("XGBRegressor'>"):
             print(f"Changing class type to XGBRegressionExplainer...", flush=True)
-            self.__class__ = XGBClassifierExplainer
+            self.__class__ = XGBRegressionExplainer
     
     @property
     def residuals(self):

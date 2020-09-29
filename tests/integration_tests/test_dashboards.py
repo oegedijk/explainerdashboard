@@ -5,7 +5,7 @@ import dash
 from xgboost import XGBClassifier
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
-from explainerdashboard.explainers import ClassifierExplainer, RandomForestRegressionExplainer, RandomForestClassifierExplainer
+from explainerdashboard.explainers import ClassifierExplainer, RegressionExplainer
 from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_embarked, titanic_names
 from explainerdashboard.dashboards import ExplainerDashboard
 
@@ -27,7 +27,7 @@ def get_regression_explainer():
     X_train, y_train, X_test, y_test = titanic_fare()
     train_names, test_names = titanic_names()
     model = RandomForestRegressor(n_estimators=50, max_depth=10).fit(X_train, y_train)
-    reg_explainer = RandomForestRegressionExplainer(model, X_test, y_test, 
+    reg_explainer = RegressionExplainer(model, X_test, y_test, 
                                     cats=['Sex', 'Deck', 'Embarked'], 
                                     idxs=test_names, 
                                     units="$")
@@ -39,7 +39,7 @@ def get_multiclass_explainer():
     X_train, y_train, X_test, y_test = titanic_embarked()
     train_names, test_names = titanic_names()
     model = RandomForestClassifier(n_estimators=50, max_depth=10).fit(X_train, y_train)
-    multi_explainer = RandomForestClassifierExplainer(model, X_test, y_test, 
+    multi_explainer = ClassifierExplainer(model, X_test, y_test, 
                                     cats=['Sex', 'Deck'], 
                                     idxs=test_names,
                                     labels=['Queenstown', 'Southampton', 'Cherbourg'])
