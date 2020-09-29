@@ -331,7 +331,7 @@ class ExplainerDashboard:
         self.app = self._get_dash_app()
         self.app.title = title
 
-        assert isinstance(explainer, BaseExplainer), \
+        assert 'BaseExplainer' in str(explainer.__class__.mro()), \
             ("explainer should be an instance of BaseExplainer, such as "
             "ClassifierExplainer or RegressionExplainer!")
         

@@ -247,7 +247,7 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         html.Div([]),
                     ], md=6),
                 ])
-        ])
+        ], fluid=True)
 
 
 class ShapDependenceComposite(ExplainerComponent):
