@@ -1,5 +1,14 @@
 # Release Notes
 
+## version 0.2.3.3
+
+### Bug Fixes
+-   Fixes bug that made RandomForest and xgboost explainer unpicklable
+
+### Improvements
+-   Now dashboard is mobile responsive by default
+
+
 ## Version 0.2.3
 
 ### Breaking Changes

@@ -408,12 +408,16 @@ class ExplainerDashboard:
                 app = dash.Dash(server=self.server, 
                                 external_stylesheets=self.external_stylesheets, 
                                 assets_url_path="", 
-                                url_base_pathname=self.url_base_pathname)
+                                url_base_pathname=self.url_base_pathname,
+                                meta_tags=[{'name': 'viewport', 
+                                            'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}])
                 app.config['suppress_callback_exceptions'] = True
             else:
                 app = dash.Dash(__name__, 
                                 server=self.server, 
-                                url_base_pathname=self.url_base_pathname)
+                                url_base_pathname=self.url_base_pathname,
+                                meta_tags=[{'name': 'viewport', 
+                                            'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}])
                 app.config['suppress_callback_exceptions'] = True
                 app.css.config.serve_locally = True
                 app.scripts.config.serve_locally = True
