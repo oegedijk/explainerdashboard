@@ -56,6 +56,10 @@
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
+- add documentation how to deploy to heroku:
+    - mock xgboost
+    - uninstall xgboost with shell buildpack
+    - graphviz buildpack
 
 
 ## Library level:
