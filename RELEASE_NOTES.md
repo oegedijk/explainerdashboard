@@ -1,12 +1,17 @@
 # Release Notes
 
-## version 0.2.3.3
+## version 0.2.4
+
+### New Features
+- added ExplainerDashboard parameter "reponsive" (defaults to True) to make 
+    the dashboard layout reponsive on mobile devices. Set it to False when e.g.
+    running tests on headless browsers.
 
 ### Bug Fixes
--   Fixes bug that made RandomForest and xgboost explainer unpicklable
+-   Fixes bug that made RandomForest and xgboost explainers unpicklable
 
 ### Improvements
--   Now dashboard is mobile responsive by default
+-   Added tests for picklability of explainers
 
 
 ## Version 0.2.3

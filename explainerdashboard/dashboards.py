@@ -249,6 +249,7 @@ class ExplainerDashboard:
                  external_stylesheets=None,
                  server=True,
                  url_base_pathname=None,
+                 responsive=True,
                  importances=True,
                  model_summary=True,
                  contributions=True,
@@ -311,6 +312,14 @@ class ExplainerDashboard:
             height(int, optional): height of notebookn output cell in pixels, defaults to 800.
             external_stylesheets(list, optional): attach dbc themes e.g. 
                 `external_stylesheets=[dbc.themes.FLATLY]`. 
+            server (Flask instance or bool): either an instance of an existing Flask
+                server to tie the dashboard to, or True in which case a new Flask
+                server is created. 
+            url_base_pathname (str): url_base_pathname for dashboard, 
+                e.g. "/dashboard". Defaults to None.
+            responsive (bool):  make layout responsive to viewport size 
+                (i.e. reorganize bootstrap columns on small devices). Set to False
+                when e.g. testing with a headless browser. Defaults to True.
             importances(bool, optional): include ImportancesTab, defaults to True.
             model_summary(bool, optional): include ModelSummaryTab, defaults to True.
             contributions(bool, optional): include ContributionsTab, defaults to True.
@@ -327,6 +336,7 @@ class ExplainerDashboard:
             hide_header, header_hide_title, header_hide_selector
         self.external_stylesheets = external_stylesheets
         self.server, self.url_base_pathname = server, url_base_pathname
+        self.responsive = responsive
         
         self.app = self._get_dash_app()
         self.app.title = title
@@ -383,7 +393,7 @@ class ExplainerDashboard:
 
         print("Calculating dependencies...", flush=True)  
         explainer_layout.calculate_dependencies()
-        print("registering callbacks...", flush=True)
+        print("Registering callbacks...", flush=True)
         explainer_layout.register_callbacks(self.app)
 
     def _convert_str_tabs(self, component):
@@ -403,21 +413,23 @@ class ExplainerDashboard:
         return component
 
     def _get_dash_app(self):
+        if self.responsive:
+            meta_tags = [{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}]
+        else:
+            meta_tags = None
         if self.mode=="dash":
             if self.external_stylesheets is not None:
                 app = dash.Dash(server=self.server, 
                                 external_stylesheets=self.external_stylesheets, 
                                 assets_url_path="", 
                                 url_base_pathname=self.url_base_pathname,
-                                meta_tags=[{'name': 'viewport', 
-                                            'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}])
+                                meta_tags=meta_tags)
                 app.config['suppress_callback_exceptions'] = True
             else:
                 app = dash.Dash(__name__, 
                                 server=self.server, 
                                 url_base_pathname=self.url_base_pathname,
-                                meta_tags=[{'name': 'viewport', 
-                                            'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}])
+                                meta_tags=meta_tags)
                 app.config['suppress_callback_exceptions'] = True
                 app.css.config.serve_locally = True
                 app.scripts.config.serve_locally = True
@@ -426,7 +438,8 @@ class ExplainerDashboard:
             if self.external_stylesheets is not None:
                 app = JupyterDash(
                             external_stylesheets=self.external_stylesheets, 
-                            assets_url_path="")
+                            assets_url_path="",
+                            meta_tags=meta_tags)
             else:
                 app = JupyterDash(__name__)
             return app
