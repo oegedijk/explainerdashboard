@@ -3,7 +3,7 @@
 ## version 0.2.4
 
 ### New Features
-- added ExplainerDashboard parameter "reponsive" (defaults to True) to make 
+- added ExplainerDashboard parameter "responsive" (defaults to True) to make 
     the dashboard layout reponsive on mobile devices. Set it to False when e.g.
     running tests on headless browsers.
 

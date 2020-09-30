@@ -111,8 +111,49 @@ And start the thing with gunicorn::
     gunicorn -b localhost:8050 dashboard:server
 
 
-Deploying as part of a multipage dash app
-=========================================
+Deploying to heroku
+===================
 
-**Under Construction**
+In case you would like to deploy to `heroku<www.heroku.com>`_ (which is probably the simplest 
+`deployment<https://dash.plotly.com/deployment>`_ option for dash apps), 
+where the demonstration dashboard is hosted
+at `titanicexplainer.herokuapp.com<titanicexplainer.herokuapp.com>`_ 
+there are a number of issues to keep in mind.
 
+Uninstalling and mocking xgboost
+--------------------------------
+
+A heroku deployment ("slug size") should not exeed 500MB after compression. Unfortunately
+the xgboost library is >350MB, so this means it will be hard to deploy any
+xgboost models to heroku. Unfortunately however  ``xgboost`` gets automatically installed 
+as a dependency of ``dtreeviz`` which is a dependency of ``explainerdashboard``. 
+
+So in order to get even non-xgboost models to work you will
+have to uninstall xgboost and then mock it. This is normally pretty easy 
+(``pip uninstall xgboost``), but on heroku you first need to add a buildpack
+in order to run shell instructions after the build phase.
+So add the following shell buildpack:
+`https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_ ,
+and then create a 
+directory ``.heroku`` with a file ``run.sh`` with the
+instructions to uninstall xgboost: ``pip install -y xgboost``. This script will
+then be run at the end of your build process, ensuring that xgboost will be
+uninstalled before the deployment is compressed to a slug.
+
+However ``dtreeviz`` will still try to import ``xgboost`` so you need to 
+mock the ``xgboost`` library by adding the following code before you import 
+``explainerdashboard`` in your project::
+
+    from unittest.mock import MagicMock
+    import sys
+    sys.modules["xgboost"] = MagicMock()
+
+
+Graphviz buildpack
+------------------
+
+If you want to visualize indidividual trees in your ``RandomForest`` using
+the ``dtreeviz`` package you will
+need to make sure that ``graphviz`` is installed on your ``heroku`` dyno by
+adding the following buildstack: 
+``https://github.com/weibeld/heroku-buildpack-graphviz.git``
