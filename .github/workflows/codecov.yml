@@ -1,0 +1,28 @@
+name: Python Master Workflow
+on:
+  push:
+    branches:
+      - 'master'
+jobs:
+  codecov:
+    name: Codecov Workflow
+    runs-on: ubuntu-18.04
+    
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@master
+        with:
+          python-version: 3.8
+      - name: Generate coverage report
+        run: |
+          pip install pytest
+          pip install pytest-cov
+          pip install -r requirements_testing.txt
+          pytest --cov=./ --cov-report=xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          flags: unittests
