@@ -68,7 +68,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
-    install_requires=['dash', 'dash-bootstrap-components', 'jupyter_dash',
+    install_requires=['dash', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
                     'dtreeviz>=1.0', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
                     'shap', 'shortuuid'],
     author='Oege Dijk',

@@ -50,8 +50,10 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 
         self.hide_title = hide_title
 
+        self.summary = ClassifierModelSummaryComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.precision = PrecisionComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
+        self.cumulative_precision = CumulativePrecisionComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.liftcurve = LiftCurveComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.classification = ClassificationComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.rocauc = RocAucComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
@@ -59,13 +61,13 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 
         self.cutoffpercentile = CutoffPercentileComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
-                [self.precision, self.confusionmatrix, self.liftcurve, 
+                [self.summary, self.precision, self.confusionmatrix, self.liftcurve, 
                  self.classification, self.rocauc, self.prauc])
 
         self.register_components(
-            self.precision, self.confusionmatrix, self.liftcurve,
-            self.classification, self.rocauc, self.prauc, self.cutoffpercentile,
-            self.cutoffconnector)
+            self.summary, self.precision, self.confusionmatrix, 
+            self.cumulative_precision, self.liftcurve, self.classification, 
+            self.rocauc, self.prauc, self.cutoffpercentile, self.cutoffconnector)
 
     def layout(self):
         return html.Div([
@@ -81,19 +83,11 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             ]),
             dbc.Row([
                 dbc.Col([
-                    self.precision.layout()
+                    self.summary.layout()
                 ], md=6, align="start"),
                 dbc.Col([
                     self.confusionmatrix.layout()
                 ], md=6, align="start"),              
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    self.liftcurve.layout()         
-                ], md=6, align="start"),
-                dbc.Col([
-                    self.classification.layout()
-                ], md=6, align="start"),
             ]),
             dbc.Row([    
                 dbc.Col([
@@ -103,6 +97,22 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                     self.prauc.layout()
                 ], md=6),
             ]),
+            dbc.Row([
+                dbc.Col([
+                    self.liftcurve.layout()         
+                ], md=6, align="start"),
+                dbc.Col([
+                    self.classification.layout()
+                ], md=6, align="start"),
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    self.precision.layout()
+                ], md=6, align="start"),
+                dbc.Col([
+                    self.cumulative_precision.layout()
+                ], md=6, align="start"),              
+            ]),  
         ])
 
 

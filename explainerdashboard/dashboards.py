@@ -13,6 +13,7 @@ import requests
 
 import shortuuid
 import dash
+import dash_auth
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -20,6 +21,7 @@ import dash_bootstrap_components as dbc
 from jupyter_dash import JupyterDash
 
 import plotly.io as pio
+
 
 from .dashboard_components import *
 from .dashboard_tabs import *
@@ -250,6 +252,7 @@ class ExplainerDashboard:
                  server=True,
                  url_base_pathname=None,
                  responsive=True,
+                 logins=None,
                  importances=True,
                  model_summary=True,
                  contributions=True,
@@ -320,6 +323,9 @@ class ExplainerDashboard:
             responsive (bool):  make layout responsive to viewport size 
                 (i.e. reorganize bootstrap columns on small devices). Set to False
                 when e.g. testing with a headless browser. Defaults to True.
+            logins (list of lists): list of (hardcoded) logins, e.g. 
+                [['login1', 'password1'], ['login2', 'password2']]. 
+                Defaults to None (no login required)
             importances(bool, optional): include ImportancesTab, defaults to True.
             model_summary(bool, optional): include ModelSummaryTab, defaults to True.
             contributions(bool, optional): include ContributionsTab, defaults to True.
@@ -337,8 +343,24 @@ class ExplainerDashboard:
         self.external_stylesheets = external_stylesheets
         self.server, self.url_base_pathname = server, url_base_pathname
         self.responsive = responsive
-        
+
+        try:
+            ipython_kernel = str(get_ipython())
+            self.is_notebook = True
+            self.is_colab = True if 'google.colab' in ipython_kernel else False
+        except:
+            self.is_notebook, self.is_colab = False, False
+
+        if self.mode == 'dash' and self.is_colab:
+            print("Detected google colab environment, setting mode='external'", flush=True)
+            self.mode = 'external'
+        elif self.mode == 'dash' and self.is_notebook:
+            print("Detected notebook environment, consider setting "
+                    "mode='external', mode='inline' or mode='jupyterlab'...", flush=True)
+
         self.app = self._get_dash_app()
+        if logins is not None:
+            self.auth = dash_auth.BasicAuth(self.app, logins)
         self.app.title = title
 
         assert 'BaseExplainer' in str(explainer.__class__.mro()), \

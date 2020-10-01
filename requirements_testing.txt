@@ -10,3 +10,5 @@ catboost
 lightgbm
 xgboost
 selenium
+shortuuid
+dash-auth

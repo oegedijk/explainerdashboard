@@ -286,9 +286,9 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
     
     fig = go.Figure()
     for i, label in enumerate(labels):
-        text = [f"<b>{sum(below_threshold[1]==i)}</b> ({np.round(100*np.mean(below_threshold[1]==i), 2)}%)",
-                f"<b>{sum(above_threshold[1]==i)}</b> ({np.round(100*np.mean(above_threshold[1]==i), 2)}%)", 
-                f"<b>{sum(targets==i)}</b> ({np.round(100*np.mean(targets==i), 2)}%)"]
+        text = [f"<b>{sum(below_threshold[1]==i)}</b><br>({np.round(100*np.mean(below_threshold[1]==i), 1)}%)",
+                f"<b>{sum(above_threshold[1]==i)}</b><br>({np.round(100*np.mean(above_threshold[1]==i), 1)}%)", 
+                f"<b>{sum(targets==i)}</b><br>({np.round(100*np.mean(targets==i), 1)}%)"]
         if percentage:
             fig.add_trace(go.Bar(
                 x=x, 
@@ -1073,18 +1073,15 @@ def plotly_tree_predictions(model, observation, y=None, highlight_tree=None, rou
 
 
 
-def plotly_confusion_matrix(y_true, y_preds, labels = None, normalized=True):
+def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
 
     cm = confusion_matrix(y_true, y_preds)
+    cm_normalized = np.round(100*cm / cm.sum(), 1)
 
     if labels is None:
         labels = [str(i) for i in range(cm.shape[0])] 
 
-    if normalized:
-        cm = np.round(100*cm / cm.sum(),1)
-        zmax = 100
-    else:
-        zmax = len(y_true)
+    zmax = len(y_true)
         
     data=[go.Heatmap(
                         z=cm,
@@ -1105,16 +1102,25 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, normalized=True):
     annotations = []
     for x in range(cm.shape[0]):
         for y in range(cm.shape[1]):
-            text= str(cm[x,y]) + '%' if normalized else str(cm[x,y])
-            annotations.append(
+            top_text = f"{cm_normalized[x, y]}%" if percentage else f"{cm[x, y]}"
+            bottom_text = f"{cm_normalized[x, y]}%" if not percentage else f"{cm[x, y]}" 
+            annotations.extend([
                 go.layout.Annotation(
                     x=fig.data[0].x[y], 
                     y=fig.data[0].y[x], 
-                    text=text, 
+                    text=top_text, 
                     showarrow=False,
                     font=dict(size=20)
-                )
+                ),
+                go.layout.Annotation(
+                    x=fig.data[0].x[y], 
+                    y=fig.data[0].y[x], 
+                    text=f" <br> <br> <br>({bottom_text})", 
+                    showarrow=False,
+                    font=dict(size=12)
+                )]
             )
+                
 
     fig.update_layout(annotations=annotations)  
     return fig
@@ -1269,13 +1275,26 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values", idxs=None):
+def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values", 
+                idxs=None, highlight_index=None, na_fill=-999):
     
     if idxs is not None:
         assert len(idxs)==X.shape[0]
         idxs = np.array([str(idx) for idx in idxs])
     else:
         idxs = np.array([str(i) for i in range(X.shape[0])])
+        
+    if highlight_index is not None:
+        if isinstance(highlight_index, int):
+            assert highlight_index >=0 and highlight_index < len(X), \
+            "if highlight_index is int, then should be between 0 and {len(X)}!"
+            highlight_idx = highlight_index
+            highlight_index = idxs[highlight_idx]
+        elif isinstance(highlight_index, str):
+            assert str(highlight_index) in idxs, f"{highlight_index} not found in idxs!"
+            highlight_idx = np.where(idxs == str(highlight_index))[0].item()
+        else:
+            raise ValueError("Please pass either int or str highlight_index!")
         
     # make sure that columns are actually in X:
     display_columns = [col for col in display_columns if col in X.columns.tolist()]    
@@ -1316,7 +1335,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
                                   mode='markers',
                                   marker=dict(
                                       size=5,
-                                      color=X[col].replace({-999:np.nan}),
+                                      color=X[col].replace({na_fill:np.nan}),
                                       colorscale='Bluered',
                                       showscale=True,
                                       opacity=0.3,
@@ -1332,6 +1351,26 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
                                       for i, shap, value in zip(idxs, shap_df[col], X[col].replace({-999:np.nan}))],
                                 ),
                      row=i+1, col=1);
+        if highlight_index is not None:
+            fig.add_trace(
+            go.Scatter(
+                x=[shap_df[col].iloc[highlight_idx]], 
+                y=[0], 
+                mode='markers',
+                marker=dict(
+                    color='LightSkyBlue',
+                    size=20,
+                    opacity=0.5,
+                    line=dict(
+                        color='MediumPurple',
+                        width=4
+                    )
+                ),
+                name = f"index {highlight_index}",
+                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_df[col].iloc[highlight_idx]}",
+                hoverinfo="text",
+                showlegend=False,
+            ), row=i+1, col=1)
         fig.update_xaxes(showgrid=False, zeroline=False, 
                          range=[min_shap, max_shap], row=i+1, col=1)
         fig.update_yaxes(showgrid=False, zeroline=False, 
