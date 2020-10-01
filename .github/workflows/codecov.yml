@@ -1,4 +1,4 @@
-name: Python Master Workflow
+name: Codecov upload
 on:
   push:
     branches:
