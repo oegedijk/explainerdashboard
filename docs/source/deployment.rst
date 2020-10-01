@@ -83,8 +83,8 @@ Avoid timeout by precalculating explainers and loading with joblib
 ==================================================================
 
 Some of the calculations in order to generate e.g. the SHAP values and permutation
-importances can take quite a longtime (especially shap interaction values). 
-Long enough the break the startup timeout of gunicorn. Therefore it is better
+importances can take quite a long time (especially shap interaction values). 
+Long enough the break the startup timeout of ``gunicorn``. Therefore it is better
 to first calculate all these values, save the explainer to disk, and then load
 the explainer when starting the dashboard::
 
@@ -114,22 +114,22 @@ And start the thing with gunicorn::
 Deploying to heroku
 ===================
 
-In case you would like to deploy to `heroku<www.heroku.com>`_ (which is probably the simplest 
-`deployment<https://dash.plotly.com/deployment>`_ option for dash apps), 
+In case you would like to deploy to `heroku <www.heroku.com>`_ (which is probably the simplest 
+`deployment <https://dash.plotly.com/deployment>`_ option for dash apps), 
 where the demonstration dashboard is hosted
-at `titanicexplainer.herokuapp.com<titanicexplainer.herokuapp.com>`_ 
+at `titanicexplainer.herokuapp.com <titanicexplainer.herokuapp.com>`_ 
 there are a number of issues to keep in mind.
 
 Uninstalling and mocking xgboost
 --------------------------------
 
 A heroku deployment ("slug size") should not exeed 500MB after compression. Unfortunately
-the xgboost library is >350MB, so this means it will be hard to deploy any
-xgboost models to heroku. Unfortunately however  ``xgboost`` gets automatically installed 
+the ``xgboost`` library is >350MB, so this means it will be hard to deploy any
+``xgboost`` models to heroku. Unfortunately however  ``xgboost`` gets automatically installed 
 as a dependency of ``dtreeviz`` which is a dependency of ``explainerdashboard``. 
 
 So in order to get even non-xgboost models to work you will
-have to uninstall xgboost and then mock it. This is normally pretty easy 
+have to uninstall ``xgboost`` and then mock it. This is normally pretty easy 
 (``pip uninstall xgboost``), but on heroku you first need to add a buildpack
 in order to run shell instructions after the build phase.
 So add the following shell buildpack:
@@ -157,3 +157,17 @@ the ``dtreeviz`` package you will
 need to make sure that ``graphviz`` is installed on your ``heroku`` dyno by
 adding the following buildstack: 
 ``https://github.com/weibeld/heroku-buildpack-graphviz.git``
+
+
+Setting logins and password
+===========================
+
+``explainerdashboard`` supports `dash basic auth functionality <https://dash.plotly.com/authentication>`_.
+
+You can simply add a list of logins to the ExplainerDashboard to force a logins 
+and prevent random users from accessing the details of your model dashboard::
+
+    ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()
+
+Make sure not to check these login/password pairs into version control though, 
+but store them somewhere safe! 

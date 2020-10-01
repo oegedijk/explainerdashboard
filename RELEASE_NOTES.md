@@ -1,5 +1,35 @@
 # Release Notes
 
+## version 0.2.5:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-   new login functionality: you can restrict access to your dashboard by passing
+        a list of `[login, password]` pairs:
+        `ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()`
+-   autodetecting Google colab environment and setting mode='external' 
+    (and suggesting so for jupyter notebook environments)     
+-   confusion matrix now showing both percentage and counts
+-   added classifier model performance summary component
+-   added cumulative precision component
+-   in detailed shap/interaction summary plots, can now click on single 
+    shap value for a particular feature, and have that index highlighted
+    for all features.
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-   added documentation on how to deploy to heroku
+-
+
+### Other Changes
+-
+-
+
 ## version 0.2.4
 
 ### New Features

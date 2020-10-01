@@ -10,16 +10,9 @@
 
 ## Plots:
 
-
 ### Classifier plots:
-- confusion matrix: display both count and percentage
 - pdp: add multiclass option
-- add classification model summary
-- include cumulative lift curve to standard dashboard
-- add cost calculator: cost of FPs and FNs
-- classification plot:
-    - round percentage to 1 digit
-    - add `<br>` between count and percentage
+- add cutoff to cumulative precision plot
 
 ### Regression plots:
 
@@ -28,10 +21,11 @@
 - add plain language explanations
 
 ## notebooks:
-- add binder/colab links on github
 
 ## Dashboard:
-- Add pandas profiling type col histograms, bar charts, correlation graphs, etc
+- Add EDA style feature histograms, bar charts, correlation graphs, etc
+- add cost calculator/optimizer for classifier models based on confusion matrix weights
+- add group fairness metrics? 
 
 ### Components
 - add pos_label_name property to PosLabelConnector search
@@ -56,11 +50,6 @@
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
-- add documentation how to deploy to heroku:
-    - mock xgboost
-    - uninstall xgboost with shell buildpack
-    - graphviz buildpack
-
 
 ## Library level:
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs

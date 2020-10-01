@@ -21,9 +21,9 @@ from .dashboard_methods import *
 class ShapSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence Summary', name=None,
                     hide_title=False, hide_depth=False, 
-                    hide_type=False, hide_cats=False, hide_selector=False,
+                    hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, depth=None, 
-                    summary_type="aggregate", cats=True):
+                    summary_type="aggregate", cats=True, index=None):
         """Shows shap summary component
 
         Args:
@@ -53,8 +53,9 @@ class ShapSummaryComponent(ExplainerComponent):
 
         self.hide_title, self.hide_depth,  = hide_title, hide_depth
         self.hide_type, self.hide_cats = hide_type, hide_cats
-        self.hide_selector = hide_selector
+        self.hide_selector, self.hide_index = hide_selector, hide_index
         self.depth, self.summary_type, self.cats = depth, summary_type, cats
+        self.index = index
 
         if self.explainer.cats is None or not self.explainer.cats:
             self.hide_cats = True
@@ -62,6 +63,7 @@ class ShapSummaryComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(cats))
 
+        self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
              
@@ -76,7 +78,7 @@ class ShapSummaryComponent(ExplainerComponent):
                             options=[{'label': str(i+1), 'value': i+1} for i in 
                                         range(self.explainer.n_features(self.cats))],
                             value=self.depth)
-                    ], md=3), self.hide_depth),
+                    ], md=2), self.hide_depth),
                 make_hideable(
                     dbc.Col([
                         dbc.FormGroup(
@@ -109,6 +111,16 @@ class ShapSummaryComponent(ExplainerComponent):
                         ], check=True)
                     ], md=3), self.hide_cats),
                 make_hideable(
+                    dbc.Col([
+                        html.Div([
+                            dbc.Label("Index:"),
+                            dcc.Dropdown(id='shap-summary-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=self.index),
+                        ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
+                    ], md=3), hide=self.hide_index),  
+                make_hideable(
                         dbc.Col([self.selector.layout()
                     ], width=2), hide=self.hide_selector)
                 ], form=True),
@@ -119,29 +131,46 @@ class ShapSummaryComponent(ExplainerComponent):
         ], fluid=True)
     
     def _register_callbacks(self, app):
+
+        @app.callback(
+            Output('shap-summary-index-'+self.name, 'value'),
+            [Input('shap-summary-graph-'+self.name, 'clickData')])
+        def display_scatter_click_data(clickdata):
+            if clickdata is not None and clickdata['points'][0] is not None:
+                if isinstance(clickdata['points'][0]['y'], float): # detailed
+                    index = clickdata['points'][0]['text'].split('=')[1].split('<br>')[0]                 
+                    return index
+            raise PreventUpdate
+
         @app.callback(
             [Output('shap-summary-graph-'+self.name, 'figure'),
-             Output('shap-summary-depth-'+self.name, 'options')],
+             Output('shap-summary-depth-'+self.name, 'options'),
+             Output('shap-summary-index-col-'+self.name, 'style')],
             [Input('shap-summary-type-'+self.name, 'value'),
              Input('shap-summary-group-cats-'+self.name, 'checked'),
              Input('shap-summary-depth-'+self.name, 'value'),
+             Input('shap-summary-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
-        def update_shap_summary_graph(summary_type, cats, depth, pos_label):
+        def update_shap_summary_graph(summary_type, cats, depth, index, pos_label):
             if summary_type == 'aggregate':
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, cats=cats, pos_label=pos_label)
             elif summary_type == 'detailed':
                 plot = self.explainer.plot_shap_summary(
-                        topx=depth, cats=cats, pos_label=pos_label)
+                        topx=depth, cats=cats, pos_label=pos_label, index=index)
             ctx = dash.callback_context
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'shap-summary-group-cats-'+self.name:
                 depth_options = [{'label': str(i+1), 'value': i+1} 
                                         for i in range(self.explainer.n_features(cats))]
-                print(depth_options)
-                return (plot, depth_options)
+                return (plot, depth_options, dash.no_update)
+            elif trigger == 'shap-summary-type-'+self.name:
+                if summary_type == 'aggregate':
+                    return (plot, dash.no_update, dict(display="none"))
+                elif summary_type == 'detailed':
+                    return (plot, dash.no_update, {})
             else:
-                return (plot, dash.no_update)
+                return (plot, dash.no_update, dash.no_update)
 
 
 class ShapDependenceComponent(ExplainerComponent):
@@ -319,9 +348,9 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary", name=None,
                     hide_title=False, hide_col=False, hide_depth=False, 
-                    hide_type=False, hide_cats=False, hide_selector=False,
+                    hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
-                    summary_type="aggregate", cats=True):
+                    summary_type="aggregate", cats=True, index=None):
         """Show SHAP Interaciton values summary component
 
         Args:
@@ -337,6 +366,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_type (bool, optional): Hide summary type toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_index (bool, optional): Hide the index selector. Defaults to False
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
@@ -344,20 +374,21 @@ class InteractionSummaryComponent(ExplainerComponent):
             depth (int, optional): Number of interaction features to display. Defaults to None.
             summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
             cats (bool, optional): Group categorical features. Defaults to True.
+            index (str):    Default index. Defaults to None.
         """
         super().__init__(explainer, title, name)
 
         self.hide_title, self.hide_col, self.hide_depth, self.hide_type, self.hide_cats = \
             hide_title, hide_col, hide_depth, hide_type, hide_cats
-        self.hide_selector = hide_selector
-        self.col, self.depth, self.summary_type, self.cats = \
-            col, depth, summary_type, cats
+        self.hide_selector, self.hide_index = hide_selector, hide_index
+        self.col, self.depth, self.summary_type, self.cats, self.index = \
+            col, depth, summary_type, cats, index
     
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats)-1)
-        
+        self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
@@ -381,7 +412,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                             options = [{'label': str(i+1), 'value':i+1} 
                                             for i in range(self.explainer.n_features(self.cats)-1)],
                             value=self.depth)
-                    ], md=2), self.hide_depth),
+                    ], md=1), self.hide_depth),
                 make_hideable(
                     dbc.Col([
                         dbc.FormGroup(
@@ -414,6 +445,16 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], check=True)
                     ],md=2), self.hide_cats),
                 make_hideable(
+                    dbc.Col([
+                        html.Div([
+                            dbc.Label("Index:"),
+                            dcc.Dropdown(id='interaction-summary-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=self.index),
+                        ], id='interaction-summary-index-col-'+self.name, style=dict(display="none")), 
+                    ], md=3), hide=self.hide_index),  
+                make_hideable(
                         dbc.Col([self.selector.layout()
                     ], width=2), hide=self.hide_selector),
                 ], form=True),
@@ -427,6 +468,16 @@ class InteractionSummaryComponent(ExplainerComponent):
 
     def _register_callbacks(self, app):
         @app.callback(
+            Output('interaction-summary-index-'+self.name, 'value'),
+            [Input('interaction-summary-graph-'+self.name, 'clickData')])
+        def display_scatter_click_data(clickdata):
+            if clickdata is not None and clickdata['points'][0] is not None:
+                if isinstance(clickdata['points'][0]['y'], float): # detailed
+                    index = clickdata['points'][0]['text'].split('=')[1].split('<br>')[0]                 
+                    return index
+            raise PreventUpdate
+
+        @app.callback(
             [Output('interaction-summary-depth-'+self.name, 'options'),
              Output('interaction-summary-col-'+self.name, 'options')],
             [Input('interaction-summary-group-cats-'+self.name, 'checked'),
@@ -439,23 +490,26 @@ class InteractionSummaryComponent(ExplainerComponent):
             return depth_options, new_col_options
 
         @app.callback(
-            Output('interaction-summary-graph-'+self.name, 'figure'),
+            [Output('interaction-summary-graph-'+self.name, 'figure'),
+             Output('interaction-summary-index-col-'+self.name, 'style')],
             [Input('interaction-summary-col-'+self.name, 'value'),
              Input('interaction-summary-depth-'+self.name, 'value'),
              Input('interaction-summary-type-'+self.name, 'value'),
+             Input('interaction-summary-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
              Input('interaction-summary-group-cats-'+self.name, 'checked')])
-        def update_interaction_scatter_graph(col, depth, summary_type, pos_label, cats):
+        def update_interaction_scatter_graph(col, depth, summary_type, index, pos_label, cats):
             if col is not None:
                 if summary_type=='aggregate':
                     plot = self.explainer.plot_interactions(
                         col, topx=depth, cats=cats, pos_label=pos_label)
+                    return plot, dict(display="none")
                 elif summary_type=='detailed':
                     plot = self.explainer.plot_shap_interaction_summary(
-                        col, topx=depth, cats=cats, pos_label=pos_label)
-                return plot
+                        col, topx=depth, cats=cats, pos_label=pos_label, index=index)
+                return plot, {}
             raise PreventUpdate
-        
+
 
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence", name=None,

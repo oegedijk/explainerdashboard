@@ -1070,13 +1070,14 @@ class BaseExplainer(ABC):
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
                     orientation=orientation, round=round, units=self.units)
 
-    def plot_shap_summary(self, topx=None, cats=False, pos_label=None):
+    def plot_shap_summary(self, index=None, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
         scatter chart in descending order by mean absolute shap value.
 
         Args:
+          index (str or int): index to highlight
           topx(int, optional): Only display topx most important features, defaults to None
           cats(bool, optional): Group categoricals , defaults to False
           pos_label: positive class (Default value = None)
@@ -1090,15 +1091,21 @@ class BaseExplainer(ABC):
                                 self.shap_values_cats(pos_label),
                                 self.X_cats,
                                 self.importances_df(kind='shap', topx=topx, cats=True, pos_label=pos_label)\
-                                        ['Feature'].values.tolist(), idxs=self.idxs)
+                                        ['Feature'].values.tolist(), 
+                                idxs=self.idxs,
+                                highlight_index=index,
+                                na_fill=self.na_fill)
         else:
             return plotly_shap_scatter_plot(
                                 self.shap_values(pos_label),
                                 self.X,
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
-                                        ['Feature'].values.tolist(), idxs=self.idxs)
+                                        ['Feature'].values.tolist(), 
+                                idxs=self.idxs,
+                                highlight_index=index,
+                                na_fill=self.na_fill)
 
-    def plot_shap_interaction_summary(self, col, topx=None, cats=False, pos_label=None):
+    def plot_shap_interaction_summary(self, col, index=None, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
         
         Displays all individual shap interaction values for each feature in a
@@ -1106,13 +1113,13 @@ class BaseExplainer(ABC):
 
         Args:
           col(type]): feature for which to show interactions summary
+          index (str or int): index to highlight
           topx(int, optional): only show topx most important features, defaults to None
           cats:  group categorical features (Default value = False)
           pos_label: positive class (Default value = None)
 
         Returns:
           fig
-
         """
         if col in self.cats:
             cats = True
@@ -1122,7 +1129,8 @@ class BaseExplainer(ABC):
 
         return plotly_shap_scatter_plot(
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
-                self.X_cats if cats else self.X, interact_cols[:topx], title=title, idxs=self.idxs)
+                self.X_cats if cats else self.X, interact_cols[:topx], title=title, 
+                idxs=self.idxs, highlight_index=index, na_fill=self.na_fill)
 
     def plot_shap_dependence(self, col, color_col=None, highlight_index=None, pos_label=None):
         """plot shap dependence
@@ -1649,6 +1657,23 @@ class ClassifierExplainer(BaseExplainer):
         }
         return metrics_dict
 
+    def metrics_markdown(self, cutoff=0.5, round=2, pos_label=None):
+        """markdown makeup of self.metrics() dict
+
+        Args:
+          round:  (Default value = 2)
+          **kwargs: 
+
+        Returns:
+
+        """
+        metrics_dict = self.metrics(cutoff, pos_label)
+        
+        metrics_markdown = "# Model Summary: \n\n"
+        for k, v in metrics_dict.items():
+            metrics_markdown += f"### {k}: {np.round(v, round)}\n"
+        return metrics_markdown
+
     def get_pdp_result(self, col, index=None, drop_na=True,
                         sample=1000, num_grid_points=20, pos_label=None):
         """gets a the result out of the PDPBox library
@@ -1901,11 +1926,11 @@ class ClassifierExplainer(BaseExplainer):
 
             return plotly_confusion_matrix(
                     self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0),
-                    normalized=normalized, labels=labels)
+                    percentage=normalized, labels=labels)
         else:
             return plotly_confusion_matrix(
                 self.y, self.pred_probas_raw.argmax(axis=1),
-                normalized=normalized, labels=self.labels)
+                percentage=normalized, labels=self.labels)
 
     def plot_lift_curve(self, cutoff=None, percentage=False, round=2, pos_label=None):
         """plot of a lift curve.

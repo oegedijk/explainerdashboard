@@ -5,6 +5,8 @@ __all__ = [
     'ClassificationComponent',
     'RocAucComponent',
     'PrAucComponent',
+    'CumulativePrecisionComponent',
+    'ClassifierModelSummaryComponent' 
 ]
 
 import dash
@@ -358,6 +360,50 @@ class LiftCurveComponent(ExplainerComponent):
             return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
 
 
+class CumulativePrecisionComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Cumulative Precision", name=None,
+                    hide_selector=False, pos_label=None):
+        """Show liftcurve component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Lift Curve".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
+        """
+        super().__init__(explainer, title, name)
+        self.hide_selector = hide_selector
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+
+    def layout(self):
+        return html.Div([
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+            ], justify="end"),
+            html.Div([
+                        dcc.Loading(id='loading-cumulative-precision-graph-'+self.name, 
+                                children=[dcc.Graph(id='cumulative-precision-graph-'+self.name)]),
+                    ], style={'margin': 0}),
+                 
+        ])
+
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('cumulative-precision-graph-'+self.name, 'figure'),
+            [Input('pos-label-'+self.name, 'value')],
+        )
+        def update_precision_graph(pos_label):
+            return self.explainer.plot_cumulative_precision(pos_label=pos_label)
+
+
+
 class ClassificationComponent(ExplainerComponent):
     def __init__(self, explainer, title="Classification Plot", name=None,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
@@ -554,3 +600,64 @@ class PrAucComponent(ExplainerComponent):
         )
         def update_precision_graph(cutoff, pos_label):
             return self.explainer.plot_pr_auc(cutoff=cutoff, pos_label=pos_label)
+
+class ClassifierModelSummaryComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Model Summary", name=None,
+                    hide_cutoff=False, hide_selector=False,
+                    pos_label=None, cutoff=0.5):
+        """Show model summary statistics (accuracy, precision, recall,  
+            f1, roc_auc, pr_auc, log_loss) component.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Model Summary".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
+            hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
+            cutoff (float, optional): default cutoff. Defaults to 0.5.
+        """
+        super().__init__(explainer, title, name)
+        self.hide_cutoff, self.hide_selector = hide_cutoff, hide_selector
+        self.cutoff = cutoff
+        self.cutoff_name = 'clas-model-summary-cutoff-' + self.name
+
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+
+        self.register_dependencies(['preds', 'pred_probas'])
+
+    def layout(self):
+        return html.Div([
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+            ], justify="end"),
+            dcc.Loading(id="loading-clas-model-summary-"+self.name, 
+                                children=[dcc.Markdown(id='clas-model-summary-md-'+self.name)]),
+            make_hideable(
+                html.Div([
+                    html.Label('Cutoff prediction probability:'),
+                    dcc.Slider(id='clas-model-summary-cutoff-'+self.name, 
+                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                        0.75: '0.75', 0.99: '0.99'}, 
+                                included=False,
+                                tooltip = {'always_visible' : False})
+                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+
+            
+        ])
+    
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('clas-model-summary-md-'+self.name, 'children'),
+            [Input('clas-model-summary-cutoff-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')],
+        )
+        def update_classifier_summary(cutoff, pos_label):
+            return self.explainer.metrics_markdown(cutoff=cutoff, pos_label=pos_label)
+        
