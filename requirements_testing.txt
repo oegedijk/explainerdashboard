@@ -12,3 +12,4 @@ xgboost
 selenium
 shortuuid
 dash-auth
+jupyter_dash
