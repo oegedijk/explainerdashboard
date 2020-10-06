@@ -389,39 +389,67 @@ class BaseExplainer(ABC):
         elif col in self.cats:
             return retrieve_onehot_value(self.X, col)
         
-    def get_col_value_plus_prediction(self, index, col, pos_label=None):
-        """return value of col and prediction for index
+    def get_col_value_plus_prediction(self, col, index=None, X_row=None, pos_label=None):
+        """return value of col and prediction for either index or X_row
 
         Args:
-          index: index row
           col: feature col
-
+          index (str or int, optional): index row
+          X_row (single row pd.DataFrame, optional): single row of features
+        
         Returns:
           tupe(value of col, prediction for index)
 
         """
-        assert index in self, f"index {index} not found"
+        
         assert (col in self.X.columns) or (col in self.cats),\
             f"{col} not in columns of dataset"
-        
+        if index is not None:
+            assert index in self, f"index {index} not found"
+            idx = self.get_int_idx(index)
 
-        idx = self.get_int_idx(index)
+            if col in self.X.columns:
+                col_value = self.X[col].iloc[idx]
+            elif col in self.cats:
+                col_value = retrieve_onehot_value(self.X, col).iloc[idx]
 
-        if col in self.X.columns:
-            col_value = self.X[col].iloc[idx]
-        elif col in self.cats:
-            col_value = retrieve_onehot_value(self.X, col).iloc[idx]
+            if self.is_classifier:
+                if pos_label is None:
+                    pos_label = self.pos_label
+                prediction = self.pred_probas(pos_label)[idx]
+                if self.model_output == 'probability':
+                    prediction = 100*prediction
+            elif self.is_regression:
+                prediction = self.preds[idx]
 
-        if self.is_classifier:
-            if pos_label is None:
-                pos_label = self.pos_label
-            prediction = self.pred_probas(pos_label)[idx]
-            if self.model_output == 'probability':
-                prediction = 100*prediction
-        elif self.is_regression:
-            prediction = self.preds[idx]
+            return col_value, prediction
+        elif X_row is not None:
+            assert X_row.shape[0] == 1, "X_Row should be single row dataframe!"
+            
+            if ((len(X_row.columns) == len(self.X_cats.columns)) and 
+                (X_row.columns == self.X_cats.columns).all()):
+                X_row = X_cats_to_X(X_row, self.cats, self.X.columns)    
+            else:
+                assert (X_row.columns == self.X.columns).all(), \
+                    "X_row should have the same columns as self.X or self.X_cats!"
+            
+            if col in X_row.columns:
+                col_value = X_row[col].item()
+            elif col in self.cats:
+                col_value = retrieve_onehot_value(X_row, col).item()
 
-        return col_value, prediction
+            if self.is_classifier:
+                if pos_label is None:
+                    pos_label = self.pos_label
+                prediction = self.model.predict_proba(X_row)[0][pos_label]
+                if self.model_output == 'probability':
+                    prediction = 100*prediction
+            elif self.is_regression:
+                prediction = self.model.predict(X_row)[0]
+            return col_value, prediction
+        else:
+            raise ValueError("You need to pass either index or X_row!")
+
 
     @property
     def permutation_importances(self):
@@ -724,7 +752,7 @@ class BaseExplainer(ABC):
         elif kind=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats, pos_label)
 
-    def contrib_df(self, index=None, cats=True, topx=None, cutoff=None, sort='abs',
+    def contrib_df(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, sort='abs',
                     pos_label=None):
         """shap value contributions to the prediction for index.
         
@@ -749,7 +777,9 @@ class BaseExplainer(ABC):
           pd.DataFrame: contrib_df
 
         """
-        idx = self.get_int_idx(index)
+        if pos_label is None:
+            pos_label = self.pos_label
+
         if sort =='importance':
             if cutoff is None:
                 cols = self.columns_ranked_by_shap(self.cats)
@@ -759,21 +789,51 @@ class BaseExplainer(ABC):
                 cols = cols[:topx]
         else:
             cols =  None
-        if cats:
-            return get_contrib_df(self.shap_base_value(pos_label), 
-                                    self.shap_values_cats(pos_label)[idx],
-                                    self.X_cats.iloc[[idx]], topx, cutoff, sort, cols)
-        else:
-            return get_contrib_df(self.shap_base_value(pos_label), 
-                                    self.shap_values(pos_label)[idx],
-                                    self.X.iloc[[idx]], topx, cutoff, sort, cols)
+        if X_row is not None:
+            if ((len(X_row.columns) == len(self.X_cats.columns)) and 
+                (X_row.columns == self.X_cats.columns).all()):
+                if cats: 
+                    X_row_cats = X_row
+                X_row = X_cats_to_X(X_row, self.cats, self.X.columns)    
+            else:
+                assert (X_row.columns == self.X.columns).all(), \
+                    "X_row should have the same columns as self.X or self.X_cats!"
+                X_row_cats = merge_categorical_columns(X_row, self.cats)
 
-    def contrib_summary_df(self, index, cats=True, topx=None, cutoff=None, 
+            shap_values = self.shap_explainer.shap_values(X_row)
+            if self.is_classifier:
+                if not isinstance(shap_values, list) and len(self.labels)==2:
+                    shap_values = [-shap_values, shap_values]
+                shap_values = shap_values[self.get_pos_label_index(pos_label)]
+
+            if cats:
+                shap_values_cats = merge_categorical_shap_values(X_row, shap_values, self.cats)
+                return get_contrib_df(self.shap_base_value, shap_values_cats[0], 
+                            X_row_cats, topx, cutoff, sort, cols)   
+            else:
+                return get_contrib_df(self.shap_base_value, shap_values[0], 
+                            X_row, topx, cutoff, sort, cols)  
+        elif index is not None:
+            idx = self.get_int_idx(index)
+            if cats:
+                return get_contrib_df(self.shap_base_value(pos_label), 
+                                        self.shap_values_cats(pos_label)[idx],
+                                        self.X_cats.iloc[[idx]], topx, cutoff, sort, cols)
+            else:
+                return get_contrib_df(self.shap_base_value(pos_label), 
+                                        self.shap_values(pos_label)[idx],
+                                        self.X.iloc[[idx]], topx, cutoff, sort, cols)
+        else:
+            raise ValueError("Either index or X_row should be passed!")
+
+    def contrib_summary_df(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, 
                             round=2, sort='abs', pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format
 
         Args:
           index: index to show contrib_summary_df for
+          X_row (pd.DataFrame, single row): single row of feature for which
+                to calculate contrib_df. Can us this instead of index
           cats: Group categoricals (Default value = True)
           topx: Only show topx highest features(Default value = None)
           cutoff: Only show features above cutoff (Default value = None)
@@ -789,7 +849,7 @@ class BaseExplainer(ABC):
         """
         idx = self.get_int_idx(index) # if passed str convert to int index
         return get_contrib_summary_df(
-                    self.contrib_df(idx, cats, topx, cutoff, sort, pos_label), 
+                    self.contrib_df(idx, X_row, cats, topx, cutoff, sort, pos_label), 
                 model_output=self.model_output, round=round, units=self.units, na_fill=self.na_fill)
 
     def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
@@ -854,13 +914,14 @@ class BaseExplainer(ABC):
                         'Cat_Value', 'Cont_Value', 'Value_Type', 'Feature_Order']
         return cdf
 
-    def get_pdp_result(self, col, index=None, drop_na=True,
+    def get_pdp_result(self, col, index=None, X_row=None, drop_na=True,
                         sample=500, num_grid_points=20, pos_label=None):
         """Uses the PDPBox to calculate partial dependences for feature col.
 
         Args:
           col(str): Feature to calculate partial dependences for
           index(int or str, optional, optional): Index of row to put at iloc[0], defaults to None
+          X_row (single row pd.DataFrame): row of features to highlight in pdp
           drop_na(bool, optional, optional): drop rows where col equals na_fill, defaults to True
           sample(int, optional, optional): Number of rows to sample for plot, defaults to 500
           num_grid_points(ints: int, optional, optional): Number of grid points to calculate, default 20
@@ -891,6 +952,27 @@ class BaseExplainer(ABC):
                 sampleX = pd.concat([
                     self.X[self.X.index==idx],
                     self.X[(self.X.index!=idx)].sample(sample_size)],
+                    ignore_index=True, axis=0)
+        elif X_row is not None:
+            if ((len(X_row.columns) == len(self.X_cats.columns)) and 
+                (X_row.columns == self.X_cats.columns).all()):
+                X_row = X_cats_to_X(X_row, self.cats, self.X.columns)    
+            else:
+                assert (X_row.columns == self.X.columns).all(), \
+                    "X_row should have the same columns as self.X or self.X_cats!"
+
+            if len(features)==1 and drop_na: # regular col, not onehotencoded
+                sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
+                sampleX = pd.concat([
+                    X_row,
+                    self.X[(self.X[features[0]] != self.na_fill)]\
+                            .sample(sample_size)],
+                    ignore_index=True, axis=0)
+            else:
+                sample_size = min(sample, len(self.X)-1)
+                sampleX = pd.concat([
+                    X_row,
+                    self.X.sample(sample_size)],
                     ignore_index=True, axis=0)
         else:
             if len(features)==1 and drop_na: # regular col, not onehotencoded
@@ -1050,7 +1132,7 @@ class BaseExplainer(ABC):
         title = f"Average interaction shap values for {col}"
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
-    def plot_shap_contributions(self, index=None, cats=True, topx=None, cutoff=None, 
+    def plot_shap_contributions(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, 
                         sort='abs', orientation='vertical', round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
 
@@ -1080,7 +1162,7 @@ class BaseExplainer(ABC):
 
         """
         assert orientation in ['vertical', 'horizontal']
-        contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, sort, pos_label)
+        contrib_df = self.contrib_df(self.get_int_idx(index), X_row, cats, topx, cutoff, sort, pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
                     orientation=orientation, round=round, 
                     target=self.target, units=self.units)
@@ -1246,7 +1328,7 @@ class BaseExplainer(ABC):
                 interact_col, col, interaction=True, units=self.units,
                 highlight_index=highlight_idx, idxs=self.idxs)
 
-    def plot_pdp(self, col, index=None, drop_na=True, sample=100,
+    def plot_pdp(self, col, index=None, X_row=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, pos_label=None):
         """plot partial dependence plot (pdp)
         
@@ -1258,6 +1340,8 @@ class BaseExplainer(ABC):
           col(str): feature to display pdp graph for
           index(int or str, optional, optional): index to highlight in pdp graph, 
                     defaults to None
+          X_row (pd.Dataframe, single row, optional): a row of features to highlight 
+                predictions for. Alternative to passing index.
           drop_na(bool, optional, optional): if true drop samples with value 
                     equal to na_fill, defaults to True
           sample(int, optional, optional): sample size on which the average 
@@ -1272,24 +1356,26 @@ class BaseExplainer(ABC):
           plotly.Fig: fig
 
         """
-        pdp_result = self.get_pdp_result(col, index, 
+        pdp_result = self.get_pdp_result(col, index, X_row,
                         num_grid_points=gridpoints, pos_label=pos_label)
         units = "Predicted %" if self.model_output=='probability' else self.units
         if index is not None:
-            #try:
-            col_value, pred = self.get_col_value_plus_prediction(index, col, pos_label=pos_label)
-
+            col_value, pred = self.get_col_value_plus_prediction(col, index=index, pos_label=pos_label)
             return plotly_pdp(pdp_result,
                             display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
                             index_feature_value=col_value, index_prediction=pred,
                             feature_name=col,
                             num_grid_lines=min(gridlines, sample, len(self.X)),
                             target=self.target, units=units)
-            # except Exception as e:
-            #     print(e)
-            #     return plotly_pdp(pdp_result, feature_name=col,
-            #             num_grid_lines=min(gridlines, sample, len(self.X)), 
-            #             units=units)
+        elif X_row is not None:
+            col_value, pred = self.get_col_value_plus_prediction(col, X_row=X_row, pos_label=pos_label)
+            return plotly_pdp(pdp_result,
+                            display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
+                            index_feature_value=col_value, index_prediction=pred,
+                            feature_name=col,
+                            num_grid_lines=min(gridlines, sample, len(self.X)),
+                            target=self.target, units=units)
+
         else:
             return plotly_pdp(pdp_result, feature_name=col,
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
@@ -1712,7 +1798,7 @@ class ClassifierExplainer(BaseExplainer):
             metrics_markdown += f"### {k}: {np.round(v, round)}\n"
         return metrics_markdown
 
-    def get_pdp_result(self, col, index=None, drop_na=True,
+    def get_pdp_result(self, col, index=None, X_row=None, drop_na=True,
                         sample=1000, num_grid_points=20, pos_label=None):
         """gets a the result out of the PDPBox library
         
@@ -1721,6 +1807,8 @@ class ClassifierExplainer(BaseExplainer):
         Args:
           col(str): Feature to display 
           index(str or int): index to add to plot (Default value = None)
+          X_row (pd.DataFrame, single row): single row of features to highlight
+            in pdp
           drop_na(bool): drop value equal to self.fill_na  (Default value = True)
           sample(int): sample size to compute average pdp  (Default value = 1000)
           num_grid_points(int): number of horizontal breakpoints in pdp (Default value = 20)
@@ -1732,7 +1820,7 @@ class ClassifierExplainer(BaseExplainer):
         """
         if pos_label is None: pos_label = self.pos_label
         pdp_result = super().get_pdp_result(
-                                col, index, drop_na, sample, num_grid_points)
+                                col, index, X_row, drop_na, sample, num_grid_points)
         
         if len(self.labels)==2:
             # for binary classifer PDPBox only gives pdp for the positive class.
