@@ -808,10 +808,10 @@ class BaseExplainer(ABC):
 
             if cats:
                 shap_values_cats = merge_categorical_shap_values(X_row, shap_values, self.cats)
-                return get_contrib_df(self.shap_base_value, shap_values_cats[0], 
+                return get_contrib_df(self.shap_base_value(pos_label), shap_values_cats[0], 
                             X_row_cats, topx, cutoff, sort, cols)   
             else:
-                return get_contrib_df(self.shap_base_value, shap_values[0], 
+                return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
                             X_row, topx, cutoff, sort, cols)  
         elif index is not None:
             idx = self.get_int_idx(index)

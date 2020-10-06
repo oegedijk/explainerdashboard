@@ -5,6 +5,7 @@ __all__ = [
     'ShapDependenceComposite',
     'ShapInteractionsComposite',
     'DecisionTreesComposite',
+    'WhatIfComposite',
 ]
 
 import dash_bootstrap_components as dbc
@@ -257,6 +258,60 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         html.Div([]),
                     ], md=6),
                 ])
+        ], fluid=True)
+
+
+class WhatIfComposite(ExplainerComponent):
+    def __init__(self, explainer, title="What if...", name=None,
+                        hide_title=False, hide_selector=True):
+        """Composite for the whatif component:
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Individual Predictions".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): hide title. Defaults to False.
+            hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
+        """
+        super().__init__(explainer, title, name)
+
+        self.hide_title = hide_title
+
+        if self.explainer.is_classifier:
+            self.index = ClassifierRandomIndexComponent(
+                            explainer, hide_selector=hide_selector)
+        elif self.explainer.is_regression:
+            self.index = RegressionRandomIndexComponent(explainer)
+
+        self.whatif = WhatIfComponent(explainer, 
+                            hide_title=True, hide_index=True, hide_selector=hide_selector)
+
+        self.index_connector = IndexConnector(self.index, [self.whatif])
+
+        self.register_components(self.index, self.whatif, self.index_connector)
+
+    def layout(self):
+        return dbc.Container([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            html.H1("What if...")
+                        ]), hide=self.hide_title),
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        self.index.layout()
+                    ]),
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        self.whatif.layout()
+                    ]),
+                ]),
         ], fluid=True)
 
 

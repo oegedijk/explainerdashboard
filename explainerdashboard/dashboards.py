@@ -256,6 +256,7 @@ class ExplainerDashboard:
                  importances=True,
                  model_summary=True,
                  contributions=True,
+                 whatif=True,
                  shap_dependence=True,
                  shap_interaction=True,
                  decision_trees=True,
@@ -329,6 +330,7 @@ class ExplainerDashboard:
             importances(bool, optional): include ImportancesTab, defaults to True.
             model_summary(bool, optional): include ModelSummaryTab, defaults to True.
             contributions(bool, optional): include ContributionsTab, defaults to True.
+            whatif (bool, optional): include WhatIfTab, defaults to True.
             shap_dependence(bool, optional): include ShapDependenceTab, defaults to True.
             shap_interaction(bool, optional): include InteractionsTab if model allows it, defaults to True.
             decision_trees(bool, optional): include DecisionTreesTab if model allows it, defaults to True.
@@ -384,6 +386,8 @@ class ExplainerDashboard:
                 tabs.append(ModelSummaryTab)
             if contributions:
                 tabs.append(ContributionsTab)
+            if whatif:
+                tabs.append(WhatIfTab)
             if shap_dependence:
                 tabs.append(ShapDependenceTab)
             if shap_interaction:

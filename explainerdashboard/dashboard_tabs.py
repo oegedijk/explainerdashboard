@@ -2,6 +2,7 @@ __all__ = [
     'ImportancesTab',
     'ModelSummaryTab',
     'ContributionsTab',
+    'WhatIfTab',
     'ShapDependenceTab',
     'ShapInteractionsTab',
     'DecisionTreesTab',
@@ -114,6 +115,30 @@ class ContributionsTab(ExplainerComponent):
     def layout(self):
         return html.Div([
             self.contribs.layout()
+        ])
+
+class WhatIfTab(ExplainerComponent):
+    def __init__(self, explainer, title="What if...", name=None):
+        """Tab showing individual predictions and allowing edits 
+            to the features...
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Individual Predictions".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+        """
+        super().__init__(explainer, title, name)
+        self.tab_id = "whatif"
+        self.whatif = WhatIfComposite(explainer)
+        self.register_components(self.whatif)
+    
+    def layout(self):
+        return html.Div([
+            self.whatif.layout()
         ])
 
 
