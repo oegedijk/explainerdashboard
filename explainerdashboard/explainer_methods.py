@@ -147,6 +147,30 @@ def merge_categorical_columns(X, cats=None, sep="_"):
     return X_cats
 
 
+def X_cats_to_X(X_cats, cats, X_columns, sep="_"):
+    """
+    re-onehotencodes a dataframe where onehotencoded columns had previously
+    been merged with merge_categorical_columns(...)
+    
+    Args:
+        X_cats (pd.DataFrame): dataframe with merged categorical columns cats
+        cats (list[str]): list of categorical features that were merged
+        X_columns: list of columns of original dataframe
+    
+    Returns:
+        pd.DataFrame: dataframe X with same encoding as original
+    """
+    fd = get_feature_dict(X_columns, cats)
+    non_cat_cols = [col for col in X_cats.columns if col not in cats]
+    X_new = X_cats[non_cat_cols].copy()
+    for cat, labels in fd.items():
+        if cat in cats:
+            for label in labels:
+                label = label[len(cat)+len(sep):]
+                X_new[cat+sep+label] = (X_cats[cat]==label).astype(int)
+    return X_new[X_columns]
+
+
 def merge_categorical_shap_values(X, shap_values, cats=None, sep="_"):
     """
     Returns a new feature new shap values np.array
