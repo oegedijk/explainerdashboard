@@ -28,7 +28,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
                             model, X_test, y_test, r2_score,
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
-                            idxs=test_names)
+                            idxs=test_names, target='Fare', units='$')
 
     def test_explainer_len(self):
         self.assertEqual(len(self.explainer), self.test_len)

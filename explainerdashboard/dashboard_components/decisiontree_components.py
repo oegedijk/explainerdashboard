@@ -81,7 +81,8 @@ class DecisionTreesComponent(ExplainerComponent):
             dbc.Row([
                 dbc.Col([
                     dcc.Loading(id="loading-decisiontrees-graph-"+self.name, 
-                        children=dcc.Graph(id="decisiontrees-graph-"+self.name)),  
+                        children=dcc.Graph(id="decisiontrees-graph-"+self.name,
+                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))),  
                 ])
             ]),
         ])

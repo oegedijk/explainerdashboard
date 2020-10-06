@@ -9,14 +9,18 @@
 -   new login functionality: you can restrict access to your dashboard by passing
         a list of `[login, password]` pairs:
         `ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()`
+-   Added 'target' parameter to explainer, to make more descriptive plots.
+        e.g. by setting target='Fare', will show 'Predicted Fare' instead of 
+        simply 'Prediction' in various plots.
+-   in detailed shap/interaction summary plots, can now click on single 
+    shap value for a particular feature, and have that index highlighted
+    for all features.
 -   autodetecting Google colab environment and setting mode='external' 
     (and suggesting so for jupyter notebook environments)     
 -   confusion matrix now showing both percentage and counts
 -   added classifier model performance summary component
 -   added cumulative precision component
--   in detailed shap/interaction summary plots, can now click on single 
-    shap value for a particular feature, and have that index highlighted
-    for all features.
+
 
 ### Bug Fixes
 -
@@ -24,10 +28,13 @@
 
 ### Improvements
 -   added documentation on how to deploy to heroku
--
+-   Cleaned up modebars for figures
+-   ClassifierExplainer asserts predict_proba attribute of model
+-   with model_output='logodds' still display probability in prediction summary
+-   for ClassifierExplainer: check if has predict_proba methods at init
 
 ### Other Changes
--
+-   removed monkeypatching shap_explainer note
 -
 
 ## version 0.2.4

@@ -1,5 +1,6 @@
-dash>=1.8.0
+dash
 dash-bootstrap-components
+dash-auth
 jupyter_dash
 dtreeviz
 numpy

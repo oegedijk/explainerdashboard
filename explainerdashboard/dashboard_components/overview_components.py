@@ -207,7 +207,8 @@ class ImportancesComponent(ExplainerComponent):
             dbc.Row([
                 dbc.Col([
                     dcc.Loading(id='loading-importances-graph-'+self.name, 
-                            children=[dcc.Graph(id='importances-graph-'+self.name)])
+                            children=[dcc.Graph(id='importances-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
                 ]),
             ]), 
         ])
@@ -324,7 +325,8 @@ class PdpComponent(ExplainerComponent):
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-pdp-graph-'+self.name, 
-                            children=[dcc.Graph(id='pdp-graph-'+self.name)]),
+                            children=[dcc.Graph(id='pdp-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ])
                 ]),
                 dbc.Row([
