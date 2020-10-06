@@ -6,6 +6,9 @@
 - 
 
 ### New Features
+-   New dashboard tab: WhatIfComponent/WhatIfComposite/WhatIfTab: allows you
+        to explore whatif scenario's by editing multiple featues and observing
+        contributions and pdp plots
 -   new login functionality: you can restrict access to your dashboard by passing
         a list of `[login, password]` pairs:
         `ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()`

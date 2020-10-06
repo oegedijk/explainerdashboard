@@ -137,15 +137,17 @@ PdpComponent
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.PdpComponent
    :members:
 
+WhatIfComponent
+---------------
+
+.. autoclass:: explainerdashboard.dashboard_components.overview_components.WhatIfComponent
+   :members:
+
+
 
 classifier_components
 =====================
 
-PrecisionComponent
-------------------
-
-.. autoclass:: explainerdashboard.dashboard_components.classifier_components.PrecisionComponent
-   :members:
 
 ConfusionMatrixComponent
 ------------------------
@@ -175,6 +177,18 @@ PrAucComponent
 --------------
 
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.PrAucComponent
+   :members:
+
+PrecisionComponent
+------------------
+
+.. autoclass:: explainerdashboard.dashboard_components.classifier_components.PrecisionComponent
+   :members:
+
+CumulativePrecisionComponent
+----------------------------
+
+.. autoclass:: explainerdashboard.dashboard_components.classifier_components.CumulativePrecisionComponent
    :members:
 
 

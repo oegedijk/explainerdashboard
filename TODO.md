@@ -28,8 +28,6 @@
 ## notebooks:
 
 ## Dashboard:
-- add what-if dashbaord
-
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics? 
@@ -52,6 +50,7 @@
 - add test coverage 
 
 ## Docs:
+- add whatif docs
 - add docstrings to explainer_plots
 - add screenshots of components to docs
 - move screenshots to separate folder

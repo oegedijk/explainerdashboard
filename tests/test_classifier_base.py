@@ -97,6 +97,10 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.contrib_df(0, sort='high-to-low'), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(0, sort='low-to-high'), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(0, sort='importance'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X_cats.iloc[[0]]), pd.DataFrame)
+
+
 
     def test_contrib_summary_df(self):
         self.assertIsInstance(self.explainer.contrib_summary_df(0), pd.DataFrame)
@@ -106,6 +110,8 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='low-to-high'), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='high-to-low'), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='importance'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_summary_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+        self.assertIsInstance(self.explainer.contrib_summary_df(X_row=self.explainer.X_cats.iloc[[0]]), pd.DataFrame)
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
@@ -140,6 +146,8 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Age", X_row=self.explainer.X.iloc[[0]]), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Age", X_row=self.explainer.X_cats.iloc[[0]]), pdpbox.pdp.PDPIsolate)
 
     def test_get_dfs(self):
         cols_df, shap_df, contribs_df = self.explainer.get_dfs()
@@ -193,6 +201,12 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_contributions(0, sort='importance')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_contributions(X_row=self.explainer.X.iloc[[0]], sort='importance')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_contributions(X_row=self.explainer.X_cats.iloc[[0]], sort='importance')
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_summary(self):
@@ -267,6 +281,12 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_pdp("Age", index=0)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_pdp("Age", X_row=self.explainer.X.iloc[[0]])
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_pdp("Age", X_row=self.explainer.X_cats.iloc[[0]])
         self.assertIsInstance(fig, go.Figure)
 
 
