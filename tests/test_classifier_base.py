@@ -25,6 +25,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
                             model, X_test, y_test, roc_auc_score, 
                             shap='tree',
                             cats=['Sex', 'Cabin', 'Embarked'],
+                            target='Survival',
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 

@@ -66,7 +66,8 @@ class PredictedVsActualComponent(ExplainerComponent):
                     ], md=1, align="center"), hide=self.hide_log_y),
                 dbc.Col([
                     dcc.Loading(id="loading-pred-vs-actual-graph-"+self.name, 
-                                children=[dcc.Graph(id='pred-vs-actual-graph-'+self.name)]),
+                                children=[dcc.Graph(id='pred-vs-actual-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                 ], md=11)
             ]),
             dbc.Row([
@@ -138,7 +139,8 @@ class ResidualsComponent(ExplainerComponent):
             dbc.Row([
                 dbc.Col([
                     dcc.Loading(id="loading-residuals-graph-"+self.name, 
-                                children=[dcc.Graph(id='residuals-graph-'+self.name)]),
+                                children=[dcc.Graph(id='residuals-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                 ])
             ]),
             dbc.Row([
@@ -255,7 +257,8 @@ class ResidualsVsColComponent(ExplainerComponent):
             ]),
             dbc.Row([
                 dcc.Loading(id="loading-residuals-vs-col-graph-"+self.name, 
-                                children=[dcc.Graph(id='residuals-vs-col-graph-'+self.name)]),
+                                children=[dcc.Graph(id='residuals-vs-col-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
             ]),
             dbc.Row([
                 make_hideable(

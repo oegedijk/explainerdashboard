@@ -126,7 +126,8 @@ class ShapSummaryComponent(ExplainerComponent):
                 ], form=True),
 
             dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
-                    children=[dcc.Graph(id="shap-summary-graph-"+self.name)])
+                    children=[dcc.Graph(id="shap-summary-graph-"+self.name,
+                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
             
         ], fluid=True)
     
@@ -268,7 +269,8 @@ class ShapDependenceComponent(ExplainerComponent):
                         ], md=4), hide=self.hide_index),         
             ], form=True),
             dcc.Loading(id="loading-dependence-graph-"+self.name, 
-                         children=[dcc.Graph(id='shap-dependence-graph-'+self.name)]),
+                         children=[dcc.Graph(id='shap-dependence-graph-'+self.name,
+                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
         ])
 
     def _register_callbacks(self, app):
@@ -461,7 +463,8 @@ class InteractionSummaryComponent(ExplainerComponent):
             dbc.Row([
                 dbc.Col([
                     dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
-                         children=[dcc.Graph(id='interaction-summary-graph-'+self.name, )])
+                         children=[dcc.Graph(id='interaction-summary-graph-'+self.name, 
+                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
                 ])
             ]), 
         ], fluid=True)
@@ -623,7 +626,8 @@ class InteractionDependenceComponent(ExplainerComponent):
             dbc.Col([
                 make_hideable(
                 dcc.Loading(id='loading-interaction-dependence-graph-'+self.name, 
-                         children=[dcc.Graph(id='interaction-dependence-graph-'+self.name)]),
+                         children=[dcc.Graph(id='interaction-dependence-graph-'+self.name,
+                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                          hide=self.hide_top),
             ])
         ]),
@@ -631,7 +635,8 @@ class InteractionDependenceComponent(ExplainerComponent):
             dbc.Col([
                 make_hideable(
                 dcc.Loading(id='loading-reverse-interaction-graph-'+self.name, 
-                         children=[dcc.Graph(id='interaction-dependence-reverse-graph-'+self.name)]),
+                         children=[dcc.Graph(id='interaction-dependence-reverse-graph-'+self.name,
+                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                          hide=self.hide_bottom),
             ])
         ]),
@@ -834,7 +839,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             dbc.Row([
                 dbc.Col([
                     dcc.Loading(id='loading-contributions-graph-'+self.name, 
-                        children=[dcc.Graph(id='contributions-graph-'+self.name)]),
+                        children=[dcc.Graph(id='contributions-graph-'+self.name,
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                 ]),
             ]),
             dbc.Row([

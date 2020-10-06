@@ -9,20 +9,27 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
+- add X_row parameter to plot_shap_contribution
+- add X_row parameter to plot_pdp
 
 ### Classifier plots:
 - pdp: add multiclass option
 - add cutoff to cumulative precision plot
 
 ### Regression plots:
+- add actual vs feature
+- add predicted vs feature
 
 ## Explainers:
-- add target name 
 - add plain language explanations
+- rename RandomForestExplainer and XGBExplainer methods into something more logical
+    - Breaking change!
 
 ## notebooks:
 
 ## Dashboard:
+- add what-if dashbaord
+
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics? 
@@ -30,6 +37,7 @@
 ### Components
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
+- classifier prediction summary: no logodds.
 
 ## Methods:
 - Add LIME values
@@ -57,3 +65,4 @@
 - add more screenshots to README with https://postimages.org/
 - add test coverage: https://github.com/marketplace/actions/coveralls-python
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
+- install vscode github pull requests and issues extension

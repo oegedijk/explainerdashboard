@@ -25,6 +25,7 @@ from dtreeviz.trees import ShadowDecTree, dtreeviz
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_score, recall_score, log_loss
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import average_precision_score
 
 from .explainer_methods import *
 from .explainer_plots import *
@@ -37,7 +38,7 @@ class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, 
+                    cats=None, idxs=None, descriptions=None, target="",
                     n_jobs=None, permutation_cv=None, na_fill=-999):
         """Defines the basic functionality of an ExplainerBunch
 
@@ -62,6 +63,9 @@ class BaseExplainer(ABC):
         :param idxs: list of row identifiers. Can be names, id's, etc. Get 
             converted to str, defaults to None
         :type idxs: list, optional
+        :param target: name of the predicted target, e.g. "Survival", 
+            "Ticket price", etc. Defaults to ""
+        :type target: str
         :param n_jobs: for jobs that can be parallelized using joblib,
             how many processes to split the job in. For now only used
             for calculating permutation importances. Defaults to None.
@@ -113,6 +117,7 @@ class BaseExplainer(ABC):
         else:
             self.idxs = [str(i) for i in range(len(X))]
         self.descriptions = {} if descriptions is None else descriptions
+        self.target = target
         self.n_jobs = n_jobs
         self.permutation_cv = permutation_cv
         self.na_fill = na_fill
@@ -719,7 +724,7 @@ class BaseExplainer(ABC):
         elif kind=='shap':
             return self.mean_abs_shap_df(topx, cutoff, cats, pos_label)
 
-    def contrib_df(self, index, cats=True, topx=None, cutoff=None, sort='abs',
+    def contrib_df(self, index=None, cats=True, topx=None, cutoff=None, sort='abs',
                     pos_label=None):
         """shap value contributions to the prediction for index.
         
@@ -727,6 +732,8 @@ class BaseExplainer(ABC):
 
         Args:
           index(int or str): index for which to calculate contributions
+          X_row (pd.DataFrame, single row): single row of feature for which
+                to calculate contrib_df. Can us this instead of index
           cats(bool, optional, optional): Group categoricals, defaults to True
           topx(int, optional, optional): Only return topx features, remainder 
                     called REST, defaults to None
@@ -1008,10 +1015,14 @@ class BaseExplainer(ABC):
         """
         importances_df = self.importances_df(kind=kind, topx=topx, cats=cats, pos_label=pos_label)
         if kind=='shap':
-            title = 'Average impact on prediction<br>(mean absolute SHAP value)' 
+            if self.target: 
+                title = f"Average impact on predicted {self.target}<br>(mean absolute SHAP value)"
+            else:
+                title = 'Average impact on prediction<br>(mean absolute SHAP value)' 
+                
             units = self.units
         else:
-            title = 'Permutation Importances <br>(decrease in metric with randomized feature)'
+            title = f"Permutation Importances <br>(decrease in metric '{self.metric.__name__}'' with randomized feature)"
             units = ""
         if self.descriptions:
             descriptions = self.description_list(importances_df.Feature)
@@ -1039,12 +1050,15 @@ class BaseExplainer(ABC):
         title = f"Average interaction shap values for {col}"
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
-    def plot_shap_contributions(self, index, cats=True, topx=None, cutoff=None, 
+    def plot_shap_contributions(self, index=None, cats=True, topx=None, cutoff=None, 
                         sort='abs', orientation='vertical', round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
 
         Args:
           index(int or str): index for which to display prediction
+          X_row (pd.DataFrame single row): a single row of a features to plot
+                shap contributions for. Can use this instead of index for
+                what-if scenarios.
           cats(bool, optional, optional): Group categoricals, defaults to True
           topx(int, optional, optional): Only display topx features, 
                         defaults to None
@@ -1068,7 +1082,8 @@ class BaseExplainer(ABC):
         assert orientation in ['vertical', 'horizontal']
         contrib_df = self.contrib_df(self.get_int_idx(index), cats, topx, cutoff, sort, pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
-                    orientation=orientation, round=round, units=self.units)
+                    orientation=orientation, round=round, 
+                    target=self.target, units=self.units)
 
     def plot_shap_summary(self, index=None, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap value.
@@ -1086,6 +1101,23 @@ class BaseExplainer(ABC):
           plotly.Fig
 
         """
+        if self.is_classifier:
+            if pos_label is None:
+                pos_label = self.pos_label
+            pos_label_str = self.labels[self.get_pos_label_index(pos_label)]
+            if self.model_output == 'probability':
+                if self.target:
+                    title = f"Impact of feature on predicted probability {self.target}={pos_label_str} <br> (SHAP values)"
+                else:
+                    title = f"Impact of Feature on Prediction probability <br> (SHAP values)"
+            elif self.model_output == 'logodds':
+                title = f"Impact of Feature on predicted logodds <br> (SHAP values)"
+        elif self.is_regression:
+            if self.target:
+                title = f"Impact of Feature on Predicted {self.target} <br> (SHAP values)"
+            else:
+                title = f"Impact of Feature on Prediction<br> (SHAP values)"
+
         if cats:
             return plotly_shap_scatter_plot(
                                 self.shap_values_cats(pos_label),
@@ -1094,6 +1126,7 @@ class BaseExplainer(ABC):
                                         ['Feature'].values.tolist(), 
                                 idxs=self.idxs,
                                 highlight_index=index,
+                                title=title,
                                 na_fill=self.na_fill)
         else:
             return plotly_shap_scatter_plot(
@@ -1103,6 +1136,7 @@ class BaseExplainer(ABC):
                                         ['Feature'].values.tolist(), 
                                 idxs=self.idxs,
                                 highlight_index=index,
+                                title=title,
                                 na_fill=self.na_fill)
 
     def plot_shap_interaction_summary(self, col, index=None, topx=None, cats=False, pos_label=None):
@@ -1250,7 +1284,7 @@ class BaseExplainer(ABC):
                             index_feature_value=col_value, index_prediction=pred,
                             feature_name=col,
                             num_grid_lines=min(gridlines, sample, len(self.X)),
-                            units=units)
+                            target=self.target, units=units)
             # except Exception as e:
             #     print(e)
             #     return plotly_pdp(pdp_result, feature_name=col,
@@ -1259,14 +1293,14 @@ class BaseExplainer(ABC):
         else:
             return plotly_pdp(pdp_result, feature_name=col,
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
-                        units=units)
+                        target=self.target, units=units)
 
 
 class ClassifierExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X, y=None,  permutation_metric=roc_auc_score, 
                     shap='guess', X_background=None, model_output="probability",
-                    cats=None, idxs=None, descriptions=None,
+                    cats=None, idxs=None, descriptions=None, target="",
                     n_jobs=None, permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
         """
@@ -1288,7 +1322,13 @@ class ClassifierExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
-                            cats, idxs, descriptions, n_jobs, permutation_cv, na_fill)
+                            cats, idxs, descriptions, target, 
+                            n_jobs, permutation_cv, na_fill)
+
+        assert hasattr(model, "predict_proba"), \
+                ("for ClassifierExplainer, model should be a scikit-learn "
+                 "compatible *classifier* model that has a predict_proba(...) "
+                 f"method, so not a {type(model)}!")
 
         if labels is not None:
             self.labels = labels
@@ -1386,9 +1426,7 @@ class ClassifierExplainer(BaseExplainer):
                              ", link='identity')")
                 self._shap_explainer = shap.KernelExplainer(self.model.predict_proba, 
                                             self.X_background if self.X_background is not None else self.X,
-                                            link="identity")
-            print("Final note: You can always monkeypatch self.shap_explainer if desired...")
-               
+                                            link="identity")       
         return self._shap_explainer
 
     @property
@@ -1831,12 +1869,12 @@ class ClassifierExplainer(BaseExplainer):
             for i in range(len(labels)):
                 proba_str = f"{np.round(100*pred_probas_raw[i], round)}%"
                 logodds_str = f"(logodds={log_odds(pred_probas_raw[i], round)})"
-                yield f"* {labels[i]}: {proba_str if model_output=='probability' else logodds_str}\n"
+                yield f"* {labels[i]}: {proba_str} {logodds_str if model_output=='logodds' else ''}\n"
 
-        model_prediction = ""
+        model_prediction = "###### Prediction:\n\n"
         if (isinstance(self.y[0], int) or 
             isinstance(self.y[0], np.int64)):
-            model_prediction += f"Outcome: {self.labels[self.y[int_idx]]}\n\n"
+            model_prediction += f"Actual {self.target}: {self.labels[self.y[int_idx]]}\n\n"
         
         model_prediction += "Prediction probabilities per label:\n\n" 
         for pred in display_probas(
@@ -2011,7 +2049,7 @@ class RegressionExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, 
+                    cats=None, idxs=None, descriptions=None, target="",
                     n_jobs=None, permutation_cv=None, na_fill=-999,
                     units=""):
         """Explainer for regression models.
@@ -2026,7 +2064,8 @@ class RegressionExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
-                            cats, idxs, descriptions, n_jobs, permutation_cv, na_fill)
+                            cats, idxs, descriptions, target,
+                            n_jobs, permutation_cv, na_fill)
         self.units = units
         self.is_regression = True
 
@@ -2111,23 +2150,26 @@ class RegressionExplainer(BaseExplainer):
             return self.idxs[idx]
         return int(idx)
 
-    def prediction_result_markdown(self, index, round=2, **kwargs):
+    def prediction_result_markdown(self, index, include_percentile=True, round=2, **kwargs):
         """markdown of prediction result
 
         Args:
           index: row index to be predicted
+          include_percentile (bool): include line about prediciton percentile
           round:  (Default value = 2)
-          **kwargs: 
 
         Returns:
-          dict
+          str: markdown summary of prediction for index 
 
         """
         int_idx = self.get_int_idx(index)
-        model_prediction = f"Prediction: {np.round(self.preds[int_idx], round)} {self.units}\n\n"
-        model_prediction += f"Actual: {np.round(self.y[int_idx], round)} {self.units}\n\n"
-        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}"
-
+        model_prediction = "###### Prediction:\n"
+        model_prediction += f"Predicted {self.target}: {np.round(self.preds[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Actual {self.target}: {np.round(self.y[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}\n\n"
+        if include_percentile:
+            percentile = np.round(100*(1-self.pred_percentiles[int_idx]))
+            model_prediction += f"\nIn top {percentile}% percentile predicted {self.target}"
         return model_prediction
 
     def metrics(self):
@@ -2152,6 +2194,8 @@ class RegressionExplainer(BaseExplainer):
         metrics_dict = self.metrics(**kwargs)
         
         metrics_markdown = "# Model Summary: \n\n"
+        if self.target:
+            metrics_markdown += f"Predicting {self.target} " + f"({self.units})\n\n" if self.units else "\n\n"
         metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)} {self.units}\n\n"
         metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)} {self.units}\n\n"
         metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)} {self.units}\n\n"
@@ -2172,8 +2216,9 @@ class RegressionExplainer(BaseExplainer):
           Plotly fig
 
         """
-        return plotly_predicted_vs_actual(self.y, self.preds, units=self.units, 
-                idxs=self.idxs, logs=logs, log_x=log_x, log_y=log_y, round=round)
+        return plotly_predicted_vs_actual(self.y, self.preds, 
+                target=self.target, units=self.units, idxs=self.idxs, 
+                logs=logs, log_x=log_x, log_y=log_y, round=round)
     
     def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
         """plot of residuals. x-axis is the predicted outcome by default
@@ -2189,8 +2234,9 @@ class RegressionExplainer(BaseExplainer):
 
         """
         return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
-                                     vs_actual=vs_actual, units=self.units, 
-                                     residuals=residuals, round=round)
+                                     vs_actual=vs_actual, target=self.target, 
+                                     units=self.units, residuals=residuals, 
+                                     round=round)
     
     def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
                 dropna=True, points=True, winsor=0):
@@ -2401,13 +2447,14 @@ class RandomForestExplainer(BaseExplainer):
             if pos_label is None: pos_label = self.pos_label
             y = 100*self.y_binary(pos_label)[idx] 
 
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], y,
+            return plotly_rf_trees(self.model, self.X.iloc[[idx]], y,
                         highlight_tree=highlight_tree, round=round, 
-                        pos_label=pos_label)
+                        pos_label=pos_label, target=self.target)
         else:
             y = self.y[idx]
-            return plotly_tree_predictions(self.model, self.X.iloc[[idx]], y,
-                        highlight_tree=highlight_tree, round=round, units=self.units)
+            return plotly_rf_trees(self.model, self.X.iloc[[idx]], y,
+                        highlight_tree=highlight_tree, round=round, 
+                        target=self.target, units=self.units)
 
     def calculate_properties(self, include_interactions=True):
         """
@@ -2620,12 +2667,16 @@ class XGBExplainer(BaseExplainer):
             y = self.y_binary(pos_label)[idx]
             xgboost_preds_df = get_xgboost_preds_df(
                 self.model, self.X.iloc[[idx]], pos_label=pos_label)
-            return plotly_xgboost_trees(xgboost_preds_df, y=y, highlight_tree=highlight_tree)
+            return plotly_xgboost_trees(xgboost_preds_df, 
+                            y=y, highlight_tree=highlight_tree,
+                            target=self.target)
         else:
             y = self.y[idx]
             xgboost_preds_df = get_xgboost_preds_df(
                 self.model, self.X.iloc[[idx]])
-            return plotly_xgboost_trees(xgboost_preds_df, y=y, highlight_tree=highlight_tree)
+            return plotly_xgboost_trees(xgboost_preds_df, 
+                            y=y, highlight_tree=highlight_tree,
+                            target=self.target, units=self.units)
 
     def calculate_properties(self, include_interactions=True):
         """

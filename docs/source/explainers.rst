@@ -56,6 +56,7 @@ give a bit nicer and more convenient output::
             cats=['Sex', 'Deck', 'Embarked'], # makes it easy to group onehotencoded vars
             idxs=test_names, # index with str identifier
             descriptions=feature_descriptions, # show long feature descriptions in hovers
+            target='Survival', # the name of the target variable (y)
             labels=['Not survived', 'Survived']) # show target labels instead of ['0', '1']
 
 cats
@@ -99,6 +100,11 @@ In order to be explanatory, you often have to explain the meaning of the feature
 themselves (especially if the naming is not obvious).
 Passing the dict along to descriptions will show hover-over tooltips for the 
 various features in the dashboard.
+
+target
+------
+
+Name of the target variable
 
 labels
 ------

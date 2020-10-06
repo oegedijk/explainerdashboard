@@ -1,3 +1,23 @@
+__all__= [
+    'plotly_contribution_plot',
+    'plotly_precision_plot',
+    'plotly_classification_plot',
+    'plotly_lift_curve',
+    'plotly_cumulative_precision_plot',
+    'plotly_dependence_plot',
+    'plotly_shap_violin_plot',
+    'plotly_pdp',
+    'plotly_importances_plot',
+    'plotly_confusion_matrix',
+    'plotly_roc_auc_curve',
+    'plotly_pr_auc_curve',
+    'plotly_shap_scatter_plot',
+    'plotly_predicted_vs_actual',
+    'plotly_plot_residuals',
+    'plotly_residuals_vs_col',
+    'plotly_rf_trees',
+    'plotly_xgboost_trees']
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype, is_string_dtype
@@ -10,7 +30,7 @@ from sklearn.metrics import (classification_report, confusion_matrix,
                              roc_auc_score, average_precision_score)
 
 
-def plotly_contribution_plot(contrib_df, target="target", 
+def plotly_contribution_plot(contrib_df, target="", 
                          model_output="raw", higher_is_better=False,
                          include_base_value=True, include_prediction=True, 
                          orientation='vertical', round=2, units=""):
@@ -70,10 +90,10 @@ def plotly_contribution_plot(contrib_df, target="target",
         hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib} {units}"  
                   for col, contrib in zip(cols, contribs)]
 
-    fill_color_up='rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
-    fill_color_down='rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
-    line_color_up='rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
-    line_color_down='rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
+    fill_color_up = 'rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
+    fill_color_down = 'rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
+    line_color_up = 'rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
+    line_color_down = 'rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
 
     fill_colors = [fill_color_up if y > 0 else fill_color_down for y in contribs]
     line_colors = [line_color_up if y > 0 else line_color_down for y in contribs]
@@ -161,7 +181,6 @@ def plotly_contribution_plot(contrib_df, target="target",
     else:
         fig.update_xaxes(title_text='Predicted ' + ('%' if model_output=="probability" else units))
     return fig
-
 
 
 def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None):
@@ -818,7 +837,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
 def plotly_pdp(pdp_result, 
                display_index=None, index_feature_value=None, index_prediction=None,
                absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None,
-               round=2, units=""):
+               round=2, target="", units=""):
     """
     display_index: display the pdp of particular index
     index_feature_value: the actual feature value of the index to be highlighted
@@ -872,7 +891,8 @@ def plotly_pdp(pdp_result,
 
     layout = go.Layout(title = f'pdp plot for {feature_name}',
                         plot_bgcolor = '#fff',
-                        yaxis=dict(title=units))
+                        yaxis=dict(title=f"Predicted {target}{f' ({units})' if units else ''}"),
+                        xaxis=dict(title=feature_name))
 
     fig = go.Figure(data=data, layout=layout)
 
@@ -935,7 +955,8 @@ def plotly_pdp(pdp_result,
     return fig
 
 
-def plotly_importances_plot(importance_df, descriptions=None, round=3, units="", title=None, xaxis_title=None):
+def plotly_importances_plot(importance_df, descriptions=None, round=3, 
+            target="target" , units="", title=None, xaxis_title=None):
     
     importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     if title is None:
@@ -983,94 +1004,6 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3, units="",
                                 pad=4
                             ))
     return fig
-
-
-def plotly_tree_predictions(model, observation, y=None, highlight_tree=None, round=2, pos_label=1, units=""):
-    """
-    returns a plot with all the individual predictions of the 
-    DecisionTrees that make up the RandomForest.
-    """
-    assert (str(type(model)).endswith("RandomForestClassifier'>") 
-            or str(type(model)).endswith("RandomForestRegressor'>")), \
-        f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
-    
-    colors = ['blue'] * len(model.estimators_) 
-    if highlight_tree is not None:
-        assert highlight_tree >= 0 and highlight_tree <= len(model.estimators_), \
-            f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
-        colors[highlight_tree] = 'red'
-        
-    if model.estimators_[0].classes_[0] is not None: #if classifier
-        preds_df = (
-            pd.DataFrame({
-                'model' : range(len(model.estimators_)), 
-                'prediction' : [
-                        np.round(100*m.predict_proba(observation)[0, pos_label], round) 
-                                    for m in model.estimators_],
-                'color' : colors
-            })
-            .sort_values('prediction')\
-            .reset_index(drop=True))
-    else:
-        preds_df = (
-            pd.DataFrame({
-                'model' : range(len(model.estimators_)), 
-                'prediction' : [np.round(m.predict(observation)[0] , round)
-                                    for m in model.estimators_],
-                'color' : colors
-            })
-            .sort_values('prediction')\
-            .reset_index(drop=True))
-      
-    trace0 = go.Bar(x=preds_df.index, 
-                    y=preds_df.prediction, 
-                    marker_color=preds_df.color,
-                    text=[f"tree no {t}:<br> prediction={p}<br> click for detailed info"
-                             for (t, p) in zip(preds_df.model.values, preds_df.prediction.values)],
-                    hoverinfo="text")
-    
-    layout = go.Layout(
-                title='individual predictions trees',
-                plot_bgcolor = '#fff',
-                yaxis=dict(title=units)
-            )
-    fig = go.Figure(data = [trace0], layout=layout)
-    shapes = [dict(
-                type='line',
-                xref='x', yref='y',
-                x0=0, x1=preds_df.model.max(), 
-                y0=preds_df.prediction.mean(), y1=preds_df.prediction.mean(),
-                line=dict(
-                    color="darkslategray",
-                    width=4,
-                    dash="dot"),
-                )]
-    
-    annotations = [go.layout.Annotation(
-        x=preds_df.model.mean(), 
-        y=preds_df.prediction.mean(),
-        text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}",
-        bgcolor="white")]
-
-    if y is not None:
-        shapes.append(dict(
-                type='line',
-                xref='x', yref='y',
-                x0=0, x1=preds_df.model.max(), 
-                y0=y, y1=y,
-                line=dict(
-                    color="red",
-                    width=4,
-                    dash="dashdot"),
-                ))
-        annotations.append(go.layout.Annotation(
-            x=preds_df.model.mean(), y=y, text=f"y={y}", bgcolor="red"))
-
-    fig.update_layout(shapes=shapes)
-    fig.update_layout(annotations=annotations)
-    
-    return fig 
-
 
 
 def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
@@ -1382,7 +1315,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
                                 l=50,
                                 r=50,
                                 b=50,
-                                t=50,
+                                t=100,
                                 pad=4
                             ),
                       hovermode='closest',
@@ -1390,7 +1323,8 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
     return fig
 
 
-def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False, log_x=False, log_y=False, idxs=None):
+def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2, 
+            logs=False, log_x=False, log_y=False, idxs=None):
     
     if idxs is not None:
         assert len(idxs)==len(preds)
@@ -1407,7 +1341,7 @@ def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False, log_x=Fa
         x = y,
         y = preds,
         mode='markers', 
-        name='predicted',
+        name=f'predicted {target}' + f" ({units})" if units else "",
         text=marker_text,
         hoverinfo="text",
     )
@@ -1417,19 +1351,19 @@ def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False, log_x=Fa
         x = sorted_y,
         y = sorted_y,
         mode='lines', 
-        name=f'actual {units}',
+        name=f"actual {target}" + f" ({units})" if units else "",
         hoverinfo="none",
     )
     
     data = [trace0, trace1]
     
     layout = go.Layout(
-        title='Predicted vs Actual',
+        title=f"Predicted {target} vs Actual {target}",
         yaxis=dict(
-            title=f'Predicted {units}' 
+            title=f"Predicted {target}" + f" ({units})" if units else "",
         ),
         xaxis=dict(
-            title=f'Actual {units}' 
+            title=f"Actual {target}" + f" ({units})" if units else "",
         ),
         plot_bgcolor = '#fff',
         hovermode = 'closest',
@@ -1445,7 +1379,7 @@ def plotly_predicted_vs_actual(y, preds, units="", round=2, logs=False, log_x=Fa
     return fig
 
 
-def plotly_plot_residuals(y, preds, vs_actual=False, units="", residuals='difference', round=2, idxs=None):
+def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", residuals='difference', round=2, idxs=None):
     """generates a residual plot
 
     Args:
@@ -1453,6 +1387,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, units="", residuals='differ
         preds (np.array, pd.Series): Predictions
         vs_actual (bool, optional): Put actual values (y) on the x-axis. 
                     Defaults to False (i.e. preds on the x-axis)
+        target (str, optional): name of the target variable. Defaults to ""
         units (str, optional): units of the axis. Defaults to "".
         residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
                     How to calcualte residuals. Defaults to 'difference'.
@@ -1502,20 +1437,22 @@ def plotly_plot_residuals(y, preds, vs_actual=False, units="", residuals='differ
         x=y if vs_actual else preds, 
         y=np.ones(len(preds)) if residuals=='ratio' else np.zeros(len(preds)),
         mode='lines', 
-        name=f'Actual {units}' if vs_actual else f'Predicted {units}',
+        name=(f"Actual {target}" + f" ({units})" if units else "") if vs_actual \
+                else (f"Predicted {target}" + f" ({units})" if units else ""),
         hoverinfo="none",
     )
     
     data = [trace0, trace1]
     
     layout = go.Layout(
-        title=f"Residuals vs {'actual' if vs_actual else 'predicted'}",
+        title=f"Residuals vs {'actual' if vs_actual else 'predicted'} {target}",
         yaxis=dict(
             title=residuals_name
         ),
         
         xaxis=dict(
-            title=f'Actual {units}' if vs_actual else f'Predicted {units}' 
+            title=(f"Actual {target}" + f" ({units})" if units else "") if vs_actual \
+                else (f"Predicted {target}" + f" ({units})" if units else "")
         ),
         plot_bgcolor = '#fff',
         hovermode = 'closest',
@@ -1648,7 +1585,104 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         return fig
 
 
-def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,  pos_label=1, units=""):
+def plotly_rf_trees(model, observation, y=None, highlight_tree=None, 
+            round=2, pos_label=1, target="", units=""):
+    """
+    returns a plot with all the individual predictions of the 
+    DecisionTrees that make up the RandomForest.
+    """
+    assert (str(type(model)).endswith("RandomForestClassifier'>") 
+            or str(type(model)).endswith("RandomForestRegressor'>")), \
+        f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
+    
+    colors = ['blue'] * len(model.estimators_) 
+    if highlight_tree is not None:
+        assert highlight_tree >= 0 and highlight_tree <= len(model.estimators_), \
+            f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
+        colors[highlight_tree] = 'red'
+        
+    if model.estimators_[0].classes_[0] is not None: #if classifier
+        preds_df = (
+            pd.DataFrame({
+                'model' : range(len(model.estimators_)), 
+                'prediction' : [
+                        np.round(100*m.predict_proba(observation)[0, pos_label], round) 
+                                    for m in model.estimators_],
+                'color' : colors
+            })
+            .sort_values('prediction')\
+            .reset_index(drop=True))
+    else:
+        preds_df = (
+            pd.DataFrame({
+                'model' : range(len(model.estimators_)), 
+                'prediction' : [np.round(m.predict(observation)[0] , round)
+                                    for m in model.estimators_],
+                'color' : colors
+            })
+            .sort_values('prediction')\
+            .reset_index(drop=True))
+      
+    trace0 = go.Bar(x=preds_df.index, 
+                    y=preds_df.prediction, 
+                    marker_color=preds_df.color,
+                    text=[f"tree no {t}:<br> prediction={p}<br> click for detailed info"
+                             for (t, p) in zip(preds_df.model.values, preds_df.prediction.values)],
+                    hoverinfo="text")
+    
+    if target:
+        title = f"Individual RandomForest decision trees predicting {target}"
+        yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
+    else:
+        title = f"Individual RandomForest decision trees"
+        yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
+
+    layout = go.Layout(
+                title=title,
+                plot_bgcolor = '#fff',
+                yaxis=dict(title=yaxis_title),
+                xaxis=dict(title="decision trees (sorted by prediction")
+            )
+    fig = go.Figure(data = [trace0], layout=layout)
+    shapes = [dict(
+                type='line',
+                xref='x', yref='y',
+                x0=0, x1=preds_df.model.max(), 
+                y0=preds_df.prediction.mean(), y1=preds_df.prediction.mean(),
+                line=dict(
+                    color="darkslategray",
+                    width=4,
+                    dash="dot"),
+                )]
+    
+    annotations = [go.layout.Annotation(
+        x=preds_df.model.mean(), 
+        y=preds_df.prediction.mean(),
+        text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}",
+        bgcolor="white")]
+
+    if y is not None:
+        shapes.append(dict(
+                type='line',
+                xref='x', yref='y',
+                x0=0, x1=preds_df.model.max(), 
+                y0=y, y1=y,
+                line=dict(
+                    color="red",
+                    width=4,
+                    dash="dashdot"),
+                ))
+        annotations.append(go.layout.Annotation(
+            x=preds_df.model.mean(), y=y, text=f"y={y}", bgcolor="red"))
+
+    fig.update_layout(shapes=shapes)
+    fig.update_layout(annotations=annotations)
+    
+    return fig 
+
+
+def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,  
+                            pos_label=1, target="", units=""):
     """
     returns a plot with all the individual predictions of the 
     DecisionTrees that make up the RandomForest.
@@ -1733,11 +1767,19 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
                     ),
                    )
     
+    if target:
+        title = f"Individual xgboost decision trees predicting {target}"
+        yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
+    else:
+        title = f"Individual xgboost decision trees"
+        yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
+
     layout = go.Layout(
-                title='individual xgboost prediction trees',
+                title=title,
                 barmode='stack',
                 plot_bgcolor = '#fff',
-                yaxis=dict(title=units)
+                yaxis=dict(title=yaxis_title),
+                xaxis=dict(title="decision trees")
             )
     
     fig = go.Figure(data = [trace0, trace1], layout=layout)

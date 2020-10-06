@@ -72,7 +72,8 @@ class PrecisionComponent(ExplainerComponent):
                 dbc.Col([
                     html.Div([
                         dcc.Loading(id="loading-precision-graph-"+self.name, 
-                                children=[dcc.Graph(id='precision-graph-'+self.name)]),
+                                children=[dcc.Graph(id='precision-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ], style={'margin': 0}),
                 ])
             ]),
@@ -225,7 +226,8 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
             dcc.Loading(id='loading-confusionmatrix-graph-'+self.name, 
-                            children=[dcc.Graph(id='confusionmatrix-graph-'+self.name)]),
+                            children=[dcc.Graph(id='confusionmatrix-graph-'+self.name,
+                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -320,7 +322,8 @@ class LiftCurveComponent(ExplainerComponent):
             ], justify="end"),
             html.Div([
                         dcc.Loading(id='loading-lift-curve-'+self.name, 
-                                children=[dcc.Graph(id='liftcurve-graph-'+self.name)]),
+                                children=[dcc.Graph(id='liftcurve-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ], style={'margin': 0}),
             make_hideable(
                 html.Div([
@@ -389,7 +392,8 @@ class CumulativePrecisionComponent(ExplainerComponent):
             ], justify="end"),
             html.Div([
                         dcc.Loading(id='loading-cumulative-precision-graph-'+self.name, 
-                                children=[dcc.Graph(id='cumulative-precision-graph-'+self.name)]),
+                                children=[dcc.Graph(id='cumulative-precision-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ], style={'margin': 0}),
                  
         ])
@@ -444,7 +448,8 @@ class ClassificationComponent(ExplainerComponent):
             ], justify="end"),
             html.Div([
                 dcc.Loading(id="loading-classification-graph-"+self.name, 
-                            children=[dcc.Graph(id='classification-graph-'+self.name)]),
+                            children=[dcc.Graph(id='classification-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
             ], style={'margin': 0}),
             make_hideable(
                 html.Div([
@@ -520,7 +525,8 @@ class RocAucComponent(ExplainerComponent):
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
             dcc.Loading(id="loading-roc-auc-graph-"+self.name, 
-                                children=[dcc.Graph(id='rocauc-graph-'+self.name)]),
+                                children=[dcc.Graph(id='rocauc-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -579,7 +585,8 @@ class PrAucComponent(ExplainerComponent):
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
             dcc.Loading(id="loading-pr-auc-graph-"+self.name, 
-                                children=[dcc.Graph(id='prauc-graph-'+self.name)]),
+                                children=[dcc.Graph(id='prauc-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
