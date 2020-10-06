@@ -8,8 +8,9 @@
 ### New Features
 -   New dashboard tab: WhatIfComponent/WhatIfComposite/WhatIfTab: allows you
         to explore whatif scenario's by editing multiple featues and observing
-        contributions and pdp plots
--   new login functionality: you can restrict access to your dashboard by passing
+        shap contributions and pdp plots. Switch off with ExplainerDashboard
+        parameter whatif=False.
+-   New login functionality: you can restrict access to your dashboard by passing
         a list of `[login, password]` pairs:
         `ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()`
 -   Added 'target' parameter to explainer, to make more descriptive plots.
@@ -21,8 +22,8 @@
 -   autodetecting Google colab environment and setting mode='external' 
     (and suggesting so for jupyter notebook environments)     
 -   confusion matrix now showing both percentage and counts
--   added classifier model performance summary component
--   added cumulative precision component
+-   Added classifier model performance summary component
+-   Added cumulative precision component
 
 
 ### Bug Fixes
