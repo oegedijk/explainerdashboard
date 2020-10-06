@@ -29,6 +29,7 @@ switch off individual tabs with their respective booleans
       importances=True,
       model_summary=False,
       contributions=True,
+      whatif=True,
       shap_dependence=True,
       shap_interaction=False
       decision_trees=True
@@ -103,6 +104,10 @@ the different types discussed above. E.g.::
 This would start a dashboard with three importances tabs, plus our custom 
 feature list tab. (not sure why you would do that, but hopefully you get the point :)
 
+The tabs can be imported from ``explainerdashboard.dashboard_tabs``, they include
+``ImportancesTab``, ``ModelSummaryTab``, ``ContributionsTab``, ``WhatIfTab``,
+    ``ShapDependenceTab``,``ShapInteractionsTab`` and ``DecisionTreesTab``.
+
 
 Using explainerdashboard inside Jupyter notebook or google colab
 ----------------------------------------------------------------
@@ -112,12 +117,13 @@ new notebook friendly ``jupyter_dash`` server. The latter will allow you
 to keep working interactively in your notebook while the dashboard is running.
 Also, this allows you to run an explainerdashboard from within google colab!
 
-The default dash server is started with ``mode='dash'``. There are three different 
+The default dash server is started with ``mode='dash'``. (except in Google
+Colab, where the default is ``mode='external'``) There are three different 
 options for ``jupyter_dash``: ``mode='inline'`` for running the dashboard in an 
 output cell in your notebook, ``mode='jupyterlab'`` for runnning the dashboard in 
 jupyterlab pane, or ``mode='external'`` which runs the dashboard in a seperate tab::
 
-   ExplainerDashboard(explainer).run() # default mode='dash'
+   ExplainerDashboard(explainer).run() # default is either 'dash' or 'external' in colab
    ExplainerDashboard(explainer, mode='dash').run() 
    ExplainerDashboard(explainer, mode='inline').run(port=8051)
    ExplainerDashboard(explainer, mode='jupyterlab').run(8052)

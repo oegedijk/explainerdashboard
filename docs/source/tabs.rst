@@ -18,6 +18,13 @@ Individual Prediction Tab
 
 .. image:: tab_individual_predictions.png
 
+What if... Tab
+==============
+
+.. image:: tab_whatif.png
+
+
+
 Feature Dependence Tab
 ======================
 

@@ -125,13 +125,23 @@ object. You construct the  `Explainer` instancefrom your fitted `model`, a featu
 and optionally the corresponding target values `y`. 
 
 In addition you can pass:
-- `metric`: permutation importances get calculated against a particular metric (for regression defaults to `r2_score` and for classification to `roc_auc_score`)
-- `shap`: type of shap explainer to use. e.g. 'tree' for `shap.TreeExplainer(...)`, or 'linear', 'kernel', etc (defaults to 'guess')
-- `X_background`: background data to use for shap explainer (most tree based models don't need this), if not given use `X` instead
-- `model_output`: for classification models either 'logodds' or 'probability', defaults to 'probability'
-- `cats`: a list of onehot encoded variables (e.g. if encoded as 'Gender_Female', 'Gender_Male' you would pass `cats=['Gender']`). This allows you to group the onehotencoded columns together in various plots with the argument `cats=True`. 
-- `idxs`: a list of indentifiers for each row in your dataset. This makes it easier to look up predictions for specific id's.
-- `descriptions`: a dictionary of descriptions of the meaning of individual variables.
+- `metric`: permutation importances get calculated against a particular metric 
+    (for regression defaults to `r2_score` and for classification to `roc_auc_score`)
+- `shap`: type of shap explainer to use. e.g. 'tree' for `shap.TreeExplainer(...)`,
+     or `'linear'`, `'kernel'`, etc (defaults to `'guess'`)
+- `X_background`: background data to use for shap explainer (most tree based 
+    models don't need this), if not given use `X` instead
+- `model_output`: for classification models either `'logodds'` or 
+    `'probability'`, defaults to `'probability'`
+- `cats`: a list of onehot encoded variables (e.g. if encoded as 
+    `'Gender_Female'`, `'Gender_Male'` you would pass `cats=['Gender']`). 
+    This allows you to group the onehotencoded columns together in various 
+    plots with the argument `cats=True`. 
+- `idxs`: a list of indentifiers for each row in your dataset. This makes it 
+    easier to look up predictions for specific id's.
+- `descriptions`: a dictionary of descriptions of the meaning of individual 
+    variables.
+- `target`: name of the target variable, e.g. `Survival` or `Fare`
 - `labels`: for classifier models a list of labels for the classes of your model.
 - `na_fill`: Value used to fill in missing values (default to -999)
 
@@ -147,7 +157,7 @@ model.fit(X_train, y_train)
 explainer = ClassifierExplainer(model, X_test, y_test, 
                                 X_background=None, model_output='probability',
                                 cats=['Sex', 'Deck', 'Embarked'],
-                                idxs=test_names, 
+                                idxs=test_names, target='Survival',
                                 labels=['Not survived', 'Survived'])
 ```
 
@@ -157,21 +167,26 @@ You can then easily inspect the model using various plot function, such as e.g.:
 - `explainer.plot_pdp('PassengerClass', index=0)`
 - `explainer.plot_shap_dependence('Age')`, etc.
 
-See the [explainer_examples.ipynb](explainer_examples.ipynb), [dashboard_examples.ipynb](dashboard_examples.ipynb)and [documentation](https://explainerdashboard.readthedocs.io/en/latest/) for more details and all the possible plots and tables you can generate. 
+See the [explainer_examples.ipynb](explainer_examples.ipynb), 
+[dashboard_examples.ipynb](dashboard_examples.ipynb) and 
+[documentation for the Explainer object](https://explainerdashboard.readthedocs.io/en/latest/explainers.html) 
+for more details and all the possible plots and tables you can generate. 
 
 ### Starting an ExplainerDashboard
-Once you have constructed an Explainer object, you can then pass this along to an
-ExplainerDashboard that builds an interactive Plotly Dash analytical dashboard for 
+Once you have constructed an `Explainer` object, you can then pass this along to an
+`ExplainerDashboard` that builds an interactive Plotly Dash analytical dashboard for 
 easily exploring the various plots and analysis mentioned earlier. 
 
 You can use a series of booleans to switch on or off certain tabs of the dashboard.
-(Calculating shap interaction values can take quite a bit of time if you have a large dataset with a lot of features, 
-so if you are not really interested in them, it may make sense to switch that tab off.)
+(for example, xalculating shap interaction values can take quite a bit of time 
+if you have a large dataset with a lot of features, so if you are not really 
+interested in them, it may make sense to switch that tab off.)
 
 ```
 db = ExplainerDashboard(explainer, 'Titanic Explainer`,
                         model_summary=True,
                         contributions=True,
+                        whatif=True,
                         shap_dependence=True,
                         shap_interaction=False,
                         shadow_trees=True)
@@ -179,9 +194,19 @@ db = ExplainerDashboard(explainer, 'Titanic Explainer`,
 
 You then start the dashboard on a particular port with `db.run(port=8050)`. 
 
-If you wish to use e.g. gunicorn to deploy the dashboard you should add `server = db.app.server` to your code to expose the Flask server. You can then start the server with e.g. `gunicorn dashboard:server` (assuming the file you defined the dashboard in was called `dashboard.py`). 
+If you wish to use e.g. ``gunicorn`` to deploy the dashboard you should add 
+`server = db.app.server` to your code to expose the Flask server. You can then 
+start the server with e.g. `gunicorn dashboard:server` 
+(assuming the file you defined the dashboard in was called `dashboard.py`). 
+See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
+and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
 
-It may take some time to calculate all the properties of the `Explainer` (especially shap interaction values). However all properties get calculated lazily, so they are only calculated when you call a plot or table that depends on them. To save startup time you can save the `Explainer` to disk with e.g. joblib and then load the `Explainer` with pre-calculated properties whenever you wish to start the dashboard. 
+It may take some time to calculate all the properties of the `Explainer` 
+(especially shap interaction values). However all properties get calculated 
+lazily, so they are only calculated when you call a plot or table that depends 
+on them. To save startup time you can save the `Explainer` to disk with 
+e.g. joblib and then load the `Explainer` with pre-calculated properties 
+whenever you wish to start the dashboard. 
 
 
 ## Deployed example:
