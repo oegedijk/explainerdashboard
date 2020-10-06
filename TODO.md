@@ -9,8 +9,6 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- add X_row parameter to plot_shap_contribution
-- add X_row parameter to plot_pdp
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -35,7 +33,6 @@
 ### Components
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
-- classifier prediction summary: no logodds.
 
 ## Methods:
 - Add LIME values
@@ -47,12 +44,10 @@
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
-- add test coverage 
 
 ## Docs:
-- add whatif docs
 - add docstrings to explainer_plots
-- add screenshots of components to docs
+- add screenshots of all ExplainerComponents to docs
 - move screenshots to separate folder
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
@@ -62,6 +57,5 @@
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
-- add test coverage: https://github.com/marketplace/actions/coveralls-python
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
 - install vscode github pull requests and issues extension

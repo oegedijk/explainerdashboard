@@ -485,7 +485,7 @@ class WhatIfComponent(ExplainerComponent):
                 ], form=True),
             dbc.Row([
                 dbc.Col([
-                    html.H3("Feature input:")
+                    html.H3("Edit Feature input:")
                 ])
             ]),
             dbc.Row([
@@ -500,7 +500,9 @@ class WhatIfComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([
                         html.H3("Prediction and contributions:"),
-                        dcc.Graph(id='whatif-contrib-graph-'+self.name)
+                        dcc.Loading(id='loading-whatif-contrib-graph-'+self.name, 
+                            children=[dcc.Graph(id='whatif-contrib-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ]), hide=self.hide_contributions),
                 make_hideable(
                     dbc.Col([
@@ -508,7 +510,9 @@ class WhatIfComponent(ExplainerComponent):
                         dcc.Dropdown(id='whatif-pdp-col-'+self.name, 
                                      options=[dict(label=col, value=col) for col in self._input_features],
                                      value=self.pdp_col),
-                        dcc.Graph(id='whatif-pdp-graph-'+self.name)
+                        dcc.Loading(id='loading-whatif-pdp-graph-'+self.name, 
+                            children=[dcc.Graph(id='whatif-pdp-graph-'+self.name, 
+                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ]), hide=self.hide_pdp),
             ])
         ], fluid=True)
