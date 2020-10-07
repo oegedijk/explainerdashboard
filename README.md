@@ -82,13 +82,14 @@ model.fit(X_train, y_train)
 
 explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
-                                idxs=test_names, 
+                                idxs=test_names, target='Survival',
                                 labels=['Not survived', 'Survived'])
 
 db = ExplainerDashboard(explainer, title="Titanic Explainer",
                         importances=True,
                         model_summary=True,  # you can switch off individual tabs
                         contributions=True,
+                        whatif=True,
                         shap_dependence=True,
                         shap_interaction=False,
                         decision_trees=False)
