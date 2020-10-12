@@ -17,9 +17,8 @@ The code below is from `the deployed example to heroku <https://github.com/oeged
 
     from sklearn.ensemble import RandomForestClassifier
 
-    from explainerdashboard.explainers import *
-    from explainerdashboard.dashboards import *
-    from explainerdashboard.datasets import *
+    from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+    from explainerdashboard.datasets import titanic_survive, titanic_names
 
     X_train, y_train, X_test, y_test = titanic_survive()
     train_names, test_names = titanic_names()
@@ -89,7 +88,7 @@ to first calculate all these values, save the explainer to disk, and then load
 the explainer when starting the dashboard::
 
     import joblib
-    from explainerdashboard.explainer import ClassifierExplainer
+    from explainerdashboard import ClassifierExplainer
     
     explainer = ClassifierExplainer(model, X_test, y_test, 
                                cats=['Sex', 'Deck', 'Embarked'],
@@ -100,7 +99,7 @@ the explainer when starting the dashboard::
 Then in ``dashboard.py`` load the explainer and start the dashboard:: 
 
     import joblib
-    from explainerdashboard.dashboards import ExplainerDashboard
+    from explainerdashboard import ExplainerDashboard
 
     explainer = joblib.load("explainer.pkl")
     db = ExplainerDashboard(clas_explainer)

@@ -8,11 +8,15 @@ In order to start an ``ExplainerDashboard`` you first need to construct an
 ``Explainer`` instance. They come in two flavours and at its most basic they 
 only need a model, and a test set X and y::
 
+    from explainerdashboard import ClassifierExplainer, RegressionExplainer
+
     explainer = ClassifierExplainer(model, X_test, y_test)
     explainer = RegressionExplainer(model, X_test, y_test)
-    explainer = RandomForestClassifierExplainer(model, X_test, y_test)
+
 
 This is enough to launch an ExplainerDashboard::
+
+    from explainerdashboard import ExplainerDashboard
 
     ExplainerDashboard(explainer).run()
 
@@ -34,6 +38,8 @@ For the full lists of plots available see :ref:`Plots<Plots>`.
 Or you can start an interactive :ref:`ExplainerComponent<ExplainerComponents>` 
 in your notebook using :ref:`InlineExplainer<InlineExplainer>`, e.g.::
 
+    from explainerdashboard import InlineExplainer
+    
     InlineExplainer(explainer).tab.importances()
     InlineExplainer(explainer).classifier.roc_auc()
     InlineExplainer(explainer).regression.residuals_vs_col()

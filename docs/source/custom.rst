@@ -6,7 +6,7 @@ your own custom dashboards, without needing to know much about web development
 or even much about `plotly dash <https://dash.plotly.com/>`_. 
 (although I would recommend anyone to learn the latter)
 
-You can get some inspiration from ``explainerdashboard.dashbord_components.composites``
+You can get some inspiration from `explainerdashboard.dashboard_components.composites <https://github.com/oegedijk/explainerdashboard/blob/master/explainerdashboard/dashboard_components/composites.py>`_.
 on how you can construct simple layouts, combining different components and
 connectors.
 
@@ -23,7 +23,7 @@ into rows and then divide each row into a number of columns where the total
 column widths should add upto 12. (e.g. two columns of width 6 each)
 
 Then there are a lot of other components that you can find more information
-on on the dbc site: https://dash-bootstrap-components.opensource.faculty.ai/
+on on the dbc site: `https://dash-bootstrap-components.opensource.faculty.ai/ <https://dash-bootstrap-components.opensource.faculty.ai/>`_
 
 dash_html_components
 --------------------
@@ -45,7 +45,7 @@ A very simple example would be::
     import dash_bootstrap_components as dbc
     import dash_html_components as html
 
-    from explainerdashboard.dashboard_components import *
+    from explainerdashboard.custom import *
 
     shap_dependence = ShapDependenceComponent(explainer)
             
@@ -77,30 +77,48 @@ own custom dashboard.
 Design patterns
 ===============
 
-Standard flat dash design
--------------------------
+Custom ExplainerComponent and use ExplainerDashboard
+----------------------------------------------------
 
-The standard default dash way to define a custom dashboard is by instantiating
-the components, then adding these into a layout, instantiating a dash app,
-registering the callbacks, and starting the app::
+A third method consists of inheriting from ExplainerComponent and then
+running the page with ``ExplainerDashboard``. The main difference is calling the
+``super().__init__()`` and calling ``register_components()`` inside the init.
 
-    precision = PrecisionComponent(explainer, 
-                            hide_cutoff=True, hide_binsize=True, 
-                            hide_binmethod=True, hide_multiclass=True,
-                            hide_selector=True,
-                            cutoff=None)
-    shap_summary = ShapSummaryComponent(explainer, 
-                            hide_title=True, hide_selector=True,
-                            hide_depth=True, depth=8, 
-                            hide_cats=True, cats=True)
-    shap_dependence = ShapDependenceComponent(explainer, 
-                            hide_title=True, hide_selector=True,
-                            hide_cats=True, cats=True, 
-                            hide_index=True,
-                            col='Fare', color_col="PassengerClass")
-    connector = ShapSummaryDependenceConnector(shap_summary, shap_dependence)
+The benefit is that you don't have to explicitly write the ``register_callbacks`` or
+``calculate_dependencies`` method, as these get generated automatically 
+when calling ``register_components``, and you don't have to write the ``dash`` 
+boilerplate code. This means you can fully concentrate on just designing your 
+layout and components::
+
+    import dash_html_components as html
+    import dash_bootstrap_components as dbc
+
+    from explainerdashboard.custom import *
+    from explainerdashboard import ExplainerDashboard
+
+    class CustomDashboard(ExplainerComponent):
+        def __init__(self, explainer)
+            super().__init__(explainer, title="Titanic Explainer")
+            self.precision = PrecisionComponent(explainer, 
+                                    hide_cutoff=True, hide_binsize=True, 
+                                    hide_binmethod=True, hide_multiclass=True,
+                                    hide_selector=True,
+                                    cutoff=None)
+            self.shap_summary = ShapSummaryComponent(explainer, 
+                                    hide_title=True, hide_selector=True,
+                                    hide_depth=True, depth=8, 
+                                    hide_cats=True, cats=True)
+            self.shap_dependence = ShapDependenceComponent(explainer, 
+                                    hide_title=True, hide_selector=True,
+                                    hide_cats=True, cats=True, 
+                                    hide_index=True,
+                                    col='Fare', color_col="PassengerClass")
+            self.connector = ShapSummaryDependenceConnector(self.shap_summary, self.shap_dependence)
             
-    layout = dbc.Container([
+            self.register_components(self.precision, self.shap_summary, self.shap_dependence, self.connector)
+            
+        def layout(self):
+            return dbc.Container([
                 html.H1("Titanic Explainer"),
                 dbc.Row([
                     dbc.Col([
@@ -113,20 +131,20 @@ registering the callbacks, and starting the app::
                     ], width=4),
                     dbc.Col([
                         html.H3("Model Precision Plot"),
-                        precision.layout()
+                        self.precision.layout()
                     ])
                 ]),
                 dbc.Row([
                     dbc.Col([
                         html.H3("Feature Importances Plot"),
-                        shap_summary.layout()
+                        self.shap_summary.layout()
                     ]),
                     dbc.Col([
                         html.H3("Feature importances"),
                         html.Div("On the left you can check out for yourself which parameters were the most important."),
-                        html.Div(f"{explainer.columns_ranked_by_shap(cats=True)[0]} was the most important"
-                                f", followed by {explainer.columns_ranked_by_shap(cats=True)[1]}"
-                                f" and {explainer.columns_ranked_by_shap(cats=True)[2]}."),
+                        html.Div(f"{self.explainer.columns_ranked_by_shap(cats=True)[0]} was the most important"
+                                f", followed by {self.explainer.columns_ranked_by_shap(cats=True)[1]}"
+                                f" and {self.explainer.columns_ranked_by_shap(cats=True)[2]}."),
                         html.Div("If you select 'detailed' you can see the impact of that variable on "
                                 "each individual prediction. With 'aggregate' you see the average impact size "
                                 "of that variable on the finale prediction."),
@@ -136,7 +154,6 @@ registering the callbacks, and starting the app::
                     ], width=4)
                 ]),
                 dbc.Row([
-                    
                     dbc.Col([
                         html.H3("Relations between features and model output"),
                         html.Div("In the plot to the right you can see that the higher the priace"
@@ -151,22 +168,13 @@ registering the callbacks, and starting the app::
                     ], width=4),
                     dbc.Col([
                         html.H3("Feature impact plot"),
-                        shap_dependence.layout()
+                        self.shap_dependence.layout()
                     ]),
                 ])
             ])
+    
+    ExplainerDashboard(explainer, CustomComponent, hide_header=True).run()
 
-
-    app = dash.Dash(__name__)
-    app.title = "Titanic Explainer"
-    app.layout = layout
-
-    precision.register_callbacks(app)
-    shap_summary.register_callbacks(app)
-    shap_dependence.register_callbacks(app)
-    connector.register_callbacks(app)
-
-    app.run_server()
 
 
 
@@ -283,42 +291,31 @@ that does exactly this::
     db.calculate_dependencies()
     app.run_server(mode='external')
 
-Custom ExplainerComponent and use ExplainerDashboard
-----------------------------------------------------
 
-A third method consists of inheriting from ExplainerComponent and then
-running the page with ``ExplainerDashboard``. The main difference is calling the
-``super().__init__()`` and calling ``register_components()`` inside the init.
+Standard flat dash design
+-------------------------
 
-The benefit is that you don't have to explicitly write the ``register_callbacks`` or
-``calculate_dependencies`` method, as these get generated automatically 
-when calling ``register_components``, and you don't have to write the ``dash`` 
-boilerplate code. This means you can fully concentrate on just designing your 
-layout and components::
+The standard default dash way to define a custom dashboard is by instantiating
+the components, then adding these into a layout, instantiating a dash app,
+registering the callbacks, and starting the app::
 
-    class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer)
-            super().__init__(explainer, title="Titanic Explainer")
-            self.precision = PrecisionComponent(explainer, 
-                                    hide_cutoff=True, hide_binsize=True, 
-                                    hide_binmethod=True, hide_multiclass=True,
-                                    hide_selector=True,
-                                    cutoff=None)
-            self.shap_summary = ShapSummaryComponent(explainer, 
-                                    hide_title=True, hide_selector=True,
-                                    hide_depth=True, depth=8, 
-                                    hide_cats=True, cats=True)
-            self.shap_dependence = ShapDependenceComponent(explainer, 
-                                    hide_title=True, hide_selector=True,
-                                    hide_cats=True, cats=True, 
-                                    hide_index=True,
-                                    col='Fare', color_col="PassengerClass")
-            self.connector = ShapSummaryDependenceConnector(self.shap_summary, self.shap_dependence)
+    precision = PrecisionComponent(explainer, 
+                            hide_cutoff=True, hide_binsize=True, 
+                            hide_binmethod=True, hide_multiclass=True,
+                            hide_selector=True,
+                            cutoff=None)
+    shap_summary = ShapSummaryComponent(explainer, 
+                            hide_title=True, hide_selector=True,
+                            hide_depth=True, depth=8, 
+                            hide_cats=True, cats=True)
+    shap_dependence = ShapDependenceComponent(explainer, 
+                            hide_title=True, hide_selector=True,
+                            hide_cats=True, cats=True, 
+                            hide_index=True,
+                            col='Fare', color_col="PassengerClass")
+    connector = ShapSummaryDependenceConnector(shap_summary, shap_dependence)
             
-            self.register_components(self.precision, self.shap_summary, self.shap_dependence, self.connector)
-            
-        def layout(self):
-            return dbc.Container([
+    layout = dbc.Container([
                 html.H1("Titanic Explainer"),
                 dbc.Row([
                     dbc.Col([
@@ -331,20 +328,20 @@ layout and components::
                     ], width=4),
                     dbc.Col([
                         html.H3("Model Precision Plot"),
-                        self.precision.layout()
+                        precision.layout()
                     ])
                 ]),
                 dbc.Row([
                     dbc.Col([
                         html.H3("Feature Importances Plot"),
-                        self.shap_summary.layout()
+                        shap_summary.layout()
                     ]),
                     dbc.Col([
                         html.H3("Feature importances"),
                         html.Div("On the left you can check out for yourself which parameters were the most important."),
-                        html.Div(f"{self.explainer.columns_ranked_by_shap(cats=True)[0]} was the most important"
-                                f", followed by {self.explainer.columns_ranked_by_shap(cats=True)[1]}"
-                                f" and {self.explainer.columns_ranked_by_shap(cats=True)[2]}."),
+                        html.Div(f"{explainer.columns_ranked_by_shap(cats=True)[0]} was the most important"
+                                f", followed by {explainer.columns_ranked_by_shap(cats=True)[1]}"
+                                f" and {explainer.columns_ranked_by_shap(cats=True)[2]}."),
                         html.Div("If you select 'detailed' you can see the impact of that variable on "
                                 "each individual prediction. With 'aggregate' you see the average impact size "
                                 "of that variable on the finale prediction."),
@@ -354,6 +351,7 @@ layout and components::
                     ], width=4)
                 ]),
                 dbc.Row([
+                    
                     dbc.Col([
                         html.H3("Relations between features and model output"),
                         html.Div("In the plot to the right you can see that the higher the priace"
@@ -368,12 +366,26 @@ layout and components::
                     ], width=4),
                     dbc.Col([
                         html.H3("Feature impact plot"),
-                        self.shap_dependence.layout()
+                        shap_dependence.layout()
                     ]),
                 ])
             ])
-    
-    ExplainerDashboard(explainer, CustomComponent, hide_header=True).run()
+
+
+    app = dash.Dash(__name__)
+    app.title = "Titanic Explainer"
+    app.layout = layout
+
+    precision.register_callbacks(app)
+    shap_summary.register_callbacks(app)
+    shap_dependence.register_callbacks(app)
+    connector.register_callbacks(app)
+
+    app.run_server()
+
+
+
+
 
 
 

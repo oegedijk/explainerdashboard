@@ -1,7 +1,8 @@
 __all__ = ['titanic_survive', 
             'titanic_fare', 
             'titanic_embarked', 
-            'titanic_names']
+            'titanic_names',
+            'feature_descriptions']
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,17 @@ from pathlib import Path
 d_train = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/ 'titanic_train.csv')
 d_test = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/'titanic_test.csv')
 
+feature_descriptions = {
+    "Sex": "Gender of passenger",
+    "Deck": "The deck the passenger had their cabin on",
+    "PassengerClass": "The class of the ticket: 1st, 2nd or 3rd class",
+    "Fare": "The amount of money people paid", 
+    "No_of_relatives_on_board": "number of siblings, spouses, parents plus children on board",
+    "Embarked": "the port where the passenger boarded the Titanic. Either Southampton, Cherbourg or Queenstown",
+    "Age": "Age of the passenger",
+    "No_of_siblings_plus_spouses_on_board": "The sum of the number of siblings plus the number of spouses on board",
+    "No_of_parents_plus_children_on_board" : "The sum of the number of parents plus the number of children on board",
+}
 
 def titanic_survive():
     X_train = d_train.drop(['Survived', 'Name'], axis=1)

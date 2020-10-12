@@ -11,6 +11,8 @@ The ``ExplainerDashboard`` API is quite flexible. By default it tries to display
 all the default tabs that are compatible with your ``model`` and ``model_output`` 
 (i.e. interactions and decision_trees might be excluded)::
 
+   from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+
    explainer = ClassifierExplainer(model, X_test, y_test)
    ExplainerDashboard(explainer).run()
 
@@ -82,6 +84,8 @@ the feature names of the model::
 However it would be easy to turn this custom ``FeatureListTab`` into a proper
 ``ExplainerComponent``::
 
+   from explainerdashboard.custom import *
+
    class FeatureListTab(ExplainerComponent):
       def __init__(self, explainer):
          super().__init__(explainer, title="Feature List")
@@ -106,7 +110,7 @@ feature list tab. (not sure why you would do that, but hopefully you get the poi
 
 The tabs can be imported from ``explainerdashboard.dashboard_tabs``, they include
 ``ImportancesTab``, ``ModelSummaryTab``, ``ContributionsTab``, ``WhatIfTab``,
-    ``ShapDependenceTab``,``ShapInteractionsTab`` and ``DecisionTreesTab``.
+    ``ShapDependenceTab``, ``ShapInteractionsTab`` and ``DecisionTreesTab``.
 
 
 Using explainerdashboard inside Jupyter notebook or google colab
@@ -145,9 +149,10 @@ layout can be found at:  https://dash-bootstrap-components.opensource.faculty.ai
 You can add a theme by putting it in an ``/assets/`` subfolder, or by linking to it directly.
 ``dash_bootstrap_components`` offer a convenient way of inserting these::
 
-   import dash_bootstrap_components as dbc
+   from dash_bootstrap_components.themes import FLATLY 
+
    ExplainerDashboard(explainer, ["contributions", "model_summary"], 
-                   external_stylesheets=[dbc.themes.FLATLY], 
+                   external_stylesheets=[FLATLY], 
                    mode='external').run()
 
 Example of a nice flat black and white theme called "FLATLY":

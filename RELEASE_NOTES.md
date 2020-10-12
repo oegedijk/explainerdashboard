@@ -1,5 +1,13 @@
 # Release Notes
 
+Version 0.2.6:
+
+### Improvements
+-   more straightforward imports: `from explainerdashboard import ClassifierExplainer, RegressionExplainer, ExplainerDashboard, InlineExplainer`
+-   all custom imports (such as ExplainerComponents, Composites, Tabs, etc) 
+    combined under `explainerdashboard.custom`:
+    `from explainerdashboard.custom import *`
+
 ## version 0.2.5:
 ### Breaking Changes
 - 
