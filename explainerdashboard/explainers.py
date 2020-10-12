@@ -1425,10 +1425,14 @@ class ClassifierExplainer(BaseExplainer):
         self.pos_label = pos_label
         self.is_classifier = True
         if str(type(self.model)).endswith("RandomForestClassifier'>"):
-            print(f"Changing class type to RandomForestClassifierExplainer...", flush=True)
+            print(f"Detected RandomForestClassifier model: "
+                    "Changing class type to RandomForestClassifierExplainer...", 
+                    flush=True)
             self.__class__ = RandomForestClassifierExplainer 
         if str(type(self.model)).endswith("XGBClassifier'>"):
-            print(f"Changing class type to XGBClassifierExplainer...", flush=True)
+            print(f"Detected XGBClassifier model: "
+                    "Changing class type to XGBClassifierExplainer...", 
+                    flush=True)
             self.__class__ = XGBClassifierExplainer
 
     @property

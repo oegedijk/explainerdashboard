@@ -70,9 +70,8 @@ show proper names for row indexes, and display classification labels:
 ```python
 from sklearn.ensemble import RandomForestClassifier
 
-from explainerdashboard.explainers import *
-from explainerdashboard.dashboards import *
-from explainerdashboard.datasets import *
+from explainerdashboard ClassifierExplainer, ExplainerDashboard
+from explainerdashboard.datasets import titanic_survive, titanic_names
 
 X_train, y_train, X_test, y_test = titanic_survive()
 train_names, test_names = titanic_names()
@@ -86,11 +85,8 @@ explainer = ClassifierExplainer(model, X_test, y_test,
                                 labels=['Not survived', 'Survived'])
 
 db = ExplainerDashboard(explainer, title="Titanic Explainer",
-                        importances=True,
-                        model_summary=True,  # you can switch off individual tabs
-                        contributions=True,
-                        whatif=True,
-                        shap_dependence=True,
+                        whatif=False, # you can switch off certain tabs
+                        shap_dependence=False,
                         shap_interaction=False,
                         decision_trees=False)
 db.run(port=8051)

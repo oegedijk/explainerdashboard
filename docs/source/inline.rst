@@ -14,6 +14,7 @@ etc. The components are sorted into subcategories and work with tab-completion.
 
 Example use::
 
+    from explainerdashboard import InlineExplainer
     ie = InlineExplainer(explainer)
     ie.importances()
     ie.model_stats()

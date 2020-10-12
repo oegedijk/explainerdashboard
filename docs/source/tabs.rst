@@ -1,7 +1,15 @@
 ExplainerTabs
 *************
 
-There are six tabs that make up the default``ExplainerDashboard``:
+There are seven tabs that make up the default``ExplainerDashboard``::
+
+   from explainerdashboard.dashboard_tabs import (ImportancesTab,
+                                                   ModelSummaryTab,
+                                                   ContributionsTab,
+                                                   WhatIfTab,
+                                                   ShapDependenceTab,
+                                                   ShapInteractionsTab,
+                                                   DecisionTreesTab)
 
 Importances Tab
 ===============

@@ -15,6 +15,7 @@ dashboard with just two lines of code
 
 You first construct an ``explainer`` object out of your model and the test data::
 
+    from explainerdashboard import ClassifierExplainer
     explainer = ClassifierExplainer(model, x, y)
 
 The ``explainer`` offers an interface that computes all relevent metrics behind 
@@ -28,6 +29,7 @@ shap dependence plots, pdp plots, etc, etc:
 You then pass this ``explainer`` object to an ``ExplainerDashboard`` to start an 
 interactive analytical web app to inspect the workings and performance of your model::
 
+    from explainerdashboard import ExplainerDashboard
     ExplainerDashboard(explainer).run()
 
 .. image:: screenshot.png
@@ -58,8 +60,7 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
 
     from sklearn.ensemble import RandomForestClassifier
 
-    from explainerdashboard.explainers import ClassifierExplainer
-    from explainerdashboard.dashboards import ExplainerDashboard
+    from explainerdashboard import ClassifierExplainer, ExplainerDashboard
     from explainerdashboard.datasets import titanic_survive, titanic_names
 
     X_train, y_train, X_test, y_test = titanic_survive()
@@ -70,8 +71,9 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
 
     explainer = ClassifierExplainer(
                     model, X_test, y_test, 
+                    # optional:
                     cats=['Sex', 'Deck', 'Embarked'],
-                    idxs=test_names,
+                    idxs=test_names, target='Survival'
                     labels=['Not survived', 'Survived'])
 
     ExplainerDashboard(explainer).run()
