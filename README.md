@@ -70,7 +70,7 @@ show proper names for row indexes, and display classification labels:
 ```python
 from sklearn.ensemble import RandomForestClassifier
 
-from explainerdashboard ClassifierExplainer, ExplainerDashboard
+from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.datasets import titanic_survive, titanic_names
 
 X_train, y_train, X_test, y_test = titanic_survive()
