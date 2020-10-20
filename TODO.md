@@ -47,6 +47,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add yaml->cli integration tests
 - add tests for explainer.dump() and explainer.from_file()
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
