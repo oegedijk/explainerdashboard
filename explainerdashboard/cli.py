@@ -5,6 +5,7 @@ import os
 import webbrowser
 from pathlib import Path
 from importlib import import_module
+from copy import deepcopy
 import pickle
 import oyaml as yaml
 
@@ -61,8 +62,13 @@ def build_explainer(explainer_config):
 
 def build_and_dump_explainer(config):
     explainer = build_explainer(config['explainer'])
-    print(f"explainerdashboard ===> Calculating properties ...")
-    db = ExplainerDashboard(explainer, **config['dashboard']['params'])
+
+    print(f"explainerdashboard ===> Calculating properties by building Dashboard...")
+    dashboard_params = deepcopy(config['dashboard']['params'])
+    tabs = yamltabs_to_tabs(dashboard_params['tabs'])
+    del dashboard_params['tabs']
+    db = ExplainerDashboard(explainer, tabs, **dashboard_params)
+
     print(f"explainerdashboard ===> Saving explainer to {config['explainer']['explainerfile']}...")
     explainer.dump(config['explainer']['explainerfile'])
     return
@@ -84,12 +90,14 @@ def yamltabs_to_tabs(tabs_param):
 @click.command()
 @click.argument("explainer_filepath", nargs=1, required=False)
 @click.option("--build-only", "-bo", "build_only", is_flag=True,
-                help="Do not launch a dashboard, only build the explainer an store it.")
+                help="Do not launch a dashboard, only build the explainer and store it.")
 @click.option("--no-browser", "-nb", "no_browser", is_flag=True,
                 help="Launch a dashboard, but do not launch a browser.")
+@click.option("--no-dashboard", "-nd", "no_dashboard", is_flag=True,
+                help="Do not launch dashboard in the end. Used for testing.")
 @click.option("--port", "-p", "port", default=None,
-                help="port to run dashboard on defaults")
-def run_dashboard(explainer_filepath, build_only, no_browser, port):
+                help="port to run dashboard on defaults.")
+def run_dashboard(explainer_filepath, build_only, no_browser, no_dashboard, port):
     print(explainer_ascii)
     if explainer_filepath is None:
         if (Path().cwd() / "explainerdashboard.yaml").exists():
@@ -113,7 +121,8 @@ def run_dashboard(explainer_filepath, build_only, no_browser, port):
         if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
             webbrowser.open_new(f"http://127.0.0.1:{port}/")
 
-        db.run(port)
+        if not no_dashboard:
+            db.run(port)
         return
 
     elif (str(explainer_filepath).endswith(".yaml") or
@@ -161,7 +170,8 @@ def run_dashboard(explainer_filepath, build_only, no_browser, port):
             webbrowser.open_new(f"http://localhost:{port}/")
         
         print(f"explainerdashboard ===> Starting dashboard:")
-        db.run(port)
+        if not no_dashboard:
+            db.run(port)
         return
 
           
