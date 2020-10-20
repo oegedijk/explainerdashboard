@@ -253,6 +253,7 @@ class ExplainerDashboard:
                  url_base_pathname=None,
                  responsive=True,
                  logins=None,
+                 port=8050,
                  importances=True,
                  model_summary=True,
                  contributions=True,
@@ -339,12 +340,28 @@ class ExplainerDashboard:
         if hide_header:
             header_hide_title = True
             header_hide_selector = True
+        self.explainer = explainer
         self.mode, self.width, self.height = mode, width, height
         self.hide_header, self.header_hide_title, self.header_hide_selector = \
             hide_header, header_hide_title, header_hide_selector
         self.external_stylesheets = external_stylesheets
         self.server, self.url_base_pathname = server, url_base_pathname
-        self.responsive = responsive
+        self.responsive, self.port = responsive, port
+        self._params_dict = dict(
+                title=title, hide_header=hide_header, 
+                header_hide_title=header_hide_title,
+                header_hide_selector=header_hide_selector,
+                block_selector_callbacks=block_selector_callbacks,
+                pos_label=pos_label, fluid=fluid, mode=mode,
+                width=width, height=height, 
+                external_stylesheets=external_stylesheets, server=server,
+                url_base_pathname=url_base_pathname, responsive=responsive,
+                logins=logins, port=port, importances=importances,
+                model_summary=model_summary, contributions=contributions,
+                whatif=whatif, shap_dependence=shap_dependence,
+                shap_interaction=shap_interaction, 
+                decision_trees=decision_trees
+        )
 
         try:
             ipython_kernel = str(get_ipython())
@@ -479,11 +496,12 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
         
-    def run(self, port=8050, **kwargs):
+    def run(self, port=None, **kwargs):
         """Start ExplainerDashboard on port
 
         Args:
-            port (int, optional): port to run on. Defaults to 8050.
+            port (int, optional): port to run on. If None, then use self.port.
+            Defaults to None.self.port defaults to 8050.
 
         Raises:
             ValueError: if mode is unknown
@@ -491,13 +509,15 @@ class ExplainerDashboard:
         """
 
         pio.templates.default = "none"
-        self.port = port
+        if port is None:
+            port = self.port
         
         if self.mode == 'dash':
             print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
             self.app.run_server(port=port, **kwargs)
         elif self.mode == 'external':
-            print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
+            if not self.is_colab:
+                print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
             self.app.run_server(port=port, mode=self.mode, **kwargs)
         elif self.mode in ['inline', 'jupyterlab']:
             self.app.run_server(port=port, mode=self.mode, 
@@ -538,22 +558,32 @@ class ExplainerDashboard:
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 
+    def to_yaml(self, filepath=None, return_dict=False):
+        """Returns a yaml configuration of the current ExplainerDashboard
+        that can be used by the explainerdashboard CLI.
 
-class JupyterExplainerDashboard(ExplainerDashboard):
-    def __init__(self, *args, **kwargs):
-        raise ValueError("JupyterExplainerDashboard has been deprecated. "
-                    "Use e.g. ExplainerDashboard(mode='inline') instead.")
+        Args:
+            filepath ({str, Path}, optional): Filepath to dump yaml. If None
+                returns the yaml as a string. Defaults to None.
+            return_dict (bool, optional): instead of yaml return dict with 
+                config.
+        """
+        import yaml
+        explainer_config = self.explainer.to_yaml(return_dict=True)
+        dashboard_config = dict(
+            dashboard=dict(
+                explainer="explainer.joblib",
+                params=self._params_dict))
+        yaml_config = {**explainer_config, **dashboard_config}
 
-class ExplainerTab:
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ExplainerTab has been deprecated. "
-                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab) instead.")
+        if return_dict:
+            return yaml_config
+        
+        if filepath is not None:
+            yaml.dump(yaml_config, open(filepath, "w"))
+            return
+        return yaml.dump(yaml_config)
 
-
-class JupyterExplainerTab(ExplainerTab):
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ExplainerTab has been deprecated. "
-                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab, mode='inline') instead.")
 
 
 class InlineExplainer:
@@ -914,6 +944,24 @@ class InlineDecisionTreesExplainer(InlineExplainerComponent):
         """Runs decision_trees tab inline in notebook"""
         comp = DecisionPathTableComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
+
+
+
+class JupyterExplainerDashboard(ExplainerDashboard):
+    def __init__(self, *args, **kwargs):
+        raise ValueError("JupyterExplainerDashboard has been deprecated. "
+                    "Use e.g. ExplainerDashboard(mode='inline') instead.")
+
+class ExplainerTab:
+    def __init__(self, *args, **kwargs):
+        raise ValueError("ExplainerTab has been deprecated. "
+                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab) instead.")
+
+
+class JupyterExplainerTab(ExplainerTab):
+    def __init__(self, *args, **kwargs):
+        raise ValueError("ExplainerTab has been deprecated. "
+                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab, mode='inline') instead.")
 
    
 

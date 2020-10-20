@@ -13,6 +13,7 @@ __all__ = ['BaseExplainer',
 
 from abc import ABC
 import base64
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -75,11 +76,16 @@ class BaseExplainer(ABC):
         :param na_fill: The filler used for missing values, defaults to -999
         :type na_fill: int, optional
         """
+        self._params_dict = dict(
+            shap=shap, model_output=model_output, cats=cats, 
+            descriptions=descriptions, target=target, n_jobs=n_jobs, 
+            permutation_cv=n_jobs, na_fill=na_fill)
+
         self.model  = model
-        self.X = X.reset_index(drop=True)
+        self.X = X
         self.X_background = X_background
         if y is not None:
-            self.y = pd.Series(y).reset_index(drop=True)
+            self.y = pd.Series(y)
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
         
@@ -108,16 +114,18 @@ class BaseExplainer(ABC):
 
         self.cats = cats if cats is not None else []
         if idxs is not None:
-            if isinstance(idxs, list):
-                self.idxs = [str(i) for i in idxs]
-            else:
-                self.idxs = list(idxs.astype(str))
-        elif idxs=="use_index":
-            self.idxs = list(X.index.astype(str))
+            assert len(idxs) == len(self.X) == len(self.y), \
+                ("idxs should be same length as X but is not: "
+                f"len(idxs)={len(idxs)} but  len(X)={len(self.X)}!")
+            self.idxs = pd.Index(idxs, dtype=str)
+            self.X.index = self.idxs
+            self.y.index = self.idxs
         else:
-            self.idxs = [str(i) for i in range(len(X))]
+            self.idxs = X.index.astype(str)
+            self.y.index = self.idxs
+
         self.descriptions = {} if descriptions is None else descriptions
-        self.target = target
+        self.target = target if target is not None else self.y.name
         self.n_jobs = n_jobs
         self.permutation_cv = permutation_cv
         self.na_fill = na_fill
@@ -128,6 +136,100 @@ class BaseExplainer(ABC):
         self.is_regression = False
         self.interactions_should_work = True
         _ = self.shap_explainer
+
+    @classmethod
+    def from_file(cls, filepath):
+        """Load an Explainer from file. Depending on the suffix of the filepath 
+        will either load with pickle ('.pkl'), dill ('.dill') or joblib ('joblib').
+        
+        If no suffix given, will try with joblib.
+        
+        Args:
+            filepath {str, Path} the location of the stored Explainer
+            
+        returns:
+            Explainer object
+        """
+        filepath = Path(filepath)
+        if str(filepath).endswith(".pkl") or str(filepath).endswith(".pickle"):
+            import pickle
+            return pickle.load(open(filepath, "rb"))
+        elif str(filepath).endswith(".dill"):
+            import dill
+            return dill.load(open(filepath, "rb"))
+        else:
+            if not filepath.exists(): 
+                if (filepath.parent / (filepath.name + ".joblib")).exists():
+                    filepath = filepath.parent / (filepath.name + ".joblib")
+                else:
+                    raise ValueError(f"Cannot find file: {str(filepath)}")
+            import joblib
+            return joblib.load(filepath)
+        
+    def dump(self, filepath):
+        """
+        Dump the current Explainer to file. Depending on the suffix of the filepath 
+        will either dump with pickle ('.pkl'), dill ('.dill') or joblib ('joblib').
+        
+        If no suffix given, will dump with joblib and add '.joblib'
+        
+        Args:
+            filepath (str, Path): filepath where to save the Explainer.
+        """
+        filepath = Path(filepath)
+        if str(filepath).endswith(".pkl") or str(filepath).endswith(".pickle"):
+            import pickle
+            pickle.dump(self, open(str(filepath), "wb"))
+        elif str(filepath).endswith(".dill"):
+            import dill
+            dill.dump(self, open(str(filepath), "wb"))
+        elif str(filepath).endswith(".joblib"):
+            import joblib
+            joblib.dump(self, filepath)
+        else:
+            filepath = Path(filepath)
+            filepath = filepath.parent / (filepath.name + ".joblib")
+            import joblib
+            joblib.dump(self, filepath)
+
+    def to_yaml(self, filepath=None, return_dict=False,
+                    modelfile="model.pkl",
+                    datafile="data.csv",
+                    index_col="index",
+                    explainerfile="explainer.joblib"):
+        """Returns a yaml configuration of the current ExplainerDashboard
+        that can be used by the explainerdashboard CLI.
+
+        Args:
+            filepath ({str, Path}, optional): Filepath to dump yaml. If None
+                returns the yaml as a string. Defaults to None.
+            return_dict (bool, optional): instead of yaml return dict with config.
+            modelfile (str, optional): filename of model dump. Defaults to
+                `model.pkl`
+            datafile (str, optional): filename of datafile. Defaults to
+                `data.csv`.
+            index_col (str, optional): column to be used for idxs. Defaults to
+                "index" which means it uses the dataframe index.
+            explainerfile (str, optional): filename of explainer dump. Defaults
+                to `explainer.joblib`.
+        """
+        import yaml
+        yaml_config = dict(
+            explainer=dict(
+                modelfile=modelfile,
+                datafile=datafile,
+                explainerfile=explainerfile,
+                data_target=self.target,
+                data_index=index_col,
+                explainer_type="classifier" if self.is_classifier else "regression",
+                params=self._params_dict))
+        if return_dict:
+            return yaml_config
+
+        if filepath is not None:
+            yaml.dump(yaml_config, open(filepath, "w"))
+            return
+        return yaml.dump(yaml_config)
 
     def __len__(self):
         return len(self.X)
@@ -219,8 +321,8 @@ class BaseExplainer(ABC):
             if index >= 0 and index < len(self):
                 return index
         elif isinstance(index, str):
-            if self.idxs is not None and index in self.idxs:
-                return self.idxs.index(index)
+            if self.idxs is not None:
+                return self.idxs.get_loc(index)
         return None
 
     def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, 
@@ -1416,6 +1518,9 @@ class ClassifierExplainer(BaseExplainer):
                  "compatible *classifier* model that has a predict_proba(...) "
                  f"method, so not a {type(model)}!")
 
+        self._params_dict = {**self._params_dict, **dict(
+            labels=labels, pos_label=pos_label)}
+
         if labels is not None:
             self.labels = labels
         elif hasattr(self.model, 'classes_'):
@@ -2158,6 +2263,8 @@ class RegressionExplainer(BaseExplainer):
                             shap, X_background, model_output,
                             cats, idxs, descriptions, target,
                             n_jobs, permutation_cv, na_fill)
+
+        self._params_dict = {**self._params_dict, **dict(units=units)}
         self.units = units
         self.is_regression = True
 

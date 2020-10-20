@@ -92,6 +92,14 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             ]),
             dbc.Row([    
                 dbc.Col([
+                    self.precision.layout()
+                ], md=6, align="start"),
+                dbc.Col([
+                    self.classification.layout()
+                ], md=6, align="start"),
+            ]),
+            dbc.Row([    
+                dbc.Col([
                     self.rocauc.layout()
                 ], md=6),
                 dbc.Col([
@@ -103,17 +111,9 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                     self.liftcurve.layout()         
                 ], md=6, align="start"),
                 dbc.Col([
-                    self.classification.layout()
-                ], md=6, align="start"),
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    self.precision.layout()
-                ], md=6, align="start"),
-                dbc.Col([
                     self.cumulative_precision.layout()
-                ], md=6, align="start"),              
-            ]),  
+                ], md=6, align="start"), 
+            ]), 
         ])
 
 

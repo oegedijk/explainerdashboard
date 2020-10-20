@@ -1,5 +1,27 @@
 # Release Notes
 
+## Version 0.2.7:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-   explainer.dump() to store explainer, explainer.from_file() to load explainer
+-   explainerdashboard CLI
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+
 Version 0.2.6:
 
 ### Improvements

@@ -137,6 +137,12 @@ catboost_info/learn/events.out.tfevents
 scratch_notebook.ipynb
 scratch_import.py
 show_and_tell_draft.md
+pydata_notebook.ipynb
+explainer.joblib
+explainerdashboard.yaml
+clicktest.py
+data.csv
+model.pkl
 
 db_test.py
 .DS_Store
