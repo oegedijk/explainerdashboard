@@ -289,6 +289,10 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         fig = self.explainer.plot_pdp("Age", X_row=self.explainer.X_cats.iloc[[0]])
         self.assertIsInstance(fig, go.Figure)
 
+    def test_yaml(self):
+        yaml = self.explainer.to_yaml()
+        self.assertIsInstance(yaml, str)
+
 
 
 
