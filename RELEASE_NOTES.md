@@ -6,16 +6,24 @@
 - 
 
 ### New Features
--   explainer.dump() to store explainer, explainer.from_file() to load explainer
--   explainerdashboard CLI
+-   explainer.dump() to store explainer, explainer.from_file() to load 
+    explainer from file
+-   Explainer.to_yaml() and ExplainerDashboard.to_yaml() can store the 
+    configuration of your explainer/dashboard to file.
+-   explainerdashboard CLI:
+    - Start an explainerdashboard from the command-line!
+    - start default dashboard from stored explainer : `explainerdashboard explainer.joblib`
+    - start dashboard from config: `explainerdashboard explainerdashboard.yaml`
+    - includes new ascii logo :)
+    - can also build explainer from model.pkl, data.csv and config
 
 ### Bug Fixes
 -
 -
 
 ### Improvements
--
--
+-   If idxs is not passed use X.index instead
+-   explainer.idxs performance enhancements
 
 ### Other Changes
 -
