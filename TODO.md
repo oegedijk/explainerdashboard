@@ -1,5 +1,6 @@
 
 # TODO:
+- put idxs in df.index
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -9,6 +10,8 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
+- add some of these:
+    https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -22,6 +25,8 @@
 - add plain language explanations
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
+- Add whatif to InlineExplainer
+- Add cumulativeprecisionplot to InlineExplainer
 
 ## notebooks:
 
@@ -31,6 +36,7 @@
 - add group fairness metrics? 
 
 ### Components
+- add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 
@@ -41,11 +47,15 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add tests for explainer.dump() and explainer.from_file()
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
 
 ## Docs:
+- add CLI documentation
+- deployment: show how to to make automatically rebootable dashboard 
+    with watchdog package
 - add docstrings to explainer_plots
 - add screenshots of all ExplainerComponents to docs
 - move screenshots to separate folder
@@ -54,6 +64,7 @@
         self.register_components(self.connector)
 
 ## Library level:
+- add explainerdashboard commandline tool: add entry_points to setup.py
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
