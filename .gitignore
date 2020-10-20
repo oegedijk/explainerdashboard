@@ -144,6 +144,8 @@ clicktest.py
 data.csv
 model.pkl
 custom_tab.py
+!tests/cli_assets/*
+
 
 db_test.py
 .DS_Store
