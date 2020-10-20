@@ -348,6 +348,7 @@ class ExplainerDashboard:
         self.server, self.url_base_pathname = server, url_base_pathname
         self.responsive, self.port = responsive, port
         self._params_dict = dict(
+                tabs=self._tabs_to_param(tabs),
                 title=title, hide_header=hide_header, 
                 header_hide_title=header_hide_title,
                 header_hide_selector=header_hide_selector,
@@ -454,6 +455,18 @@ class ExplainerDashboard:
             elif component == 'decision_trees':
                 return  DecisionTreesTab
         return component
+
+    @staticmethod
+    def _tabs_to_param(tabs):
+        """converts tabs to a yaml friendly format"""
+        if tabs is None:
+            return None
+        
+        if not hasattr(tabs, "__iter__"):
+            return tabs if isinstance(tabs, str) else dict(tab=tabs.__name__, module=tabs.__module__)
+            
+        return [tab if isinstance(tab, str) else dict(tab=tab.__name__, module=tab.__module__) for tab in tabs]
+
 
     def _get_dash_app(self):
         if self.responsive:
@@ -568,11 +581,12 @@ class ExplainerDashboard:
             return_dict (bool, optional): instead of yaml return dict with 
                 config.
         """
-        import yaml
+        import oyaml as yaml
+        
         explainer_config = self.explainer.to_yaml(return_dict=True)
         dashboard_config = dict(
             dashboard=dict(
-                explainer="explainer.joblib",
+                explainerfile="explainer.joblib",
                 params=self._params_dict))
         yaml_config = {**explainer_config, **dashboard_config}
 

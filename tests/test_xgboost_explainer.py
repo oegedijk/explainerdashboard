@@ -69,7 +69,7 @@ class XGBMultiClassifierExplainerTests(unittest.TestCase):
                             model, X_test, y_test, model_output='raw',
                             cats=['Sex', 'Cabin', 'Embarked'],
                             idxs=test_names, 
-                            labels=['Queenstown', 'Southampton', 'Cherbourgh'])
+                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
 
     def test_graphviz_available(self):
         self.assertIsInstance(self.explainer.graphviz_available, bool)

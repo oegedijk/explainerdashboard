@@ -24,12 +24,12 @@ feature_descriptions = {
 }
 
 def titanic_survive():
-    X_train = d_train.drop(['Survived', 'Name'], axis=1)
+    X_train = d_train.drop(['Survival', 'Name'], axis=1)
     X_train.index = d_train.Name
-    y_train = d_train['Survived']
-    X_test = d_test.drop(['Survived', 'Name'], axis=1)
+    y_train = d_train['Survival']
+    X_test = d_test.drop(['Survival', 'Name'], axis=1)
     X_test.index = d_test.Name
-    y_test = d_test['Survived']
+    y_test = d_test['Survival']
     return X_train, y_train, X_test, y_test
 
 
@@ -48,7 +48,7 @@ def titanic_embarked():
     d_train2 = d_train2[d_train2.Embarked_Unknown==0]
     X_train = d_train2.drop(['Embarked_Cherbourg', 'Embarked_Queenstown', 
         'Embarked_Southampton', 'Embarked_Unknown', 'Name'], axis=1)
-    X_train.index = d_train.Name
+    X_train.index = d_train2.Name
     y_train = pd.Series(np.where(d_train2.Embarked_Queenstown==1, 0, 
                             np.where(d_train2.Embarked_Southampton==1, 1, 
                                 np.where(d_train2.Embarked_Cherbourg==1, 2, 3))), 

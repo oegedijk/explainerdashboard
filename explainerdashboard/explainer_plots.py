@@ -688,7 +688,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     assert is_string_dtype(X[col_name]), \
         f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
         
-    x = X[col_name].reset_index(drop=True)
+    x = X[col_name].copy()
     shaps = shap_values[:, X.columns.get_loc(col_name)]
     n_cats = X[col_name].nunique()
     
@@ -1231,7 +1231,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
         
     # make sure that columns are actually in X:
     display_columns = [col for col in display_columns if col in X.columns.tolist()]    
-    shap_df = pd.DataFrame(shap_values, columns=X.columns)
+    shap_df = pd.DataFrame(shap_values, columns=X.columns, index=X.index)
     min_shap = np.round(shap_values.min()-0.01, 2)
     max_shap = np.round(shap_values.max()+0.01, 2)
 
