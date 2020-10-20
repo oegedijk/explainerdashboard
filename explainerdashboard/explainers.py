@@ -39,7 +39,7 @@ class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, target="",
+                    cats=None, idxs=None, descriptions=None, target=None,
                     n_jobs=None, permutation_cv=None, na_fill=-999):
         """Defines the basic functionality of an ExplainerBunch
 
@@ -65,7 +65,8 @@ class BaseExplainer(ABC):
             converted to str, defaults to None
         :type idxs: list, optional
         :param target: name of the predicted target, e.g. "Survival", 
-            "Ticket price", etc. Defaults to ""
+            "Ticket price", etc. Default is y.name, but can override with target.
+            Defaults to None.
         :type target: str
         :param n_jobs: for jobs that can be parallelized using joblib,
             how many processes to split the job in. For now only used
@@ -195,7 +196,7 @@ class BaseExplainer(ABC):
     def to_yaml(self, filepath=None, return_dict=False,
                     modelfile="model.pkl",
                     datafile="data.csv",
-                    index_col="index",
+                    index_col=None,
                     explainerfile="explainer.joblib"):
         """Returns a yaml configuration of the current ExplainerDashboard
         that can be used by the explainerdashboard CLI.
@@ -213,14 +214,14 @@ class BaseExplainer(ABC):
             explainerfile (str, optional): filename of explainer dump. Defaults
                 to `explainer.joblib`.
         """
-        import yaml
+        import oyaml as yaml
         yaml_config = dict(
             explainer=dict(
                 modelfile=modelfile,
                 datafile=datafile,
                 explainerfile=explainerfile,
                 data_target=self.target,
-                data_index=index_col,
+                data_index=self.X.index.name,
                 explainer_type="classifier" if self.is_classifier else "regression",
                 params=self._params_dict))
         if return_dict:
@@ -321,7 +322,7 @@ class BaseExplainer(ABC):
             if index >= 0 and index < len(self):
                 return index
         elif isinstance(index, str):
-            if self.idxs is not None:
+            if self.idxs is not None and index in self.idxs:
                 return self.idxs.get_loc(index)
         return None
 
@@ -361,10 +362,8 @@ class BaseExplainer(ABC):
         else:
             return None
         if return_str:
-            assert self.idxs is not None, \
-                "no self.idxs property found..."
-            return self.idxs[idx]
-        return int(idx)
+            return idx
+        return idxs.get_loc(idx)
 
     @property
     def preds(self):
@@ -489,7 +488,7 @@ class BaseExplainer(ABC):
         if col in self.X.columns:
             return self.X[col]
         elif col in self.cats:
-            return retrieve_onehot_value(self.X, col)
+            return pd.Series(retrieve_onehot_value(self.X, col), name=col)
         
     def get_col_value_plus_prediction(self, col, index=None, X_row=None, pos_label=None):
         """return value of col and prediction for either index or X_row
@@ -513,7 +512,7 @@ class BaseExplainer(ABC):
             if col in self.X.columns:
                 col_value = self.X[col].iloc[idx]
             elif col in self.cats:
-                col_value = retrieve_onehot_value(self.X, col).iloc[idx]
+                col_value = retrieve_onehot_value(self.X, col)[idx]
 
             if self.is_classifier:
                 if pos_label is None:
@@ -997,7 +996,7 @@ class BaseExplainer(ABC):
         cdf.reset_index(inplace=True)
         cdf.loc[cdf.col=='base_value', 'value'] = np.nan
         cdf['row_id'] = self.get_int_idx(index)
-        cdf['name_id'] = self.idxs[self.get_int_idx(index)]
+        cdf['name_id'] = index
         cdf['cat_value'] = np.where(cdf.col.isin(self.cats), cdf.value, np.nan)
         cdf['cont_value'] = np.where(cdf.col.isin(self.cats), np.nan, cdf.value)
         if round is not None:
@@ -1308,7 +1307,7 @@ class BaseExplainer(ABC):
                                 self.X_cats,
                                 self.importances_df(kind='shap', topx=topx, cats=True, pos_label=pos_label)\
                                         ['Feature'].values.tolist(), 
-                                idxs=self.idxs,
+                                idxs=self.idxs.values,
                                 highlight_index=index,
                                 title=title,
                                 na_fill=self.na_fill)
@@ -1318,7 +1317,7 @@ class BaseExplainer(ABC):
                                 self.X,
                                 self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
                                         ['Feature'].values.tolist(), 
-                                idxs=self.idxs,
+                                idxs=self.idxs.values,
                                 highlight_index=index,
                                 title=title,
                                 na_fill=self.na_fill)
@@ -1348,7 +1347,7 @@ class BaseExplainer(ABC):
         return plotly_shap_scatter_plot(
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
                 self.X_cats if cats else self.X, interact_cols[:topx], title=title, 
-                idxs=self.idxs, highlight_index=index, na_fill=self.na_fill)
+                idxs=self.idxs.values, highlight_index=index, na_fill=self.na_fill)
 
     def plot_shap_dependence(self, col, color_col=None, highlight_index=None, pos_label=None):
         """plot shap dependence
@@ -1379,7 +1378,7 @@ class BaseExplainer(ABC):
                             col, 
                             color_col, 
                             highlight_index=highlight_idx,
-                            idxs=self.idxs)
+                            idxs=self.idxs.values)
             else:
                 return plotly_dependence_plot(
                             self.X_cats, 
@@ -1389,7 +1388,7 @@ class BaseExplainer(ABC):
                             na_fill=self.na_fill, 
                             units=self.units, 
                             highlight_index=highlight_idx,
-                            idxs=self.idxs)
+                            idxs=self.idxs.values)
         else:
             return plotly_dependence_plot(
                             self.X, 
@@ -1399,7 +1398,7 @@ class BaseExplainer(ABC):
                             na_fill=self.na_fill, 
                             units=self.units, 
                             highlight_index=highlight_idx,
-                            idxs=self.idxs)
+                            idxs=self.idxs.values)
 
     def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
                                 pos_label=None):
@@ -1423,12 +1422,12 @@ class BaseExplainer(ABC):
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
                 interact_col, col, interaction=True, units=self.units, 
-                highlight_index=highlight_idx, idxs=self.idxs)
+                highlight_index=highlight_idx, idxs=self.idxs.values)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
                 interact_col, col, interaction=True, units=self.units,
-                highlight_index=highlight_idx, idxs=self.idxs)
+                highlight_index=highlight_idx, idxs=self.idxs.values)
 
     def plot_pdp(self, col, index=None, X_row=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, pos_label=None):
@@ -1488,7 +1487,7 @@ class ClassifierExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X, y=None,  permutation_metric=roc_auc_score, 
                     shap='guess', X_background=None, model_output="probability",
-                    cats=None, idxs=None, descriptions=None, target="",
+                    cats=None, idxs=None, descriptions=None, target=None,
                     n_jobs=None, permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
         """
@@ -1995,10 +1994,8 @@ class ClassifierExplainer(BaseExplainer):
         else:
             return None
         if return_str:
-            assert self.idxs is not None, \
-                "no self.idxs property found..."
-            return self.idxs[idx]
-        return int(idx)
+            return idx
+        return self.idxs.get_loc(idx)
 
     def precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
                         round=3, pos_label=None):
@@ -2246,7 +2243,7 @@ class RegressionExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, target="",
+                    cats=None, idxs=None, descriptions=None, target=None,
                     n_jobs=None, permutation_cv=None, na_fill=-999,
                     units=""):
         """Explainer for regression models.
@@ -2344,10 +2341,8 @@ class RegressionExplainer(BaseExplainer):
         else:
             return None
         if return_str:
-            assert self.idxs is not None, \
-                "no self.idxs property found..."
-            return self.idxs[idx]
-        return int(idx)
+            return idx
+        return self.idxs.get_loc(idx)
 
     def prediction_result_markdown(self, index, include_percentile=True, round=2, **kwargs):
         """markdown of prediction result
@@ -2416,7 +2411,7 @@ class RegressionExplainer(BaseExplainer):
 
         """
         return plotly_predicted_vs_actual(self.y, self.preds, 
-                target=self.target, units=self.units, idxs=self.idxs, 
+                target=self.target, units=self.units, idxs=self.idxs.values, 
                 logs=logs, log_x=log_x, log_y=log_y, round=round)
     
     def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
@@ -2432,7 +2427,7 @@ class RegressionExplainer(BaseExplainer):
           Plotly fig
 
         """
-        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
+        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs.values,
                                      vs_actual=vs_actual, target=self.target, 
                                      units=self.units, residuals=residuals, 
                                      round=round)
@@ -2460,7 +2455,7 @@ class RegressionExplainer(BaseExplainer):
         col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=np.array(self.idxs)[na_mask], points=points, round=round, winsor=winsor)
+                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor)
 
 
 class RandomForestExplainer(BaseExplainer):

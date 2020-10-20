@@ -118,7 +118,7 @@ def retrieve_onehot_value(X, encoded_col, sep="_"):
     mapping = {-1: "NOT_ENCODED"}
     mapping.update({i: col[len(encoded_col) + 1:] for i, col in enumerate(cat_cols)})
 
-    return pd.Series(feature_value).map(mapping)
+    return pd.Series(feature_value).map(mapping).values
 
 
 def merge_categorical_columns(X, cats=None, sep="_"):

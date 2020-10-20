@@ -97,7 +97,7 @@ layout and components::
     from explainerdashboard import ExplainerDashboard
 
     class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer)
+        def __init__(self, explainer):
             super().__init__(explainer, title="Titanic Explainer")
             self.precision = PrecisionComponent(explainer, 
                                     hide_cutoff=True, hide_binsize=True, 
