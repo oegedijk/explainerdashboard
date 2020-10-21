@@ -13,4 +13,6 @@ selenium
 shortuuid
 dash-auth
 jupyter_dash
+oyaml
+click
 pytest-console-scripts
