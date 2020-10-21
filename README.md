@@ -9,6 +9,7 @@ This package makes it convenient to quickly deploy a dashboard web app
 that explains the workings of a (scikit-learn compatible) machine 
 learning model. The dashboard provides interactive plots on model performance, 
 feature importances, feature contributions to individual predictions, 
+"what if" analysis,
 partial dependence plots, SHAP (interaction) values, visualisation of individual
 decision trees, etc. 
 
@@ -20,6 +21,8 @@ to the modular design of the library).
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
  example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+
+ Works with scikit-learn, xgboost, catboost, lightgbm and others.
 
  ## Installation
 
@@ -54,7 +57,7 @@ The library includes:
 The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by `explainerdashboard`, so that you can focus on the layout
 and project specific textual explanations. (i.e. design it so that it will be interpretable for business users in your organization, not just data scientists)
 
-Alternatively, there is a built-in standard dashboard with pre-built tabs that you can select individually. 
+Alternatively, there is a built-in standard dashboard with pre-built tabs (that you can switch off individually)
 
 ## Examples of use
 
@@ -83,20 +86,82 @@ explainer = ClassifierExplainer(model, X_test, y_test,
                                 labels=['Not survived', 'Survived'])
 
 db = ExplainerDashboard(explainer, title="Titanic Explainer",
-                        whatif=False, # you can switch off certain tabs
-                        shap_dependence=False,
+                        whatif=False, # you can switch off tabs with bools
                         shap_interaction=False,
                         decision_trees=False)
 db.run(port=8051)
 
 ```
 
-When working inside jupyter or Google Colab you can use `ExplainerDashboard(mode='inline')` 
-or `ExplainerDashboard(mode='external')` instead to use `JupyterDash` instead of 
-`dash.Dash()` as a backend to start the dashboard.
+### from within a notebook
 
-You can also use e.g. `InlineExplainer(explainer).tab.dependence()` to see a 
-single specific tab or component inline in your notebook. 
+When working inside jupyter or Google Colab you can use 
+`ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')`, i
+`ExplainerDashboard(mode='jupyterlab')`, to run the dashboard inline in the notebook,
+or in a seperate tab but keep the notebook interactive. 
+
+There is also a specific interface for quickly displaying interactive components
+inline in your notebook: `InlineExplainer()`. For example you can use 
+`InlineExplainer(explainer).shap.dependence()` to display the shap dependence
+component interactively in your notebook output cell.
+
+## Command line Tool
+
+You can store explainers to disk with `explainer.dump("explainer.joblib")`
+and then run them from the command-line:
+
+```bash
+$ explainerdashboard run explainer.joblib
+```
+
+Or store the full configuration of a dashboard to `.yaml` with e.g.
+`dashboard.to_yaml("explainerdashboard.yaml")` and run it with:
+
+```bash
+$ explainerdashboard run explainerdashboard.yaml
+```
+
+See (CLI documentation)[https://explainerdashboard.readthedocs.io/en/latest/cli.html] 
+for details. 
+
+## Custom dashboards
+
+All the components are modular and re-usable, which means that you can include 
+them in your own custom [dash](https://dash.plotly.com/) dashboards. 
+
+By using the built-in `ExplainerComponent` class it is easy to build your
+own layouts, with just a bare minimum of knowledge of html and bootstrap. For
+example if you only wanted to display the `ShapDependenceComponent`, but hide
+a few toggles:
+
+```python
+from explainerdashboard.custom import *
+
+import dash_bootstrap_components as dbc
+import dash_html_components as html
+
+class CustomTab(ExplainerComponent):
+    def __init__(self, explainer):
+        super().__init__(explainer, title="Custom Tab")
+        self.dependence = ShapDependenceComponent(explainer, hide_selector=True, hide_cats=True)
+        self.register_components(self.dependence)
+        
+    def layout(self):
+        return dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    self.dependence.layout()
+                ])
+            ])
+        ])
+
+
+ExplainerDashboard(explainer, CustomTab).run()
+```
+
+You can use this to define your own layouts, specifically tailored to your
+own model, project and needs. See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
+for more details. 
 
 
 ## Documentation
@@ -111,85 +176,8 @@ Example notebook on how to design a custom dashboard: [custom_examples.ipynb](ht
 
 Finally an example is deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com). (source code on github [here](https://github.com/oegedijk/explainingtitanic))
 
-## A simple demonstration
 
-### Constructing an ExplainerBunch
-
-The package works by first constructing an `Explainer` object. You can then use 
-this `Explainer` to manually call different plots, or pass it on to an `ExplainerDashboard` 
-object. You construct the  `Explainer` instancefrom your fitted `model`, a feature matrix `X`, 
-and optionally the corresponding target values `y`. 
-
-In addition you can pass:
-- `metric`: permutation importances get calculated against a particular metric 
-    (for regression defaults to `r2_score` and for classification to `roc_auc_score`)
-- `shap`: type of shap explainer to use. e.g. 'tree' for `shap.TreeExplainer(...)`,
-     or `'linear'`, `'kernel'`, etc (defaults to `'guess'`)
-- `X_background`: background data to use for shap explainer (most tree based 
-    models don't need this), if not given use `X` instead
-- `model_output`: for classification models either `'logodds'` or 
-    `'probability'`, defaults to `'probability'`
-- `cats`: a list of onehot encoded variables (e.g. if encoded as 
-    `'Gender_Female'`, `'Gender_Male'` you would pass `cats=['Gender']`). 
-    This allows you to group the onehotencoded columns together in various 
-    plots with the argument `cats=True`. 
-- `idxs`: a list of indentifiers for each row in your dataset. This makes it 
-    easier to look up predictions for specific id's. By default `X.index` is used.
-- `descriptions`: a dictionary of descriptions of the meaning of individual 
-    variables.
-- `target`: name of the target variable, e.g. `Survival` or `Fare`. By default
-    `y.name` is used.
-- `labels`: for classifier models a list of labels for the classes of your model.
-- `na_fill`: Value used to fill in missing values (default to -999)
-
-E.g.:
-
-```python
-X_train, y_train, X_test, y_test = titanic_survive()
-train_names, test_names = titanic_names()
-
-model = RandomForestClassifier(n_estimators=50, max_depth=5)
-model.fit(X_train, y_train)
-
-explainer = ClassifierExplainer(model, X_test, y_test, 
-                                X_background=None, model_output='probability',
-                                cats=['Sex', 'Deck', 'Embarked'],
-                                idxs=test_names, target='Survival',
-                                labels=['Not survived', 'Survived'])
-```
-
-You can then easily inspect the model using various plot function, such as e.g.:
-- `explainer.plot_confusion_matrix(cutoff=0.6, normalized=True)`
-- `explainer.plot_importances(cats=True)`
-- `explainer.plot_pdp('PassengerClass', index=0)`
-- `explainer.plot_shap_dependence('Age')`, etc.
-
-See the [explainer_examples.ipynb](explainer_examples.ipynb), 
-[dashboard_examples.ipynb](dashboard_examples.ipynb) and 
-[documentation for the Explainer object](https://explainerdashboard.readthedocs.io/en/latest/explainers.html) 
-for more details and all the possible plots and tables you can generate. 
-
-### Starting an ExplainerDashboard
-Once you have constructed an `Explainer` object, you can then pass this along to an
-`ExplainerDashboard` that builds an interactive Plotly Dash analytical dashboard for 
-easily exploring the various plots and analysis mentioned earlier. 
-
-You can use a series of booleans to switch on or off certain tabs of the dashboard.
-(for example, xalculating shap interaction values can take quite a bit of time 
-if you have a large dataset with a lot of features, so if you are not really 
-interested in them, it may make sense to switch that tab off.)
-
-```
-db = ExplainerDashboard(explainer, 'Titanic Explainer`,
-                        model_summary=True,
-                        contributions=True,
-                        whatif=True,
-                        shap_dependence=True,
-                        shap_interaction=False,
-                        shadow_trees=True)
-```
-
-You then start the dashboard on a particular port with `db.run(port=8050)`. 
+## deployment
 
 If you wish to use e.g. ``gunicorn`` to deploy the dashboard you should add 
 `server = db.app.server` to your code to expose the Flask server. You can then 
@@ -197,13 +185,6 @@ start the server with e.g. `gunicorn dashboard:server`
 (assuming the file you defined the dashboard in was called `dashboard.py`). 
 See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
 and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
-
-It may take some time to calculate all the properties of the `Explainer` 
-(especially shap interaction values). However all properties get calculated 
-lazily, so they are only calculated when you call a plot or table that depends 
-on them. To save startup time you can save the `Explainer` to disk with 
-e.g. joblib and then load the `Explainer` with pre-calculated properties 
-whenever you wish to start the dashboard. 
 
 
 ## Deployed example:
