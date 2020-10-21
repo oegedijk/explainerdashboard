@@ -61,10 +61,9 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
     from sklearn.ensemble import RandomForestClassifier
 
     from explainerdashboard import ClassifierExplainer, ExplainerDashboard
-    from explainerdashboard.datasets import titanic_survive, titanic_names
+    from explainerdashboard.datasets import titanic_survive
 
     X_train, y_train, X_test, y_test = titanic_survive()
-    train_names, test_names = titanic_names()
 
     model = RandomForestClassifier(n_estimators=50, max_depth=5)
     model.fit(X_train, y_train)
@@ -73,7 +72,6 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
                     model, X_test, y_test, 
                     # optional:
                     cats=['Sex', 'Deck', 'Embarked'],
-                    idxs=test_names, target='Survival'
                     labels=['Not survived', 'Survived'])
 
     ExplainerDashboard(explainer).run()
@@ -105,8 +103,9 @@ in the github repo.
 
    explainers
    dashboards
-   tabs
    inline
+   cli
+   tabs
    components
    custom
    deployment

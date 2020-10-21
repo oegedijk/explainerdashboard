@@ -94,15 +94,15 @@ the explainer when starting the dashboard::
                                cats=['Sex', 'Deck', 'Embarked'],
                                labels=['Not survived', 'Survived'])
     explainer.calculate_properties()
-    joblib.dump(explainer, "explainer.pkl")
+    explainer.dump("explainer.joblib")
 
 Then in ``dashboard.py`` load the explainer and start the dashboard:: 
 
     import joblib
-    from explainerdashboard import ExplainerDashboard
+    from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 
-    explainer = joblib.load("explainer.pkl")
-    db = ExplainerDashboard(clas_explainer)
+    explainer = ClassifierExplainer.from_file("explainer.joblib")
+    db = ExplainerDashboard(explainer)
     server = db.app.server 
 
 And start the thing with gunicorn::

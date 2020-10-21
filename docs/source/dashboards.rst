@@ -58,43 +58,6 @@ as a single page::
 
    ExplainerDashboard(explainer, "importances").run()
 
-You can also pass any custom class instance as long as it has at least a ``.layout()`` method.
-If the custom class does not have a ``title`` or ``name`` property, these will
-be assigned. If the custom class has a ``.register_callbacks(self, app)`` method,
-then this will be called. An example of an extremely minimalist dashboard that only displays 
-the feature names of the model::
-
-   import dash_html_components as html 
-
-   class FeatureListTab:
-      def __init__(self, explainer):
-         self.explainer  = explainer
-         self.title = "Feature List"
-         self.name = "feature_list"
-
-      def layout(self):
-         return html.Div(f"Feature names: {self.explainer.columns}")
-
-      def register_callbacks(self, app):
-         pass
-
-   features = FeatureListTab(explainer)
-   ExplainerDashboard(explainer, features).run()
-
-However it would be easy to turn this custom ``FeatureListTab`` into a proper
-``ExplainerComponent``::
-
-   from explainerdashboard.custom import *
-
-   class FeatureListTab(ExplainerComponent):
-      def __init__(self, explainer):
-         super().__init__(explainer, title="Feature List")
-
-      def layout(self):
-         return html.Div(f"Feature names: {self.explainer.columns}")
-
-   ExplainerDashboard(explainer, FeatureListTab).run()
-
 
 Starting a multitab dashboard
 -----------------------------
@@ -103,21 +66,23 @@ Besided the single page dashboard above you can also pass a list of
 ``ExplainerComponents`` to construct multiple tabs. These can be a mix of 
 the different types discussed above. E.g.::
 
-   ExplainerDashboard(explainer, [ImportancesTab, imp_tab, "importances", features]).run()
+   ExplainerDashboard(explainer, [ImportancesTab, imp_tab, "importances"]).run()
 
-This would start a dashboard with three importances tabs, plus our custom 
-feature list tab. (not sure why you would do that, but hopefully you get the point :)
+This would start a dashboard with three importances tabs.
+(not sure why you would do that, but hopefully you get the point :)
 
 The tabs can be imported from ``explainerdashboard.dashboard_tabs``, they include
 ``ImportancesTab``, ``ModelSummaryTab``, ``ContributionsTab``, ``WhatIfTab``,
     ``ShapDependenceTab``, ``ShapInteractionsTab`` and ``DecisionTreesTab``.
+
+You can also build your own custom tabs, see the :ref:`Custom Dashboards<Custom Dashboards>` section.
 
 
 Using explainerdashboard inside Jupyter notebook or google colab
 ----------------------------------------------------------------
 
 You can start the dashboard with the standard ``dash.Dash()`` server or with the 
-new notebook friendly ``jupyter_dash`` server. The latter will allow you
+new notebook friendly ``JupyterDash`` server. The latter will allow you
 to keep working interactively in your notebook while the dashboard is running.
 Also, this allows you to run an explainerdashboard from within google colab!
 

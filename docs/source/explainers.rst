@@ -96,7 +96,9 @@ numerical index, e.g. ``explainer.contrib_df(0)`` for the first row, or using th
 identifier, e.g. ``explainer.contrib_df("Braund, Mr. Owen Harris")``.
 
 The proper name or idxs will be use used in all ``ExplainerComponents`` that
-allow index selection.
+allow index selection. 
+
+By default the index of pandas dataframe ``X`` will be used as idxs.
 
 descriptions
 ------------
@@ -110,7 +112,7 @@ various features in the dashboard.
 target
 ------
 
-Name of the target variable
+Name of the target variable. By default the name of the pd.Series ``y`` is used
 
 labels
 ------

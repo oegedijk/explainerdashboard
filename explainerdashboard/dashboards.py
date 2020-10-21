@@ -571,7 +571,12 @@ class ExplainerDashboard:
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 
-    def to_yaml(self, filepath=None, return_dict=False):
+    def to_yaml(self, filepath=None, return_dict=False,
+                explainerfile="explainer.joblib",
+                modelfile="model.pkl",
+                datafile="data.csv",
+                index_col=None,
+                target_col=None):
         """Returns a yaml configuration of the current ExplainerDashboard
         that can be used by the explainerdashboard CLI.
 
@@ -580,13 +585,25 @@ class ExplainerDashboard:
                 returns the yaml as a string. Defaults to None.
             return_dict (bool, optional): instead of yaml return dict with 
                 config.
+            modelfile (str, optional): filename of model dump. Defaults to
+                `model.pkl`
+            datafile (str, optional): filename of datafile. Defaults to
+                `data.csv`.
+            index_col (str, optional): column to be used for idxs. Defaults to
+                self.idxs.name.
+            target_col (str, optional): column to be used for to split X and y
+                from datafile. Defaults to self.target.
+            explainerfile (str, optional): filename of explainer dump. Defaults
+                to `explainer.joblib`.
         """
         import oyaml as yaml
 
-        explainer_config = self.explainer.to_yaml(return_dict=True)
+        explainer_config = self.explainer.to_yaml(return_dict=True,
+            modelfile=modelfile, datafile=datafile, index_col=index_col,
+            target_col=target_col, explainerfile=explainerfile)
         dashboard_config = dict(
             dashboard=dict(
-                explainerfile="explainer.joblib",
+                explainerfile=explainerfile,
                 params=self._params_dict))
         yaml_config = {**explainer_config, **dashboard_config}
 
@@ -597,7 +614,6 @@ class ExplainerDashboard:
             yaml.dump(yaml_config, open(filepath, "w"))
             return
         return yaml.dump(yaml_config)
-
 
 
 class InlineExplainer:
