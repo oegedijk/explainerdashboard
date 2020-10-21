@@ -73,7 +73,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
                     'shap', 'shortuuid', 'joblib', 'oyaml', 'click'],
     entry_points={
         'console_scripts': [
-            'explainerdashboard = explainerdashboard.cli:run_dashboard',
+            'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',
         ],
     },
     author='Oege Dijk',

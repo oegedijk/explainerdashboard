@@ -7,15 +7,22 @@ def test_explainerdashboard_cli_help(script_runner):
     assert ret.stderr == ''
 
 
-def test_explainerdashboard_cli(script_runner):
-    ret = script_runner.run('explainerdashboard', ' --no-dashboard --no-browser', 
+def test_explainerdashboard_cli_explainer(script_runner):
+    ret = script_runner.run('explainerdashboard', ' test explainer.joblib', 
                 cwd=str(Path().cwd() / "tests" / "cli_assets"))
     assert ret.success
     assert ret.stderr == ''
 
 
-def test_explainerdashboard_cli_buildonly(script_runner):
-    ret = script_runner.run('explainerdashboard', ' --build-only', 
+def test_explainerdashboard_cli_yaml(script_runner):
+    ret = script_runner.run('explainerdashboard', ' test explainerdashboard.yaml', 
+                cwd=str(Path().cwd() / "tests" / "cli_assets"))
+    assert ret.success
+    assert ret.stderr == ''
+
+
+def test_explainerdashboard_cli_build(script_runner):
+    ret = script_runner.run('explainerdashboard', ' build', 
                 cwd=str(Path().cwd() / "tests" / "cli_assets"))
     assert ret.success
     assert ret.stderr == ''

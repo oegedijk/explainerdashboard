@@ -74,6 +74,57 @@ def build_and_dump_explainer(config):
     return
 
 
+def launch_dashboard_from_pkl(explainer_filepath, no_browser, port, no_dashboard=False):
+    explainer = BaseExplainer.from_file(explainer_filepath)
+
+    if port is None: 
+        click.echo(f"explainerdashboard ===> Setting port to 8050, override with e.g. --port 8051")
+        port = 8050
+
+    db = ExplainerDashboard(explainer, port=port)
+    
+    if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
+        webbrowser.open_new(f"http://127.0.0.1:{port}/")
+
+    if not no_dashboard:
+        db.run(port)
+    return
+
+def launch_dashboard_from_yaml(yaml_filepath, no_browser, port, no_dashboard=False):
+    config = yaml.safe_load(open(str(yaml_filepath), "r"))
+
+    if not Path(config['dashboard']['explainerfile']).exists():
+        click.echo(f"explainerdashboard ===> {config['dashboard']['explainerfile']} does not exist!")
+        click.echo(f"explainerdashboard ===> first generate {config['dashboard']['explainerfile']} with explainerdashboard build?")
+        return
+
+    print(f"explainerdashboard ===> Building dashboard from {config['dashboard']['explainerfile']}")
+    explainer = BaseExplainer.from_file(config['dashboard']['explainerfile'])
+
+    print(f"explainerdashboard ===> Building dashboard")
+
+    dashboard_params = config['dashboard']['params']
+    tabs = yamltabs_to_tabs(dashboard_params['tabs'])
+    del dashboard_params['tabs']
+
+    db = ExplainerDashboard(explainer, tabs, **dashboard_params)
+
+    if port is None: 
+        port =  config['dashboard']['params']['port'] 
+        if port is None:
+            port = 8050
+        click.echo(f"explainerdashboard ===> Setting port to 8050, override with e.g. --port 8051")
+
+    if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
+        print(f"explainerdashboard ===> launching browser at {f'http://localhost:{port}/'}")
+        webbrowser.open_new(f"http://localhost:{port}/")
+    
+    print(f"explainerdashboard ===> Starting dashboard:")
+    if not no_dashboard:
+        db.run(port)
+    return
+
+
 def yamltabs_to_tabs(tabs_param):
     """converts a yaml tabs list back to ExplainerDashboard compatible original"""
     if tabs_param is None:
@@ -87,112 +138,137 @@ def yamltabs_to_tabs(tabs_param):
     return [tab if isinstance(tab, str) else getattr(import_module(tab['module']), tab['tab'])  for tab in tabs_param]
 
 
-@click.command()
-@click.argument("explainer_filepath", nargs=1, required=False)
-@click.option("--build-only", "-bo", "build_only", is_flag=True,
-                help="Do not launch a dashboard, only build the explainer and store it.")
-@click.option("--no-browser", "-nb", "no_browser", is_flag=True,
-                help="Launch a dashboard, but do not launch a browser.")
-@click.option("--no-dashboard", "-nd", "no_dashboard", is_flag=True,
-                help="Run entire script, but do not actually launch dashboard. Used for testing.")
-@click.option("--port", "-p", "port", default=None,
-                help="port to run dashboard on defaults.")
-def run_dashboard(explainer_filepath, build_only, no_browser, no_dashboard, port):
-    """                                                        
-    explainerdashboard CLI tool.
+@click.group()
+@click.pass_context
+def explainerdashboard_cli(ctx):
+    """
+    explainerdashboard CLI tool. Used to launch an explainerdashboard from 
+    the commandline. 
 
-    Used to launch an explainerdashboard from the commandline. Can either 
-    launch a default dashboard with default parameters by passing a stored
-    explainer, e.g. `explainerdashboard explainer.joblib`, or launch a 
-    fully configured dashboard based on a .yaml file, 
-    e.g. `explainerdashboard explainerdashboard.yaml`.
+    \b
+    explainerdashboard run
+    ----------------------  
+
+    Run explainerdashboard and start browser directly from command line.
+
+    \b
+    Example use:
+        explainerdashboard run explainer.joblib
+        explainerdashboard run explainerdashboard.yaml
+        explainerdashboard run --no-browser --port 8050
+        explainerdashboard run --help
+
+    If you pass a stored explainer object, e.g. 
+    `explainerdashboard explainer.joblib`, will launch the full default dashboard.
+
+    If you pass a .yaml file, will launch a fully configured 
+    explainerdashboard, e.g. `explainerdashboard explainerdashboard.yaml`.
 
     .yaml files can be generated with explainer.to_yaml(..) and 
     dashboard.to_yaml(..)
 
     If no argument given, searches for explainerdashboard.yaml or 
     explainer.joblib, in that order.
+
+    \b
+    explainerdashboard build
+    ------------------------
+
+    Build and store an explainer object, based on .yaml file, that indicates
+    where to find stored model (e.g. model.pkl), stored datafile (e.g. data.csv),
+    and other explainer parameters.
+
+    \b
+    Example use:
+        explainerdashboard build explainerdashboard.yaml
+        explainerdashboard build
+        explainerdashboard build --help
+
+    If no argument given, searches for explainerdashboard.yaml.
+
+    .yaml files can be generated with explainer.to_yaml(..) and 
+    dashboard.to_yaml(..)
+
     """
-    print(explainer_ascii)
+
+
+@explainerdashboard_cli.command(help="run dashboard and open browser")
+@click.pass_context
+@click.argument("explainer_filepath", nargs=1, required=False)
+@click.option("--no-browser", "-nb", "no_browser", is_flag=True,
+                 help="Launch a dashboard, but do not launch a browser.")
+@click.option("--port", "-p", "port", default=None,
+                help="port to run dashboard on defaults.")
+def run(ctx, explainer_filepath, no_browser, port):
+    click.echo(explainer_ascii)
     if explainer_filepath is None:
         if (Path().cwd() / "explainerdashboard.yaml").exists():
             explainer_filepath = Path().cwd() / "explainerdashboard.yaml"
         elif (Path().cwd() / "explainer.joblib").exists():
             explainer_filepath = Path().cwd() / "explainer.joblib"
         else:
-            raise ValueError("Could not find a explainerdashboard.yaml nor a "
+            click.echo("Could not find a explainerdashboard.yaml nor a "
                     "explainer.joblib and you didn't pass an argument. ")
+            return
+
     if (str(explainer_filepath).endswith(".joblib") or
         str(explainer_filepath).endswith(".pkl") or
         str(explainer_filepath).endswith(".pickle") or
-        str(explainer_filepath).endswith(".joblib")):
-        explainer = BaseExplainer.from_file(explainer_filepath)
+        str(explainer_filepath).endswith(".dill")):
+        launch_dashboard_from_pkl(explainer_filepath, no_browser, port)
+        return
+    elif (str(explainer_filepath).endswith(".yaml") or
+          str(explainer_filepath).endswith(".yml")):
+        launch_dashboard_from_yaml(explainer_filepath, no_browser, port)
+    else:
+        click.echo("Please pass a proper argument (.joblib, .pkl or .yaml)")
+    return
 
-        if port is None: 
-            port = 8050
 
-        db = ExplainerDashboard(explainer, port=port)
-        
-        if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
-            webbrowser.open_new(f"http://127.0.0.1:{port}/")
+@explainerdashboard_cli.command(help="build and save explainer object")
+@click.pass_context
+@click.argument("yaml_filepath", nargs=1, required=False)
+def build(ctx, yaml_filepath):
+    click.echo(explainer_ascii)
+    if yaml_filepath is None:
+        if (Path().cwd() / "explainerdashboard.yaml").exists():
+            yaml_filepath = Path().cwd() / "explainerdashboard.yaml"
+        else:
+            click.echo("Could not find a explainerdashboard.yaml you didn't "
+                        "pass an argument. ")
+            return
 
-        if not no_dashboard:
-            db.run(port)
+    if (str(yaml_filepath).endswith(".yaml") or
+        str(yaml_filepath).endswith(".yml")):
+        config = yaml.safe_load(open(str(yaml_filepath), "r"))
+
+        print(f"explainerdashboard ===> Building {config['explainer']['explainerfile']}")
+        build_and_dump_explainer(config)
+        print(f"explainerdashboard ===> Build finished!")
+        return 
+
+@explainerdashboard_cli.command(help="run without launching dashboard")
+@click.pass_context
+@click.argument("explainer_filepath", nargs=1, required=True)
+@click.option("--port", "-p", "port", default=None,
+                help="port to run dashboard on defaults.")
+def test(ctx, explainer_filepath, port):
+    if (str(explainer_filepath).endswith(".joblib") or
+        str(explainer_filepath).endswith(".pkl") or
+        str(explainer_filepath).endswith(".pickle") or
+        str(explainer_filepath).endswith(".dill")):
+        launch_dashboard_from_pkl(explainer_filepath, 
+            no_browser=True, port=port, no_dashboard=True)
         return
 
     elif (str(explainer_filepath).endswith(".yaml") or
           str(explainer_filepath).endswith(".yml")):
-        config = yaml.safe_load(open(str(explainer_filepath), "r"))
-        if build_only:
-            print(f"explainerdashboard ===> Building {config['explainer']['explainerfile']}")
-            build_and_dump_explainer(config)
-            print(f"explainerdashboard ===> Build finished!")
-            return 
-
-        if not Path(config['dashboard']['explainerfile']).exists():
-            print(f"explainerdashboard ===> {config['dashboard']['explainerfile']} does not exist!")
-            if (
-                config['explainer']['explainerfile'] == config['dashboard']['explainerfile'] and
-                Path(config['explainer']['modelfile']).exists() and
-                Path(config['explainer']['datafile']).exists()
-                ):
-                click.confirm(f"Do you want to try and build {config['dashboard']['explainerfile']} from scratch?", abort=True)
-                print(f"explainerdashboard ===> Attempting to build {config['explainer']['explainerfile']}")
-                try:
-                    build_and_dump_explainer(config)
-                except:
-                    print(f"explainerdashboard ===> Build failed:")
-                    raise
-
-        print(f"explainerdashboard ===> Building dashboard from {config['dashboard']['explainerfile']}")
-        explainer = BaseExplainer.from_file(config['dashboard']['explainerfile'])
-
-        print(f"explainerdashboard ===> Building dashboard")
-
-        dashboard_params = config['dashboard']['params']
-        tabs = yamltabs_to_tabs(dashboard_params['tabs'])
-        del dashboard_params['tabs']
-
-        db = ExplainerDashboard(explainer, tabs, **dashboard_params)
-
-        if port is None: 
-            port =  config['dashboard']['params']['port'] 
-            if port is None:
-                port = 8050
-
-        if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
-            print(f"explainerdashboard ===> launching browser at {f'http://localhost:{port}/'}")
-            webbrowser.open_new(f"http://localhost:{port}/")
-        
-        print(f"explainerdashboard ===> Starting dashboard:")
-        if not no_dashboard:
-            db.run(port)
+        launch_dashboard_from_yaml(explainer_filepath, 
+            no_browser=True, port=port, no_dashboard=True)
         return
-
-          
-
-
+    else:
+        raise ValueError("Please pass a proper argument (.joblib, .pkl or .yaml)!")
 
 if __name__ =="__main__":
-    run_dashboard()
+    explainerdashboard_cli()
 
