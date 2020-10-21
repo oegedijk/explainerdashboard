@@ -582,7 +582,7 @@ class ExplainerDashboard:
                 config.
         """
         import oyaml as yaml
-        
+
         explainer_config = self.explainer.to_yaml(return_dict=True)
         dashboard_config = dict(
             dashboard=dict(
@@ -718,6 +718,13 @@ class InlineExplainer:
         comp = PdpComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
+    @delegates_kwargs(WhatIfComponent)
+    @delegates_doc(WhatIfComponent)
+    def whatif(self, title="What if...", **kwargs):
+        """Show What if... component inline in notebook"""
+        comp = WhatIfComponent(self._explainer, **kwargs)
+        self._run_component(comp, title)
+
     
 class InlineExplainerComponent:
     def __init__(self, inline_explainer, name):
@@ -756,6 +763,13 @@ class InlineExplainerTabs(InlineExplainerComponent):
     def contributions(self,  title='Contributions', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
         tab = ContributionsTab(self._explainer, **kwargs)
+        self._run_component(tab, title)
+    
+    @delegates_kwargs(WhatIfTab)
+    @delegates_doc(WhatIfTab)
+    def whatif(self,  title='What if...', **kwargs):
+        """Show What if... tab inline in notebook"""
+        tab = WhatIfTab(self._explainer, **kwargs)
         self._run_component(tab, title)
 
     @delegates_kwargs(ShapDependenceTab)
@@ -854,6 +868,14 @@ class InlineClassifierExplainer(InlineExplainerComponent):
         """shows precision plot"""
         assert self._explainer.is_classifier
         comp = PrecisionComponent(self._explainer, **kwargs)
+        self._run_component(comp, title)
+
+    @delegates_kwargs(CumulativePrecisionComponent)
+    @delegates_doc(CumulativePrecisionComponent)
+    def cumulative_precision(self, title="Cumulative Precision Plot", **kwargs):
+        """shows cumulative precision plot"""
+        assert self._explainer.is_classifier
+        comp = CumulativePrecisionComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
     @delegates_kwargs(ConfusionMatrixComponent)
