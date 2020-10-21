@@ -64,24 +64,22 @@ Fitting a model, building the explainer object, building the dashboard, and then
 ExplainerDashboard(ClassifierExplainer(RandomForestClassifier().fit(X_train, y_train), X_test, y_test)).run()
 ```
 
-Or a slightly more explicit example with some extra parameters to group categorical variables,
-show proper names for row indexes, and display classification labels:
+Or a slightly more explicit example with some extra parameters to group 
+onehot-encoded categorical variables and display classification labels:
 
 ```python
 from sklearn.ensemble import RandomForestClassifier
 
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
-from explainerdashboard.datasets import titanic_survive, titanic_names
+from explainerdashboard.datasets import titanic_survive
 
 X_train, y_train, X_test, y_test = titanic_survive()
-train_names, test_names = titanic_names()
 
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
 explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Sex', 'Deck', 'Embarked'],
-                                idxs=test_names, target='Survival',
                                 labels=['Not survived', 'Survived'])
 
 db = ExplainerDashboard(explainer, title="Titanic Explainer",
@@ -136,10 +134,11 @@ In addition you can pass:
     This allows you to group the onehotencoded columns together in various 
     plots with the argument `cats=True`. 
 - `idxs`: a list of indentifiers for each row in your dataset. This makes it 
-    easier to look up predictions for specific id's.
+    easier to look up predictions for specific id's. By default `X.index` is used.
 - `descriptions`: a dictionary of descriptions of the meaning of individual 
     variables.
-- `target`: name of the target variable, e.g. `Survival` or `Fare`
+- `target`: name of the target variable, e.g. `Survival` or `Fare`. By default
+    `y.name` is used.
 - `labels`: for classifier models a list of labels for the classes of your model.
 - `na_fill`: Value used to fill in missing values (default to -999)
 

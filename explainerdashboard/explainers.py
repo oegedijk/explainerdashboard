@@ -197,8 +197,9 @@ class BaseExplainer(ABC):
                     modelfile="model.pkl",
                     datafile="data.csv",
                     index_col=None,
+                    target_col=None,
                     explainerfile="explainer.joblib"):
-        """Returns a yaml configuration of the current ExplainerDashboard
+        """Returns a yaml configuration for the current Explainer
         that can be used by the explainerdashboard CLI.
 
         Args:
@@ -210,7 +211,9 @@ class BaseExplainer(ABC):
             datafile (str, optional): filename of datafile. Defaults to
                 `data.csv`.
             index_col (str, optional): column to be used for idxs. Defaults to
-                "index" which means it uses the dataframe index.
+                self.idxs.name.
+            target_col (str, optional): column to be used for to split X and y
+                from datafile. Defaults to self.target.
             explainerfile (str, optional): filename of explainer dump. Defaults
                 to `explainer.joblib`.
         """
@@ -221,7 +224,7 @@ class BaseExplainer(ABC):
                 datafile=datafile,
                 explainerfile=explainerfile,
                 data_target=self.target,
-                data_index=self.X.index.name,
+                data_index=self.idxs.name,
                 explainer_type="classifier" if self.is_classifier else "regression",
                 params=self._params_dict))
         if return_dict:
