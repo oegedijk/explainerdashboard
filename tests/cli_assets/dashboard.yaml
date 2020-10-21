@@ -1,0 +1,30 @@
+dashboard:
+  explainerfile: explainer.joblib
+  params:
+    tabs:
+    - tab: ShapDependenceTab
+      module: explainerdashboard.dashboard_tabs
+    - importances
+    title: Testing Explainer
+    hide_header: false
+    header_hide_title: false
+    header_hide_selector: false
+    block_selector_callbacks: false
+    pos_label: null
+    fluid: true
+    mode: dash
+    width: 1000
+    height: 800
+    external_stylesheets: null
+    server: true
+    url_base_pathname: null
+    responsive: true
+    logins: null
+    port: 8050
+    importances: true
+    model_summary: true
+    contributions: true
+    whatif: true
+    shap_dependence: true
+    shap_interaction: true
+    decision_trees: true

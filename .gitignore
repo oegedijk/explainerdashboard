@@ -150,6 +150,7 @@ gunicorn.pid
 dashboard.yaml
 explainer.yaml
 start_responsive_server.sh
+!tests/cli_assets/*
 
 
 db_test.py
