@@ -31,46 +31,68 @@ explainer_ascii = """
 """
 
 def build_explainer(explainer_config):
-    print(f"explainerdashboard ===> Loading model from {explainer_config['modelfile']}")
-    model = pickle.load(open(explainer_config['modelfile'], "rb"))
-    print(f"explainerdashboard ===> Loading data from {explainer_config['datafile']}")
-    df = pd.read_csv(explainer_config['datafile'])
+    if isinstance(explainer_config, (Path, str)) and str(explainer_config).endswith(".yaml"):
+        config = yaml.safe_load(open(str(explainer_config), "r"))
+    elif isinstance(explainer_config, dict):
+        config = explainer_config
+    assert 'explainer' in config, \
+        "Please pass a proper explainer.yaml config file that starts with `explainer:`!"
+    config = explainer_config['explainer']
 
-    print(f"explainerdashboard ===> Using column {explainer_config['data_target']} to generate X, y ")
-    target_col = explainer_config['data_target']
+    print(f"explainerdashboard ===> Loading model from {config['modelfile']}")
+    model = pickle.load(open(config['modelfile'], "rb"))
+    
+    print(f"explainerdashboard ===> Loading data from {config['datafile']}")
+    if str(config['datafile']).endswith('.csv'):
+        df = pd.read_csv(config['datafile'])
+    elif str(config['datafile']).endswith('.parquet'):
+        df = pd.read_parquet(config['datafile'])
+    else:
+        raise ValueError("datafile should either be a .csv or .parquet!")
+
+    print(f"explainerdashboard ===> Using column {config['data_target']} to generate X, y ")
+    target_col = config['data_target']
     X = df.drop(target_col, axis=1)
     y = df[target_col]
 
-    if explainer_config['data_index'] is not None:
-        print(f"explainerdashboard ===> Generating index from column {explainer_config['data_index']}")
-        assert explainer_config['data_index'] in X.columns, \
-            (f"Cannot find data_index column ({explainer_config['data_index']})"
-             f" in datafile ({explainer_config['datafile']})!"
+    if config['data_index'] is not None:
+        print(f"explainerdashboard ===> Generating index from column {config['data_index']}")
+        assert config['data_index'] in X.columns, \
+            (f"Cannot find data_index column ({config['data_index']})"
+             f" in datafile ({config['datafile']})!"
               "Please set it to the proper index column name, or set it to null")
-        X = X.set_index(explainer_config['data_index'])
+        X = X.set_index(config['data_index'])
         
-    params = explainer_config['params']
+    params = config['params']
 
-    if explainer_config['explainer_type'] == "classifier":
+    if config['explainer_type'] == "classifier":
         print(f"explainerdashboard ===> Generating ClassifierExplainer...")
         explainer = ClassifierExplainer(model, X, y, **params)
-    elif explainer_config['explainer_type'] == "regression":
+    elif config['explainer_type'] == "regression":
         print(f"explainerdashboard ===> Generating RegressionExplainer...")
         explainer = ClassifierExplainer(model, X, y, **params)
     return explainer
 
 
-def build_and_dump_explainer(config):
-    explainer = build_explainer(config['explainer'])
+def build_and_dump_explainer(explainer_config, dashboard_config=None):
+    explainer = build_explainer(explainer_config)
 
-    print(f"explainerdashboard ===> Calculating properties by building Dashboard...")
-    dashboard_params = deepcopy(config['dashboard']['params'])
-    tabs = yamltabs_to_tabs(dashboard_params['tabs'])
-    del dashboard_params['tabs']
-    db = ExplainerDashboard(explainer, tabs, **dashboard_params)
+    click.echo(f"explainerdashboard ===> Calculating properties by building Dashboard...")
+    if dashboard_config is not None:
+        ExplainerDashboard.from_config(explainer, dashboard_config)
+    elif Path(explainer_config['explainer']['dashboard_yaml']).exists():
+        click.echo(f"explainerdashboard ===> Calculating properties by building Dashboard from {explainer_config['explainer']['dashboard_yaml']}...")
+        dashboard_config = yaml.safe_load(open(str(explainer_config['explainer']['dashboard_yaml']), "r"))
+        ExplainerDashboard.from_config(explainer, dashboard_config)
+    else:
+        click.echo(f"explainerdashboard ===> Calculating all properties")
+        explainer.calculate_properties()
 
-    print(f"explainerdashboard ===> Saving explainer to {config['explainer']['explainerfile']}...")
-    explainer.dump(config['explainer']['explainerfile'])
+    click.echo(f"explainerdashboard ===> Saving explainer to {explainer_config['explainer']['explainerfile']}...")
+    if (dashboard_config is not None and 
+        explainer_config['explainer']['explainerfile'] != dashboard_config['dashboard']['explainerfile']):
+        click.echo(f"explainerdashboard ===> Warning explainerfile in explainer config and dashboard config do not match!")
+    explainer.dump(explainer_config['explainer']['explainerfile'])
     return
 
 
@@ -90,52 +112,38 @@ def launch_dashboard_from_pkl(explainer_filepath, no_browser, port, no_dashboard
         db.run(port)
     return
 
-def launch_dashboard_from_yaml(yaml_filepath, no_browser, port, no_dashboard=False):
-    config = yaml.safe_load(open(str(yaml_filepath), "r"))
+
+def launch_dashboard_from_yaml(dashboard_config, no_browser, port, no_dashboard=False):
+    if isinstance(dashboard_config, (Path, str)) and str(dashboard_config).endswith(".yaml"):
+        config = yaml.safe_load(open(str(dashboard_config), "r"))
+    elif isinstance(dashboard_config, dict):
+        config = dashboard_config
+    else:
+        raise ValueError(f"dashboard_config should either be a .yaml filepath or a dict!")
 
     if not Path(config['dashboard']['explainerfile']).exists():
         click.echo(f"explainerdashboard ===> {config['dashboard']['explainerfile']} does not exist!")
-        click.echo(f"explainerdashboard ===> first generate {config['dashboard']['explainerfile']} with explainerdashboard build?")
+        click.echo(f"explainerdashboard ===> first generate {config['dashboard']['explainerfile']} with explainerdashboard build")
         return
 
-    print(f"explainerdashboard ===> Building dashboard from {config['dashboard']['explainerfile']}")
-    explainer = BaseExplainer.from_file(config['dashboard']['explainerfile'])
-
-    print(f"explainerdashboard ===> Building dashboard")
-
-    dashboard_params = config['dashboard']['params']
-    tabs = yamltabs_to_tabs(dashboard_params['tabs'])
-    del dashboard_params['tabs']
-
-    db = ExplainerDashboard(explainer, tabs, **dashboard_params)
+    click.echo(f"explainerdashboard ===> Building dashboard from {config['dashboard']['explainerfile']}")
+    
+    db = ExplainerDashboard.from_config(config)
 
     if port is None: 
         port =  config['dashboard']['params']['port'] 
         if port is None:
             port = 8050
-        click.echo(f"explainerdashboard ===> Setting port to 8050, override with e.g. --port 8051")
+        click.echo(f"explainerdashboard ===> Setting port to {port}, override with e.g. --port 8051")
 
     if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
-        print(f"explainerdashboard ===> launching browser at {f'http://localhost:{port}/'}")
+        click.echo(f"explainerdashboard ===> launching browser at {f'http://localhost:{port}/'}")
         webbrowser.open_new(f"http://localhost:{port}/")
     
-    print(f"explainerdashboard ===> Starting dashboard:")
+    click.echo(f"explainerdashboard ===> Starting dashboard:")
     if not no_dashboard:
         db.run(port)
     return
-
-
-def yamltabs_to_tabs(tabs_param):
-    """converts a yaml tabs list back to ExplainerDashboard compatible original"""
-    if tabs_param is None:
-        return None
-    
-    if not hasattr(tabs_param, "__iter__"):
-        if isinstance(tabs_param, str):
-            return tabs_param
-        return getattr(import_module(tabs_param['module']), tabs_param['tab']) 
-        
-    return [tab if isinstance(tab, str) else getattr(import_module(tab['module']), tab['tab'])  for tab in tabs_param]
 
 
 @click.group()
@@ -154,40 +162,51 @@ def explainerdashboard_cli(ctx):
     \b
     Example use:
         explainerdashboard run explainer.joblib
-        explainerdashboard run explainerdashboard.yaml
-        explainerdashboard run --no-browser --port 8050
+        explainerdashboard run dashboard.yaml
+        explainerdashboard run dashboard.yaml --no-browser --port 8051
         explainerdashboard run --help
 
-    If you pass a stored explainer object, e.g. 
-    `explainerdashboard explainer.joblib`, will launch the full default dashboard.
+    If you pass an explainer.joblib file, will launch the full default dashboard.
+    Generate this file with explainer.dump("explainer.joblib")
 
-    If you pass a .yaml file, will launch a fully configured 
-    explainerdashboard, e.g. `explainerdashboard explainerdashboard.yaml`.
+    If you pass a dashboard.yaml file, will launch a fully configured 
+    explainerdashboard. Generate dashboard.yaml with 
+    ExplainerDashboard.to_yaml('dashboard.yaml')
 
-    .yaml files can be generated with explainer.to_yaml(..) and 
-    dashboard.to_yaml(..)
+    If no argument given, searches for either dashboard.yaml or 
+    explainer.joblib, in that order, so if you keep that naming convention 
+    you can simply start with:
 
-    If no argument given, searches for explainerdashboard.yaml or 
-    explainer.joblib, in that order.
+    \b
+        explainerdashboard run
 
     \b
     explainerdashboard build
     ------------------------
 
-    Build and store an explainer object, based on .yaml file, that indicates
+    Build and store an explainer object, based on explainer.yaml file, that indicates
     where to find stored model (e.g. model.pkl), stored datafile (e.g. data.csv),
     and other explainer parameters.
 
     \b
     Example use:
-        explainerdashboard build explainerdashboard.yaml
-        explainerdashboard build
+        explainerdashboard build explainer.yaml
+        explainerdashboard build explainer.yaml dashboard.yaml
         explainerdashboard build --help
 
-    If no argument given, searches for explainerdashboard.yaml.
+    If given a second dashboard.yaml argument, will use that dashboard 
+    configuration to calculate necessary properties for that specific dashboard
+    configuration before storing to disk. Otherwise will use dashboard_yaml
+    parameter in explainer.yaml to find configuration, or alternatively
+    simply calculate all properties. 
 
-    .yaml files can be generated with explainer.to_yaml(..) and 
-    dashboard.to_yaml(..)
+    explainer.yaml file can be generated with explainer.to_yaml("explainer.yaml")
+
+    If no argument given, searches for explainer.yaml, so if you keep that 
+    naming convention you can simply start the build with:
+
+    \b
+        explainerdashboard build
 
     """
 
@@ -202,13 +221,13 @@ def explainerdashboard_cli(ctx):
 def run(ctx, explainer_filepath, no_browser, port):
     click.echo(explainer_ascii)
     if explainer_filepath is None:
-        if (Path().cwd() / "explainerdashboard.yaml").exists():
-            explainer_filepath = Path().cwd() / "explainerdashboard.yaml"
+        if (Path().cwd() / "dashboard.yaml").exists():
+            explainer_filepath = Path().cwd() / "dashboard.yaml"
         elif (Path().cwd() / "explainer.joblib").exists():
             explainer_filepath = Path().cwd() / "explainer.joblib"
         else:
-            click.echo("Could not find a explainerdashboard.yaml nor a "
-                    "explainer.joblib and you didn't pass an argument. ")
+            click.echo("No argument given and could find neither a "
+                    "dashboard.yaml nor a explainer.joblib. Aborting.")
             return
 
     if (str(explainer_filepath).endswith(".joblib") or
@@ -217,33 +236,43 @@ def run(ctx, explainer_filepath, no_browser, port):
         str(explainer_filepath).endswith(".dill")):
         launch_dashboard_from_pkl(explainer_filepath, no_browser, port)
         return
-    elif (str(explainer_filepath).endswith(".yaml") or
-          str(explainer_filepath).endswith(".yml")):
+    elif str(explainer_filepath).endswith(".yaml"):
         launch_dashboard_from_yaml(explainer_filepath, no_browser, port)
     else:
-        click.echo("Please pass a proper argument (.joblib, .pkl or .yaml)")
+        click.echo("Please pass a proper argument to explainerdashboard run"
+                    "(i.e. either an explainer.joblib or a dashboard.yaml)")
     return
 
 
 @explainerdashboard_cli.command(help="build and save explainer object")
 @click.pass_context
-@click.argument("yaml_filepath", nargs=1, required=False)
-def build(ctx, yaml_filepath):
+@click.argument("explainer_filepath", nargs=1, required=False)
+@click.argument("dashboard_filepath", nargs=1, required=False)
+def build(ctx, explainer_filepath, dashboard_filepath):
     click.echo(explainer_ascii)
-    if yaml_filepath is None:
-        if (Path().cwd() / "explainerdashboard.yaml").exists():
-            yaml_filepath = Path().cwd() / "explainerdashboard.yaml"
+    if explainer_filepath is None:
+        if (Path().cwd() / "explainer.yaml").exists():
+            explainer_filepath = Path().cwd() / "explainer.yaml"
         else:
-            click.echo("Could not find a explainerdashboard.yaml you didn't "
-                        "pass an argument. ")
+            click.echo("No argument given to explainerdashboard build and "
+                        "could not find an explainer.yaml. Aborting.")
             return
 
-    if (str(yaml_filepath).endswith(".yaml") or
-        str(yaml_filepath).endswith(".yml")):
-        config = yaml.safe_load(open(str(yaml_filepath), "r"))
+    if str(explainer_filepath).endswith(".yaml"):
+        explainer_config = yaml.safe_load(open(str(explainer_filepath), "r"))
 
-        print(f"explainerdashboard ===> Building {config['explainer']['explainerfile']}")
-        build_and_dump_explainer(config)
+        click.echo(f"explainerdashboard ===> Building {explainer_config['explainer']['explainerfile']}")
+
+        if (dashboard_filepath is not None and 
+            str(dashboard_filepath).endswith(".yaml")
+            and Path(dashboard_filepath).exists()):
+            click.echo(f"explainerdashboard ===> Using {dashboard_filepath} to calculate explainer properties")
+            dashboard_config = yaml.safe_load(open(str(dashboard_filepath), "r"))
+        else:
+            dashboard_config = None
+
+        print(f"explainerdashboard ===> Building {explainer_config['explainer']['explainerfile']}")
+        build_and_dump_explainer(explainer_config, dashboard_config)
         print(f"explainerdashboard ===> Build finished!")
         return 
 
@@ -261,14 +290,13 @@ def test(ctx, explainer_filepath, port):
             no_browser=True, port=port, no_dashboard=True)
         return
 
-    elif (str(explainer_filepath).endswith(".yaml") or
-          str(explainer_filepath).endswith(".yml")):
+    elif str(explainer_filepath).endswith(".yaml"):
         launch_dashboard_from_yaml(explainer_filepath, 
             no_browser=True, port=port, no_dashboard=True)
         return
     else:
-        raise ValueError("Please pass a proper argument (.joblib, .pkl or .yaml)!")
+        raise ValueError("Please pass a proper argument "
+                    "(i.e. .joblib, .pkl, .dill or .yaml)!")
 
 if __name__ =="__main__":
     explainerdashboard_cli()
-
