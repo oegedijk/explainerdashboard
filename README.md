@@ -103,7 +103,7 @@ inline in your notebook: `InlineExplainer()`. For example you can use
 `InlineExplainer(explainer).shap.dependence()` to display the shap dependence
 component interactively in your notebook output cell.
 
-## Command line Tool
+## Command line tool
 
 You can store explainers to disk with `explainer.dump("explainer.joblib")`
 and then run them from the command-line:
