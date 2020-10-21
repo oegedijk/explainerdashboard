@@ -94,10 +94,25 @@ def yamltabs_to_tabs(tabs_param):
 @click.option("--no-browser", "-nb", "no_browser", is_flag=True,
                 help="Launch a dashboard, but do not launch a browser.")
 @click.option("--no-dashboard", "-nd", "no_dashboard", is_flag=True,
-                help="Do not launch dashboard in the end. Used for testing.")
+                help="Run entire script, but do not actually launch dashboard. Used for testing.")
 @click.option("--port", "-p", "port", default=None,
                 help="port to run dashboard on defaults.")
 def run_dashboard(explainer_filepath, build_only, no_browser, no_dashboard, port):
+    """                                                        
+    explainerdashboard CLI tool.
+
+    Used to launch an explainerdashboard from the commandline. Can either 
+    launch a default dashboard with default parameters by passing a stored
+    explainer, e.g. `explainerdashboard explainer.joblib`, or launch a 
+    fully configured dashboard based on a .yaml file, 
+    e.g. `explainerdashboard explainerdashboard.yaml`.
+
+    .yaml files can be generated with explainer.to_yaml(..) and 
+    dashboard.to_yaml(..)
+
+    If no argument given, searches for explainerdashboard.yaml or 
+    explainer.joblib, in that order.
+    """
     print(explainer_ascii)
     if explainer_filepath is None:
         if (Path().cwd() / "explainerdashboard.yaml").exists():
