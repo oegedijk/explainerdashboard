@@ -25,8 +25,7 @@
 - add plain language explanations
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
-- Add whatif to InlineExplainer
-- Add cumulativeprecisionplot to InlineExplainer
+
 
 ## notebooks:
 
@@ -65,9 +64,6 @@
         self.register_components(self.connector)
 
 ## Library level:
-- add explainerdashboard commandline tool: add entry_points to setup.py
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
-- Long term: add option to load from directory with pickled model, data csv and config file
 - add more screenshots to README with https://postimages.org/
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
-- install vscode github pull requests and issues extension

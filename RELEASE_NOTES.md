@@ -12,10 +12,11 @@
     configuration of your explainer/dashboard to file.
 -   explainerdashboard CLI:
     - Start an explainerdashboard from the command-line!
-    - start default dashboard from stored explainer : `explainerdashboard explainer.joblib`
-    - start dashboard from config: `explainerdashboard explainerdashboard.yaml`
+    - start default dashboard from stored explainer : `explainerdashboard run explainer.joblib`
+    - start full configured dashboard from config: `explainerdashboard run explainerdashboard.yaml`
+    - build explainer based on input files defined in .yaml 
+        (model.pkl, data.csv, etc): `explainerdashboard build explainerdashboard.yaml`
     - includes new ascii logo :)
-    - can also build explainer from model.pkl, data.csv and config
 
 ### Bug Fixes
 -
@@ -24,6 +25,8 @@
 ### Improvements
 -   If idxs is not passed use X.index instead
 -   explainer.idxs performance enhancements
+-   added whatif component and tab to InlineExplainer
+-   added cumulative precision component to InlineExplainer
 
 ### Other Changes
 -

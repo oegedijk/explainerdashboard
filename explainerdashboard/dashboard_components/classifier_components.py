@@ -366,13 +366,13 @@ class LiftCurveComponent(ExplainerComponent):
 class CumulativePrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Cumulative Precision", name=None,
                     hide_selector=False, pos_label=None):
-        """Show liftcurve component
+        """Show cumulative precision component
 
         Args:
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Lift Curve".
+                        "Cumulative Precision".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
