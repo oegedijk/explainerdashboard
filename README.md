@@ -72,12 +72,10 @@ onehot-encoded categorical variables and display classification labels:
 
 ```python
 from sklearn.ensemble import RandomForestClassifier
-
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.datasets import titanic_survive
 
 X_train, y_train, X_test, y_test = titanic_survive()
-
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
@@ -89,14 +87,14 @@ db = ExplainerDashboard(explainer, title="Titanic Explainer",
                         whatif=False, # you can switch off tabs with bools
                         shap_interaction=False,
                         decision_trees=False)
-db.run(port=8051)
+db.run(port=8050)
 
 ```
 
-### from within a notebook
+### Fom within a notebook
 
 When working inside jupyter or Google Colab you can use 
-`ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')`, i
+`ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')` or
 `ExplainerDashboard(mode='jupyterlab')`, to run the dashboard inline in the notebook,
 or in a seperate tab but keep the notebook interactive. 
 
@@ -121,13 +119,14 @@ Or store the full configuration of a dashboard to `.yaml` with e.g.
 $ explainerdashboard run explainerdashboard.yaml
 ```
 
-See (CLI documentation)[https://explainerdashboard.readthedocs.io/en/latest/cli.html] 
+See [explainerdashboard CLI documentation](https://explainerdashboard.readthedocs.io/en/latest/cli.html)
 for details. 
 
 ## Custom dashboards
 
-All the components are modular and re-usable, which means that you can include 
-them in your own custom [dash](https://dash.plotly.com/) dashboards. 
+All the components in the dashboard are modular and re-usable, which means that 
+you can build your own custom [dash](https://dash.plotly.com/) dashboards 
+around them.
 
 By using the built-in `ExplainerComponent` class it is easy to build your
 own layouts, with just a bare minimum of knowledge of html and bootstrap. For
@@ -143,13 +142,15 @@ import dash_html_components as html
 class CustomTab(ExplainerComponent):
     def __init__(self, explainer):
         super().__init__(explainer, title="Custom Tab")
-        self.dependence = ShapDependenceComponent(explainer, hide_selector=True, hide_cats=True)
+        self.dependence = ShapDependenceComponent(explainer, 
+            hide_selector=True, hide_cats=True, hide_title=True)
         self.register_components(self.dependence)
         
     def layout(self):
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
+                    html.H3("Shap Dependence Plot:"),
                     self.dependence.layout()
                 ])
             ])
@@ -163,6 +164,15 @@ You can use this to define your own layouts, specifically tailored to your
 own model, project and needs. See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
 for more details. 
 
+## Deployment
+
+If you wish to use e.g. ``gunicorn`` to deploy the dashboard you should add 
+`server = db.app.server` to your code to expose the Flask server. You can then 
+start the server with e.g. `gunicorn dashboard:server` 
+(assuming the file you defined the dashboard in was called `dashboard.py`). 
+See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
+and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
+
 
 ## Documentation
 
@@ -174,17 +184,6 @@ Example notebook on how to interact with the explainer object here: [explainer_e
 
 Example notebook on how to design a custom dashboard: [custom_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/custom_examples.ipynb).
 
-Finally an example is deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com). (source code on github [here](https://github.com/oegedijk/explainingtitanic))
-
-
-## deployment
-
-If you wish to use e.g. ``gunicorn`` to deploy the dashboard you should add 
-`server = db.app.server` to your code to expose the Flask server. You can then 
-start the server with e.g. `gunicorn dashboard:server` 
-(assuming the file you defined the dashboard in was called `dashboard.py`). 
-See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
-and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
 
 
 ## Deployed example:
