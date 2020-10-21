@@ -198,9 +198,11 @@ class BaseExplainer(ABC):
                     datafile="data.csv",
                     index_col=None,
                     target_col=None,
-                    explainerfile="explainer.joblib"):
+                    explainerfile="explainer.joblib",
+                    dashboard_yaml="dashboard.yaml"):
         """Returns a yaml configuration for the current Explainer
-        that can be used by the explainerdashboard CLI.
+        that can be used by the explainerdashboard CLI. Recommended filename
+        is `explainer.yaml`.
 
         Args:
             filepath ({str, Path}, optional): Filepath to dump yaml. If None
@@ -216,6 +218,9 @@ class BaseExplainer(ABC):
                 from datafile. Defaults to self.target.
             explainerfile (str, optional): filename of explainer dump. Defaults
                 to `explainer.joblib`.
+            dashboard_yaml (str, optional): filename of the dashboard.yaml
+                configuration file. This will be used to determine which
+                properties to calculate before storing to disk.
         """
         import oyaml as yaml
         yaml_config = dict(
@@ -226,6 +231,7 @@ class BaseExplainer(ABC):
                 data_target=self.target,
                 data_index=self.idxs.name,
                 explainer_type="classifier" if self.is_classifier else "regression",
+                dashboard_yaml=dashboard_yaml,
                 params=self._params_dict))
         if return_dict:
             return yaml_config

@@ -145,6 +145,10 @@ data.csv
 model.pkl
 custom_tab.py
 !tests/cli_assets/*
+gunicorn_dashboard.py
+gunicorn.pid
+dashboard.yaml
+explainer.yaml
 
 
 db_test.py

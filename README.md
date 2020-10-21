@@ -113,10 +113,10 @@ $ explainerdashboard run explainer.joblib
 ```
 
 Or store the full configuration of a dashboard to `.yaml` with e.g.
-`dashboard.to_yaml("explainerdashboard.yaml")` and run it with:
+`dashboard.to_yaml("dashboard.yaml")` and run it with:
 
 ```bash
-$ explainerdashboard run explainerdashboard.yaml
+$ explainerdashboard run dashboard.yaml
 ```
 
 See [explainerdashboard CLI documentation](https://explainerdashboard.readthedocs.io/en/latest/cli.html)

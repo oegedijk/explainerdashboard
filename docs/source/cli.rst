@@ -30,8 +30,8 @@ Or to run on specific port, not launch a browser or show help::
     $ explainerdashboard run --help
 
 
-Run custom dashboard from stored .yaml
-======================================
+Run custom dashboard from dashboard.yaml
+========================================
 
 .. highlight:: python
 
@@ -40,24 +40,20 @@ you can do so by storing the configuration to `.yaml`::
 
     db = ExplainerDashboard(explainer, [ShapDependenceTab, "importances"],
             port=9000, title="Custom Dashboard", header_hide_title=True)
-    db.to_yaml("explainerdashboard.yaml")
+    db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
 .. highlight:: bash
 
-The resulting ``explainerdashboard.yaml`` file also includes the configuration
-of your ``explainer`` so that you can rebuild it from scratch (see next section).
-
-You can edit ``explainerdashboard.yaml`` to make further configuration
+You can edit ``dashboard.yaml`` to make further configuration
 changes. Then start the dashboard from the commandline with::
 
-    $ explainerdashboard run explainerdashboard.yaml
+    $ explainerdashboard run dashboard.yaml
 
 .. highlight:: python
 
 
-
-Building explainer from CLI
-===========================
+Building explainer from explainer.yaml
+======================================
 
 You can build explainers from the commandline by storing the model (e.g. ``model.pkl``)
 and datafile (e.g. ``data.csv``), indicating which column is ``y`` (e.g. ``'Survival'``),
@@ -70,20 +66,19 @@ You can get this configuration by storing the configuration as before::
                     labels=['Not survived', 'Survived'])
     pickle.dump(model, open("model.pkl", "wb))
 
-    db = ExplainerDashboard(explainer, [ShapDependenceTab, "importances],
-            port=9000, title="Custom Dashboard", header_hide_title=True)
-    db.to_yaml("explainerdashboard.yaml", 
+    explainer.to_yaml("explainer.yaml", 
                 explainerfile="explainer.joblib",
                 modelfile="model.pkl",
                 datafile="data.csv",
                 target_col="Survival",
-                index_col="Name")
+                index_col="Name",
+                dashboard_yaml="dashboard.yaml")
 
 .. highlight:: bash
 
 You can then build the ``explainer.joblib`` file by running::
 
-    $ explainerdashboard build explainerdashboard.yaml
+    $ explainerdashboard build explainer.yaml
 
 This will load the model and dataset, construct an explainer, construct the
 custom dashboard, calculate all properties needed for that specific dashboard, 
@@ -92,12 +87,17 @@ would like to populate the dashboard with a new set of data: you can simply
 update data.csv and run ``explainerdashboard build``. To start the dashboard 
 you can then run::
 
-    $ explainerdashboard run explainerdashboard.yaml
+    $ explainerdashboard run dashboard.yaml
+
+To build the explainer for a specific dashboard (other than the one 
+specified in dashboard_yaml, pass it as a second argument::
+
+    $ explainerdashboard build explainer.yaml dashboard.yaml
 
 
 .. note:: 
-    If you use the default naming scheme of ``explainer.joblib`` and 
-    ``explainerdashboard.yaml``, you can omit these arguments and simply run e.g.::
+    If you use the default naming scheme of ``explainer.joblib``, ``dashboard.yaml``
+    and ``explainer.yaml``, you can omit these arguments and simply run e.g.::
 
         $ explainerdashboard build
         $ explainerdashboard run
@@ -108,22 +108,27 @@ you can then run::
 dump, from_file, to_yaml
 ========================
 
-explainer.dump()
+Explainer.dump()
 ----------------
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.dump
 
-explainer.from_file()
+Explainer.from_file()
 ---------------------
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.from_file
 
-explainer.to_yaml()
--------------------
+Explainer.to_yaml()
+--------------------
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.to_yaml
 
-dashboard.to_yaml()
+ExplainerDashboard.to_yaml()
 -------------------
 
 .. automethod:: explainerdashboard.dashboards.ExplainerDashboard.to_yaml
+
+ExplainerDashboard.from_config
+-------------------
+
+.. automethod:: explainerdashboard.dashboards.ExplainerDashboard.from_config

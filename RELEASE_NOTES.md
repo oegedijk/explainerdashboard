@@ -1,5 +1,29 @@
 # Release Notes
 
+## Version 0.2.8:
+### Breaking Changes
+- split explainerdashboard.yaml into a explainer.yaml and dashboard.yaml
+- Changed UI of the explainerdashboard CLI to reflect this
+- This will make it easier in the future to have automatic rebuilds and redeploys
+    when an modelfile, datafile or configuration file changes.
+
+### New Features
+-   Load an ExplainerDashboard from a configuration file with the classmethod, 
+    e.g. : `ExplainerDashboard.from_config("dashboard.yaml")`
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.2.7:
 ### Breaking Changes
 - 

@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from sklearn.ensemble import RandomForestClassifier
 
@@ -25,4 +26,14 @@ class DashboardTests(unittest.TestCase):
     def test_yaml(self):
         yaml = self.dashboard.to_yaml()
         self.assertIsInstance(yaml, str)
+
+class DashboardLoadTests(unittest.TestCase):
+
+    def test_load_config(self):
+ 
+        db = ExplainerDashboard.from_config(
+            Path.cwd() / "tests" / "cli_assets" / "explainer.joblib",
+            Path.cwd() / "tests" / "cli_assets" / "dashboard.yaml")
+
+        self.assertIsInstance(db, ExplainerDashboard)
         

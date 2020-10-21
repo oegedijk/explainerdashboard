@@ -10,7 +10,9 @@ __all__ = ['ExplainerTabsLayout',
 
 import inspect 
 import requests
+from pathlib import Path
 
+import oyaml as yaml
 import shortuuid
 import dash
 import dash_auth
@@ -440,6 +442,45 @@ class ExplainerDashboard:
         print("Registering callbacks...", flush=True)
         explainer_layout.register_callbacks(self.app)
 
+    @classmethod
+    def from_config(cls, arg1, arg2=None):
+        if arg2 is None:
+            if isinstance(arg1, (Path, str)) and str(arg1).endswith(".yaml"):
+                config = yaml.safe_load(open(str(arg1), "r"))
+            elif isinstance(arg1, dict):
+                config = arg1
+                assert 'dashboard' in config, \
+                    ".yaml file does not have `dashboard` param."
+                assert 'explainerfile' in config['dashboard'], \
+                    ".yaml file does not have explainerfile param"
+
+            explainer = BaseExplainer.from_file(config['dashboard']['explainerfile'])
+        else:
+            if isinstance(arg1, BaseExplainer):
+                explainer = arg1
+            elif isinstance(arg1, (Path, str)) and (
+                str(arg1).endswith(".joblib") or 
+                str(arg1).endswith(".pkl") or str(arg1).endswith(".dill")):
+                explainer = BaseExplainer.from_file(arg1)
+            else:
+                raise ValueError(
+                    "When passing two arguments to ExplainerDashboard.from_config(arg1, arg2), "
+                    "arg1 should either be an explainer or an explainer filename (e.g. 'explainer.joblib')!")
+            if isinstance(arg2, (Path, str)) and str(arg2).endswith(".yaml"):
+                config = yaml.safe_load(open(str(arg2), "r"))
+            elif isinstance(arg2, dict):
+                config = arg2
+            else:
+                raise ValueError(
+                    "When passing two arguments to ExplainerDashboard.from_config(arg1, arg2), "
+                    "arg2 should be a .yaml file or a dict!")
+
+        dashboard_params = config['dashboard']['params']
+        tabs = cls._yamltabs_to_tabs(dashboard_params['tabs'])
+        del dashboard_params['tabs']
+
+        return cls(explainer, tabs, **dashboard_params)
+            
     def _convert_str_tabs(self, component):
         if isinstance(component, str):
             if component == 'importances':
@@ -466,6 +507,20 @@ class ExplainerDashboard:
             return tabs if isinstance(tabs, str) else dict(tab=tabs.__name__, module=tabs.__module__)
             
         return [tab if isinstance(tab, str) else dict(tab=tab.__name__, module=tab.__module__) for tab in tabs]
+
+    @staticmethod
+    def _yamltabs_to_tabs(tabs_param):
+        """converts a yaml tabs list back to ExplainerDashboard compatible original"""
+        from importlib import import_module
+        if tabs_param is None:
+            return None
+        
+        if not hasattr(tabs_param, "__iter__"):
+            if isinstance(tabs_param, str):
+                return tabs_param
+            return getattr(import_module(tabs_param['module']), tabs_param['tab']) 
+        
+        return [tab if isinstance(tab, str) else getattr(import_module(tab['module']), tab['tab'])  for tab in tabs_param]
 
 
     def _get_dash_app(self):
@@ -572,48 +627,33 @@ class ExplainerDashboard:
             print(f"Something seems to have failed: {e}")
 
     def to_yaml(self, filepath=None, return_dict=False,
-                explainerfile="explainer.joblib",
-                modelfile="model.pkl",
-                datafile="data.csv",
-                index_col=None,
-                target_col=None):
+                explainerfile="explainer.joblib"):
         """Returns a yaml configuration of the current ExplainerDashboard
-        that can be used by the explainerdashboard CLI.
+        that can be used by the explainerdashboard CLI. Recommended filename
+        is `dashboard.yaml`.
 
         Args:
             filepath ({str, Path}, optional): Filepath to dump yaml. If None
                 returns the yaml as a string. Defaults to None.
             return_dict (bool, optional): instead of yaml return dict with 
                 config.
-            modelfile (str, optional): filename of model dump. Defaults to
-                `model.pkl`
-            datafile (str, optional): filename of datafile. Defaults to
-                `data.csv`.
-            index_col (str, optional): column to be used for idxs. Defaults to
-                self.idxs.name.
-            target_col (str, optional): column to be used for to split X and y
-                from datafile. Defaults to self.target.
             explainerfile (str, optional): filename of explainer dump. Defaults
                 to `explainer.joblib`.
         """
         import oyaml as yaml
 
-        explainer_config = self.explainer.to_yaml(return_dict=True,
-            modelfile=modelfile, datafile=datafile, index_col=index_col,
-            target_col=target_col, explainerfile=explainerfile)
         dashboard_config = dict(
             dashboard=dict(
                 explainerfile=explainerfile,
                 params=self._params_dict))
-        yaml_config = {**explainer_config, **dashboard_config}
 
         if return_dict:
-            return yaml_config
+            return dashboard_config
         
         if filepath is not None:
-            yaml.dump(yaml_config, open(filepath, "w"))
+            yaml.dump(dashboard_config, open(filepath, "w"))
             return
-        return yaml.dump(yaml_config)
+        return yaml.dump(dashboard_config)
 
 
 class InlineExplainer:
