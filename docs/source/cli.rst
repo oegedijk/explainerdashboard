@@ -105,6 +105,45 @@ specified in dashboard_yaml, pass it as a second argument::
 .. highlight:: python
 
 
+Example of a responsive gunicorn server
+=======================================
+
+We can use the CLI to make a responsive deployment. We store the explainer
+config in ``expaliner.yaml`` and the dashboard config in ``dashboard.yaml``.
+
+First we define a ``dashboard.py``, that simply loads an ExplainerDashboard
+directly from the config file::
+
+    from explainerdashboard import ExplainerDashboard
+
+    db = ExplainerDashboard.from_config("dashboard.yaml")
+    app = db.flask_server()  
+
+.. highlight:: bash
+
+We can start this server with ``gunicorn dashboard:app``. Now we would
+like to rebuild the explainer.joblib whenever there is a change to model.pkl, data.csv
+or explainer.yaml, and restart the gunicorn server whenever there is a change
+in explainer.joblib or dashboard.yaml. To do that we need to install watchdog
+(``pip install watchdog[watchmedo]``), and start three processes in background
+from a shell script ``start_server.sh``::
+
+    trap "kill 0" EXIT
+
+    source venv/bin/activate
+
+    gunicorn --pid gunicorn.pid gunicorn_dashboard:app &
+    watchmedo shell-command  -p "*model.pkl;*data.csv;*explainer.yaml" -c "explainerdashboard build explainer.yaml" &
+    watchmedo shell-command -p "*explainer.joblib;*dashboard.yaml" -c 'kill -HUP $(cat gunicorn.pid)' &
+
+    wait
+
+Now we can simply run ``chmod +x start_server.sh`` and ``./start_server.sh`` to get our server up and running.
+Whenever we now make a change to either one of the source files (model.pkl, data.csv or explainer.yaml),
+or the dashboard files (expaliner.joblib, dashboard.yaml), the explainer and dashboard get rebuilt and
+restarted. 
+
+
 dump, from_file, to_yaml
 ========================
 
