@@ -61,7 +61,7 @@ autodoc_mock_imports = ['matplotlib', 'np', 'dash', 'dash_bootstrap_components',
                     'dash_html_components', 'dash_table', 'dash_core_components',
                     'dtreeviz', 'numpy', 'pandas', 'pd', 'pdpbox', 
                     'sklearn', 'shap',  'plotly', 'shortuuid', 
-                    'joblib', 'dash_auth', 'jupyter_dash']
+                    'joblib', 'dash_auth', 'jupyter_dash', 'oyaml', 'click']
 
 
 
