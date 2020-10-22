@@ -37,7 +37,7 @@ Now you define your dashboard in a file e.g. ``dashboard.py``::
 If you name the file above ``dashboard.py``, then you can start the ``gunicorn``
 server with for example three workers and binding to port 8050 like this::
 
-    $ gunicorn -w 3 --preload -b localhost:8050 dashboard:server
+    $ gunicorn -w 3 --preload -b localhost:8050 dashboard:app
 
 If you now point your browser to ``http://localhost:8050`` you should see your dashboard. 
 
@@ -46,16 +46,18 @@ If you now point your browser to ``http://localhost:8050`` you should see your d
 Storing custom dashboard config and running with gunicorn
 =========================================================
 
-If you have some custom settings on your ExplainerDashboard that you would like
-to preserve, you need to export it to yaml first. So for example if you build
-a dashboard with::
+If you have some custom settings on your ``ExplainerDashboard`` that you would like
+to preserve, you need to export the settings to ``.yaml`` first. So for example if you build
+a dashboard with two specific tabs and a particular title, you would store the 
+explainer and dashboard settings like this::
 
     from explainerdashboard import ClassifierExplainer, ExplainerDashboard
     from explainerdashboard.dashboard_tabs import ShapDependenceTab, ImportancesTab
 
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
-    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
     explainer.dump("explainer.joblib")
+
+    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
     db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
 And then load the configuration in your ``dashboard.py``::
@@ -64,6 +66,12 @@ And then load the configuration in your ``dashboard.py``::
 
     db = ExplainerDashboard.from_config("dashboard.yaml")
     app = db.flask_server()
+
+.. highlight:: bash
+
+And start the server the same as before::
+
+    $ gunicorn -w 3 --preload -b localhost:8050 dashboard:app
 
 Automatically restart gunicorn server upon changes
 ==================================================
@@ -80,7 +88,6 @@ explainer depends on, and which columns in the datafile should be used as
 a target and index::
 
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
-    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
     explainer.dump("explainer.joblib")
     explainer.to_yaml("explainer.yaml", 
                     modelfile="model.pkl",
@@ -89,6 +96,8 @@ a target and index::
                     target_col="Survival",
                     explainerfile="explainer.joblib",
                     dashboard_yaml="dashboard.yaml")
+
+    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
     db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
 The ``dashboard.py`` is the same as before and simply loads an ``ExplainerDashboard``
@@ -112,15 +121,15 @@ package can keep track of filechanges and execute shell-scripts upon file change
 So we can start the gunicorn server and the two watchdog filechange trackers
 from a shell script ``start_server.sh``::
 
-    trap "kill 0" EXIT
+    trap "kill 0" EXIT  # ensures that all three process are killed upon exit
 
-    source venv/bin/activate
+    source venv/bin/activate # activate virtual environment first
 
     gunicorn --pid gunicorn.pid gunicorn_dashboard:app &
-    watchmedo shell-command  -p "*model.pkl;*data.csv;*explainer.yaml" -c "explainerdashboard build explainer.yaml" &
-    watchmedo shell-command -p "*explainer.joblib;*dashboard.yaml" -c 'kill -HUP $(cat gunicorn.pid)' &
+    watchmedo shell-command  -p "./model.pkl;./data.csv;./explainer.yaml" -c "explainerdashboard build explainer.yaml" &
+    watchmedo shell-command -p "./explainer.joblib;./dashboard.yaml" -c 'kill -HUP $(cat gunicorn.pid)' &
 
-    wait
+    wait # wait till user hits ctrl-c to exit and kill all three processes
 
 Now we can simply run ``chmod +x start_server.sh`` and ``./start_server.sh`` to 
 get our server up and running.
