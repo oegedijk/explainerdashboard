@@ -41,13 +41,17 @@ server with for example three workers and binding to port 8050 like this::
 
 If you now point your browser to ``http://localhost:8050`` you should see your dashboard. 
 
+.. highlight:: python
 
 Storing custom dashboard config and running with gunicorn
 =========================================================
 
-.. highlight:: python
 If you have some custom settings on your ExplainerDashboard that you would like
-to preserve, you need to export it to yaml first::
+to preserve, you need to export it to yaml first. So for example if you build
+a dashboard with::
+
+    from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+    from explainerdashboard.dashboard_tabs import ShapDependenceTab, ImportancesTab
 
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
     db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
@@ -64,10 +68,16 @@ And then load the configuration in your ``dashboard.py``::
 Automatically restart gunicorn server upon changes
 ==================================================
 
-We can use the ``e`xplainerdashboard`` CLI tool to automatically rebuild our
-explainer and reload our dashboard whenever there is a change to the underlying
-model, dataset or configuration. We store the explainer
-config in ``expaliner.yaml`` and the dashboard config in ``dashboard.yaml``::
+We can use the ``explainerdashboard`` CLI tool to automatically rebuild our
+explainer whenever there is a change to the underlying
+model, dataset or explainer configuration. And we we can use ``kill -HUP gunicorn.pid`` 
+to force the gunicorn to restart and reload whenever a new ``explainer.joblib`` 
+is generated or the dashboard configuration ``dashboard.yaml`` changes. 
+
+First we store the explainer config in ``explainer.yaml`` and the dashboard 
+config in ``dashboard.yaml``. We also indicate which modefiles and datafiles the
+explainer depends on, and which columns in the datafile should be used as 
+a target and index::
 
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
     db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
@@ -81,8 +91,6 @@ config in ``expaliner.yaml`` and the dashboard config in ``dashboard.yaml``::
                     dashboard_yaml="dashboard.yaml")
     db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
-
-
 The ``dashboard.py`` is the same as before and simply loads an ``ExplainerDashboard``
 directly from the config file::
 
@@ -94,11 +102,15 @@ directly from the config file::
 .. highlight:: bash
 
 Now we would like to rebuild the ``explainer.joblib`` file whenever there is a 
-change to ``model.pkl``, ``data.csv`` or ``explainer.yaml``. And we restart the 
-``gunicorn`` server whenever there is a change
-in ``explainer.joblib`` or ``dashboard.yaml``. To do that we need to install 
-the python package ``watchdog`` (``pip install watchdog[watchmedo]``), 
-and start three processes in background from a shell script ``start_server.sh``::
+change to ``model.pkl``, ``data.csv`` or ``explainer.yaml`` by running 
+``explaienrdashboard build``. And we restart the ``gunicorn`` server whenever 
+there is a change in ``explainer.joblib`` or ``dashboard.yaml`` by killing 
+the gunicorn server with ``kill -HUP pid`` To do that we need to install 
+the python package ``watchdog`` (``pip install watchdog[watchmedo]``). This 
+package can keep track of filechanges and execute shell-scripts upon file changes.
+
+So we can start the gunicorn server and the two watchdog filechange trackers
+from a shell script ``start_server.sh``::
 
     trap "kill 0" EXIT
 
