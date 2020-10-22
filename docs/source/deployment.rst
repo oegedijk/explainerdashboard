@@ -157,6 +157,8 @@ the dashboard will automatically update.
 Deploying dashboard as part of Flask app on specific route
 ==========================================================
 
+.. highlight:: python
+
 Another way to deploy the dashboard is to first start a ``Flask`` app, and then
 use this app as the backend of the Dashboard, and host the dashboard on a specific
 route. This way you can for example host multiple dashboard under different urls.
@@ -176,9 +178,10 @@ under ``db.app.index``::
     def return_dashboard():
         return db.app.index()
 
+.. highlight:: bash 
 Now you can start the dashboard by::
 
-    gunicorn --preload -b localhost:8050 dashboard:app
+    $ gunicorn --preload -b localhost:8050 dashboard:app
 
 And you can visit the dashboard on ``http://localhost:8050/dashboard``.
 
