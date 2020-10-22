@@ -5,7 +5,7 @@ dashboard:
     - tab: ShapDependenceTab
       module: explainerdashboard.dashboard_tabs
     - importances
-    title: Testing Explainer
+    title: Model Explainer
     hide_header: false
     header_hide_title: false
     header_hide_selector: false
