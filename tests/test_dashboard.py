@@ -26,7 +26,8 @@ class DashboardTests(unittest.TestCase):
         self.pkl_dir = Path.cwd() / "tests" / "cli_assets" 
         self.explainer.dump(self.pkl_dir / "explainer.joblib")
         self.explainer.to_yaml(self.pkl_dir / "explainer.yaml")
-        self.dashboard.to_yaml(self.pkl_dir / "dashboard.yaml")
+        self.dashboard.to_yaml(self.pkl_dir / "dashboard.yaml", 
+                               explainerfile=str(self.pkl_dir / "explainer.joblib"))
 
     def test_yaml(self):
         yaml = self.dashboard.to_yaml()

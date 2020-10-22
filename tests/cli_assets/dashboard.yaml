@@ -1,5 +1,5 @@
 dashboard:
-  explainerfile: explainer.joblib
+  explainerfile: /Users/oege/projects/explainerdashboard/tests/cli_assets/explainer.joblib
   params:
     tabs:
     - tab: ShapDependenceTab

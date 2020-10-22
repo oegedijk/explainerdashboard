@@ -3,52 +3,124 @@ Deployment
 
 When deploying your dashboard it is better not to use the built-in flask
 server but use more robust and scalable options like ``gunicorn`` and ``nginx``.
+Install gunicorn through pip with ``pip install gunicorn``.
 
-Deploying a single dashboard instance
-=====================================
+Storing explainer and running default dashboard with gunicorn
+=============================================================
 
-``Dash`` is built on top of ``Flask``, and so the dashboard instance 
-contains a Flask server. You can simply expose this server to host your dashboard.
+Before you start a dashboard with gunicorn you should first store your
+explainer to disk with all properties calculated. You can do this by
+either wrapping the explainer in a dashboard (which will calculate all properties
+needed for that particular dashboard) or simply calculate all properties 
+with ``explainer.calculate_properties()``::
 
-The server can be found in ``ExplainerDashboard().app.server`` or with
-the methods ``ExplainerDashboard.flask_server()``.
+    explainer = ClassifierExplainer(model, X, y)
+    # calculate properties needed for this dashboard:
+    db = ExplainerDashboard(explainer)
+    # alternatively: 
+    # explainer.calculate_properties()
+    explainer.dump("explainer.joblib")
 
-The code below is from `the deployed example to heroku <https://github.com/oegedijk/explainingtitanic/blob/master/dashboard.py>`_::
-
-    from sklearn.ensemble import RandomForestClassifier
+Now you define your dashboard in a file e.g. ``dashboard.py``::
 
     from explainerdashboard import ClassifierExplainer, ExplainerDashboard
-    from explainerdashboard.datasets import titanic_survive, titanic_names
 
-    X_train, y_train, X_test, y_test = titanic_survive()
-    train_names, test_names = titanic_names()
-
-    model = RandomForestClassifier(n_estimators=50, max_depth=5)
-    model.fit(X_train, y_train)
-
-    explainer = ClassifierExplainer(model, X_test, y_test, 
-                                cats=['Sex', 'Deck', 'Embarked'],
-                                idxs=test_names, 
-                                labels=['Not survived', 'Survived'])
-
+    explainer = ClassifierExplainer.from_file("explainer.joblib")
     db = ExplainerDashboard(explainer)
 
-    server = db.app.server
+    # need to define app so that gunicorn can find the flask server
+    app = db.flask_server()
 
-If you name the file above ``dashboard.py``, then you can start the gunicorn
+
+.. highlight:: bash
+
+If you name the file above ``dashboard.py``, then you can start the ``gunicorn``
 server with for example three workers and binding to port 8050 like this::
 
-    gunicorn localhost:8050 dashboard:server
+    $ gunicorn -w 3 --preload -b localhost:8050 dashboard:server
+
+If you now point your browser to ``http://localhost:8050`` you should see your dashboard. 
 
 
-So here ``dashboard`` refers to ``dashboard.py`` and ``server`` refers to the ``server``
-defined equal to ``db.app.server``.
+Storing custom dashboard config and running with gunicorn
+=========================================================
 
-If you want to have multiple workers to speed up your dashboard, you need
-to preload the app before starting::
+.. highlight:: python
+If you have some custom settings on your ExplainerDashboard that you would like
+to preserve, you need to export it to yaml first::
 
-        gunicorn -w 3 --preload localhost:8050 dashboard:server
+    explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
+    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
+    explainer.dump("explainer.joblib")
+    db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
+And then load the configuration in your ``dashboard.py``::
+
+    from explainerdashboard import ExplainerDashboard
+
+    db = ExplainerDashboard.from_config("dashboard.yaml")
+    app = db.flask_server()
+
+Automatically restart gunicorn server upon changes
+==================================================
+
+We can use the ``e`xplainerdashboard`` CLI tool to automatically rebuild our
+explainer and reload our dashboard whenever there is a change to the underlying
+model, dataset or configuration. We store the explainer
+config in ``expaliner.yaml`` and the dashboard config in ``dashboard.yaml``::
+
+    explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
+    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
+    explainer.dump("explainer.joblib")
+    explainer.to_yaml("explainer.yaml", 
+                    modelfile="model.pkl",
+                    datafile="data.csv",
+                    index_col="Name",
+                    target_col="Survival",
+                    explainerfile="explainer.joblib",
+                    dashboard_yaml="dashboard.yaml")
+    db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
+
+
+
+The ``dashboard.py`` is the same as before and simply loads an ``ExplainerDashboard``
+directly from the config file::
+
+    from explainerdashboard import ExplainerDashboard
+
+    db = ExplainerDashboard.from_config("dashboard.yaml")
+    app = db.flask_server()  
+
+.. highlight:: bash
+
+Now we would like to rebuild the ``explainer.joblib`` file whenever there is a 
+change to ``model.pkl``, ``data.csv`` or ``explainer.yaml``. And we restart the 
+``gunicorn`` server whenever there is a change
+in ``explainer.joblib`` or ``dashboard.yaml``. To do that we need to install 
+the python package ``watchdog`` (``pip install watchdog[watchmedo]``), 
+and start three processes in background from a shell script ``start_server.sh``::
+
+    trap "kill 0" EXIT
+
+    source venv/bin/activate
+
+    gunicorn --pid gunicorn.pid gunicorn_dashboard:app &
+    watchmedo shell-command  -p "*model.pkl;*data.csv;*explainer.yaml" -c "explainerdashboard build explainer.yaml" &
+    watchmedo shell-command -p "*explainer.joblib;*dashboard.yaml" -c 'kill -HUP $(cat gunicorn.pid)' &
+
+    wait
+
+Now we can simply run ``chmod +x start_server.sh`` and ``./start_server.sh`` to 
+get our server up and running.
+
+Whenever we now make a change to either one of the source files 
+(``model.pkl``, ``data.csv`` or ``explainer.yaml``),
+or the dashboard files (``expaliner.joblib``, ``dashboard.yaml``), 
+the explainer and dashboard get rebuilt and restarted. 
+
+So you can keep an explainerdashboard running and simply drop an updated 
+``model.pkl`` or a fresh dataset ``data.csv`` into the directory and 
+the dashboard will automatically update. 
 
 Deploying dashboard as part of Flask app on specific route
 ==========================================================
@@ -74,40 +146,9 @@ under ``db.app.index``::
 
 Now you can start the dashboard by::
 
-    gunicorn -w 3 --preload -b localhost:8050 dashboard:app
+    gunicorn --preload -b localhost:8050 dashboard:app
 
 And you can visit the dashboard on ``http://localhost:8050/dashboard``.
-
-Avoid timeout by precalculating explainers and loading with joblib
-==================================================================
-
-Some of the calculations in order to generate e.g. the SHAP values and permutation
-importances can take quite a long time (especially shap interaction values). 
-Long enough the break the startup timeout of ``gunicorn``. Therefore it is better
-to first calculate all these values, save the explainer to disk, and then load
-the explainer when starting the dashboard::
-
-    import joblib
-    from explainerdashboard import ClassifierExplainer
-    
-    explainer = ClassifierExplainer(model, X_test, y_test, 
-                               cats=['Sex', 'Deck', 'Embarked'],
-                               labels=['Not survived', 'Survived'])
-    explainer.calculate_properties()
-    explainer.dump("explainer.joblib")
-
-Then in ``dashboard.py`` load the explainer and start the dashboard:: 
-
-    import joblib
-    from explainerdashboard import ClassifierExplainer, ExplainerDashboard
-
-    explainer = ClassifierExplainer.from_file("explainer.joblib")
-    db = ExplainerDashboard(explainer)
-    server = db.app.server 
-
-And start the thing with gunicorn::
-
-    gunicorn -b localhost:8050 dashboard:server
 
 
 Deploying to heroku
@@ -151,7 +192,7 @@ mock the ``xgboost`` library by adding the following code before you import
 Graphviz buildpack
 ------------------
 
-If you want to visualize indidividual trees in your ``RandomForest`` using
+If you want to visualize individual trees in your ``RandomForest`` using
 the ``dtreeviz`` package you will
 need to make sure that ``graphviz`` is installed on your ``heroku`` dyno by
 adding the following buildstack: 
@@ -163,7 +204,7 @@ Setting logins and password
 
 ``explainerdashboard`` supports `dash basic auth functionality <https://dash.plotly.com/authentication>`_.
 
-You can simply add a list of logins to the ExplainerDashboard to force a logins 
+You can simply add a list of logins to the ExplainerDashboard to force a login 
 and prevent random users from accessing the details of your model dashboard::
 
     ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()
