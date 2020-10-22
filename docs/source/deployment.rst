@@ -21,7 +21,9 @@ with ``explainer.calculate_properties()``::
     # explainer.calculate_properties()
     explainer.dump("explainer.joblib")
 
-Now you define your dashboard in a file e.g. ``dashboard.py``::
+Now you define your dashboard in a file, e.g. ``dashboard.py``. You first
+load the explainer from file, then start the dashboard, and expose the flask
+server as ``app``::
 
     from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 
@@ -34,12 +36,19 @@ Now you define your dashboard in a file e.g. ``dashboard.py``::
 
 .. highlight:: bash
 
-If you name the file above ``dashboard.py``, then you can start the ``gunicorn``
-server with for example three workers and binding to port 8050 like this::
+If you named the file above ``dashboard.py``, you can now start the gunicorn server with::
+
+    $ gunicorn dashboard:app
+
+If you want to run the server server with for example three workers, binding to port 8050,
+and making sure all the workers are preloaded before starting the dashboard your 
+launch gunicorn like::
 
     $ gunicorn -w 3 --preload -b localhost:8050 dashboard:app
 
 If you now point your browser to ``http://localhost:8050`` you should see your dashboard. 
+Next step is finding a nice url in your organization's domain, and forwarding it 
+to your dashboard server.
 
 .. highlight:: python
 
@@ -60,7 +69,7 @@ explainer and dashboard settings like this::
     db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
     db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
-And then load the configuration in your ``dashboard.py``::
+And then start the ExpalinerDashboard directly from the config file in ``dashboard.py``::
 
     from explainerdashboard import ExplainerDashboard
 
@@ -80,12 +89,14 @@ We can use the ``explainerdashboard`` CLI tool to automatically rebuild our
 explainer whenever there is a change to the underlying
 model, dataset or explainer configuration. And we we can use ``kill -HUP gunicorn.pid`` 
 to force the gunicorn to restart and reload whenever a new ``explainer.joblib`` 
-is generated or the dashboard configuration ``dashboard.yaml`` changes. 
+is generated or the dashboard configuration ``dashboard.yaml`` changes. These two 
+processes together ensure that the dashboard automatically updates whenever there 
+are underlying changes.
 
 First we store the explainer config in ``explainer.yaml`` and the dashboard 
-config in ``dashboard.yaml``. We also indicate which modefiles and datafiles the
+config in ``dashboard.yaml``. We also indicate which modelfiles and datafiles the
 explainer depends on, and which columns in the datafile should be used as 
-a target and index::
+a target and which as index::
 
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
     explainer.dump("explainer.joblib")
@@ -112,7 +123,7 @@ directly from the config file::
 
 Now we would like to rebuild the ``explainer.joblib`` file whenever there is a 
 change to ``model.pkl``, ``data.csv`` or ``explainer.yaml`` by running 
-``explaienrdashboard build``. And we restart the ``gunicorn`` server whenever 
+``explainerdashboard build``. And we restart the ``gunicorn`` server whenever 
 there is a change in ``explainer.joblib`` or ``dashboard.yaml`` by killing 
 the gunicorn server with ``kill -HUP pid`` To do that we need to install 
 the python package ``watchdog`` (``pip install watchdog[watchmedo]``). This 
@@ -135,12 +146,12 @@ Now we can simply run ``chmod +x start_server.sh`` and ``./start_server.sh`` to
 get our server up and running.
 
 Whenever we now make a change to either one of the source files 
-(``model.pkl``, ``data.csv`` or ``explainer.yaml``),
-or the dashboard files (``expaliner.joblib``, ``dashboard.yaml``), 
-the explainer and dashboard get rebuilt and restarted. 
+(``model.pkl``, ``data.csv`` or ``explainer.yaml``), this produces a fresh
+``explainer.joblib``. And whenever there is a change to either ``explainer.joblib``
+or ``dashboard.yaml`` gunicorns restarts and rebuild the dashboard. 
 
-So you can keep an explainerdashboard running and simply drop an updated 
-``model.pkl`` or a fresh dataset ``data.csv`` into the directory and 
+So you can keep an explainerdashboard running without interuption and simply 
+ an updated ``model.pkl`` or a fresh dataset ``data.csv`` into the directory and 
 the dashboard will automatically update. 
 
 Deploying dashboard as part of Flask app on specific route
