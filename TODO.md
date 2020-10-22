@@ -57,7 +57,7 @@
 - deployment: show how to to make automatically rebootable dashboard 
     with watchdog package
     - watchmedo shell-command  -p "*model.pkl;*data.csv;*explainerdashboard.yaml" -c "explainerdashboard build"
-    
+
 - add docstrings to explainer_plots
 - add screenshots of all ExplainerComponents to docs
 - move screenshots to separate folder
@@ -66,6 +66,8 @@
         self.register_components(self.connector)
 
 ## Library level:
+- launch gunicorn server from python:
+    https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - add more screenshots to README with https://postimages.org/
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
