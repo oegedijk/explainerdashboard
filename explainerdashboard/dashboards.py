@@ -8,6 +8,7 @@ __all__ = ['ExplainerTabsLayout',
             'JupyterExplainerTab',
             'InlineExplainer']
 
+import sys
 import inspect 
 import requests
 from pathlib import Path
@@ -339,32 +340,40 @@ class ExplainerDashboard:
             decision_trees(bool, optional): include DecisionTreesTab if model allows it, defaults to True.
         """
         print("Building ExplainerDashboard..", flush=True)  
-        if hide_header:
-            header_hide_title = True
-            header_hide_selector = True
-        self.explainer = explainer
-        self.mode, self.width, self.height = mode, width, height
-        self.hide_header, self.header_hide_title, self.header_hide_selector = \
-            hide_header, header_hide_title, header_hide_selector
-        self.external_stylesheets = external_stylesheets
-        self.server, self.url_base_pathname = server, url_base_pathname
-        self.responsive, self.port = responsive, port
-        self._params_dict = dict(
-                tabs=self._tabs_to_param(tabs),
-                title=title, hide_header=hide_header, 
-                header_hide_title=header_hide_title,
-                header_hide_selector=header_hide_selector,
-                block_selector_callbacks=block_selector_callbacks,
-                pos_label=pos_label, fluid=fluid, mode=mode,
-                width=width, height=height, 
-                external_stylesheets=external_stylesheets, server=server,
-                url_base_pathname=url_base_pathname, responsive=responsive,
-                logins=logins, port=port, importances=importances,
-                model_summary=model_summary, contributions=contributions,
-                whatif=whatif, shap_dependence=shap_dependence,
-                shap_interaction=shap_interaction, 
-                decision_trees=decision_trees
-        )
+
+
+        self._store_params(no_param=['explainer', 'tabs'])
+        self._stored_params['tabs'] = self._tabs_to_yaml(tabs)
+
+        if self.hide_header:
+            self.header_hide_title = True
+            self.header_hide_selector = True
+
+        
+
+        # self.explainer = explainer
+        # self.mode, self.width, self.height = mode, width, height
+        # self.hide_header, self.header_hide_title, self.header_hide_selector = \
+        #     hide_header, header_hide_title, header_hide_selector
+        # self.external_stylesheets = external_stylesheets
+        # self.server, self.url_base_pathname = server, url_base_pathname
+        # self.responsive, self.port = responsive, port
+        # self._params_dict = dict(
+        #         tabs=self._tabs_to_yaml(tabs),
+        #         title=title, hide_header=hide_header, 
+        #         header_hide_title=header_hide_title,
+        #         header_hide_selector=header_hide_selector,
+        #         block_selector_callbacks=block_selector_callbacks,
+        #         pos_label=pos_label, fluid=fluid, mode=mode,
+        #         width=width, height=height, 
+        #         external_stylesheets=external_stylesheets, server=server,
+        #         url_base_pathname=url_base_pathname, responsive=responsive,
+        #         logins=logins, port=port, importances=importances,
+        #         model_summary=model_summary, contributions=contributions,
+        #         whatif=whatif, shap_dependence=shap_dependence,
+        #         shap_interaction=shap_interaction, 
+        #         decision_trees=decision_trees
+        # )
 
         try:
             ipython_kernel = str(get_ipython())
@@ -444,6 +453,22 @@ class ExplainerDashboard:
 
     @classmethod
     def from_config(cls, arg1, arg2=None):
+        """ Four different ways of loading an ExplainerDashboard from config:
+
+          db = ExplainerDashboard.from_config("dashboard.yaml")
+          db = ExplainerDashboard.from_config(config_dict)
+          db = ExplainerDashboard.from_config(explainer, "dashboard.yaml")
+          db = ExplainerDashboard.from_config("explainer.joblib", "dashboard.yaml")
+
+        Args:
+            arg1 (explainer or config): arg1 should either be a config (yaml or dict),
+                or an explainer (instance or str/Path).
+            arg2 ([type], optional): If arg1 is an explainer, arg2 should be config.
+
+
+        Returns:
+            ExplainerDashboard
+        """
         if arg2 is None:
             if isinstance(arg1, (Path, str)) and str(arg1).endswith(".yaml"):
                 config = yaml.safe_load(open(str(arg1), "r"))
@@ -476,11 +501,41 @@ class ExplainerDashboard:
                     "arg2 should be a .yaml file or a dict!")
 
         dashboard_params = config['dashboard']['params']
-        tabs = cls._yamltabs_to_tabs(dashboard_params['tabs'])
+        tabs = cls._yamltabs_to_tabs(dashboard_params['tabs'], explainer)
         del dashboard_params['tabs']
 
         return cls(explainer, tabs, **dashboard_params)
+
+
+    def _store_params(self, no_store=None, no_attr=None, no_param=None):
+        if not hasattr(self, '_stored_params'): 
+            self._stored_params = {}
+
+        frame = sys._getframe(1)
+        args = frame.f_code.co_varnames[1:frame.f_code.co_argcount]
+        args_dict = {arg: frame.f_locals[arg] for arg in args}
+        
+        if isinstance(no_store, bool) and no_store:
+            return
+        else:
+            if no_store is None: no_store = tuple()
+        
+        if isinstance(no_attr, bool) and no_attr: dont_attr = True
+        else:
+            if no_attr is None: no_attr = tuple()
+            dont_attr = False 
             
+        if isinstance(no_param, bool) and no_param: dont_param = True
+        else:
+            if no_param is None: no_param = tuple()
+            dont_param = False 
+
+        for name, value in args_dict.items():
+            if not dont_attr and name not in no_store and name not in no_attr:
+                setattr(self, name, value)
+            if not dont_param and name not in no_store and name not in no_param:
+                self._stored_params[name] = value
+
     def _convert_str_tabs(self, component):
         if isinstance(component, str):
             if component == 'importances':
@@ -498,29 +553,51 @@ class ExplainerDashboard:
         return component
 
     @staticmethod
-    def _tabs_to_param(tabs):
+    def _tabs_to_yaml(tabs):
         """converts tabs to a yaml friendly format"""
         if tabs is None:
             return None
+
+        def get_name_and_module(component):
+            if inspect.isclass(component) and issubclass(component, ExplainerComponent):
+                return dict(
+                    name=component.__name__, 
+                    module=component.__module__,
+                    params=None
+                    )
+            elif isinstance(component, ExplainerComponent):
+                return dict(
+                    name=component.__class__.__name__, 
+                    module=component.__class__.__module__,
+                    params=component._stored_params
+                    )
+            else:
+                raise ValueError(f"Please only pass strings or ExplainerComponents to parameter `tabs`!"
+                                "You passed {component.__class__}")
         
         if not hasattr(tabs, "__iter__"):
-            return tabs if isinstance(tabs, str) else dict(tab=tabs.__name__, module=tabs.__module__)
+            return tabs if isinstance(tabs, str) else get_name_and_module(tabs)
             
-        return [tab if isinstance(tab, str) else dict(tab=tab.__name__, module=tab.__module__) for tab in tabs]
+        return [tab if isinstance(tab, str) else get_name_and_module(tab) for tab in tabs]
 
     @staticmethod
-    def _yamltabs_to_tabs(tabs_param):
+    def _yamltabs_to_tabs(yamltabs, explainer):
         """converts a yaml tabs list back to ExplainerDashboard compatible original"""
         from importlib import import_module
-        if tabs_param is None:
+        if yamltabs is None:
             return None
+
+        def instantiate_tab(tab, explainer):
+            if isinstance(yamltabs, str):
+                return yamltabs
+            tab_class = getattr(import_module(tab['module']), tab['name'])
+            tab_instance = tab_class(explainer, **tab['params'])
+            return tab_instance
         
-        if not hasattr(tabs_param, "__iter__"):
-            if isinstance(tabs_param, str):
-                return tabs_param
-            return getattr(import_module(tabs_param['module']), tabs_param['tab']) 
+        if not hasattr(yamltabs, "__iter__"):
+            return instantiate_tab(yamltabs, explainer) 
         
-        return [tab if isinstance(tab, str) else getattr(import_module(tab['module']), tab['tab'])  for tab in tabs_param]
+        return [instantiate_tab(tab, explainer)  for tab in yamltabs]
 
 
     def _get_dash_app(self):
@@ -645,7 +722,7 @@ class ExplainerDashboard:
         dashboard_config = dict(
             dashboard=dict(
                 explainerfile=explainerfile,
-                params=self._params_dict))
+                params=self._stored_params))
 
         if return_dict:
             return dashboard_config

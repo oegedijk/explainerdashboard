@@ -42,10 +42,6 @@ class DecisionTreesComponent(ExplainerComponent):
             highlight ([type], optional): Initial tree to highlight. Defaults to None.
         """
         super().__init__(explainer, title, name)
-        self.hide_title = hide_title
-        self.hide_index, self.hide_highlight = hide_index, hide_highlight
-        self.hide_selector = hide_selector
-        self.index, self.highlight = index, highlight
 
         self.index_name = 'decisiontrees-index-'+self.name
         self.highlight_name = 'decisiontrees-highlight-'+self.name
@@ -138,10 +134,6 @@ class DecisionPathTableComponent(ExplainerComponent):
                         path for. Defaults to None.
         """
         super().__init__(explainer, title, name)
-        self.hide_title, self.hide_index, self.hide_highlight = \
-            hide_title, hide_index, hide_highlight
-        self.hide_selector = hide_selector
-        self.index, self.highlight = index, highlight
 
         self.index_name = 'decisionpath-table-index-'+self.name
         self.highlight_name = 'decisionpath-table-highlight-'+self.name
@@ -225,10 +217,6 @@ class DecisionPathGraphComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
         # if explainer.is_regression:
         #     raise ValueError("DecisionPathGraphComponent only available for classifiers for now!")
-        self.hide_index, self.hide_highlight = hide_index, hide_highlight
-        self.hide_selector = hide_selector
-        self.hide_title, self.hide_button = hide_title, hide_button
-        self.index, self.highlight = index, highlight
 
         self.index_name = 'decisionpath-index-'+self.name
         self.highlight_name = 'decisionpath-highlight-'+self.name

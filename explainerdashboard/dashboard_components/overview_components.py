@@ -46,10 +46,6 @@ class PredictionSummaryComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_index, self.hide_percentile = hide_index, hide_percentile
-        self.hide_title, self.hide_selector = hide_title, hide_selector
-        self.index, self.percentile = index, percentile
-
         self.index_name = 'modelprediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
@@ -139,21 +135,15 @@ class ImportancesComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_type = hide_type
-        self.hide_depth = hide_depth
-        self.hide_cats = hide_cats
-        self.hide_title = hide_title
-        self.hide_selector = hide_selector
         if self.explainer.cats is None or not self.explainer.cats:
             self.hide_cats = True
 
         assert importance_type in ['shap', 'permutation'], \
             "importance type must be either 'shap' or 'permutation'!"
-        self.importance_type = importance_type
+
         if depth is not None:
-            depth = min(depth, len(explainer.columns_ranked_by_shap(cats)))
-        self.depth = depth
-        self.cats = cats
+            self.depth = min(depth, len(explainer.columns_ranked_by_shap(cats)))
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies(['shap_values', 'shap_values_cats',
             'permutation_importances', 'permutation_importances_cats'])
@@ -270,15 +260,6 @@ class PdpComponent(ExplainerComponent):
             gridpoints (int, optional): Number of breakpoints on horizontal axis Defaults to 10.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_col, self.hide_index, self.hide_cats = hide_col, hide_index, hide_cats
-        self.hide_title, self.hide_selector = hide_title, hide_selector
-        self.hide_dropna, self.hide_sample = hide_dropna, hide_sample
-        self.hide_gridlines, self.hide_gridpoints = hide_gridlines, hide_gridpoints
-
-        self.col, self.index, self.cats = col, index, cats
-        self.dropna, self.sample, self.gridlines, self.gridpoints = \
-            dropna, sample, gridlines, gridpoints
 
         self.index_name = 'pdp-index-'+self.name
 
@@ -424,11 +405,6 @@ class WhatIfComponent(ExplainerComponent):
             
         """
         super().__init__(explainer, title, name)
-        
-        self.hide_title, self.hide_index = hide_title, hide_index
-        self.hide_selector = hide_selector
-        self.hide_contributions, self.hide_pdp = hide_contributions, hide_pdp
-        self.index, self.pdp_col = index, pdp_col
         
         if self.pdp_col is None:
             self.pdp_col = self.explainer.columns_ranked_by_shap(cats=True)[0]

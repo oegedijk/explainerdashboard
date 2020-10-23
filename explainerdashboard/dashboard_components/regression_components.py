@@ -38,8 +38,6 @@ class PredictedVsActualComponent(ExplainerComponent):
             log_y (bool, optional): log only y axis. Defaults to False.
         """
         super().__init__(explainer, title, name)
-        self.hide_title, self.hide_log_x, self.hide_log_y = \
-            hide_title, hide_log_x, hide_log_y
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
         self.register_dependencies(['preds'])
@@ -122,10 +120,6 @@ class ResidualsComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title, self.hide_pred_or_actual = hide_title, hide_pred_or_actual
-        self.hide_ratio = hide_ratio
-        self.pred_or_actual = pred_or_actual
-        self.residuals = residuals
         assert residuals in ['difference', 'ratio', 'log-ratio'], \
             ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
              f" but you passed residuals={residuals}")
@@ -213,11 +207,7 @@ class ResidualsVsColComponent(ExplainerComponent):
                     the y-axis. Defaults to 0.
         """
         super().__init__(explainer, title, name)
-        self.hide_title = hide_title
-        self.hide_col, self.hide_ratio, self.hide_cats, self.hide_points, self.hide_winsor = \
-            hide_col, hide_ratio, hide_cats, hide_points, hide_winsor
-        self.col, self.residuals, self.cats, self.points, self.winsor = \
-            col, residuals, cats, points, winsor
+
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         

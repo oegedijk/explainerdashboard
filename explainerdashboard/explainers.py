@@ -220,7 +220,8 @@ class BaseExplainer(ABC):
                 to `explainer.joblib`.
             dashboard_yaml (str, optional): filename of the dashboard.yaml
                 configuration file. This will be used to determine which
-                properties to calculate before storing to disk.
+                properties to calculate before storing to disk. 
+                Defaults to `dashboard.yaml`.
         """
         import oyaml as yaml
         yaml_config = dict(
