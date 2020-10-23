@@ -21,13 +21,18 @@ class DashboardTests(unittest.TestCase):
                             cats=['Sex', 'Cabin', 'Embarked'],
                             labels=['Not survived', 'Survived'])
 
-        self.dashboard = ExplainerDashboard(self.explainer, [ShapDependenceTab, "importances"])
+        self.dashboard = ExplainerDashboard(self.explainer, 
+            [
+                ShapDependenceTab(self.explainer, title="Test Tab!"),
+                ShapDependenceTab, 
+                "importances"
+            ], title="Test Title!")
 
         self.pkl_dir = Path.cwd() / "tests" / "cli_assets" 
         self.explainer.dump(self.pkl_dir / "explainer.joblib")
         self.explainer.to_yaml(self.pkl_dir / "explainer.yaml")
         self.dashboard.to_yaml(self.pkl_dir / "dashboard.yaml", 
-                               explainerfile=str(self.pkl_dir / "explainer.joblib"))
+                    explainerfile=str(self.pkl_dir / "explainer.joblib"))
 
     def test_yaml(self):
         yaml = self.dashboard.to_yaml()

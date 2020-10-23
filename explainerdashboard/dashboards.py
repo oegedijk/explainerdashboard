@@ -566,15 +566,18 @@ class ExplainerDashboard:
                     params=None
                     )
             elif isinstance(component, ExplainerComponent):
+                component_imports = dict(component.component_imports)
+                del component_imports[component.__class__.__name__]
                 return dict(
                     name=component.__class__.__name__, 
                     module=component.__class__.__module__,
-                    params=component._stored_params
+                    params=component._stored_params,
+                    component_imports = component_imports
                     )
             else:
                 raise ValueError(f"Please only pass strings or ExplainerComponents to parameter `tabs`!"
                                 "You passed {component.__class__}")
-        
+
         if not hasattr(tabs, "__iter__"):
             return tabs if isinstance(tabs, str) else get_name_and_module(tabs)
             
@@ -588,11 +591,20 @@ class ExplainerDashboard:
             return None
 
         def instantiate_tab(tab, explainer):
-            if isinstance(yamltabs, str):
-                return yamltabs
-            tab_class = getattr(import_module(tab['module']), tab['name'])
-            tab_instance = tab_class(explainer, **tab['params'])
-            return tab_instance
+            if isinstance(tab, str):
+                return tab
+            elif isinstance(tab, dict):
+                if 'component_imports' in tab and tab['component_imports'] is not None:
+                    for name, module in tab['component_imports'].items():
+                        if name not in globals():
+                            import_module(module, name)
+                tab_class = getattr(import_module(tab['module']), tab['name'])
+                if not tab['params']: tab['params'] = {}
+                tab_instance = tab_class(explainer, **tab['params'] )
+                return tab_instance
+            else:
+                raise ValueError("yaml tab should be either string, e.g. 'importances', "
+                        "or a dict(name=..,module=..,params=...)")
         
         if not hasattr(yamltabs, "__iter__"):
             return instantiate_tab(yamltabs, explainer) 

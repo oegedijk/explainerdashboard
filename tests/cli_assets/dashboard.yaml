@@ -1,11 +1,7 @@
 dashboard:
   explainerfile: /Users/oege/projects/explainerdashboard/tests/cli_assets/explainer.joblib
   params:
-    tabs:
-    - tab: ShapDependenceTab
-      module: explainerdashboard.dashboard_tabs
-    - importances
-    title: Model Explainer
+    title: Test Title!
     hide_header: false
     header_hide_title: false
     header_hide_selector: false
@@ -28,3 +24,21 @@ dashboard:
     shap_dependence: true
     shap_interaction: true
     decision_trees: true
+    tabs:
+    - name: ShapDependenceTab
+      module: explainerdashboard.dashboard_tabs
+      params:
+        title: Test Tab!
+        name: null
+        tab_id: shap_dependence
+        depth: null
+        cats: true
+      component_imports:
+        ShapSummaryComponent: explainerdashboard.dashboard_components.shap_components
+        ShapDependenceComponent: explainerdashboard.dashboard_components.shap_components
+        ShapSummaryDependenceConnector: explainerdashboard.dashboard_components.shap_components
+        ShapDependenceComposite: explainerdashboard.dashboard_components.composites
+    - name: ShapDependenceTab
+      module: explainerdashboard.dashboard_tabs
+      params: null
+    - importances
