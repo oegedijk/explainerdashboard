@@ -51,12 +51,6 @@ class ShapSummaryComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title, self.hide_depth,  = hide_title, hide_depth
-        self.hide_type, self.hide_cats = hide_type, hide_cats
-        self.hide_selector, self.hide_index = hide_selector, hide_index
-        self.depth, self.summary_type, self.cats = depth, summary_type, cats
-        self.index = index
-
         if self.explainer.cats is None or not self.explainer.cats:
             self.hide_cats = True
         
@@ -207,11 +201,6 @@ class ShapDependenceComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title, self.hide_cats, self.hide_col = hide_title, hide_cats, hide_col
-        self.hide_color_col, self.hide_index = hide_color_col, hide_index
-        self.hide_selector = hide_selector
-        self.cats = cats
-        self.col, self.color_col, self.index = col, color_col, index
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         if self.color_col is None:
@@ -379,12 +368,6 @@ class InteractionSummaryComponent(ExplainerComponent):
             index (str):    Default index. Defaults to None.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_title, self.hide_col, self.hide_depth, self.hide_type, self.hide_cats = \
-            hide_title, hide_col, hide_depth, hide_type, hide_cats
-        self.hide_selector, self.hide_index = hide_selector, hide_index
-        self.col, self.depth, self.summary_type, self.cats, self.index = \
-            col, depth, summary_type, cats, index
     
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
@@ -555,14 +538,6 @@ class InteractionDependenceComponent(ExplainerComponent):
             highlight (int, optional): Index row to highlight Defaults to None.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_title, self.hide_cats, self.hide_col, self.hide_interact_col, self.hide_index = \
-            hide_title, hide_cats, hide_col, hide_interact_col, hide_index
-        self.hide_selector = hide_selector
-        self.hide_top, self.hide_bottom = hide_top, hide_bottom
-
-        self.cats, self.col, self.interact_col, self.index = \
-            cats, col, interact_col, index
 
         if self.col is None:
             self.col = explainer.columns_ranked_by_shap(cats)[0]
@@ -762,13 +737,6 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
-            hide_title, hide_index, hide_depth, hide_cats
-        self.hide_sort, self.hide_orientation, self.hide_selector = \
-            hide_sort, hide_orientation, hide_selector
-        self.index, self.depth, self.sort, self.orientation, self.cats = \
-            index, depth, sort, orientation, cats
-
         self.index_name = 'contributions-graph-index-'+self.name
 
         if self.depth is not None:
@@ -904,11 +872,6 @@ class ShapContributionsTableComponent(ExplainerComponent):
             cats (bool, optional): Group categoricals. Defaults to True.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_title, self.hide_index, self.hide_depth, self.hide_cats = \
-            hide_title, hide_index, hide_depth, hide_cats
-        self.hide_sort, self.hide_selector = hide_sort, hide_selector
-        self.index, self.depth, self.sort, self.cats = index, depth, sort, cats
 
         self.index_name = 'contributions-table-index-'+self.name
 

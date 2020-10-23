@@ -7,6 +7,7 @@ __all__ = [
     'make_hideable',
 ]
 
+import sys
 from abc import ABC
 import inspect
 import types
@@ -120,7 +121,7 @@ class ExplainerComponent(ABC):
         ExplainerComponent will register callbacks of subcomponents in addition
         to _register_callbacks() when calling register_callbacks()
     """
-    def __init__(self, explainer, title=None, name=None, header_mode=None):
+    def __init__(self, explainer, title=None, name=None):
         """initialize the ExplainerComponent
 
         Args:
@@ -131,16 +132,46 @@ class ExplainerComponent(ABC):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
-        if header_mode is not None:
-            raise ValueError("header_mode has been deprecated! You can just "
-                                "leave it from the constructor now.")
         self.explainer = explainer
         self.title = title
         self.name = name
         if self.name is None:
             self.name = shortuuid.ShortUUID().random(length=10)
+
+        self._store_child_params(
+                        no_attr=['explainer', 'title', 'name'], 
+                        no_param=['explainer'])
         self._components = []
         self._dependencies = []
+
+    def _store_child_params(self, no_store=None, no_attr=None, no_param=None):
+             
+        if not hasattr(self, '_stored_params'): 
+            self._stored_params = {}
+        child_frame = sys._getframe(2)
+        child_args = child_frame.f_code.co_varnames[1:child_frame.f_code.co_argcount]
+        child_dict = {arg: child_frame.f_locals[arg] for arg in child_args}
+        
+        if isinstance(no_store, bool) and no_store:
+            return
+        else:
+            if no_store is None: no_store = tuple()
+        
+        if isinstance(no_attr, bool) and no_attr: dont_attr = True
+        else:
+            if no_attr is None: no_attr = tuple()
+            dont_attr = False 
+            
+        if isinstance(no_param, bool) and no_param: dont_param = True
+        else:
+            if no_param is None: no_param = tuple()
+            dont_param = False 
+
+        for name, value in child_dict.items():
+            if not dont_attr and name not in no_store and name not in no_attr:
+                setattr(self, name, value)
+            if not dont_param and name not in no_store and name not in no_param:
+                self._stored_params[name] = value
 
     def register_components(self, *components):
         """register subcomponents so that their callbacks will be registered

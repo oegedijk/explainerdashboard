@@ -58,14 +58,6 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title, self.hide_index, self.hide_slider = \
-            hide_title, hide_index, hide_slider
-        self.hide_labels, self.hide_pred_or_perc = hide_labels, hide_pred_or_perc
-        self.hide_selector, self.hide_button = hide_selector, hide_button
-
-        self.index, self.slider = index, slider
-        self.labels, self.pred_or_perc = labels, pred_or_perc
-
         self.index_name = 'random-index-clas-index-'+self.name
 
         if self.slider is None:
@@ -226,16 +218,6 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             round (int, optional): rounding used for slider spacing. Defaults to 2.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_index, self.hide_button = hide_index, hide_button
-        self.hide_pred_slider = hide_pred_slider
-        self.hide_residual_slider = hide_residual_slider
-        self.hide_pred_or_y, self.hide_abs_residuals = hide_pred_or_y, hide_abs_residuals
-
-        self.index, self.round = index, round
-        self.pred_slider, self.y_slider = pred_slider, y_slider
-        self.residual_slider, self.abs_residual_slider = residual_slider, abs_residual_slider
-        self.pred_or_y, self.abs_residuals =  pred_or_y, abs_residuals
 
         self.index_name = 'random-index-reg-index-'+self.name
 
@@ -525,11 +507,6 @@ class CutoffPercentileComponent(ExplainerComponent):
             percentile ([type], optional): Initial percentile. Defaults to None.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_cutoff = hide_cutoff
-        self.hide_percentile = hide_percentile
-        self.hide_selector = hide_selector
-        self.cutoff, self.percentile = cutoff, percentile
 
         self.cutoff_name = 'cutoffconnector-cutoff-'+self.name
 

@@ -2,6 +2,29 @@
 
 ## Version 0.2.8:
 ### Breaking Changes
+
+
+### New Features
+-   ExplainerComponents now automatically store all parameters to attributes
+-   ExplainerComponents now automatically store all parameters to a ._stored_params dict
+-   ExplainerDashboard.to_yaml() now support instantiated tabs and stores parameters to yaml
+-   ExplainerDashbaord.from_config() now instantiates tabs with stored parameters
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+## Version 0.2.8:
+### Breaking Changes
 - split explainerdashboard.yaml into a explainer.yaml and dashboard.yaml
 - Changed UI of the explainerdashboard CLI to reflect this
 - This will make it easier in the future to have automatic rebuilds and redeploys

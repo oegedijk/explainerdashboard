@@ -51,12 +51,6 @@ class PrecisionComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_cutoff, self.hide_binsize = hide_cutoff, hide_binsize
-        self.hide_binmethod, self.hide_multiclass = hide_binmethod, hide_multiclass
-        self.hide_selector = hide_selector
-        
-        self.bin_size, self.quantiles, self.cutoff = bin_size, quantiles, cutoff 
-        self.quantiles_or_binsize, self.multiclass = quantiles_or_binsize, multiclass
         self.cutoff_name = 'precision-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -211,9 +205,6 @@ class ConfusionMatrixComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
-        self.hide_binary, self.hide_selector = hide_binary, hide_selector
-        self.cutoff, self.percentage, self.binary = cutoff, percentage, binary
         self.cutoff_name = 'confusionmatrix-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -306,9 +297,6 @@ class LiftCurveComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
-        self.hide_selector = hide_selector
-        self.cutoff, self.percentage = cutoff, percentage
         self.cutoff_name = 'liftcurve-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -380,7 +368,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
         """
         super().__init__(explainer, title, name)
-        self.hide_selector = hide_selector
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
@@ -432,9 +420,6 @@ class ClassificationComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_cutoff, self.hide_percentage = hide_cutoff, hide_percentage
-        self.hide_selector = hide_selector
-        self.cutoff, percentage = cutoff, percentage
         self.cutoff_name = 'classification-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -511,8 +496,6 @@ class RocAucComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_cutoff, self.hide_selector = hide_cutoff, hide_selector
-        self.cutoff=cutoff
         self.cutoff_name = 'rocauc-cutoff-' + self.name
         
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -571,8 +554,6 @@ class PrAucComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_cutoff, self.hide_selector = hide_cutoff, hide_selector
-        self.cutoff = cutoff
         self.cutoff_name = 'prauc-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -629,8 +610,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
             cutoff (float, optional): default cutoff. Defaults to 0.5.
         """
         super().__init__(explainer, title, name)
-        self.hide_cutoff, self.hide_selector = hide_cutoff, hide_selector
-        self.cutoff = cutoff
+        
         self.cutoff_name = 'clas-model-summary-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)

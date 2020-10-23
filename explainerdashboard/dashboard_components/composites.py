@@ -49,8 +49,6 @@ class ClassifierModelStatsComposite(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.hide_title = hide_title
-
         self.summary = ClassifierModelSummaryComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.precision = PrecisionComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.confusionmatrix = ConfusionMatrixComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
@@ -146,7 +144,6 @@ class RegressionModelStatsComposite(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
      
-        self.hide_title = hide_title
         assert pred_or_actual in ['vs_actual', 'vs_pred'], \
             "pred_or_actual should be 'vs_actual' or 'vs_pred'!"
 
@@ -208,8 +205,6 @@ class IndividualPredictionsComposite(ExplainerComponent):
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_title = hide_title
 
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(
@@ -278,8 +273,6 @@ class WhatIfComposite(ExplainerComponent):
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
         """
         super().__init__(explainer, title, name)
-
-        self.hide_title = hide_title
 
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(
