@@ -1,14 +1,11 @@
 # Release Notes
 
-## Version 0.2.8:
+## Version 0.2.9:
 ### Breaking Changes
 
 
 ### New Features
--   ExplainerComponents now automatically store all parameters to attributes
--   ExplainerComponents now automatically store all parameters to a ._stored_params dict
--   ExplainerDashboard.to_yaml() now support instantiated tabs and stores parameters to yaml
--   ExplainerDashbaord.from_config() now instantiates tabs with stored parameters
+-
 -
 
 ### Bug Fixes
@@ -16,8 +13,12 @@
 -
 
 ### Improvements
--
--
+-   ExplainerComponents now automatically store all parameters to attributes
+-   ExplainerComponents now automatically store all parameters to a ._stored_params dict
+-   ExplainerDashboard.to_yaml() now support instantiated tabs and stores parameters to yaml
+-   ExplainerDashboard.to_yaml() now stores the import requirments of subcomponents
+-   ExplainerDashboard.from_config() now instantiates tabs with stored parameters
+-   ExplainerDashboard.from_config() now imports classes of subcomponents
 
 ### Other Changes
 -
