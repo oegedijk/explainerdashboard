@@ -11,6 +11,7 @@ import sys
 from abc import ABC
 import inspect
 import types
+from collections import namedtuple 
 
 import dash
 import dash_core_components as dcc
@@ -18,7 +19,6 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 
 import shortuuid
-
 
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
 # then extended to deal with multiple inheritance
@@ -228,6 +228,18 @@ class ExplainerComponent(ABC):
             deps.extend(comp.dependencies)
         deps = list(set(deps))
         return deps
+
+    @property
+    def component_imports(self):
+        """returns a list of ComponentImport namedtuples("component", "module")
+         all components and and subcomponents"""
+        if not hasattr(self, '_components'):
+            self._components = []
+        _component_imports = [(self.__class__.__name__, self.__class__.__module__)]
+        for comp in self._components:
+            _component_imports.extend(comp.component_imports)
+        return list(set(_component_imports))
+
 
     @property
     def pos_labels(self):
