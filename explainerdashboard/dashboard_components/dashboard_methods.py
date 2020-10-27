@@ -11,7 +11,6 @@ import sys
 from abc import ABC
 import inspect
 import types
-from collections import namedtuple 
 
 import dash
 import dash_core_components as dcc
