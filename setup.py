@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.2.9',
+    version='0.2.9.1',
     description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.',
     long_description="""
 
@@ -70,7 +70,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
     install_requires=['dash', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
                     'dtreeviz>=1.0', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
-                    'shap', 'shortuuid', 'joblib', 'oyaml', 'click'],
+                    'shap>=0.36', 'shortuuid', 'joblib', 'oyaml', 'click'],
     entry_points={
         'console_scripts': [
             'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',
