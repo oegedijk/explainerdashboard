@@ -1,6 +1,5 @@
 
 # TODO:
-- put idxs in df.index
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -53,11 +52,8 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add gif to README
 - add CLI documentation
-- deployment: show how to to make automatically rebootable dashboard 
-    with watchdog package
-    - watchmedo shell-command  -p "*model.pkl;*data.csv;*explainerdashboard.yaml" -c "explainerdashboard build"
-
 - add docstrings to explainer_plots
 - add screenshots of all ExplainerComponents to docs
 - move screenshots to separate folder
