@@ -9,11 +9,6 @@
 ### New Features
 - You don't have to pass the list of subcomponents in `self.register_components()`
     anymore: it will infer them automatically from `self.__dict__`.
--
-
-### Bug Fixes
--
--
 
 ### Improvements
 -   ExplainerComponents now automatically stores all parameters to attributes
@@ -26,6 +21,7 @@
 ### Other Changes
 -   added docstrings to explainer_plots
 -   added screenshots of ExplainerComponents to docs
+-   added more gifs to the documentation
 
 ## Version 0.2.8:
 ### Breaking Changes
