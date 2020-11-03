@@ -69,11 +69,19 @@ shap_components
 ShapSummaryComponent
 --------------------
 
+.. image:: screenshots/components/shap_summary.png
+
+.. image:: screenshots/components/shap_summary_detailed.png
+
 .. autoclass:: explainerdashboard.dashboard_components.shap_components.ShapSummaryComponent
    :members:
 
 ShapDependenceComponent
 -----------------------
+
+.. image:: screenshots/components/shap_dependence.png
+
+.. image:: screenshots/components/shap_dependence_cats.png
 
 .. autoclass:: explainerdashboard.dashboard_components.shap_components.ShapDependenceComponent
    :members:
@@ -87,11 +95,15 @@ ShapSummaryDependenceConnector
 InteractionSummaryComponent
 ---------------------------
 
+.. image:: screenshots/components/interaction_summary.png
+
 .. autoclass:: explainerdashboard.dashboard_components.shap_components.InteractionSummaryComponent
    :members:
 
 InteractionDependenceComponent
 ------------------------------
+
+.. image:: screenshots/components/shap_interaction.png
 
 .. autoclass:: explainerdashboard.dashboard_components.shap_components.InteractionDependenceComponent
    :members:
@@ -105,11 +117,16 @@ InteractionSummaryDependenceConnector
 ShapContributionsTableComponent
 -------------------------------
 
+
+.. image:: screenshots/components/contribs_table.png
+
 .. autoclass:: explainerdashboard.dashboard_components.shap_components.ShapContributionsTableComponent
    :members:
 
 ShapContributionsGraphComponent
 -------------------------------
+
+.. image:: screenshots/components/contribs_graph.png
 
 .. autoclass:: explainerdashboard.dashboard_components.shap_components.ShapContributionsGraphComponent
    :members:
@@ -122,11 +139,17 @@ overview_components
 PredictionSummaryComponent
 --------------------------
 
+.. image:: screenshots/components/pred_summary_clas.png
+
+.. image:: screenshots/components/pred_summary_reg.png
+
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.PredictionSummaryComponent
    :members:
 
 ImportancesComponent
 --------------------
+
+.. image:: screenshots/components/importances.png
 
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.ImportancesComponent
    :members:
@@ -134,11 +157,15 @@ ImportancesComponent
 PdpComponent
 ------------
 
+.. image:: screenshots/components/pdp.png
+
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.PdpComponent
    :members:
 
 WhatIfComponent
 ---------------
+
+.. image:: screenshots/components/whatif.png
 
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.WhatIfComponent
    :members:
@@ -152,11 +179,16 @@ classifier_components
 ConfusionMatrixComponent
 ------------------------
 
+.. image:: screenshots/components/confusion_matrix.png
+
+
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.ConfusionMatrixComponent
    :members:
 
 LiftCurveComponent
 ------------------
+
+.. image:: screenshots/components/lift_curve.png
 
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.LiftCurveComponent
    :members:
@@ -164,11 +196,15 @@ LiftCurveComponent
 ClassificationComponent
 -----------------------
 
+.. image:: screenshots/components/classification.png
+
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.ClassificationComponent
    :members:
 
 RocAucComponent
 ---------------
+
+.. image:: screenshots/components/roc_auc.png
 
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.RocAucComponent
    :members:
@@ -176,17 +212,23 @@ RocAucComponent
 PrAucComponent
 --------------
 
+.. image:: screenshots/components/pr_auc.png
+
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.PrAucComponent
    :members:
 
 PrecisionComponent
 ------------------
 
+.. image:: screenshots/components/precision.png
+
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.PrecisionComponent
    :members:
 
 CumulativePrecisionComponent
 ----------------------------
+
+.. image:: screenshots/components/cumulative_lift.png
 
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.CumulativePrecisionComponent
    :members:
@@ -198,17 +240,23 @@ regression_components
 PredictedVsActualComponent
 --------------------------
 
+.. image:: screenshots/components/pred_vs_actual.png
+
 .. autoclass:: explainerdashboard.dashboard_components.regression_components.PredictedVsActualComponent
    :members:
 
 ResidualsComponent
 ------------------
 
+.. image:: screenshots/components/residuals.png
+
 .. autoclass:: explainerdashboard.dashboard_components.regression_components.ResidualsComponent
    :members:
 
 ResidualsVsColComponent
 -----------------------
+
+.. image:: screenshots/components/residuals_vs_col.png
 
 .. autoclass:: explainerdashboard.dashboard_components.regression_components.ResidualsVsColComponent
    :members:
@@ -224,8 +272,14 @@ RegressionModelSummaryComponent
 decisiontree_components
 =======================
 
+
+
 DecisionTreesComponent
 ----------------------
+
+.. image:: screenshots/components/trees.png
+
+.. image:: screenshots/components/xgb_trees.png
 
 .. autoclass:: explainerdashboard.dashboard_components.decisiontree_components.DecisionTreesComponent
    :members:
@@ -233,11 +287,15 @@ DecisionTreesComponent
 DecisionPathTableComponent
 --------------------------
 
+.. image:: screenshots/components/tree_table.png
+
 .. autoclass:: explainerdashboard.dashboard_components.decisiontree_components.DecisionPathTableComponent
    :members:
 
 DecisionPathGraphComponent
 --------------------------
+
+.. image:: screenshots/components/tree_viz.png
 
 .. autoclass:: explainerdashboard.dashboard_components.decisiontree_components.DecisionPathGraphComponent
    :members:

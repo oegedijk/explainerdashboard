@@ -11,6 +11,8 @@
 ## Plots:
 - add some of these:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
+- seperate standard shap plots for shap_interaction plots 
+    - using some kind of inheritance
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -31,7 +33,7 @@
 ## Dashboard:
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
-- add group fairness metrics? 
+- add group fairness metrics
 
 ### Components
 - add "experiment tracker" for what if...
@@ -52,11 +54,6 @@
 - write tests for explainer_plots
 
 ## Docs:
-- add gif to README
-- add CLI documentation
-- add docstrings to explainer_plots
-- add screenshots of all ExplainerComponents to docs
-- move screenshots to separate folder
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)

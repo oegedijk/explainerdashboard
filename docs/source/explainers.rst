@@ -20,7 +20,7 @@ This is enough to launch an ExplainerDashboard::
 
     ExplainerDashboard(explainer).run()
 
-.. image:: screenshot.png
+.. image:: screenshots/screenshot.png
 
 
 Or you can use it interactively in a notebook to inspect your model 
@@ -30,7 +30,7 @@ using the built-in plotting methods, e.g.::
     explainer.plot_shap_contributions(index=0)
     explainer.plot_shap_dependence("Fare", color_col="Sex")
 
-.. image:: notebook_screenshot.png
+.. image:: screenshots/notebook_screenshot.png
 
 For the full lists of plots available see :ref:`Plots<Plots>`.
 
@@ -45,7 +45,7 @@ in your notebook using :ref:`InlineExplainer<InlineExplainer>`, e.g.::
     InlineExplainer(explainer).regression.residuals_vs_col()
     InlineExplainer(explainer).shap.overview()
 
-.. image:: inline_screenshot.png
+.. image:: screenshots/inline_screenshot.png
 
 
 Parameters
@@ -521,7 +521,7 @@ random_index
 
 
 RandomForest and XGBoost outputs
--------------------------------
+--------------------------------
 
 For RandomForest and XGBoost models mixin classes that visualize individual 
 decision trees will be loaded: ``RandomForestExplainer`` and ``XGBExplainer``

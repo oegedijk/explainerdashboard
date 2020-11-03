@@ -6,54 +6,51 @@ Summary
 
 ``explainerdashboard`` is a library for quickly building interactive dashboards
 and interactive notebook components for analyzing and explaining the predictions
-and workings of (scikit-learn compatible) machine learning models.
+and workings of (scikit-learn compatible) machine learning models, including
+xgboost, catboost and lightgbm.
 
-It allows you to investigate shap values, permutation importances, 
+It allows you to investigate SHAP values, permutation importances, 
 interaction effects, partial dependence plots, all kinds of performance plots,
 and even individual trees in a random forest by deploying an interactive 
-dashboard with just two lines of code
+dashboard with just two lines of code. With ``explainerdashboard`` any data 
+scientist can create an interactive explainable AI web app in minutes, 
+without having to know anything about web development or deployment. 
 
 You first construct an ``explainer`` object out of your model and the test data::
 
-    from explainerdashboard import ClassifierExplainer
-    explainer = ClassifierExplainer(model, x, y)
+    from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+    explainer = ClassifierExplainer(model, X_test, y_test)
 
-The ``explainer`` offers an interface that computes all relevent metrics behind 
-the scenes and allows you to quickly plot feature importances,
-shap dependence plots, pdp plots, etc, etc:
+You then pass this ``explainer`` object to an ``ExplainerDashboard`` and run it::
 
-
-.. image:: notebook_screenshot.png
-
-
-You then pass this ``explainer`` object to an ``ExplainerDashboard`` to start an 
-interactive analytical web app to inspect the workings and performance of your model::
-
-    from explainerdashboard import ExplainerDashboard
     ExplainerDashboard(explainer).run()
 
-.. image:: screenshot.png
+.. image:: screenshots/screenshot.*
 
 
-For a custom dashboard you can make use of the ``ExplainerComponents`` primitives to 
-easily make your a dashboard interface to your own liking. For viewing 
-individual components or tabs directly inside your jupyter notebook you use the 
-``InlineExplainer``:
 
-.. image:: inline_screenshot.png
+InlineExplainer
+===============
 
-With ``explainerdashboard`` any data scientist can create an interactive web app
-to display the workings of their ML model in minutes, without having to know
-anything about web development or deployment. In addition it aids the model
-development flow by offering interactive inline notebook components without
-having to even launch a dashboard. 
+For viewing and customizing individual components or tabs directly inside your 
+notebook you use the ``InlineExplainer``::
 
-Supports all scikit-learn compatible models (that are compatible with the shap library), 
-including XGBoost, LightGBM, CatBoost, LinearRegression, LogisticRegression 
-and RandomForests.
+    InlineExplainer(explainer).shap.dependence()
+    InlineExplainer(explainer).shap.dependence(hide_cats=True, hide_index=True, col="Fare")
+    InlineExplainer(explainer).shap.overview()
+    InlineExplainer(explainer).tab.importances()
 
-An Example
-==========
+
+.. image:: screenshots/inline_screenshot.*
+
+The ``explainer`` object itself is also a plot factory that you can use
+to directly make plots inline in your notebook:
+
+.. image:: screenshots/notebook_screenshot.png
+
+
+A more extended example
+=======================
 
 Some example code, where we load some data, fit a model, construct an explainer, 
 pass it on to an ``ExplainerDashboard`` and run the dashboard::
@@ -74,7 +71,8 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
                     cats=['Sex', 'Deck', 'Embarked'],
                     labels=['Not survived', 'Survived'])
 
-    ExplainerDashboard(explainer).run()
+    db = ExplainerDashboard(explainer)
+    db.run(port=8051)
 
 Or, as a one-liner::
 
@@ -86,7 +84,33 @@ Or, as a one-liner::
     ).run()
 
 The result of the lines above can be seen in the screenshot above or can be
-viewed on `this dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
+viewed on `this example dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
+
+Custom dashboards
+=================
+You can easily :ref:`remix and customize<CustomModelTab>` ``ExplainerComponent`` primitives into
+your own custom layouts for a dashboard that is specifically tailored to
+your own model and project. For example a dashboard with a single SHAP dependence 
+component::
+
+    from explainerdashboard.custom import *
+
+    class CustomDashboard(ExplainerComponent):
+        def __init__(self, explainer):
+            super().__init__(explainer)
+            self.dependence = ShapDependenceComponent(explainer, 
+                    hide_selector=True, hide_cats=True, hide_index=True, col="Fare")
+            self.register_components()
+
+        def layout(self):
+            return html.Div([self.dependence.layout()])
+
+    ExplainerDashboard(explainer, CustomDashboard).run()
+
+
+A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>`:
+
+.. image:: screenshots/custom_dashboard.*
 
 
 More examples of how to start dashboards for different types of models and with 

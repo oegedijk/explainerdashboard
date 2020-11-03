@@ -32,7 +32,9 @@ You can install the package through pip:
 
 ## Screenshot
 
-[![Dashboard Screenshot](https://i.postimg.cc/Gm8RnKVb/Screenshot-2020-07-01-at-13-25-19.png)](https://postimg.cc/PCj9mWd7)
+![explainerdashboard.gif](explainerdashboard.gif)
+
+<!-- [![Dashboard Screenshot](https://i.postimg.cc/Gm8RnKVb/Screenshot-2020-07-01-at-13-25-19.png)](https://postimg.cc/PCj9mWd7) -->
 
 ## Background
 

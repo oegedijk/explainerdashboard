@@ -130,6 +130,13 @@ html_static_path = ['nstatic']
 #
 # html_sidebars = {}
 
+from sphinx.builders.html import StandaloneHTMLBuilder
+StandaloneHTMLBuilder.supported_image_types = [
+    'image/svg+xml',
+    'image/gif',
+    'image/png',
+    'image/jpeg'
+]
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
