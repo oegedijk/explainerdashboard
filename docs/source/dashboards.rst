@@ -17,7 +17,7 @@ all the default tabs that are compatible with your ``model`` and ``model_output`
    ExplainerDashboard(explainer).run()
 
 
-.. image:: screenshot.png
+.. image:: screenshots/screenshot.png
 
 
 Switching off tabs with booleans
@@ -73,7 +73,7 @@ This would start a dashboard with three importances tabs.
 
 The tabs can be imported from ``explainerdashboard.dashboard_tabs``, they include
 ``ImportancesTab``, ``ModelSummaryTab``, ``ContributionsTab``, ``WhatIfTab``,
-    ``ShapDependenceTab``, ``ShapInteractionsTab`` and ``DecisionTreesTab``.
+``ShapDependenceTab``, ``ShapInteractionsTab`` and ``DecisionTreesTab``.
 
 You can also build your own custom tabs, see the :ref:`Custom Dashboards<Custom Dashboards>` section.
 
@@ -102,7 +102,7 @@ The parameters ``width`` and ``height`` determine the size of the output area in
 (default to ``1000x800``). You can kill a JupyterDash based dashboard with
 ``ExplainerDashboard().terminate(port)``.
 
-.. image:: inline_example.png
+.. image:: screenshots/inline_example.png
 
 Adding a theme
 --------------
@@ -122,7 +122,7 @@ You can add a theme by putting it in an ``/assets/`` subfolder, or by linking to
 
 Example of a nice flat black and white theme called "FLATLY":
 
-.. image:: flatlytheme.png
+.. image:: screenshots/flatlytheme.png
 
 The full list of available themes can be found on the 
 `dbc documentation page. <https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/>`_ 

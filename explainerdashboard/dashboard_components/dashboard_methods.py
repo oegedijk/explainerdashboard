@@ -174,7 +174,12 @@ class ExplainerComponent(ABC):
 
     def register_components(self, *components):
         """register subcomponents so that their callbacks will be registered
-        and dependencies can be tracked"""
+        and dependencies can be tracked
+        
+        Args:
+            scan_self (bool, optional): scan self.__dict__ and add all
+            ExplainerComponent attributes to _components. Defaults to True
+        """
         if not hasattr(self, '_components'):
             self._components = []
         for comp in components:
@@ -188,6 +193,10 @@ class ExplainerComponent(ABC):
                         print(f"{subcomp.__name__} is not an ExplainerComponent so not adding to self.components")
             else:
                 print(f"{comp.__name__} is not an ExplainerComponent so not adding to self.components")
+        
+        for k, v in self.__dict__.items():
+            if k != '_components' and isinstance(v, ExplainerComponent) and v not in self._components:
+                self._components.append(v)
 
     def has_pos_label_connector(self):
         if not hasattr(self, '_components'):

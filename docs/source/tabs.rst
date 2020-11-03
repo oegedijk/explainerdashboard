@@ -14,39 +14,39 @@ There are seven tabs that make up the default``ExplainerDashboard``::
 Importances Tab
 ===============
 
-.. image:: tab_importances.png
+.. image:: screenshots/tab_importances.png
 
 Model Performance Tab
 =====================
 
-.. image:: tab_model_performance.png
+.. image:: screenshots/tab_model_performance.png
 
 Individual Prediction Tab
 =========================
 
-.. image:: tab_individual_predictions.png
+.. image:: screenshots/tab_individual_predictions.png
 
 What if... Tab
 ==============
 
-.. image:: tab_whatif.png
+.. image:: screenshots/tab_whatif.png
 
 
 
 Feature Dependence Tab
 ======================
 
-.. image:: tab_feature_dependence.png
+.. image:: screenshots/tab_feature_dependence.png
 
 Feature Interactions Tab
 ========================
 
-.. image:: tab_interactions.png
+.. image:: screenshots/tab_interactions.png
 
 Decisiontrees Tab
 =================
 
-.. image:: tab_decision_trees.png
+.. image:: screenshots/tab_decision_trees.png
 
 ExplainerTabsLayout
 ===================

@@ -16,7 +16,8 @@ __all__= [
     'plotly_plot_residuals',
     'plotly_residuals_vs_col',
     'plotly_rf_trees',
-    'plotly_xgboost_trees']
+    'plotly_xgboost_trees'
+    ]
 
 import numpy as np
 import pandas as pd
@@ -34,18 +35,28 @@ def plotly_contribution_plot(contrib_df, target="",
                          model_output="raw", higher_is_better=False,
                          include_base_value=True, include_prediction=True, 
                          orientation='vertical', round=2, units=""):
+    """Generate a shap contributions plot from a contrib_df dataframe
+
+    Args:
+        contrib_df (pd.DataFrame): contrib_df generated with get_contrib_df(...)
+        target (str, optional): Target variable to be displayed. Defaults to "".
+        model_output ({"raw", "logodds", "probability"}, optional): Kind of 
+            output of the model. Defaults to "raw".
+        higher_is_better (bool, optional): Display increases in shap as green, 
+            decreases as red. Defaults to False.
+        include_base_value (bool, optional): Include shap base value in the plot. 
+            Defaults to True.
+        include_prediction (bool, optional): Include the final prediction in 
+            the plot. Defaults to True.
+        orientation ({'vertical', 'horizontal'}, optional): Display the plot 
+            vertically or horizontally. Defaults to 'vertical'.
+        round (int, optional): Round of floats. Defaults to 2.
+        units (str, optional): Units of outcome variable.  Defaults to "".
+
+    Returns:
+        plotly fig:
     """
-    Takes in a DataFrame contrib_df with columns
-    'col' -- name of columns
-    'contribution' -- contribution of that column to the final predictions
-    'cumulative' -- the summed contributions from the top to the current row
-    'base' -- the summed contributions from the top excluding the current row
 
-    Outputs a bar chart displaying the contribution of each individual
-    column to the final prediction. 
-
-    :param model_out 'raw' or 'probability' or 'logodds'
-    """ 
     if orientation not in ['vertical', 'horizontal']:
         raise ValueError(f"orientation should be in ['vertical', 'horizontal'], but you passed orientation={orientation}")
     if model_output not in ['raw', 'probability', 'logodds']:
@@ -184,14 +195,20 @@ def plotly_contribution_plot(contrib_df, target="",
 
 
 def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None):
+    """Returns a plotly figure with average predicted probability and 
+    percentage positive per probability bin.
+
+    Args:
+        precision_df (pd.DataFrame): generated with get_precision_df(..)
+        cutoff (float, optional): Model cutoff to display in graph. Defaults to None.
+        labels (List[str], optional): Labels for prediction classes. Defaults to None.
+        pos_label (int, optional): For multiclass classifiers: which class to treat 
+        as positive class. Defaults to None.
+
+    Returns:
+        Plotly fig
     """
-    returns a plotly figure with bar plots for counts of observations for a 
-    certain pred_proba bin,
-    and a line trace for the actual fraction of positive labels for that bin.
-    
-    precision_df generated from get_precision_df(predictions_df)
-    predictions_df generated from get_predictions_df(rf_model, X, y)
-    """
+
     label = labels[pos_label] if labels is not None and pos_label is not None else 'positive'
     
     precision_df = precision_df.copy()
@@ -294,6 +311,22 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
 
 def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, 
                                 pos_label=1, percentage=False):
+    """Displays bar plots showing label distributions above and below cutoff
+    value.
+
+    Args:
+        pred_probas (np.ndarray): array of predicted probabilities
+        targets (np.ndarray): array of actual target labels 
+            (e.g. [0, 1, 1, 0,...,1])
+        labels (List[str], optional): List of labels for classes. Defaults to None.
+        cutoff (float, optional): Cutoff pred_proba. Defaults to 0.5.
+        pos_label (int, optional): Positive label class. Defaults to 1.
+        percentage (bool, optional): Display percentage instead of absolute 
+            numbers. Defaults to False.
+
+    Returns:
+        Plotly fig
+    """
     if len(pred_probas.shape) == 2:
         below = (pred_probas[:, pos_label] < cutoff)
     else:
@@ -348,10 +381,20 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
 
 
 def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
+    """returns a lift plot for values 
+
+    Args:
+        lift_curve_df (pd.DataFrame): generated with get_lift_curve_df(pred_proba, y)
+        cutoff (float, optional): cutoff above which samples get classified as 
+            positive. Defaults to None.
+        percentage (bool, optional): Display percentages instead of absolute 
+            numbers along axis. Defaults to False.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+
+    Returns:
+        Plotly fig
     """
-    returns a lift plot for values generated with get_lift_curve_df(pred_proba, y)
-    """
-    
+
     if percentage:
         model_text=[f"model selected {np.round(pos, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
                     + f"precision={np.round(precision, 2)}% positives in sample<br>" \
@@ -470,6 +513,17 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
 
 
 def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
+    """Return cumulative precision plot showing the expected label distribution
+    if you cumulatively sample a more and more of the highest predicted samples.
+
+    Args:
+        lift_curve_df (pd.DataFrame): generated with get_liftcurve_df(...)
+        labels (List[str], optional): list of labels for classes. Defaults to None.
+        pos_label (int, optional): Positive class label. Defaults to 1.
+
+    Returns:
+        Plotly fig
+    """
     if labels is None:
         labels = ['category ' + str(i) for i in range(lift_curve_df.y.max()+1)]
     fig = go.Figure()
@@ -530,10 +584,30 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
                             interaction=False, na_fill=-999, round=2, units="", 
                             highlight_index=None, idxs=None):
-    """
-    Returns a partial dependence plot based on shap values.
+    """Returns a dependence plot showing the relationship between feature col_name
+    and shap values for col_name. Do higher values of col_name increase prediction
+    or decrease them? Or some kind of U-shape or other?
 
-    Observations are colored according to the values in column interact_col_name
+    Args:
+        X (pd.DataFrame): dataframe with rows of input data
+        shap_values (np.ndarray): shap values generated for X
+        col_name (str): column name for which to generate plot
+        interact_col_name (str, optional): Column name by which to color the 
+        markers. Defaults to None.
+        interaction (bool, optional): Is this a plot of shap interaction values? 
+            Defaults to False.
+        na_fill (int, optional): value used for filling missing values. 
+            Defaults to -999.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        units (str, optional): Units of the target variable. Defaults to "".
+        highlight_index (str, int, optional): index row of X to highlight in t
+        he plot. Defaults to None.
+        idxs (list, optional): list of descriptors of the index, e.g. 
+            names or other identifiers. Defaults to None.
+
+
+    Returns:
+        Plotly fig
     """
     assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
     assert (interact_col_name is None and not interaction) or interact_col_name in X.columns.tolist(),\
@@ -679,12 +753,28 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
 
 def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, 
         interaction=False, units="", highlight_index=None, idxs=None):
-    """
-    Returns a violin plot for categorical values. 
+    """Generates a violin plot for displaying shap value distributions for
+    categorical features.
 
-    if points=True or color_col is not None, a scatterplot of points is plotted next to the violin plots.
-    If color_col is given, scatter is colored by color_col.
+    Args:
+        X (pd.DataFrame): dataframe of input rows
+        shap_values (np.ndarray): shap values generated for X
+        col_name (str): Column of X to display violin plot for
+        color_col (str, optional): Column of X to color plot markers by. 
+            Defaults to None.
+        points (bool, optional): display point cloud next to violin plot. 
+            Defaults to False.
+        interaction (bool, optional): Is this a plot for shap_interaction_values? 
+            Defaults to False.  
+        units (str, optional): Units of target variable. Defaults to "".
+        highlight_index (int, str, optional): Row index to highligh. Defaults to None.
+        idxs (List[str], optional): List of identifiers for each row in X, e.g. 
+            names or id's. Defaults to None.
+
+    Returns:
+        Plotly fig
     """
+    
     assert is_string_dtype(X[col_name]), \
         f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
         
@@ -838,15 +928,32 @@ def plotly_pdp(pdp_result,
                display_index=None, index_feature_value=None, index_prediction=None,
                absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None,
                round=2, target="", units=""):
+    """Display partial-dependence plot (pdp)
+
+    Args:
+        pdp_result (pdp_result): Generated from pdp.pdp_result()
+        display_index (int, str, optional): Index to highligh in plot. 
+            Defaults to None.
+        index_feature_value (str, float, optional): value of feature for index. 
+            Defaults to None.
+        index_prediction (float, optional): Final prediction for index. 
+            Defaults to None.
+        absolute (bool, optional): Display absolute pdp lines. If false then 
+            display relative to base. Defaults to True.
+        plot_lines (bool, optional): Display selection of individual pdp lines. 
+            Defaults to True.
+        num_grid_lines (int, optional): Number of sample gridlines to display. 
+            Defaults to 100.
+        feature_name (str, optional): Name of the feature that the pdp_result
+            was generated for. Defaults to None.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        target (str, optional): Name of target variables. Defaults to "".
+        units (str, optional): Units of target variable. Defaults to "".
+
+    Returns:
+        Plotly fig
     """
-    display_index: display the pdp of particular index
-    index_feature_value: the actual feature value of the index to be highlighted
-    index_prediction: the actual prediction of the index to be highlighted
-    absolute: pdp ice lines absolute prediction or relative to base
-    plot_lines: add ice lines or not
-    num_grid_lines number of icelines to display
-    feature_name: name of the feature that is being displayed, defaults to pdp_result.feature
-    """ 
+    
     if feature_name is None: feature_name = pdp_result.feature
 
     trace0 = go.Scatter(
@@ -957,6 +1064,20 @@ def plotly_pdp(pdp_result,
 
 def plotly_importances_plot(importance_df, descriptions=None, round=3, 
             target="target" , units="", title=None, xaxis_title=None):
+    """Return feature importance plot
+
+    Args:
+        importance_df (pd.DataFrame): generate with get_importance_df(...)
+        descriptions (dict, optional): dict of descriptions of each feature. 
+        round (int, optional): Rounding to apply to floats. Defaults to 3.
+        target (str, optional): Name of target variable. Defaults to "target".
+        units (str, optional): Units of target variable. Defaults to "".
+        title (str, optional): Title for graph. Defaults to None.
+        xaxis_title (str, optional): Title for x-axis Defaults to None.
+
+    Returns:
+        Plotly fig
+    """
     
     importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     if title is None:
@@ -1007,6 +1128,18 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3,
 
 
 def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
+    """Generates Plotly fig confusion matrix
+
+    Args:
+        y_true (np.ndarray): array of actual values
+        y_preds (np.ndarray): array of predicted labels
+        labels (List[str], optional): List of labels for classes. Defaults to None.
+        percentage (bool, optional): Display percentages instead of absolute number. 
+            Defaults to True.
+
+    Returns:
+        Plotly fig
+    """
 
     cm = confusion_matrix(y_true, y_preds)
     cm_normalized = np.round(100*cm / cm.sum(), 1)
@@ -1060,6 +1193,16 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
 
 
 def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
+    """Plot ROC AUC curve
+
+    Args:
+        true_y (np.ndarray): array of true labels
+        pred_probas (np.ndarray): array of predicted probabilities
+        cutoff (float, optional): Cutoff proba to display. Defaults to None.
+
+    Returns:
+        Plotly Fig: 
+    """
     fpr, tpr, thresholds = roc_curve(true_y, pred_probas)
     roc_auc = roc_auc_score(true_y, pred_probas)
     trace0 = go.Scatter(x=fpr, y=tpr,
@@ -1138,6 +1281,16 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
 
 
 def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
+    """Generate Precision-Recall Area Under Curve plot
+
+    Args:
+        true_y (np.ndarray): array of tru labels
+        pred_probas (np.ndarray): array of predicted probabilities
+        cutoff (float, optional): model cutoff to display in graph. Defaults to None.
+
+    Returns:
+        Plotly fig: 
+    """
     precision, recall, thresholds = precision_recall_curve(true_y, pred_probas)
     pr_auc_score = average_precision_score(true_y, pred_probas)
     trace0 = go.Scatter(x=precision, y=recall,
@@ -1208,9 +1361,32 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values", 
+def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap values", 
                 idxs=None, highlight_index=None, na_fill=-999):
+    """Generate a shap values summary plot where features are ranked from
+    highest mean absolute shap value to lowest, with point clouds shown
+    for each feature. 
+
+    Args:
+        shap_values (np.ndarray): shap_values
+        X (pd.DataFrame): dataframe of input features
+        display_columns (List[str]): list of feature to be displayed. If None
+            default to all columns in X.
+        title (str, optional): Title to display above graph. 
+            Defaults to "Shap values".
+        idxs (List[str], optional): List of identifiers for each row in X. 
+            Defaults to None.
+        highlight_index ({str, int}, optional): Index to highlight in graph. 
+            Defaults to None.
+        na_fill (int, optional): Fill value used to fill missing values, 
+            will be colored grey in the graph.. Defaults to -999.
+
+    Returns:
+        Plotly fig
+    """
     
+    if display_columns is None:
+        display_columns = X.columns.tolist()
     if idxs is not None:
         assert len(idxs)==X.shape[0]
         idxs = np.array([str(idx) for idx in idxs])
@@ -1325,6 +1501,23 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns, title="Shap values
 
 def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2, 
             logs=False, log_x=False, log_y=False, idxs=None):
+    """Generate graph showing predicted values from a regressor model vs actual
+    values.
+
+    Args:
+        y (np.ndarray): Actual values
+        preds (np.ndarray): Predicted values
+        target (str, optional): Label for target. Defaults to "".
+        units (str, optional): Units of target. Defaults to "".
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        logs (bool, optional): Log both axis. Defaults to False.
+        log_x (bool, optional): Log x axis. Defaults to False.
+        log_y (bool, optional): Log y axis. Defaults to False.
+        idxs (List[str], optional): list of identifiers for each observation. Defaults to None.
+
+    Returns:
+        Plotly fig
+    """
     
     if idxs is not None:
         assert len(idxs)==len(preds)
@@ -1464,7 +1657,29 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", residu
 
 def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference',
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999):
-    
+    """Generates a residuals plot vs a particular feature column.
+
+    Args:
+        y (np.ndarray): array of actual target values
+        preds (np.ndarray): array of predicted values
+        col (pd.Series): series of values to be used as x-axis
+        col_name (str, optional): feature name to display. 
+            Defaults to None, in which case col.name gets used.
+        residuals ({'log-ratio', 'ratio', 'difference'}, optional): 
+            type of residuals to display. Defaults to 'difference'.
+        idxs (List[str], optional): str identifiers for each sample. 
+            Defaults to None.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        points (bool, optional): For categorical features display point cloud 
+            next to violin plots. Defaults to True.
+        winsor (int, optional): Winsorize the outliers. Remove the top `winsor` 
+            percent highest and lowest values. Defaults to 0.
+        na_fill (int, optional): Value used to fill missing values. Defaults to -999.
+
+
+    Returns:
+        Plotly fig
+    """
     if col_name is None:
         try:
             col_name = col.name
@@ -1587,9 +1802,21 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
 
 def plotly_rf_trees(model, observation, y=None, highlight_tree=None, 
             round=2, pos_label=1, target="", units=""):
-    """
-    returns a plot with all the individual predictions of the 
-    DecisionTrees that make up the RandomForest.
+    """Generate a plot showing the prediction of every single tree inside a RandomForest model
+
+    Args:
+        model ({RandomForestClassifier, RandomForestRegressor}): model to display trees for
+        observation (pd.DataFrame): row of input data, e.g. X.iloc[[0]]
+        y (np.ndarray, optional): Target values. Defaults to None.
+        highlight_tree (int, optional): DecisionTree to highlight in graph. Defaults to None.
+        round (int, optional): Apply rounding to floats. Defaults to 2.
+        pos_label (int, optional): For RandomForestClassifier: Class label 
+            to generate graph for. Defaults to 1.
+        target (str, optional): Description of target variable. Defaults to "".
+        units (str, optional): Units of target variable. Defaults to "".
+
+    Returns:
+        Plotly fig
     """
     assert (str(type(model)).endswith("RandomForestClassifier'>") 
             or str(type(model)).endswith("RandomForestRegressor'>")), \
@@ -1683,9 +1910,20 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
 
 def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,  
                             pos_label=1, target="", units=""):
-    """
-    returns a plot with all the individual predictions of the 
-    DecisionTrees that make up the RandomForest.
+    """Generate a plot showing the prediction of every single tree inside an XGBoost model
+
+    Args:
+        xgboost_preds_df (pd.DataFrame): generated with get_xgboost_preds_df(...)
+        highlight_tree (int, optional): DecisionTree to highlight in graph. Defaults to None.
+        y (np.ndarray, optional): Target values. Defaults to None.
+        round (int, optional): Apply rounding to floats. Defaults to 2.
+        pos_label (int, optional): For RandomForestClassifier: Class label 
+            to generate graph for. Defaults to 1.
+        target (str, optional): Description of target variable. Defaults to "".
+        units (str, optional): Units of target variable. Defaults to "".
+
+    Returns:
+        Plotly fig
     """
         
     xgboost_preds_df['color'] = 'blue'

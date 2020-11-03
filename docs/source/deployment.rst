@@ -76,6 +76,7 @@ And then start the ExpalinerDashboard directly from the config file in ``dashboa
     db = ExplainerDashboard.from_config("dashboard.yaml")
     app = db.flask_server()
 
+
 .. highlight:: bash
 
 And start the server the same as before::
@@ -154,6 +155,7 @@ So you can keep an explainerdashboard running without interuption and simply
  an updated ``model.pkl`` or a fresh dataset ``data.csv`` into the directory and 
 the dashboard will automatically update. 
 
+
 Deploying dashboard as part of Flask app on specific route
 ==========================================================
 
@@ -178,7 +180,9 @@ under ``db.app.index``::
     def return_dashboard():
         return db.app.index()
 
+
 .. highlight:: bash 
+
 Now you can start the dashboard by::
 
     $ gunicorn --preload -b localhost:8050 dashboard:app

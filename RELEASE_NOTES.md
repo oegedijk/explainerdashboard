@@ -1,11 +1,14 @@
 # Release Notes
 
+
+
 ## Version 0.2.9:
 ### Breaking Changes
 
 
 ### New Features
--
+- You don't have to pass the list of subcomponents in `self.register_components()`
+    anymore: it will infer them automatically from `self.__dict__`.
 -
 
 ### Bug Fixes
@@ -13,16 +16,16 @@
 -
 
 ### Improvements
--   ExplainerComponents now automatically store all parameters to attributes
--   ExplainerComponents now automatically store all parameters to a ._stored_params dict
+-   ExplainerComponents now automatically stores all parameters to attributes
+-   ExplainerComponents now automatically stores all parameters to a ._stored_params dict
 -   ExplainerDashboard.to_yaml() now support instantiated tabs and stores parameters to yaml
 -   ExplainerDashboard.to_yaml() now stores the import requirments of subcomponents
 -   ExplainerDashboard.from_config() now instantiates tabs with stored parameters
 -   ExplainerDashboard.from_config() now imports classes of subcomponents
 
 ### Other Changes
--
--
+-   added docstrings to explainer_plots
+-   added screenshots of ExplainerComponents to docs
 
 ## Version 0.2.8:
 ### Breaking Changes
