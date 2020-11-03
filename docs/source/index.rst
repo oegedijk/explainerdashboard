@@ -108,7 +108,8 @@ component::
     ExplainerDashboard(explainer, CustomDashboard).run()
 
 
-A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>`:
+A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>` 
+(example deployed `here <http://titanicexplainer.herokuapp.com/custom/>`_):
 
 .. image:: screenshots/custom_dashboard.*
 
