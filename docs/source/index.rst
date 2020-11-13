@@ -5,8 +5,8 @@ Summary
 =======
 
 ``explainerdashboard`` is a library for quickly building interactive dashboards
-and interactive notebook components for analyzing and explaining the predictions
-and workings of (scikit-learn compatible) machine learning models, including
+for analyzing and explaining the predictions and workings of 
+(scikit-learn compatible) machine learning models, including
 xgboost, catboost and lightgbm.
 
 It allows you to investigate SHAP values, permutation importances, 
@@ -35,6 +35,8 @@ InlineExplainer
 For viewing and customizing individual components or tabs directly inside your 
 notebook you use the ``InlineExplainer``::
 
+    from explainerdashboard import InlineExplainer
+    
     InlineExplainer(explainer).shap.dependence()
     InlineExplainer(explainer).shap.dependence(hide_cats=True, hide_index=True, col="Fare")
     InlineExplainer(explainer).shap.overview()
@@ -71,7 +73,10 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
                     cats=['Sex', 'Deck', 'Embarked'],
                     labels=['Not survived', 'Survived'])
 
-    db = ExplainerDashboard(explainer)
+    db = ExplainerDashboard(explainer, title="Titanic Explainer",
+                        whatif=False, # you can switch off tabs with bools
+                        shap_interaction=False,
+                        decision_trees=False)
     db.run(port=8051)
 
 Or, as a one-liner::

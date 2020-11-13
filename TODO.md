@@ -13,6 +13,10 @@
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance
+- DecisionTree plots: 
+    - add some seperatation when pred ~= actual
+    - rename y "observed" 
+    - add bars for average and observed?
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -26,6 +30,9 @@
 - add plain language explanations
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
+- Allow sklearn pipelines as model input
+- clearer error message for shap guess fail
+- add `cats = dict(Sex=['Male', 'Female'])` option.
 
 
 ## notebooks:
@@ -39,6 +46,7 @@
 - add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
+- whatif component: check non duplicate feature names
 
 ## Methods:
 - Add LIME values
@@ -54,13 +62,14 @@
 - write tests for explainer_plots
 
 ## Docs:
+- Add pydate video: https://www.youtube.com/watch?v=1nMlfrDvwc8
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
 
 ## Library level:
+- build release on conda-forge
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
-- add more screenshots to README with https://postimages.org/
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
