@@ -113,7 +113,8 @@ class BaseExplainer(ABC):
 
         self.model_output = model_output
 
-        self.cats = cats if cats is not None else []
+        self.cats, self.cats_dict = parse_cats(self.X, cats)
+
         if idxs is not None:
             assert len(idxs) == len(self.X) == len(self.y), \
                 ("idxs should be same length as X but is not: "
@@ -522,7 +523,7 @@ class BaseExplainer(ABC):
             if col in self.X.columns:
                 col_value = self.X[col].iloc[idx]
             elif col in self.cats:
-                col_value = retrieve_onehot_value(self.X, col)[idx]
+                col_value = retrieve_onehot_value(self.X, col, self.cats_dict[col])[idx]
 
             if self.is_classifier:
                 if pos_label is None:
@@ -539,7 +540,7 @@ class BaseExplainer(ABC):
             
             if ((len(X_row.columns) == len(self.X_cats.columns)) and 
                 (X_row.columns == self.X_cats.columns).all()):
-                X_row = X_cats_to_X(X_row, self.cats, self.X.columns)    
+                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
             else:
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
@@ -547,7 +548,7 @@ class BaseExplainer(ABC):
             if col in X_row.columns:
                 col_value = X_row[col].item()
             elif col in self.cats:
-                col_value = retrieve_onehot_value(X_row, col).item()
+                col_value = retrieve_onehot_value(X_row, col, self.cats_dict[col]).item()
 
             if self.is_classifier:
                 if pos_label is None:
@@ -579,7 +580,8 @@ class BaseExplainer(ABC):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
             self._perm_imps_cats = cv_permutation_importances(
-                            self.model, self.X, self.y, self.metric, self.cats,
+                            self.model, self.X, self.y, self.metric, 
+                            cats_dict=self.cats_dict,
                             cv=self.permutation_cv,
                             n_jobs=self.n_jobs,
                             needs_proba=self.is_classifier)
@@ -589,7 +591,7 @@ class BaseExplainer(ABC):
     def X_cats(self):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
-            self._X_cats = merge_categorical_columns(self.X, self.cats)
+            self._X_cats = merge_categorical_columns(self.X, self.cats_dict)
         return self._X_cats
 
     @property
@@ -628,7 +630,7 @@ class BaseExplainer(ABC):
         """SHAP values when categorical features have been grouped"""
         if not hasattr(self, '_shap_values_cats'):
             self._shap_values_cats = merge_categorical_shap_values(
-                    self.X, self.shap_values, self.cats)
+                    self.X, self.shap_values, self.cats_dict)
         return make_callable(self._shap_values_cats)
 
     @property
@@ -649,7 +651,7 @@ class BaseExplainer(ABC):
         if not hasattr(self, '_shap_interaction_values_cats'):
             self._shap_interaction_values_cats = \
                 merge_categorical_shap_interaction_values(
-                    self.X, self.X_cats, self.shap_interaction_values)
+                    self.shap_interaction_values, self.X, self.X_cats, self.cats_dict)
         return make_callable(self._shap_interaction_values_cats)
 
     @property
@@ -665,7 +667,7 @@ class BaseExplainer(ABC):
         """Mean absolute SHAP values with categoricals grouped."""
         if not hasattr(self, '_mean_abs_shap_cats'):
             self._mean_abs_shap_cats = mean_absolute_shap_values(
-                                self.columns, self.shap_values, self.cats)
+                                self.columns, self.shap_values, self.cats_dict)
         return make_callable(self._mean_abs_shap_cats)
 
     def calculate_properties(self, include_interactions=True):
@@ -893,9 +895,9 @@ class BaseExplainer(ABC):
 
         if sort =='importance':
             if cutoff is None:
-                cols = self.columns_ranked_by_shap(self.cats)
+                cols = self.columns_ranked_by_shap(cats)
             else:
-                cols = self.mean_abs_shap_df(cats=True).query(f"MEAN_ABS_SHAP > {cutoff}").Feature.tolist()
+                cols = self.mean_abs_shap_df(cats=cats).query(f"MEAN_ABS_SHAP > {cutoff}").Feature.tolist()
             if topx is not None:
                 cols = cols[:topx]
         else:
@@ -905,7 +907,7 @@ class BaseExplainer(ABC):
                 (X_row.columns == self.X_cats.columns).all()):
                 if cats: 
                     X_row_cats = X_row
-                X_row = X_cats_to_X(X_row, self.cats, self.X.columns)    
+                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
             else:
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
@@ -918,7 +920,7 @@ class BaseExplainer(ABC):
                 shap_values = shap_values[self.get_pos_label_index(pos_label)]
 
             if cats:
-                shap_values_cats = merge_categorical_shap_values(X_row, shap_values, self.cats)
+                shap_values_cats = merge_categorical_shap_values(X_row, shap_values, self.cats_dict)
                 return get_contrib_df(self.shap_base_value(pos_label), shap_values_cats[0], 
                             X_row_cats, topx, cutoff, sort, cols)   
             else:
@@ -986,8 +988,7 @@ class BaseExplainer(ABC):
         if cutoff is None: cutoff = importance_df.MEAN_ABS_SHAP.min()
         return importance_df[importance_df.MEAN_ABS_SHAP >= cutoff].head(topx)
     
-    def formatted_contrib_df(self, index, round=None, lang='en', 
-                                pos_label=None):
+    def formatted_contrib_df(self, index, round=None, lang='en', pos_label=None):
         """contrib_df formatted in a particular idiosyncratic way.
         
         Additional language option for output in Dutch (lang='nl')
@@ -1000,7 +1001,6 @@ class BaseExplainer(ABC):
 
         Returns:
           pd.DataFrame: formatted_contrib_df
-
         """
         cdf = self.contrib_df(index, cats=True, pos_label=pos_label).copy()
         cdf.reset_index(inplace=True)
@@ -1047,7 +1047,7 @@ class BaseExplainer(ABC):
         if col in self.columns and not col in self.columns_cats:
             features = col
         else:
-            features = get_feature_dict(self.X.columns, self.cats)[col]
+            features = self.cats_dict[col]
 
         if index is not None:
             idx = self.get_int_idx(index)
@@ -1067,7 +1067,7 @@ class BaseExplainer(ABC):
         elif X_row is not None:
             if ((len(X_row.columns) == len(self.X_cats.columns)) and 
                 (X_row.columns == self.X_cats.columns).all()):
-                X_row = X_cats_to_X(X_row, self.cats, self.X.columns)    
+                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
             else:
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
@@ -1737,7 +1737,7 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating categorical permutation importances (if slow, try setting n_jobs parameter)...", flush=True)
             self._perm_imps_cats = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric, 
-                            cats=self.cats,
+                            cats_dict=self.cats_dict,
                             cv=self.permutation_cv,
                             needs_proba=self.is_classifier,
                             pos_label=label) for label in range(len(self.labels))]
@@ -1800,7 +1800,7 @@ class ClassifierExplainer(BaseExplainer):
             _ = self.shap_values
             self._shap_values_cats = [
                     merge_categorical_shap_values(
-                        self.X, sv, self.cats) for sv in self._shap_values]
+                        self.X, sv, self.cats_dict) for sv in self._shap_values]
             
         return default_list(self._shap_values_cats, self.pos_label)
 
@@ -1833,7 +1833,8 @@ class ClassifierExplainer(BaseExplainer):
             _ = self.shap_interaction_values
             self._shap_interaction_values_cats = [
                 merge_categorical_shap_interaction_values(
-                    self.X, self.X_cats, siv) for siv in self._shap_interaction_values]
+                    siv, self.X, self.X_cats, self.cats_dict) 
+                        for siv in self._shap_interaction_values]
         return default_list(self._shap_interaction_values_cats, self.pos_label)
 
     @property
@@ -1850,8 +1851,9 @@ class ClassifierExplainer(BaseExplainer):
         """mean absolute SHAP values with categoricals grouped together"""
         if not hasattr(self, '_mean_abs_shap_cats'):
             _ = self.shap_values
-            self._mean_abs_shap_cats = [mean_absolute_shap_values(
-                                self.columns, sv, self.cats) for sv in self._shap_values]
+            self._mean_abs_shap_cats = [
+                mean_absolute_shap_values(self.columns, sv, self.cats_dict) 
+                    for sv in self._shap_values]
         return default_list(self._mean_abs_shap_cats, self.pos_label)
 
     def cutoff_from_percentile(self, percentile, pos_label=None):

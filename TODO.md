@@ -33,6 +33,7 @@
 - Allow sklearn pipelines as model input
 - clearer error message for shap guess fail
 - add `cats = dict(Sex=['Male', 'Female'])` option.
+- automatically store params to attrs, param_dict in explainer
 
 
 ## notebooks:
@@ -41,6 +42,8 @@
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
+- add unique column check for whatif-component with clearer error message
+- change "actual" to "observed" in prediction summary
 
 ### Components
 - add "experiment tracker" for what if...
@@ -62,12 +65,14 @@
 - write tests for explainer_plots
 
 ## Docs:
+- Add type hints throughout library
 - Add pydate video: https://www.youtube.com/watch?v=1nMlfrDvwc8
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
 
 ## Library level:
+- move dashboard_methods to root dir
 - build release on conda-forge
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
