@@ -17,10 +17,9 @@ only need a model, and a test set X and y::
 This is enough to launch an ExplainerDashboard::
 
     from explainerdashboard import ExplainerDashboard
-
     ExplainerDashboard(explainer).run()
 
-.. image:: screenshots/screenshot.png
+.. image:: screenshots/screenshot.*
 
 
 Or you can use it interactively in a notebook to inspect your model 
@@ -45,7 +44,7 @@ in your notebook using :ref:`InlineExplainer<InlineExplainer>`, e.g.::
     InlineExplainer(explainer).regression.residuals_vs_col()
     InlineExplainer(explainer).shap.overview()
 
-.. image:: screenshots/inline_screenshot.png
+.. image:: screenshots/inline_screenshot.*
 
 
 Parameters
