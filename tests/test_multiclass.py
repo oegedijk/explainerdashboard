@@ -22,7 +22,8 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = ClassifierExplainer(model, X_test, y_test,  
-                            cats=['Sex', 'Cabin'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck'],
                             idxs=test_names, 
                             labels=['Queenstown', 'Southampton', 'Cherbourg'])
 
@@ -37,13 +38,13 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.columns_ranked_by_shap(cats=True), list)
 
     def test_equivalent_col(self):
-        self.assertEqual(self.explainer.equivalent_col("Sex_female"), "Sex")
-        self.assertEqual(self.explainer.equivalent_col("Sex"), "Sex_female")
+        self.assertEqual(self.explainer.equivalent_col("Sex_female"), "Gender")
+        self.assertEqual(self.explainer.equivalent_col("Gender"), "Sex_female")
         self.assertIsNone(self.explainer.equivalent_col("random"))
 
     def test_get_col(self):
-        self.assertIsInstance(self.explainer.get_col("Sex"), pd.Series)
-        self.assertEqual(self.explainer.get_col("Sex").dtype, "object")
+        self.assertIsInstance(self.explainer.get_col("Gender"), pd.Series)
+        self.assertEqual(self.explainer.get_col("Gender").dtype, "object")
 
         self.assertIsInstance(self.explainer.get_col("Age"), pd.Series)
         self.assertEqual(self.explainer.get_col("Age").dtype, np.float)
@@ -69,7 +70,7 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_top_interactions("Age"), list)
         self.assertIsInstance(self.explainer.shap_top_interactions("Age", topx=4), list)
         self.assertIsInstance(self.explainer.shap_top_interactions("Age", cats=True), list)
-        self.assertIsInstance(self.explainer.shap_top_interactions("Sex", cats=True), list)
+        self.assertIsInstance(self.explainer.shap_top_interactions("Gender", cats=True), list)
 
     def test_permutation_importances_df(self):
         self.assertIsInstance(self.explainer.permutation_importances_df(), pd.DataFrame)
@@ -118,9 +119,9 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_get_dfs(self):
         cols_df, shap_df, contribs_df = self.explainer.get_dfs()
@@ -151,7 +152,7 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_interactions("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions("Sex")
+        fig = self.explainer.plot_interactions("Gender")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_contributions(self):
@@ -190,7 +191,7 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_shap_interaction_summary("Sex_female", topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_interaction_summary("Sex")
+        fig = self.explainer.plot_shap_interaction_summary("Gender")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_dependence(self):
@@ -200,7 +201,7 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Sex_female")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", "Sex")
+        fig = self.explainer.plot_shap_dependence("Age", "Gender")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
@@ -209,7 +210,7 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Age", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex", highlight_index=0)
+        fig = self.explainer.plot_shap_dependence("Gender", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_interaction(self):
@@ -219,10 +220,10 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex", "Age")
+        fig = self.explainer.plot_shap_dependence("Gender", "Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", "Sex")
+        fig = self.explainer.plot_shap_dependence("Age", "Gender")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Age", "Sex_female", highlight_index=0)
@@ -232,10 +233,10 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_pdp("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_pdp("Sex")
+        fig = self.explainer.plot_pdp("Gender")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_pdp("Sex", index=0)
+        fig = self.explainer.plot_pdp("Gender", index=0)
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_pdp("Age", index=0)

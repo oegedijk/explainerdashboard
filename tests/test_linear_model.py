@@ -27,7 +27,9 @@ class LinearRegressionTests(unittest.TestCase):
         model = LinearRegression()
         model.fit(X_train, y_train)
         self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
-                                        shap='linear', cats=['Sex', 'Deck', 'Embarked'],
+                                        shap='linear', 
+                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
 
     def test_explainer_len(self):
@@ -62,7 +64,7 @@ class LinearRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_top_interactions("Age"), list)
         self.assertIsInstance(self.explainer.shap_top_interactions("Age", topx=4), list)
         self.assertIsInstance(self.explainer.shap_top_interactions("Age", cats=True), list)
-        self.assertIsInstance(self.explainer.shap_top_interactions("Sex", cats=True), list)
+        self.assertIsInstance(self.explainer.shap_top_interactions("Gender", cats=True), list)
 
     def test_contrib_df(self):
         self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
@@ -88,9 +90,9 @@ class LinearRegressionTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_get_dfs(self):
         cols_df, shap_df, contribs_df = self.explainer.get_dfs()
@@ -209,7 +211,8 @@ class LogisticRegressionKernelTests(unittest.TestCase):
                             model, X_test, y_test, 
                             shap='kernel', model_output='probability', 
                             X_background=shap.sample(X_train, 5),
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
     def test_shap_values(self):

@@ -24,8 +24,8 @@ class RegressionBunchTests(unittest.TestCase):
 
         self.explainer = RegressionExplainer(
                             model, X_test, y_test, r2_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names)
 
     def test_residuals(self):
@@ -80,10 +80,10 @@ class RegressionBunchTests(unittest.TestCase):
         fig = self.explainer.plot_residuals_vs_feature("Age", dropna=True)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Sex", points=False)
+        fig = self.explainer.plot_residuals_vs_feature("Gender", points=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Sex", winsor=10)
+        fig = self.explainer.plot_residuals_vs_feature("Gender", winsor=10)
         self.assertIsInstance(fig, go.Figure)
 
 

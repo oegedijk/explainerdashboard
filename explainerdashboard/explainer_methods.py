@@ -204,7 +204,6 @@ def X_cats_to_X(X_cats, cats_dict, X_columns, sep="_"):
     Returns:
         pd.DataFrame: dataframe X with same encoding as original
     """
-    #fd = get_feature_dict(X_columns, cats)
     non_cat_cols = [col for col in X_cats.columns if col in X_columns]
     X_new = X_cats[non_cat_cols].copy()
     for cat, labels in cats_dict.items():

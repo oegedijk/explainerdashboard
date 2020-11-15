@@ -443,16 +443,13 @@ class BaseExplainer(ABC):
 
         Returns:
           col
-
         """
-        if col in self.columns_cats:
+        if col in self.cats:
             # first onehot-encoded columns
-            return get_feature_dict(self.columns, self.cats)[col][0]
+            return self.cats_dict[col][0]
         elif col in self.columns:
             # the cat that the col belongs to
-            return [k for k, v 
-                        in get_feature_dict(self.columns, self.cats).items() 
-                            if col in v][0]
+            return [k for k, v in self.cats_dict.items() if col in v][0]
         return None
 
     def description(self, col):
@@ -466,7 +463,7 @@ class BaseExplainer(ABC):
         """
         if col in self.descriptions.keys():
             return self.descriptions[col]
-        elif self.equivalent_col(col) in  self.descriptions.keys():
+        elif self.equivalent_col(col) in self.descriptions.keys():
             return self.descriptions[self.equivalent_col(col)]
         return ""
 
@@ -499,7 +496,8 @@ class BaseExplainer(ABC):
         if col in self.X.columns:
             return self.X[col]
         elif col in self.cats:
-            return pd.Series(retrieve_onehot_value(self.X, col), name=col)
+            return pd.Series(retrieve_onehot_value(
+                self.X, col, self.cats_dict[col]), name=col)
         
     def get_col_value_plus_prediction(self, col, index=None, X_row=None, pos_label=None):
         """return value of col and prediction for either index or X_row
@@ -911,7 +909,7 @@ class BaseExplainer(ABC):
             else:
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
-                X_row_cats = merge_categorical_columns(X_row, self.cats)
+                X_row_cats = merge_categorical_columns(X_row, self.cats_dict)
 
             shap_values = self.shap_explainer.shap_values(X_row)
             if self.is_classifier:
@@ -1105,10 +1103,12 @@ class BaseExplainer(ABC):
             if isinstance(pdp_result, list):
                 for i in range(len(pdp_result)):
                     pdp_result[i].feature_grids = \
-                        pd.Series(pdp_result[i].feature_grids).str.split(col+'_').str[1].values
+                        np.array([f[len(col)+1:] if f.startswith(col+"_") else f 
+                            for f in pdp_result[i].feature_grids])
             else:
                 pdp_result.feature_grids = \
-                        pd.Series(pdp_result.feature_grids).str.split(col+'_').str[1].values        
+                        np.array([f[len(col)+1:] if f.startswith(col+"_") else f 
+                        for f in pdp_result.feature_grids])
         return pdp_result
 
     def get_dfs(self, cats=True, round=None, lang='en', pos_label=None):
