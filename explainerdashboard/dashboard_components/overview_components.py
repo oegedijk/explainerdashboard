@@ -18,7 +18,6 @@ from dash.exceptions import PreventUpdate
 
 
 from .dashboard_methods import *
-from ..explainer_methods import get_feature_dict
 
 class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary", name=None,
@@ -413,8 +412,9 @@ class WhatIfComponent(ExplainerComponent):
         
         self._input_features = self.explainer.columns_cats
         self._feature_inputs = [
-            self._generate_dash_input(feature, self.explainer.columns, self.explainer.cats) 
-                                       for feature in self._input_features]
+            self._generate_dash_input(
+                feature, self.explainer.cats, self.explainer.cats_dict) 
+                                for feature in self._input_features]
         self._feature_callback_inputs = [Input('whatif-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
         self._feature_callback_outputs = [Output('whatif-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
         
@@ -423,13 +423,15 @@ class WhatIfComponent(ExplainerComponent):
         self.register_dependencies('preds', 'shap_values')
         
         
-    def _generate_dash_input(self, col, cols, cats):
-        fd = get_feature_dict(cols, cats)
+    def _generate_dash_input(self, col, cats, cats_dict):
         if col in cats:
+            col_values = [
+                col[len(col)+1:] if col.startswith(col+"_") else col 
+                    for col in cats_dict[col]]
             return html.Div([
                 html.P(col),
                 dcc.Dropdown(id='whatif-'+col+'-input-'+self.name, 
-                             options=[dict(label=cat[len(col)+1:], value=cat[len(col)+1:]) for cat in fd[col]],
+                             options=[dict(label=col_val, value=col_val) for col_val in col_values],
                              clearable=False)
             ])
         else:

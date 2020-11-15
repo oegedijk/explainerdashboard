@@ -18,7 +18,8 @@ class DashboardTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             self.model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'])
 
         self.dashboard = ExplainerDashboard(self.explainer, 

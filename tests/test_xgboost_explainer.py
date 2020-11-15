@@ -67,7 +67,8 @@ class XGBMultiClassifierExplainerTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, model_output='raw',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names, 
                             labels=['Queenstown', 'Southampton', 'Cherbourg'])
 
@@ -120,7 +121,8 @@ class XGBRegressionExplainerTests(unittest.TestCase):
 
         self.explainer = RegressionExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names)
 
     def test_graphviz_available(self):

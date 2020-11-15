@@ -25,8 +25,8 @@ class DecisionTreeRegressorTests(unittest.TestCase):
         model = DecisionTreeRegressor()
         model.fit(X_train, y_train)
         self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
-                                        shap='tree', 
-                                        cats=['Sex', 'Deck', 'Embarked'],
+                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
 
     def test_preds(self):
@@ -60,9 +60,9 @@ class DecisionTreeRegressorTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
 
 class DecisionTreeClassifierTests(unittest.TestCase):
@@ -75,8 +75,8 @@ class DecisionTreeClassifierTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -119,9 +119,9 @@ class DecisionTreeClassifierTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
@@ -150,8 +150,8 @@ class ExtraTreesRegressorTests(unittest.TestCase):
         model = ExtraTreesRegressor()
         model.fit(X_train, y_train)
         self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
-                                        shap='tree', 
-                                        cats=['Sex', 'Deck', 'Embarked'],
+                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
 
     def test_preds(self):
@@ -185,9 +185,9 @@ class ExtraTreesRegressorTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
 
 class ExtraTreesClassifierTests(unittest.TestCase):
@@ -200,8 +200,8 @@ class ExtraTreesClassifierTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -244,9 +244,9 @@ class ExtraTreesClassifierTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)

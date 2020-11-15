@@ -72,8 +72,8 @@ class RegressionBunchTests(unittest.TestCase):
 
         self.explainer = RegressionExplainer(
                             model, X_test, y_test, r2_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names)
 
     def test_graphviz_available(self):

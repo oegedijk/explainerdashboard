@@ -35,8 +35,8 @@ dashboard:
         cats: true
       component_imports:
         ShapDependenceComposite: explainerdashboard.dashboard_components.composites
-        ShapDependenceComponent: explainerdashboard.dashboard_components.shap_components
         ShapSummaryDependenceConnector: explainerdashboard.dashboard_components.shap_components
+        ShapDependenceComponent: explainerdashboard.dashboard_components.shap_components
         ShapSummaryComponent: explainerdashboard.dashboard_components.shap_components
     - name: ShapDependenceTab
       module: explainerdashboard.dashboard_tabs

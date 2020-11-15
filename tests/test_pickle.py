@@ -22,7 +22,8 @@ class TestRFClassifierExplainerPicklable(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -43,7 +44,8 @@ class TestXGBClassifierExplainerPicklable(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -63,7 +65,8 @@ class TestRFRegressionExplainerPicklable(unittest.TestCase):
 
         self.explainer = RegressionExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names)
 
     def test_rf_pickle(self):
@@ -83,7 +86,8 @@ class TestXGBRegressionExplainerPicklable(unittest.TestCase):
 
         self.explainer = RegressionExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names)
 
     def test_xgb_pickle(self):

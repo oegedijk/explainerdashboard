@@ -26,8 +26,8 @@ class XGBRegressionTests(unittest.TestCase):
         model = XGBRegressor()
         model.fit(X_train, y_train)
         self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
-                                        shap='tree', 
-                                        cats=['Sex', 'Deck', 'Embarked'],
+                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
 
     def test_preds(self):
@@ -61,9 +61,10 @@ class XGBRegressionTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Deck"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
 class LGBMRegressionTests(unittest.TestCase):
     def setUp(self):
@@ -77,7 +78,8 @@ class LGBMRegressionTests(unittest.TestCase):
         model.fit(X_train, y_train)
         self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
                                         shap='tree', 
-                                        cats=['Sex', 'Deck', 'Embarked'],
+                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
 
     def test_preds(self):
@@ -110,9 +112,9 @@ class LGBMRegressionTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
 class CatBoostRegressionTests(unittest.TestCase):
     def setUp(self):
@@ -126,8 +128,8 @@ class CatBoostRegressionTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
-                                        shap='tree', 
-                                        cats=['Sex', 'Deck', 'Embarked'],
+                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                                         idxs=test_names, units="$")
 
     def test_preds(self):
@@ -161,9 +163,10 @@ class CatBoostRegressionTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Deck"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
 
 class XGBCLassifierTests(unittest.TestCase):
@@ -176,8 +179,8 @@ class XGBCLassifierTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -220,9 +223,9 @@ class XGBCLassifierTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
@@ -250,8 +253,8 @@ class LGBMClassifierTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -295,9 +298,9 @@ class LGBMClassifierTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
@@ -325,8 +328,8 @@ class CatBoostClassifierTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -370,9 +373,9 @@ class CatBoostClassifierTests(unittest.TestCase):
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
         self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)

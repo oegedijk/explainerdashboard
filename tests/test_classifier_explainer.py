@@ -21,7 +21,8 @@ class ClassifierBunchTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = ClassifierExplainer(model, X_test, y_test,  
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                                'Deck', 'Embarked'],
                             idxs=test_names, 
                             labels=['Not survived', 'Survived'])
 

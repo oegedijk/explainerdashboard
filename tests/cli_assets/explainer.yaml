@@ -10,8 +10,11 @@ explainer:
     shap: guess
     model_output: probability
     cats:
-    - Sex
-    - Cabin
+    - Gender:
+      - Sex_female
+      - Sex_male
+      - Sex_nan
+    - Deck
     - Embarked
     descriptions: null
     target: null
