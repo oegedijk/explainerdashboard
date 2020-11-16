@@ -71,33 +71,49 @@ If you have onehot-encoded your categorical variables, they will show up as a
 lot of independent features. This clutters your feature space, and often makes 
 it hard to interpret the effect of the underlying categorical feature. 
 
-However as long as you encoded the onehot categories with an underscore like 
-``CategoricalFeature_Category``, then ``explainerdashboard`` can group these 
-categories together again in the various plots and tables. For this you can 
-pass a list of onehotencoded categorical features to the parameter ``cats``.
-For the titanic example this would be:
-    - ``Sex``: ``Sex_female``, ``Sex_male``
-    - ``Deck``: ``Deck_A``, ``Deck_B``, etc
-    - ``Embarked``: ``Embarked_Southampton``, ``Embarked_Cherbourg``, etc
+You can pass a ``dict`` to the parameter ``cats`` specifying which are the
+onehotencoded columns, and what the grouped feature name should be::
 
-So you would pass ``cats=['Sex', 'Deck', 'Embarked']``. You can now use these 
-categorical features directly as input for plotting methods, e.g. 
-``explainer.plot_shap_dependence("Deck")``. For other methods you can pass
+    ClassifierExplainer(model, X, y, cats={'Gender': ['Sex_male', 'Sex_female']})
+
+However if you encoded your feature with ``pd.get_dummies(df, prefix=['Name'])``,
+then the resulting onehot encoded columns should be named 
+'Name_John', 'Name_Mary', Name_Bob', etc. (or in general
+CategoricalFeature_Category), then you can simply pass a list of the prefixes
+to cats::
+
+    ClassifierExplainer(model, X, y, cats=['Sex', 'Deck', 'Embarked'])
+
+And you can also combine the two methods::
+
+    ClassifierExplainer(model, X, y, 
+        cats=[{'Gender': ['Sex_male', 'Sex_female']}, 'Deck', 'Embarked'])
+
+
+
+You can now use these categorical features directly as input for plotting methods, e.g. 
+``explainer.plot_shap_dependence("Deck")``, which will now generate violin plots
+instead of the default scatter plots. For other methods you can usually pass
 a parameter ``cats=True``, to indicate that you'd like to group the categorical
 features in your output. 
 
 idxs
 ----
 
-You may have specific identifiers (names, customer id's, etc) for each row in your dataset.
-If you pass these the the Explainer object, you can index using both the 
+You may have specific identifiers (names, customer id's, etc) for each row in 
+your dataset. By default ``X.index`` will get used
+to identify individual rows/records in the dashboard. And you can index using both the 
 numerical index, e.g. ``explainer.contrib_df(0)`` for the first row, or using the 
 identifier, e.g. ``explainer.contrib_df("Braund, Mr. Owen Harris")``.
 
-The proper name or idxs will be use used in all ``ExplainerComponents`` that
-allow index selection. 
+You can override using ``X.index`` by passing a list/array/Series ``idxs``
+to the explainer::
 
-By default the index of pandas dataframe ``X`` will be used as idxs.
+    from explainerdashboard.datasets import titanic_names
+
+    test_names = titanic_names(test_only=True)
+    ClassifierExplainer(model, X_test, y_test, idxs=test_names)
+
 
 descriptions
 ------------
@@ -106,25 +122,43 @@ descriptions
 In order to be explanatory, you often have to explain the meaning of the features 
 themselves (especially if the naming is not obvious).
 Passing the dict along to descriptions will show hover-over tooltips for the 
-various features in the dashboard.
+various features in the dashboard. If you grouped onehotencoded features with
+the ``cats`` parameter, you can also give descriptions of these groups, e.g::
+
+    ClassifierExplainer(model, X, y, 
+        cats=[{'Gender': ['Sex_male', 'Sex_female']}, 'Deck', 'Embarked'],
+        descriptions={
+            'Gender': 'Gender of the passenger',
+            'Fare': 'The price of the ticket paid for by the passenger',
+            'Deck': 'The deck of the cabin of the passenger',
+        })
+
+
 
 target
 ------
 
-Name of the target variable. By default the name of the pd.Series ``y`` is used
+Name of the target variable. By default the name of the pd.Series ``y`` is used.
+Can be overriden::
+
+    ClassifierExplainer(model, X, y, target="Survival")
 
 labels
 ------
 labels: The outcome variables for a classification  ``y`` are assumed to 
-be encoded 0, 1 (, 2, 3, ...) This is not very human readable, so you can pass a 
-list of human readable labels such as ``labels=['Not survived', 'Survived']``.
+be encoded ``0, 1 (, 2, 3, ...)`` This is not very human readable, so you can pass a 
+list of human readable labels such as ``labels=['Not survived', 'Survived']``::
+
+    ClassifierExplainer(model, X, y, labels=['Not survived', 'Survived'])
 
 units
 -----
 
 For regression models the units of the ``y`` variable. E.g. if the model is predicting
 house prices in dollar you can set ``units='$'``. This will be displayed along
-the axis of various plots.
+the axis of various plots::
+
+    RegressionExplainer(model, X, y, units="$")
 
 
 X_background
@@ -133,10 +167,9 @@ X_background
 Some models like sklearn ``LogisticRegression`` (as well as certain gradienst boosting 
 algorithms in probability space) need a background dataset to calculate shap values. 
 These can be passed as ``X_background``. If you don't pass an X_background, Explainer 
-uses X instead but gives off a warning.
-
-Usually a representative background dataset of a couple of hunderd rows should be
-enough to get decent shap values.
+uses X instead but gives off a warning. (you want to limit the size of X_background
+in order to keep the SHAP calculations from getting too slow). Usually a representative 
+background dataset of a couple of hunderd rows should be enough to get decent shap values.
 
 model_output
 ------------
