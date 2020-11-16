@@ -39,6 +39,7 @@
 ## notebooks:
 
 ## Dashboard:
+- organize explainer components according to tab
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
@@ -50,6 +51,7 @@
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - whatif component: check non duplicate feature names
+- set equivalent_col when toggling cats in dependence/interactions
 
 ## Methods:
 - Add LIME values
@@ -65,13 +67,18 @@
 - write tests for explainer_plots
 
 ## Docs:
-- Add type hints throughout library
+- Add type hints:
+    - to explainers
+    - to explainer class methods
+    - to explainer_methods
+    - to explainer_plots
 - Add pydate video: https://www.youtube.com/watch?v=1nMlfrDvwc8
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
 
 ## Library level:
+- hide (add '_') to non-api class methods
 - move dashboard_methods to root dir
 - build release on conda-forge
 - launch gunicorn server from python:

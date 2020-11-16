@@ -426,8 +426,8 @@ class WhatIfComponent(ExplainerComponent):
     def _generate_dash_input(self, col, cats, cats_dict):
         if col in cats:
             col_values = [
-                col[len(col)+1:] if col.startswith(col+"_") else col 
-                    for col in cats_dict[col]]
+                col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
+                    for col_val in cats_dict[col]]
             return html.Div([
                 html.P(col),
                 dcc.Dropdown(id='whatif-'+col+'-input-'+self.name, 
