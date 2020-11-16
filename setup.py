@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.2.9',
+    version='0.2.10',
     description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.',
     long_description="""
 
@@ -18,15 +18,15 @@ The goal is manyfold:
 
     - Make it easy for data scientists to quickly inspect the inner workings and 
         performance of their model with just a few lines of code
-    - Make it possible for non data scientist stakeholders such as managers, 
-        directors, internal and external watchdogs to interactively inspect 
-        the inner workings of the model without having to depend on a data 
-        scientist to generate every plot and table
+    - Make it possible for non data scientist stakeholders such as co-workers,
+        managers, directors, internal and external watchdogs to interactively 
+        inspect the inner workings of the model without having to depend 
+        on a data scientist to generate every plot and table
     - Make it easy to build a custom application that explains individual 
         predictions of your model for customers that ask for an explanation
     - Explain the inner workings of the model to the people working with 
         model in a human-in-the-loop deployment so that they gain understanding 
-        what the model does and doesn't do. 
+        what the model does do and does not do. 
         This is important so that they can gain an intuition for when the 
         model is likely missing information and may have to be overruled.
 
