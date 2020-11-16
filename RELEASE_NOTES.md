@@ -6,8 +6,8 @@
 - Explainer parameter `cats` now takes dicts as well where you can specify
     your own groups of onehotencoded columns.
         - e.g. instead of passing `cats=['Sex']` to group `['Sex_female', 'Sex_male', 'Sex_nan']`
-        you can now do this explicitly: `sex={'Gender'=['Sex_female', 'Sex_male', 'Sex_nan']}`
-        - Or combine the two: 
+        you can now do this explicitly: `cats={'Gender'=['Sex_female', 'Sex_male', 'Sex_nan']}`
+        - Or combine the two methods: 
             `cats=[{'Gender'=['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked']`
 
 

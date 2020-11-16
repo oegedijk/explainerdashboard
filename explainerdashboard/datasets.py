@@ -13,6 +13,7 @@ d_test = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/'titanic_test.
 
 feature_descriptions = {
     "Sex": "Gender of passenger",
+    "Gender": "Gender of passenger",
     "Deck": "The deck the passenger had their cabin on",
     "PassengerClass": "The class of the ticket: 1st, 2nd or 3rd class",
     "Fare": "The amount of money people paid", 

@@ -69,8 +69,12 @@ Fitting a model, building the explainer object, building the dashboard, and then
 ExplainerDashboard(ClassifierExplainer(RandomForestClassifier().fit(X_train, y_train), X_test, y_test)).run()
 ```
 
-Or a slightly more explicit example with some extra parameters to group 
-onehot-encoded categorical variables and display classification labels:
+Below a multi-line example, adding a few extra paramaters. 
+You can group onehot encoded categorical variables together using the `cats` 
+parameter. You can either pass a dict specifying a list of onehot cols per
+categorical feature, or if you encode using e.g. 
+`pd.get_dummies(df.Name, prefix=['Name'])` (resulting in column names `'Name_Adam', 'Name_Bob'`) 
+you can simply pass the prefix `'Name'`:
 
 ```python
 from sklearn.ensemble import RandomForestClassifier
@@ -82,18 +86,18 @@ model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
 explainer = ClassifierExplainer(model, X_test, y_test, 
-                                cats=['Sex', 'Deck', 'Embarked'],
+                                cats=[{'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}, 'Deck', 'Embarked'],
                                 labels=['Not survived', 'Survived'])
 
-db = ExplainerDashboard(explainer, title="Titanic Explainer",
+db = ExplainerDashboard(explainer, 
+                        title="Titanic Explainer",
                         whatif=False, # you can switch off tabs with bools
-                        shap_interaction=False,
-                        decision_trees=False)
+                        )
 db.run(port=8050)
 
 ```
 
-### Fom within a notebook
+### From within a notebook
 
 When working inside jupyter or Google Colab you can use 
 `ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')` or
