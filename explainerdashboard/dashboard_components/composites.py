@@ -63,10 +63,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                 [self.summary, self.precision, self.confusionmatrix, self.liftcurve, 
                  self.cumulative_precision, self.classification, self.rocauc, self.prauc])
 
-        self.register_components(
-            self.summary, self.precision, self.confusionmatrix, 
-            self.cumulative_precision, self.liftcurve, self.classification, 
-            self.rocauc, self.prauc, self.cutoffpercentile, self.cutoffconnector)
+        self.register_components()
 
     def layout(self):
         return html.Div([
@@ -232,9 +229,7 @@ class IndividualPredictionsComposite(ExplainerComponent):
         self.index_connector = IndexConnector(self.index, 
                 [self.summary, self.contributions, self.pdp, self.contributions_list])
 
-        self.register_components(
-            self.index, self.summary, self.contributions, 
-            self.pdp, self.contributions_list, self.index_connector)
+        self.register_components()
 
     def layout(self):
         return dbc.Container([
@@ -294,7 +289,7 @@ class WhatIfComposite(ExplainerComponent):
 
         self.index_connector = IndexConnector(self.index, [self.whatif])
 
-        self.register_components(self.index, self.whatif, self.index_connector)
+        self.register_components()
 
     def layout(self):
         return dbc.Container([
@@ -347,7 +342,7 @@ class ShapDependenceComposite(ExplainerComponent):
                     cats=cats)
         self.connector = ShapSummaryDependenceConnector(
                     self.shap_summary, self.shap_dependence)
-        self.register_components(self.shap_summary, self.shap_dependence, self.connector)
+        self.register_components()
 
     def layout(self):
         return dbc.Container([
@@ -388,8 +383,7 @@ class ShapInteractionsComposite(ExplainerComponent):
                 explainer, hide_selector=hide_selector, cats=cats, hide_cats=True)
         self.connector = InteractionSummaryDependenceConnector(
             self.interaction_summary, self.interaction_dependence)
-        self.register_components(
-            self.interaction_summary, self.interaction_dependence, self.connector)
+        self.register_components()
         
     def layout(self):
         return dbc.Container([
@@ -440,9 +434,7 @@ class DecisionTreesComposite(ExplainerComponent):
         self.highlight_connector = HighlightConnector(self.trees, 
             [self.decisionpath_table, self.decisionpath_graph])
 
-        self.register_components(self.index, self.trees, 
-                self.decisionpath_table, self.decisionpath_graph, 
-                self.index_connector, self.highlight_connector)
+        self.register_components()
         
     def layout(self):
         return html.Div([

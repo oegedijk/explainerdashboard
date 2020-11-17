@@ -27,10 +27,7 @@
     - Breaking change!
 - automatically store params to attrs, param_dict in explainer
 - add integer option to X_background to use X.sample(sample_size)
-- add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
-- add support for LimeTabularExplainer:
-    - http://gael-varoquaux.info/interpreting_ml_tuto/content/02_why/04_black_box_interpretation.html
-    - https://shap.readthedocs.io/en/latest/generated/shap.explainers.other.LimeTabular.html
+
 
 ## notebooks:
 
@@ -50,11 +47,16 @@
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - set equivalent_col when toggling cats in dependence/interactions
+- Write demo on how to write constraints
 
 ## Methods:
 - Add LIME values
     - but tricky how to set kernel, model, etc
     - Lime values take a lot more DS judgement than SHAP values
+- add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
+- add support for LimeTabularExplainer:
+    - http://gael-varoquaux.info/interpreting_ml_tuto/content/02_why/04_black_box_interpretation.html
+    - https://shap.readthedocs.io/en/latest/generated/shap.explainers.other.LimeTabular.html
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
@@ -74,8 +76,8 @@
         self.register_components(self.connector)
 
 ## Library level:
+- remove all the register_components() args
 - hide (prefix '_') to non-API class methods
-- move dashboard_methods to root dir
 - build release for conda-forge
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
