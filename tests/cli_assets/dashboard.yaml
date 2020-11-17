@@ -34,8 +34,8 @@ dashboard:
         depth: null
         cats: true
       component_imports:
-        ShapDependenceComposite: explainerdashboard.dashboard_components.composites
         ShapSummaryDependenceConnector: explainerdashboard.dashboard_components.shap_components
+        ShapDependenceComposite: explainerdashboard.dashboard_components.composites
         ShapDependenceComponent: explainerdashboard.dashboard_components.shap_components
         ShapSummaryComponent: explainerdashboard.dashboard_components.shap_components
     - name: ShapDependenceTab

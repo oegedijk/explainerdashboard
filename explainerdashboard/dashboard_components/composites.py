@@ -61,7 +61,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
         self.cutoffpercentile = CutoffPercentileComponent(explainer, hide_selector=hide_selector, pos_label=pos_label)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
                 [self.summary, self.precision, self.confusionmatrix, self.liftcurve, 
-                 self.classification, self.rocauc, self.prauc])
+                 self.cumulative_precision, self.classification, self.rocauc, self.prauc])
 
         self.register_components(
             self.summary, self.precision, self.confusionmatrix, 
@@ -153,8 +153,9 @@ class RegressionModelStatsComposite(ExplainerComponent):
                             pred_or_actual=pred_or_actual, residuals=residuals)
         self.residuals_vs_col = ResidualsVsColComponent(explainer, 
                                     col=col, residuals=residuals)
-        self.register_components([self.preds_vs_actual, self.modelsummary,
-                    self.residuals, self.residuals_vs_col])
+        self.y_vs_col = ActualVsColComponent(explainer, col=col)
+        self.preds_vs_col = PredsVsColComponent(explainer, col=col)
+        self.register_components()
 
     def layout(self):
         return html.Div([
@@ -177,6 +178,14 @@ class RegressionModelStatsComposite(ExplainerComponent):
                 ], md=6),
                 dbc.Col([
                     self.residuals_vs_col.layout()
+                ], md=6),
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    self.y_vs_col.layout()
+                ], md=6),
+                dbc.Col([
+                    self.preds_vs_col.layout()
                 ], md=6),
             ])
         ])

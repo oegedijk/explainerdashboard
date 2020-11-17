@@ -9,6 +9,8 @@ __all__ = [
     'ClassifierModelSummaryComponent' 
 ]
 
+import numpy as np
+
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
@@ -353,7 +355,9 @@ class LiftCurveComponent(ExplainerComponent):
 
 class CumulativePrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Cumulative Precision", name=None,
-                    hide_selector=False, pos_label=None):
+                    hide_selector=False, pos_label=None,
+                    hide_cutoff=False, cutoff=None,
+                    hide_percentile=False, percentile=None):
         """Show cumulative precision component
 
         Args:
@@ -370,30 +374,71 @@ class CumulativePrecisionComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.cutoff_name = 'cumulative-precision-cutoff-'+self.name
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
             html.Div([
                         dcc.Loading(id='loading-cumulative-precision-graph-'+self.name, 
                                 children=[dcc.Graph(id='cumulative-precision-graph-'+self.name,
                                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ], style={'margin': 0}),
+             dbc.Row([
+                dbc.Col([
+                    dbc.Row([
+                            make_hideable(
+                            dbc.Col([
+                                html.Div([
+                                    html.Label('Sample top fraction:'),
+                                    dcc.Slider(id='cumulative-precision-percentile-'+self.name,
+                                                min = 0.01, max = 0.99, step=0.01, value=self.percentile,
+                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                        0.75: '0.75', 0.99: '0.99'},
+                                                included=False,
+                                                tooltip = {'always_visible' : False})
+                                ], style={'margin-bottom': 15}),
+                            ]), hide=self.hide_percentile),
+                    ]),
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                html.Div([
+                                    html.Label('Cutoff prediction probability:'),
+                                    dcc.Slider(id='cumulative-precision-cutoff-'+self.name,
+                                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                        0.75: '0.75', 0.99: '0.99'},
+                                                included=False,
+                                                tooltip = {'always_visible' : False})
+                                ], style={'margin-bottom': 15}),
+                            ]), hide=self.hide_cutoff),
+                    ]),    
+                ]),
+                make_hideable(
+                    dbc.Col([
+                        self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+            ])
                  
         ])
 
     def _register_callbacks(self, app):
         @app.callback(
             Output('cumulative-precision-graph-'+self.name, 'figure'),
-            [Input('pos-label-'+self.name, 'value')],
+            [Input('cumulative-precision-percentile-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')],
         )
-        def update_precision_graph(pos_label):
-            return self.explainer.plot_cumulative_precision(pos_label=pos_label)
-
+        def update_cumulative_precision_graph(percentile, pos_label):
+            return self.explainer.plot_cumulative_precision(percentile=percentile, pos_label=pos_label)
+        
+        @app.callback(
+            Output('cumulative-precision-percentile-'+self.name, 'value'),
+            [Input('cumulative-precision-cutoff-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')],
+        )
+        def update_cumulative_precision_percentile(cutoff, pos_label):
+            return self.explainer.percentile_from_cutoff(cutoff, pos_label)
 
 
 class ClassificationComponent(ExplainerComponent):

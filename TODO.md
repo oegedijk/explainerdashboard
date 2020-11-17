@@ -13,28 +13,24 @@
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance
-- DecisionTree plots: 
-    - add some seperatation when pred ~= actual
-    - rename y "observed" 
-    - add bars for average and observed?
 
 ### Classifier plots:
 - pdp: add multiclass option
-- add cutoff to cumulative precision plot
 
 ### Regression plots:
-- add actual vs feature
-- add predicted vs feature
+- add linear trendlines to y/preds vs col plots:
+    - https://stackoverflow.com/questions/58708230/plotly-how-to-plot-a-regression-line-using-plotly
 
 ## Explainers:
 - add plain language explanations
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
-- Allow sklearn pipelines as model input
-- clearer error message for shap guess fail
-- add `cats = dict(Sex=['Male', 'Female'])` option.
 - automatically store params to attrs, param_dict in explainer
-
+- add integer option to X_background to use X.sample(sample_size)
+- add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
+- add support for LimeTabularExplainer:
+    - http://gael-varoquaux.info/interpreting_ml_tuto/content/02_why/04_black_box_interpretation.html
+    - https://shap.readthedocs.io/en/latest/generated/shap.explainers.other.LimeTabular.html
 
 ## notebooks:
 
@@ -43,14 +39,18 @@
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
-- add unique column check for whatif-component with clearer error message
+    - https://arxiv.org/pdf/1910.05591.pdf
+
 - change "actual" to "observed" in prediction summary
+- add querystrings to ExplainerComponents
+- make dashboard work with y=None
+- Turn model performance summary into card
+- Turn all components into cards
 
 ### Components
 - add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
-- whatif component: check non duplicate feature names
 - set equivalent_col when toggling cats in dependence/interactions
 
 ## Methods:
@@ -72,15 +72,15 @@
     - to explainer class methods
     - to explainer_methods
     - to explainer_plots
-- Add pydate video: https://www.youtube.com/watch?v=1nMlfrDvwc8
+- Add pydata video: https://www.youtube.com/watch?v=1nMlfrDvwc8
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
 
 ## Library level:
-- hide (add '_') to non-api class methods
+- hide (prefix '_') to non-API class methods
 - move dashboard_methods to root dir
-- build release on conda-forge
+- build release for conda-forge
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
