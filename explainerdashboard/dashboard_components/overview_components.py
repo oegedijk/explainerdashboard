@@ -17,7 +17,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 
-from .dashboard_methods import *
+from ..dashboard_methods import *
 
 class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary", name=None,

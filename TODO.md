@@ -40,9 +40,7 @@
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
     - https://arxiv.org/pdf/1910.05591.pdf
-
-- change "actual" to "observed" in prediction summary
-- add querystrings to ExplainerComponents
+- add querystring method to ExplainerComponents
 - make dashboard work with y=None
 - Turn model performance summary into card
 - Turn all components into cards
@@ -60,8 +58,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add yaml->cli integration tests
-- add tests for explainer.dump() and explainer.from_file()
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots

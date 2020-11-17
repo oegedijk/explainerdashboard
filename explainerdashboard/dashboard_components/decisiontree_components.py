@@ -13,7 +13,7 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from .dashboard_methods import *
+from ..dashboard_methods import *
 from .connectors import ClassifierRandomIndexComponent, IndexConnector, HighlightConnector
 
 
