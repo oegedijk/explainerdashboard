@@ -15,7 +15,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from .dashboard_methods import *
+from ..dashboard_methods import *
 
 
 class ShapSummaryComponent(ExplainerComponent):

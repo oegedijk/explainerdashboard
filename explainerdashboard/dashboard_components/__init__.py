@@ -1,4 +1,4 @@
-from .dashboard_methods import *
+from ..dashboard_methods import *
 from .overview_components import *
 from .classifier_components import *
 from .regression_components import *
