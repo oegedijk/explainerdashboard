@@ -15,6 +15,8 @@ __all__= [
     'plotly_predicted_vs_actual',
     'plotly_plot_residuals',
     'plotly_residuals_vs_col',
+    'plotly_actual_vs_col',
+    'plotly_preds_vs_col',
     'plotly_rf_trees',
     'plotly_xgboost_trees'
     ]
@@ -304,7 +306,7 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
                                     x=0.5))
     if cutoff is not None:
         fig.update_layout(annotations=[
-            go.layout.Annotation(x=cutoff, y=0.1, yref='y2',
+            go.layout.Annotation(x=cutoff, y=0.1, yref='y2', 
                                     text=f"cutoff={cutoff}")])
     return fig
 
@@ -512,7 +514,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
     return fig
 
 
-def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
+def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None, pos_label=1):
     """Return cumulative precision plot showing the expected label distribution
     if you cumulatively sample a more and more of the highest predicted samples.
 
@@ -557,7 +559,8 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
                                          name=labels[y_label],
                                          text=text,
                                          hoverinfo="text")) 
-
+    
+        
     for y_label in range(0, pos_label): 
         if y_label != pos_label:
             cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
@@ -569,6 +572,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
                                          name=labels[y_label],
                                          text=text,
                                          hoverinfo="text")) 
+      
     fig.update_layout(title=dict(text='Cumulative percentage per category when sampling top X%', 
                                  x=0.5, 
                                  font=dict(size=18)),
@@ -576,8 +580,22 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, pos_label=1):
                      xaxis=dict(title='Top X% model scores', spikemode="across"),
                      hovermode="x",
                      plot_bgcolor = '#fff')
-    fig.update_xaxes(nticks=10)
 
+    if percentile is not None:
+        fig.update_layout(shapes=[dict(
+                    type='line',
+                    xref='x',
+                    yref='y',
+                    x0=100*percentile,
+                    x1=100*percentile,
+                    y0=0,
+                    y1=100.0,
+                 )])
+        fig.update_layout(annotations=[
+            go.layout.Annotation(x=100*percentile, y=20, 
+                                 yref='y', ax=60, 
+                                 text=f"percentile={np.round(100*percentile, 2)}")])  
+    fig.update_xaxes(nticks=10)
     return fig
 
 
@@ -1742,7 +1760,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
                                 y=residuals_display[col == cat],
                                 mode='markers',
                                 showlegend=False,
-                                text=residuals_text,
+                                text=[t for t, b in zip(residuals_text, col == cat) if b],
                                 hoverinfo="text",
                                 marker=dict(size=7, 
                                         opacity=0.6,
@@ -1797,6 +1815,250 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         fig = go.Figure(data, layout)
         fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
                                 np.percentile(residuals_display, 100-winsor)]) 
+        return fig
+
+
+def plotly_actual_vs_col(y, preds, col, col_name=None, 
+                            idxs=None, round=2, points=True, winsor=0, na_fill=-999,
+                            units="", target=""):
+    """Generates a residuals plot vs a particular feature column.
+
+    Args:
+        y (np.ndarray): array of actual target values
+        preds (np.ndarray): array of predicted values
+        col (pd.Series): series of values to be used as x-axis
+        col_name (str, optional): feature name to display. 
+            Defaults to None, in which case col.name gets used.
+        idxs (List[str], optional): str identifiers for each sample. 
+            Defaults to None.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        points (bool, optional): For categorical features display point cloud 
+            next to violin plots. Defaults to True.
+        winsor (int, optional): Winsorize the outliers. Remove the top `winsor` 
+            percent highest and lowest values. Defaults to 0.
+        na_fill (int, optional): Value used to fill missing values. Defaults to -999.
+
+
+    Returns:
+        Plotly fig
+    """
+    if col_name is None:
+        try:
+            col_name = col.name
+        except:
+            col_name = 'Feature' 
+            
+    if idxs is not None:
+        assert len(idxs)==len(preds)
+        idxs = [str(idx) for idx in idxs]
+    else:
+        idxs = [str(i) for i in range(len(preds))]
+        
+
+    y_text=[f"Index: {idx}<br>Observed {target}: {actual}<br>Prediction: {pred}" 
+                  for idx, actual, pred in zip(idxs, 
+                                                    np.round(y, round), 
+                                                    np.round(preds, round))] 
+    
+    if is_string_dtype(col):
+        n_cats = col.nunique()
+        
+        if points:
+            fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
+            showscale = True
+        else:
+            fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
+
+        fig.update_yaxes(range=[np.percentile(y, winsor), 
+                                np.percentile(y, 100-winsor)]) 
+
+        for i, cat in enumerate(col.unique()):
+            column = 1+i*2 if points else 1+i
+            fig.add_trace(go.Violin(
+                                x=col[col == cat],
+                                y=y[col == cat],
+                                name=cat,
+                                box_visible=True,
+                                meanline_visible=True,  
+                                showlegend=False),
+                         row=1, col=column)
+            if points:
+                fig.add_trace(go.Scatter(
+                                x=np.random.randn(len(col[col == cat])),
+                                y=y[col == cat],
+                                mode='markers',
+                                showlegend=False,
+                                text=[t for t, b in zip(y_text, col == cat) if b],
+                                hoverinfo="text",
+                                marker=dict(size=7, 
+                                        opacity=0.6,
+                                        color='blue'),
+                            ), row=1, col=column+1)
+
+        if points:
+            for i in range(n_cats):
+                fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
+                fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
+
+        fig.update_layout(title=f'Observed {target} vs {col_name}',
+                          yaxis=dict(
+                              title=f"Observed {target} ({units})" if units else f"Observed {target}"),
+                          hovermode = 'closest')
+
+        return fig
+        
+    else:
+        col[col==na_fill] = np.nan
+        
+        trace0 = go.Scatter(
+            x=col, 
+            y=y, 
+            mode='markers', 
+            name='Observed',
+            text=y_text,
+            hoverinfo="text",
+        )
+
+        data = [trace0]
+
+        layout = go.Layout(
+            title=f'Observed {target} vs {col_name}',
+            yaxis=dict(
+                title=f"Observed {target} ({units})" if units else f"Observed {target}"
+            ),
+
+            xaxis=dict(
+                title=f'{col_name} value'
+            ),
+            plot_bgcolor = '#fff',
+            hovermode = 'closest'
+        )
+
+        fig = go.Figure(data, layout)
+        fig.update_yaxes(range=[np.percentile(y, winsor), 
+                                np.percentile(y, 100-winsor)]) 
+        return fig
+
+
+def plotly_preds_vs_col(y, preds, col, col_name=None, 
+                            idxs=None, round=2, points=True, winsor=0, na_fill=-999,
+                            units="", target=""):
+    """Generates plot of predictions vs a particular feature column.
+
+    Args:
+        y (np.ndarray): array of actual target values
+        preds (np.ndarray): array of predicted values
+        col (pd.Series): series of values to be used as x-axis
+        col_name (str, optional): feature name to display. 
+            Defaults to None, in which case col.name gets used.
+        idxs (List[str], optional): str identifiers for each sample. 
+            Defaults to None.
+        round (int, optional): Rounding to apply to floats. Defaults to 2.
+        points (bool, optional): For categorical features display point cloud 
+            next to violin plots. Defaults to True.
+        winsor (int, optional): Winsorize the outliers. Remove the top `winsor` 
+            percent highest and lowest values. Defaults to 0.
+        na_fill (int, optional): Value used to fill missing values. Defaults to -999.
+
+
+    Returns:
+        Plotly fig
+    """
+    if col_name is None:
+        try:
+            col_name = col.name
+        except:
+            col_name = 'Feature' 
+            
+    if idxs is not None:
+        assert len(idxs)==len(preds)
+        idxs = [str(idx) for idx in idxs]
+    else:
+        idxs = [str(i) for i in range(len(preds))]
+        
+
+    preds_text=[f"Index: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
+                  for idx, actual, pred in zip(idxs, 
+                                                    np.round(y, round), 
+                                                    np.round(preds, round))] 
+    
+    if is_string_dtype(col):
+        n_cats = col.nunique()
+        
+        if points:
+            fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
+            showscale = True
+        else:
+            fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
+
+        fig.update_yaxes(range=[np.percentile(preds, winsor), 
+                                np.percentile(preds, 100-winsor)]) 
+
+        for i, cat in enumerate(col.unique()):
+            column = 1+i*2 if points else 1+i
+            fig.add_trace(go.Violin(
+                                x=col[col == cat],
+                                y=preds[col == cat],
+                                name=cat,
+                                box_visible=True,
+                                meanline_visible=True,  
+                                showlegend=False),
+                         row=1, col=column)
+            if points:
+                fig.add_trace(go.Scatter(
+                                x=np.random.randn(len(col[col == cat])),
+                                y=preds[col == cat],
+                                mode='markers',
+                                showlegend=False,
+                                text=[t for t, b in zip(preds_text, col == cat) if b],
+                                hoverinfo="text",
+                                marker=dict(size=7, 
+                                        opacity=0.6,
+                                        color='blue'),
+                            ), row=1, col=column+1)
+
+        if points:
+            for i in range(n_cats):
+                fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
+                fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
+
+        fig.update_layout(title=f'Predicted {target} vs {col_name}',
+                          yaxis=dict(
+                              title=f"Predicted {target} ({units})" if units else f"Predicted {target}"),
+                          hovermode = 'closest')
+
+        return fig
+        
+    else:
+        col[col==na_fill] = np.nan
+        
+        trace0 = go.Scatter(
+            x=col, 
+            y=preds, 
+            mode='markers', 
+            name='Predicted',
+            text=preds_text,
+            hoverinfo="text",
+        )
+
+        data = [trace0]
+
+        layout = go.Layout(
+            title=f'Predicted {target} vs {col_name}',
+            yaxis=dict(
+                title=f"Predicted {target} ({units})" if units else f"Predicted {target}"
+            ),
+
+            xaxis=dict(
+                title=f'{col_name} value'
+            ),
+            plot_bgcolor = '#fff',
+            hovermode = 'closest'
+        )
+
+        fig = go.Figure(data, layout)
+        fig.update_yaxes(range=[np.percentile(preds, winsor), 
+                                np.percentile(preds, 100-winsor)]) 
         return fig
 
 
@@ -1877,16 +2139,18 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
                 x0=0, x1=preds_df.model.max(), 
                 y0=preds_df.prediction.mean(), y1=preds_df.prediction.mean(),
                 line=dict(
-                    color="darkslategray",
+                    color="lightgray",
                     width=4,
                     dash="dot"),
                 )]
     
     annotations = [go.layout.Annotation(
-        x=preds_df.model.mean(), 
+        x=1.2*preds_df.model.mean(), 
         y=preds_df.prediction.mean(),
         text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}",
-        bgcolor="white")]
+        bgcolor="lightgrey",
+        arrowcolor="lightgrey",
+        startstandoff=0)]
 
     if y is not None:
         shapes.append(dict(
@@ -1900,7 +2164,11 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
                     dash="dashdot"),
                 ))
         annotations.append(go.layout.Annotation(
-            x=preds_df.model.mean(), y=y, text=f"y={y}", bgcolor="red"))
+            x=0.8*preds_df.model.mean(), 
+            y=y, 
+            text=f"observed={y}", 
+            bgcolor="red",
+            arrowcolor="red"))
 
     fig.update_layout(shapes=shapes)
     fig.update_layout(annotations=annotations)
@@ -2037,7 +2305,10 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
                     dash="dashdot"),
                 ))
         annotations.append(go.layout.Annotation(
-            x=0.75*trees.max(), y=y, text=f"actual={y}", bgcolor="white"))
+            x=0.75*trees.max(), 
+            y=y, 
+            text=f"Observed={y}", 
+            bgcolor="white"))
 
     fig.update_layout(shapes=shapes)
     fig.update_layout(annotations=annotations)

@@ -23,6 +23,7 @@ import shap
 
 from dtreeviz.trees import ShadowDecTree, dtreeviz
 
+from sklearn.pipeline import Pipeline
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
 from sklearn.metrics import precision_score, recall_score, log_loss
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -82,9 +83,13 @@ class BaseExplainer(ABC):
             descriptions=descriptions, target=target, n_jobs=n_jobs, 
             permutation_cv=n_jobs, na_fill=na_fill)
 
-        self.model  = model
-        self.X = X
-        self.X_background = X_background
+        if isinstance(model, Pipeline):
+            self.X, self.model = split_pipeline(model, X)
+            self.X_background, _ = split_pipeline(model, X_background, verbose=0)
+        else:
+            self.X, self.model  = X, model
+            self.X_background = X_background
+        
         if y is not None:
             self.y = pd.Series(y)
         else:
@@ -93,7 +98,7 @@ class BaseExplainer(ABC):
         self.metric = permutation_metric
 
         if shap == "guess":
-            shap_guess = guess_shap(model)
+            shap_guess = guess_shap(self.model)
             if shap_guess is not None:
                 model_str = str(type(self.model))\
                     .replace("'", "").replace("<", "").replace(">", "")\
@@ -103,9 +108,10 @@ class BaseExplainer(ABC):
                 self.shap = shap_guess
             else:
                 raise ValueError(
-                    "Failed to guess the type of shap explainer to use. "
-                    "Please explicitly pass either shap='tree', 'linear', "
-                    "deep' or 'kernel'.")
+                    "Parameter shap='gues'', but failed to to guess the type of "
+                    "shap explainer to use. "
+                    "Please explicitly pass a `shap` parameter to the explainer, "
+                    "e.g. shap='tree', shap='linear', etc.")
         else:
             assert shap in ['tree', 'linear', 'deep', 'kernel'], \
                 "Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' allowed."
@@ -1876,6 +1882,28 @@ class ClassifierExplainer(BaseExplainer):
         else:
             return pd.Series(self.pred_probas_raw[:, pos_label]).nlargest(int((1-percentile)*len(self))).min()
 
+    def percentile_from_cutoff(self, cutoff, pos_label=None):
+        """The percentile equivalent to the cutoff given
+
+        For example if set the cutoff at 0.8, then what percentage
+        of pred_proba is above this cutoff?
+
+        Args:
+          cutoff (float):  cutoff to convert to percentile
+          pos_label: positive class (Default value = None)
+
+        Returns:
+          percentile
+
+        """
+        if cutoff is None:
+            return None
+        if pos_label is None:
+            return 1-(self.pred_probas < cutoff).mean()
+        else:
+            pos_label = self.get_pos_label_index(pos_label)
+            return 1-np.mean(self.pred_probas_raw[:, pos_label] < cutoff)
+
     def metrics(self, cutoff=0.5, pos_label=None):
         """returns a dict with useful metrics for your classifier:
         
@@ -2080,7 +2108,7 @@ class ClassifierExplainer(BaseExplainer):
         model_prediction = "###### Prediction:\n\n"
         if (isinstance(self.y[0], int) or 
             isinstance(self.y[0], np.int64)):
-            model_prediction += f"Actual {self.target}: {self.labels[self.y[int_idx]]}\n\n"
+            model_prediction += f"Observed {self.target}: {self.labels[self.y[int_idx]]}\n\n"
         
         model_prediction += "Prediction probabilities per label:\n\n" 
         for pred in display_probas(
@@ -2123,7 +2151,7 @@ class ClassifierExplainer(BaseExplainer):
         return plotly_precision_plot(precision_df,
                     cutoff=cutoff, labels=self.labels, pos_label=pos_label)
 
-    def plot_cumulative_precision(self, pos_label=None):
+    def plot_cumulative_precision(self, percentile=None, pos_label=None):
         """plot cumulative precision
         
         returns a cumulative precision plot, which is a slightly different
@@ -2138,7 +2166,8 @@ class ClassifierExplainer(BaseExplainer):
         """
         if pos_label is None: pos_label = self.pos_label
         return plotly_cumulative_precision_plot(
-                    self.lift_curve_df(pos_label=pos_label), self.labels, pos_label)
+                    self.lift_curve_df(pos_label=pos_label), labels=self.labels, 
+                    percentile=percentile, pos_label=pos_label)
 
     def plot_confusion_matrix(self, cutoff=0.5, normalized=False, binary=False, pos_label=None):
         """plot of a confusion matrix.
@@ -2371,7 +2400,7 @@ class RegressionExplainer(BaseExplainer):
         int_idx = self.get_int_idx(index)
         model_prediction = "###### Prediction:\n"
         model_prediction += f"Predicted {self.target}: {np.round(self.preds[int_idx], round)} {self.units}\n\n"
-        model_prediction += f"Actual {self.target}: {np.round(self.y[int_idx], round)} {self.units}\n\n"
+        model_prediction += f"Observed {self.target}: {np.round(self.y[int_idx], round)} {self.units}\n\n"
         model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}\n\n"
         if include_percentile:
             percentile = np.round(100*(1-self.pred_percentiles[int_idx]))
@@ -2468,6 +2497,54 @@ class RegressionExplainer(BaseExplainer):
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
                 residuals=residuals, idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor)
+
+    def plot_y_vs_feature(self, col, residuals='difference', round=2, 
+                dropna=True, points=True, winsor=0):
+        """Plot y vs individual features
+
+        Args:
+          col(str): Plot against feature col
+          round(int, optional): rounding to perform on residuals, defaults to 2
+          dropna(bool, optional): drop missing values from plot, defaults to True.
+          points (bool, optional): display point cloud next to violin plot. 
+                    Defaults to True.
+          winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
+
+        Returns:
+          plotly fig
+        """
+        assert col in self.columns or col in self.columns_cats, \
+            f'{col} not in columns or columns_cats!'
+        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
+        return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+                units=self.units, target=self.target)
+
+    def plot_preds_vs_feature(self, col, residuals='difference', round=2, 
+                dropna=True, points=True, winsor=0):
+        """Plot y vs individual features
+
+        Args:
+          col(str): Plot against feature col
+          round(int, optional): rounding to perform on residuals, defaults to 2
+          dropna(bool, optional): drop missing values from plot, defaults to True.
+          points (bool, optional): display point cloud next to violin plot. 
+                    Defaults to True.
+          winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
+
+        Returns:
+          plotly fig
+        """
+        assert col in self.columns or col in self.columns_cats, \
+            f'{col} not in columns or columns_cats!'
+        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
+        return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+                units=self.units, target=self.target)
 
 
 class RandomForestExplainer(BaseExplainer):

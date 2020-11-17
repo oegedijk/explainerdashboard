@@ -1,5 +1,34 @@
 # Release Notes
 
+## Version 0.2.11:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- added (very limited) sklearn.Pipeline support. You can pass a Pipeline as
+    `model` parameter as long as the pipeline either:
+    1. Does not add, remove or reorders any input columns
+    2. has a .get_feature_names() method that returns the new column names
+        (this is currently beings debated in sklearn SLEP007)
+- added cutoff slider to CumulativePrecisionComponent
+- For RegressionExplainer added ActualVsColComponent and PredsVsColComponent
+    in order to investigate partial correlations between y/preds and 
+    various features. 
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- Seperated labels for "observed" and "average prediction" better in tree plot
+- Renamed "actual" to "observed" in prediction summary
+- added unique column check for whatif-component with clearer error message
+
+### Other Changes
+-
+-
+
 ## Version 0.2.10:
 
 ### New Features

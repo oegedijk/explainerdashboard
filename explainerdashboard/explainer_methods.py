@@ -10,6 +10,7 @@ from dtreeviz.trees import ShadowDecTree
 
 from sklearn.metrics import make_scorer
 from sklearn.base import clone
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import StratifiedKFold
 
 from joblib import Parallel, delayed
@@ -95,47 +96,111 @@ def parse_cats(X, cats, sep:str="_"):
     assert not set(cats_dict.keys()) & set(cols), \
          (f"These new cats columns are already in X.columns: {list(set(cats_dict.keys()) & set(cols))}! "
             "Please select a different name for your new cats columns!")
+    for col, count in col_counter.most_common():
+        assert set(X[col].astype(int).unique()).issubset({0,1}), \
+            f"{col} is not a onehot encoded column (i.e. has values other than 0, 1)!"
     cats_list = list(cats_dict.keys())
     for col in [col for col in cols if col not in col_counter.keys()]:
         cats_dict[col] = [col]
     return cats_list, cats_dict
 
 
-def get_feature_dict(cols, cats=None, sep="_"):
-    """helper function to get a dictionary with onehot-encoded columns
-    grouped per category. 
+# Could be removed:
 
-    Example:
-        get_features_dict(["Age", "Sex_Male", "Sex_Female"], cats=["Sex"])
-        will return {"Age": ["Age"], "Sex": ["Sex_Male", "Sex_Female"]}
+# def get_feature_dict(cols, cats=None, sep="_"):
+#     """helper function to get a dictionary with onehot-encoded columns
+#     grouped per category. 
 
+#     Example:
+#         get_features_dict(["Age", "Sex_Male", "Sex_Female"], cats=["Sex"])
+#         will return {"Age": ["Age"], "Sex": ["Sex_Male", "Sex_Female"]}
+
+#     Args:
+#         cols (list of str): list of column names
+#         cats (list of str, optional): list of categorically encoded columns. 
+#             All columns names starting with such a column name will be grouped together. 
+#             Defaults to None.
+#         sep (str), seperator used between the category and encoding. Defaults to '_' 
+
+#     Returns:
+#         dict
+#     """
+#     feature_dict = {}
+
+#     if cats is None:
+#         return {col: [col] for col in cols}
+
+#     for col in cats:
+#         cat_cols = [c for c in cols if c.startswith(col + sep)]
+#         if len(cat_cols) > 1:
+#             feature_dict[col] = cat_cols
+
+#     # add all the individual features
+#     other_cols = list(set(cols) - set([item for sublist in list(feature_dict.values())
+#                                                 for item in sublist]))
+
+#     for col in other_cols:
+#         feature_dict[col] = [col]
+#     return feature_dict
+
+
+def split_pipeline(pipeline, X, verbose=1):
+    """Returns an X_transformed dataframe and model from a fitted 
+    sklearn.pipelines.Pipeline and input dataframe X. Currently only supports
+    Pipelines that do not change or reorder the columns in the input dataframe.
+    
     Args:
-        cols (list of str): list of column names
-        cats (list of str, optional): list of categorically encoded columns. 
-            All columns names starting with such a column name will be grouped together. 
-            Defaults to None.
-        sep (str), seperator used between the category and encoding. Defaults to '_' 
-
+        pipeline (sklearn.Pipeline): a fitted pipeline with an estimator 
+            with .predict method as the last step.
+        X (pd.DataFrame): input dataframe
+        
     Returns:
-        dict
+        X_transformed, model
+    
     """
-    feature_dict = {}
-
-    if cats is None:
-        return {col: [col] for col in cols}
-
-    for col in cats:
-        cat_cols = [c for c in cols if c.startswith(col + sep)]
-        if len(cat_cols) > 1:
-            feature_dict[col] = cat_cols
-
-    # add all the individual features
-    other_cols = list(set(cols) - set([item for sublist in list(feature_dict.values())
-                                                for item in sublist]))
-
-    for col in other_cols:
-        feature_dict[col] = [col]
-    return feature_dict
+    if verbose:
+        print("Warning: there is currently limited support for sklearn.Pipelines in explainerdashboard. "
+            "Only pipelines that return the same number of columns in the same order are supported, "
+            "until sklearn properly implements a pipeline.get_feature_names() method.", flush=True)
+    assert hasattr(pipeline.steps[-1][1], 'predict'), \
+        ("When passing an sklearn.Pipeline, the last step of the pipeline should be a model, "
+         f"but {pipeline.steps[-1][1]} does not have a .predict() function!")
+    model = pipeline.steps[-1][1]
+    
+    if X is None:
+        return X, model
+    
+    X_transformed, columns = Pipeline(pipeline.steps[:-1]).transform(X), None
+    
+    if hasattr(pipeline, "get_feature_names"):
+        try:
+            columns = pipeline.get_feature_names()
+        except:
+            pass
+        else:
+            if len(columns) != X_transformed.shape[0]:
+                print(f"len(pipeline.get_feature_names())={len(columns)} does"
+                      f" not equal X_transformed.shape[0]={X_transformed.shape[0]}!", flush=True)
+                columns = None
+    if columns is None and X_transformed.shape == X.values.shape:
+        for i, pipe in enumerate(pipeline):
+            if hasattr(pipe, "n_features_in_"):
+                assert pipe.n_features_in_ == len(X.columns), \
+                    (f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}!"
+                     "For now explainerdashboard only supports sklearn Pipelines that have a "
+                     ".get_feature_names() method or do not add/drop any columns...")
+        print("Note: sklearn.Pipeline output shape is equal to X input shape, "
+              f"so assigning column names from X.columns: {X.columns.tolist()}, so"
+              " make sure that your pipeline does not add, remove or reorders columns!", flush=True)
+        columns = X.columns
+    else:
+        raise ValueError("Pipeline does not return same number of columns as input, "
+                        "nor does it have a proper .get_feature_names() method! "
+                        "Try passing the final estimator in the pipeline seperately "
+                        "together with an already transformed dataframe.")
+        
+    X_transformed = pd.DataFrame(X_transformed, columns=columns)
+    return X_transformed, model
 
 
 def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):

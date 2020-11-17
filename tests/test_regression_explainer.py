@@ -86,6 +86,32 @@ class RegressionBunchTests(unittest.TestCase):
         fig = self.explainer.plot_residuals_vs_feature("Gender", winsor=10)
         self.assertIsInstance(fig, go.Figure)
 
+    def test_plot_y_vs_feature(self):
+        fig = self.explainer.plot_y_vs_feature("Age")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_y_vs_feature("Age", dropna=True)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_y_vs_feature("Gender", points=False)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_y_vs_feature("Gender", winsor=10)
+        self.assertIsInstance(fig, go.Figure)
+
+    def test_plot_preds_vs_feature(self):
+        fig = self.explainer.plot_preds_vs_feature("Age")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_preds_vs_feature("Age", dropna=True)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_preds_vs_feature("Gender", points=False)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_preds_vs_feature("Gender", winsor=10)
+        self.assertIsInstance(fig, go.Figure)
+
 
 
 

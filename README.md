@@ -86,7 +86,9 @@ model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
 explainer = ClassifierExplainer(model, X_test, y_test, 
-                                cats=[{'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}, 'Deck', 'Embarked'],
+                                cats=[
+                                    {'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}, 
+                                    'Deck', 'Embarked'],
                                 labels=['Not survived', 'Survived'])
 
 db = ExplainerDashboard(explainer, 

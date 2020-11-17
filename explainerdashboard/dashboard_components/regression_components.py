@@ -2,6 +2,8 @@ __all__ = [
     'PredictedVsActualComponent',
     'ResidualsComponent',
     'ResidualsVsColComponent',
+    'ObservedVsColComponent',
+    'PredsVsColComponent',
     'RegressionModelSummaryComponent',
 ]
 
@@ -303,6 +305,235 @@ class ResidualsVsColComponent(ExplainerComponent):
         def update_dependence_shap_scatter_graph(cats):
             return [{'label': col, 'value': col} 
                 for col in self.explainer.columns_ranked_by_shap(cats)]
+
+
+class ActualVsColComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Observed vs feature", name=None,
+                    hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
+                    hide_points=False, hide_winsor=False,
+                    col=None, cats=True, 
+                    points=True, winsor=0):
+        """Show residuals vs a particular Feature component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Observed vs feature".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional) Hide the title. Defaults to False.
+            hide_col (bool, optional): Hide de column selector. Defaults to False.
+            hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_points (bool, optional): Hide group points toggle. Defaults to False.
+            hide_winsor (bool, optional): Hide winsor input. Defaults to False.
+            col ([type], optional): Initial feature to display. Defaults to None.
+            cats (bool, optional): group categorical columns. Defaults to True.
+            points (bool, optional): display point cloud next to violin plot 
+                    for categorical cols. Defaults to True
+            winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
+        """
+        super().__init__(explainer, title, name)
+
+        if self.col is None:
+            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+
+        self.register_dependencies(['preds'])
+
+    def layout(self):
+        return html.Div([
+            dbc.Row([
+                make_hideable(html.H3(self.title), hide=self.hide_title)
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Column:"),
+                        dcc.Dropdown(id='observed-vs-col-col-'+self.name,
+                            options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                            value=self.col),
+                    ], md=4), hide=self.hide_col),
+                make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='observed-vs-col-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='observed-vs-col-group-cats-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True),
+                        ], md=2), self.hide_cats),
+            ]),
+            dbc.Row([
+                dcc.Loading(id="loading-observed-vs-col-graph-"+self.name, 
+                                children=[dcc.Graph(id='observed-vs-col-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            ]),
+            dbc.Row([
+                make_hideable(
+                        dbc.Col([ 
+                            dbc.Label("Winsor:"),
+                            dbc.Input(id='observed-vs-col-winsor-'+self.name, 
+                                    value=self.winsor,
+                                type="number", min=0, max=49, step=1),
+                        ], md=2), hide=self.hide_winsor),  
+                make_hideable(
+                        dbc.Col([
+                            dbc.Label("Points:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='observed-vs-col-show-points-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.points),
+                                dbc.Label("Show points",
+                                        html_for='observed-vs-col-show-points-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True),
+                        ],  md=3), self.hide_points),
+            ]),
+        ])
+
+    def register_callbacks(self, app):
+        @app.callback(
+            Output('observed-vs-col-graph-'+self.name, 'figure'),
+            [Input('observed-vs-col-col-'+self.name, 'value'),
+             Input('observed-vs-col-show-points-'+self.name, 'checked'),
+             Input('observed-vs-col-winsor-'+self.name, 'value')],
+        )
+        def update_observed_vs_col_graph(col, points, winsor):
+            return self.explainer.plot_y_vs_feature(
+                        col, points=points, winsor=winsor, dropna=True)
+
+        @app.callback(
+            Output('observed-vs-col-col-'+self.name, 'options'),
+            [Input('observed-vs-col-group-cats-'+self.name, 'checked')])
+        def update_observed_vs_col_options(cats):
+            return [{'label': col, 'value': col} 
+                for col in self.explainer.columns_ranked_by_shap(cats)]
+
+
+class PredsVsColComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Predictions vs feature", name=None,
+                    hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
+                    hide_points=False, hide_winsor=False,
+                    col=None, cats=True, 
+                    points=True, winsor=0):
+        """Show residuals vs a particular Feature component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Predicions vs feature".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional) Hide the title. Defaults to False.
+            hide_col (bool, optional): Hide de column selector. Defaults to False.
+            hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
+            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
+            hide_points (bool, optional): Hide group points toggle. Defaults to False.
+            hide_winsor (bool, optional): Hide winsor input. Defaults to False.
+            col ([type], optional): Initial feature to display. Defaults to None.
+            cats (bool, optional): group categorical columns. Defaults to True.
+            points (bool, optional): display point cloud next to violin plot 
+                    for categorical cols. Defaults to True
+            winsor (int, 0-50, optional): percentage of outliers to winsor out of 
+                    the y-axis. Defaults to 0.
+        """
+        super().__init__(explainer, title, name)
+
+        if self.col is None:
+            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+
+        self.register_dependencies(['preds'])
+
+    def layout(self):
+        return html.Div([
+            dbc.Row([
+                make_hideable(html.H3(self.title), hide=self.hide_title)
+            ]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        dbc.Label("Column:"),
+                        dcc.Dropdown(id='preds-vs-col-col-'+self.name,
+                            options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                            value=self.col),
+                    ], md=4), hide=self.hide_col),
+                make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='preds-vs-col-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='preds-vs-col-group-cats-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True),
+                        ], md=2), self.hide_cats),
+            ]),
+            dbc.Row([
+                dcc.Loading(id="loading-preds-vs-col-graph-"+self.name, 
+                                children=[dcc.Graph(id='preds-vs-col-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            ]),
+            dbc.Row([
+                make_hideable(
+                        dbc.Col([ 
+                            dbc.Label("Winsor:"),
+                            dbc.Input(id='preds-vs-col-winsor-'+self.name, 
+                                    value=self.winsor,
+                                type="number", min=0, max=49, step=1),
+                        ], md=2), hide=self.hide_winsor),  
+                make_hideable(
+                        dbc.Col([
+                            dbc.Label("Points:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='preds-vs-col-show-points-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.points),
+                                dbc.Label("Show points",
+                                        html_for='preds-vs-col-show-points-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True),
+                        ],  md=3), self.hide_points),
+            ]),
+        ])
+
+    def register_callbacks(self, app):
+        @app.callback(
+            Output('preds-vs-col-graph-'+self.name, 'figure'),
+            [Input('preds-vs-col-col-'+self.name, 'value'),
+             Input('preds-vs-col-show-points-'+self.name, 'checked'),
+             Input('preds-vs-col-winsor-'+self.name, 'value')],
+        )
+        def update_preds_vs_col_graph(col, points, winsor):
+            return self.explainer.plot_preds_vs_feature(
+                        col, points=points, winsor=winsor, dropna=True)
+
+        @app.callback(
+            Output('preds-vs-col-col-'+self.name, 'options'),
+            [Input('preds-vs-col-group-cats-'+self.name, 'checked')])
+        def update_preds_vs_col_options(cats):
+            return [{'label': col, 'value': col} 
+                for col in self.explainer.columns_ranked_by_shap(cats)]
+
 
 class RegressionModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary", name=None):

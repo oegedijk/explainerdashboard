@@ -76,6 +76,12 @@ class ClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_cumulative_precision()
         self.assertIsInstance(fig, go.Figure)
 
+        fig = self.explainer.plot_cumulative_precision(percentile=0.5)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_cumulative_precision(percentile=0.1, pos_label=0)
+        self.assertIsInstance(fig, go.Figure)
+
     def test_plot_confusion_matrix(self):
         fig = self.explainer.plot_confusion_matrix(normalized=False, binary=False)
         self.assertIsInstance(fig, go.Figure)

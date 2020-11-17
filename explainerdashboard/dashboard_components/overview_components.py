@@ -404,6 +404,9 @@ class WhatIfComponent(ExplainerComponent):
             
         """
         super().__init__(explainer, title, name)
+
+        assert len(explainer.columns) == len(set(explainer.columns)), \
+            "Not all column names are unique, so cannot launch whatif component/tab!"
         
         if self.pdp_col is None:
             self.pdp_col = self.explainer.columns_ranked_by_shap(cats=True)[0]
