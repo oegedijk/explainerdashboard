@@ -96,8 +96,11 @@ class BaseExplainer(ABC):
         
         if y is not None:
             self.y = pd.Series(y)
+            self.y_missing = False
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
+            self.y_missing = True
+        if self.y.name is None: self.y.name = 'Target'
         
         self.metric = permutation_metric
 
@@ -370,21 +373,24 @@ class BaseExplainer(ABC):
         Returns:
           if y_values is given select an index for which y in y_values
           if return_str return str index from self.idxs
-
         """
-        if y_min is None:
-            y_min = self.y.min()
-        if y_max is None:
-            y_max = self.y.max()
+        
         if pred_min is None:
             pred_min = self.preds.min()
         if pred_max is None:
             pred_max = self.preds.max()
 
-        potential_idxs = self.y[(self.y>=y_min) & 
-                                (self.y <= y_max) & 
-                                (self.preds>=pred_min) & 
-                                (self.preds <= pred_max)].index
+        if not self.y_missing:
+            if y_min is None: y_min = self.y.min()
+            if y_max is None: y_max = self.y.max()
+
+            potential_idxs = self.y[(self.y>=y_min) & 
+                                    (self.y <= y_max) & 
+                                    (self.preds>=pred_min) &    
+                                    (self.preds <= pred_max)].index
+        else:
+            potential_idxs = self.y[(self.preds>=pred_min) &    
+                                    (self.preds <= pred_max)].index
 
         if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
@@ -2034,22 +2040,32 @@ class ClassifierExplainer(BaseExplainer):
         if (y_values is None 
             and pred_proba_min is None and pred_proba_max is None
             and pred_percentile_min is None and pred_percentile_max is None):
-            potential_idxs = self.y.index
+            potential_idxs = self.idxs.values
         else:
-            if y_values is None: y_values = self.y.unique().tolist()
-            if not isinstance(y_values, list): y_values = [y_values]
-            y_values = [y if isinstance(y, int) else self.labels.index(y) for y in y_values]
             if pred_proba_min is None: pred_proba_min = self.pred_probas(pos_label).min()
             if pred_proba_max is None: pred_proba_max = self.pred_probas(pos_label).max()
             if pred_percentile_min is None: pred_percentile_min = 0.0
             if pred_percentile_max is None: pred_percentile_max = 1.0
             
-            potential_idxs = self.y[(self.y.isin(y_values)) &
-                            (self.pred_probas(pos_label) >= pred_proba_min) &
-                            (self.pred_probas(pos_label) <= pred_proba_max) &
-                            (self.pred_percentiles(pos_label) > pred_percentile_min) &
-                            (self.pred_percentiles(pos_label) <= pred_percentile_max)].index
-        if not potential_idxs.empty:
+            if not self.y_missing:
+                if y_values is None: y_values = self.y.unique().tolist()
+                if not isinstance(y_values, list): y_values = [y_values]
+                y_values = [y if isinstance(y, int) else self.labels.index(y) for y in y_values]
+
+                potential_idxs = self.idxs[(self.y.isin(y_values)) &
+                                (self.pred_probas(pos_label) >= pred_proba_min) &
+                                (self.pred_probas(pos_label) <= pred_proba_max) &
+                                (self.pred_percentiles(pos_label) > pred_percentile_min) &
+                                (self.pred_percentiles(pos_label) <= pred_percentile_max)].values
+            
+            else:
+                potential_idxs = self.idxs[
+                                (self.pred_probas(pos_label) >= pred_proba_min) &
+                                (self.pred_probas(pos_label) <= pred_proba_max) &
+                                (self.pred_percentiles(pos_label) > pred_percentile_min) &
+                                (self.pred_percentiles(pos_label) <= pred_percentile_max)].values
+
+        if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
         else:
             return None
@@ -2371,31 +2387,40 @@ class RegressionExplainer(BaseExplainer):
           a random index that fits the exclusion criteria
 
         """
-        if y_min is None:
-            y_min = self.y.min()
-        if y_max is None:
-            y_max = self.y.max()
-        if pred_min is None:
-            pred_min = self.preds.min()
-        if pred_max is None:
-            pred_max = self.preds.max()
-        if residuals_min is None:
-            residuals_min = self.residuals.min()
-        if residuals_max is None:
-            residuals_max = self.residuals.max()
-        if abs_residuals_min is None:
-            abs_residuals_min = self.abs_residuals.min()
-        if abs_residuals_max is None:
-            abs_residuals_max = self.abs_residuals.max()
-
-        potential_idxs = self.y[(self.y >= y_min) & 
-                                (self.y <= y_max) & 
+        if self.y_missing:
+            if pred_min is None:
+                pred_min = self.preds.min()
+            if pred_max is None:
+                pred_max = self.preds.max()
+            potential_idxs = self.idxs[
                                 (self.preds >= pred_min) & 
-                                (self.preds <= pred_max) &
-                                (self.residuals >= residuals_min) & 
-                                (self.residuals <= residuals_max) &
-                                (self.abs_residuals >= abs_residuals_min) & 
-                                (self.abs_residuals <= abs_residuals_max)].index
+                                (self.preds <= pred_max)].values
+        else:
+            if y_min is None:
+                y_min = self.y.min()
+            if y_max is None:
+                y_max = self.y.max()
+            if pred_min is None:
+                pred_min = self.preds.min()
+            if pred_max is None:
+                pred_max = self.preds.max()
+            if residuals_min is None:
+                residuals_min = self.residuals.min()
+            if residuals_max is None:
+                residuals_max = self.residuals.max()
+            if abs_residuals_min is None:
+                abs_residuals_min = self.abs_residuals.min()
+            if abs_residuals_max is None:
+                abs_residuals_max = self.abs_residuals.max()
+
+            potential_idxs = self.idxs[(self.y >= y_min) & 
+                                    (self.y <= y_max) & 
+                                    (self.preds >= pred_min) & 
+                                    (self.preds <= pred_max) &
+                                    (self.residuals >= residuals_min) & 
+                                    (self.residuals <= residuals_max) &
+                                    (self.abs_residuals >= abs_residuals_min) & 
+                                    (self.abs_residuals <= abs_residuals_max)].values
 
         if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
@@ -2420,8 +2445,9 @@ class RegressionExplainer(BaseExplainer):
         int_idx = self.get_int_idx(index)
         model_prediction = "###### Prediction:\n"
         model_prediction += f"Predicted {self.target}: {np.round(self.preds[int_idx], round)} {self.units}\n\n"
-        model_prediction += f"Observed {self.target}: {np.round(self.y[int_idx], round)} {self.units}\n\n"
-        model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}\n\n"
+        if not self.y_missing:
+            model_prediction += f"Observed {self.target}: {np.round(self.y[int_idx], round)} {self.units}\n\n"
+            model_prediction += f"Residual: {np.round(self.residuals[int_idx], round)} {self.units}\n\n"
         if include_percentile:
             percentile = np.round(100*(1-self.pred_percentiles[int_idx]))
             model_prediction += f"\nIn top {percentile}% percentile predicted {self.target}"
@@ -2751,7 +2777,10 @@ class RandomForestExplainer(BaseExplainer):
         
         if self.is_classifier:
             if pos_label is None: pos_label = self.pos_label
-            y = 100*self.y_binary(pos_label)[idx] 
+            if not np.isnan(self.y[idx]):
+                y = 100*self.y_binary(pos_label)[idx] 
+            else:
+                y = None
 
             return plotly_rf_trees(self.model, self.X.iloc[[idx]], y,
                         highlight_tree=highlight_tree, round=round, 

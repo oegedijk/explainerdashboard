@@ -21,27 +21,35 @@
 - add linear trendlines to y/preds vs col plots:
     - https://stackoverflow.com/questions/58708230/plotly-how-to-plot-a-regression-line-using-plotly
 
+
 ## Explainers:
 - add plain language explanations
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
-- automatically store params to attrs, param_dict in explainer
-- add integer option to X_background to use X.sample(sample_size)
+
 
 ## notebooks:
 
+
 ## Dashboard:
 - organize explainer components according to tab
+- make dashboard work with y=None
+    - no permutation importances
+    - no model performance
+    - no label selection in index selector
+    - contributions graph without outcome
+    - contributions table without outcome
+
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
     - https://arxiv.org/pdf/1910.05591.pdf
-- add querystring method to ExplainerComponents
-- make dashboard work with y=None
-- Turn model performance summary into card or dbc.Table
-- Turn all components into cards
+
+
+
 
 ### Components
+- add querystring method to ExplainerComponents
 - add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions

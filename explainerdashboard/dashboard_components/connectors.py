@@ -66,6 +66,9 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         if self.labels is None:
             self.labels = self.explainer.labels
 
+        if self.explainer.y_missing:
+            self.hide_labels = True
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
         assert (len(self.slider) == 2 and
@@ -221,29 +224,39 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
         self.index_name = 'random-index-reg-index-'+self.name
 
+        if self.explainer.y_missing:
+            self.hide_residual_slider = True
+            self.hide_pred_or_y = True
+            self.hide_abs_residuals = True
+            self.pred_or_y = "preds"
+            self.y_slider = [0, 1]
+            self.residual_slider = [0, 1]
+            self.abs_residual_slider = [0, 1]
+
         if self.pred_slider is None:
             self.pred_slider = [self.explainer.preds.min(), self.explainer.preds.max()]
 
-        if self.y_slider is None:
-            self.y_slider = [self.explainer.y.min(), self.explainer.y.max()]
+        if not self.explainer.y_missing:
+            if self.y_slider is None:
+                self.y_slider = [self.explainer.y.min(), self.explainer.y.max()]
 
-        if self.residual_slider is None:
-            self.residual_slider = [self.explainer.residuals.min(), self.explainer.residuals.max()]
+            if self.residual_slider is None:
+                self.residual_slider = [self.explainer.residuals.min(), self.explainer.residuals.max()]
 
-        if self.abs_residual_slider is None:
-            self.abs_residual_slider = [self.explainer.abs_residuals.min(), self.explainer.abs_residuals.max()]
+            if self.abs_residual_slider is None:
+                self.abs_residual_slider = [self.explainer.abs_residuals.min(), self.explainer.abs_residuals.max()]
 
-        assert (len(self.pred_slider)==2 and self.pred_slider[0]<=self.pred_slider[1]), \
-            "pred_slider should be a list of a [lower_bound, upper_bound]!"
+            assert (len(self.pred_slider)==2 and self.pred_slider[0]<=self.pred_slider[1]), \
+                "pred_slider should be a list of a [lower_bound, upper_bound]!"
 
-        assert (len(self.y_slider)==2 and self.y_slider[0]<=self.y_slider[1]), \
-            "y_slider should be a list of a [lower_bound, upper_bound]!"
+            assert (len(self.y_slider)==2 and self.y_slider[0]<=self.y_slider[1]), \
+                "y_slider should be a list of a [lower_bound, upper_bound]!"
 
-        assert (len(self.residual_slider)==2 and self.residual_slider[0]<=self.residual_slider[1]), \
-            "residual_slider should be a list of a [lower_bound, upper_bound]!"
+            assert (len(self.residual_slider)==2 and self.residual_slider[0]<=self.residual_slider[1]), \
+                "residual_slider should be a list of a [lower_bound, upper_bound]!"
 
-        assert (len(self.abs_residual_slider)==2 and self.abs_residual_slider[0]<=self.abs_residual_slider[1]), \
-            "abs_residual_slider should be a list of a [lower_bound, upper_bound]!"
+            assert (len(self.abs_residual_slider)==2 and self.abs_residual_slider[0]<=self.abs_residual_slider[1]), \
+                "abs_residual_slider should be a list of a [lower_bound, upper_bound]!"
 
         assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
 

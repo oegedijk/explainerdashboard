@@ -400,6 +400,10 @@ class ExplainerDashboard:
         
         if tabs is None:
             tabs = []
+            if model_summary and explainer.y_missing:
+                print("No y labels were passed to the Explainer, so setting"
+                        " model_summary=False...", flush=True)
+                model_summary = False
             if shap_interaction and not explainer.interactions_should_work:
                 print("For this type of model and model_output interactions don't "
                           "work, so setting shap_interaction=False...", flush=True)
