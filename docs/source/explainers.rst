@@ -60,6 +60,7 @@ give a bit nicer and more convenient output::
             model_output='logodds', # set model_output to logodds (vs probability)
             cats=['Sex', 'Deck', 'Embarked'], # makes it easy to group onehotencoded vars
             idxs=test_names, # index with str identifier
+            index_name="Passenger", # description of index
             descriptions=feature_descriptions, # show long feature descriptions in hovers
             target='Survival', # the name of the target variable (y)
             labels=['Not survived', 'Survived']) # show target labels instead of ['0', '1']
@@ -114,6 +115,11 @@ to the explainer::
     test_names = titanic_names(test_only=True)
     ClassifierExplainer(model, X_test, y_test, idxs=test_names)
 
+index_name
+----------
+
+By default X.index.name or idxs.name is used as the description of the index,
+but you can also pass it explicitly, e.g.: ``index_name="Passenger"``.
 
 descriptions
 ------------
