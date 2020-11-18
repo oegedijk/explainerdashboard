@@ -15,6 +15,10 @@
 - For RegressionExplainer added ActualVsColComponent and PredsVsColComponent
     in order to investigate partial correlations between y/preds and 
     various features. 
+- added `index_name` parameter: name of the index column (defaults to `X.index.name`
+    or `idxs.name`). So when you pass `index_name="Passenger"`, you get
+    a "Random Passenger" button on the index selector instead of "Random Index",
+    etc.
 
 ### Bug Fixes
 -
