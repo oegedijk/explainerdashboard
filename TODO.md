@@ -27,9 +27,6 @@
     - Breaking change!
 - automatically store params to attrs, param_dict in explainer
 - add integer option to X_background to use X.sample(sample_size)
-- add index_name (read from X.index.name by default)
-- change docstring style of BaseExplainer
-
 
 ## notebooks:
 
@@ -41,7 +38,7 @@
     - https://arxiv.org/pdf/1910.05591.pdf
 - add querystring method to ExplainerComponents
 - make dashboard work with y=None
-- Turn model performance summary into card
+- Turn model performance summary into card or dbc.Table
 - Turn all components into cards
 
 ### Components
@@ -70,6 +67,7 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add preds vs col and y vs col screenshots
 - Add type hints:
     - to explainers
     - to explainer class methods

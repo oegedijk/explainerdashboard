@@ -28,6 +28,8 @@
 - Seperated labels for "observed" and "average prediction" better in tree plot
 - Renamed "actual" to "observed" in prediction summary
 - added unique column check for whatif-component with clearer error message
+- model metrics now formatted in a nice table
+- removed most of the loading spinners as most graphs are not long loads anyway.
 
 ### Other Changes
 -

@@ -10,6 +10,7 @@ __all__ = [
 ]
 
 import numpy as np
+import pandas as pd
 
 import dash
 import dash_core_components as dcc
@@ -67,9 +68,8 @@ class PrecisionComponent(ExplainerComponent):
             dbc.Row([
                 dbc.Col([
                     html.Div([
-                        dcc.Loading(id="loading-precision-graph-"+self.name, 
-                                children=[dcc.Graph(id='precision-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                        dcc.Graph(id='precision-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ], style={'margin': 0}),
                 ])
             ]),
@@ -218,9 +218,8 @@ class ConfusionMatrixComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
-            dcc.Loading(id='loading-confusionmatrix-graph-'+self.name, 
-                            children=[dcc.Graph(id='confusionmatrix-graph-'+self.name,
-                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            dcc.Graph(id='confusionmatrix-graph-'+self.name,
+                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -311,10 +310,9 @@ class LiftCurveComponent(ExplainerComponent):
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
             html.Div([
-                        dcc.Loading(id='loading-lift-curve-'+self.name, 
-                                children=[dcc.Graph(id='liftcurve-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
-                    ], style={'margin': 0}),
+                dcc.Graph(id='liftcurve-graph-'+self.name,
+                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+            ], style={'margin': 0}),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -380,10 +378,9 @@ class CumulativePrecisionComponent(ExplainerComponent):
     def layout(self):
         return html.Div([
             html.Div([
-                        dcc.Loading(id='loading-cumulative-precision-graph-'+self.name, 
-                                children=[dcc.Graph(id='cumulative-precision-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
-                    ], style={'margin': 0}),
+                dcc.Graph(id='cumulative-precision-graph-'+self.name,
+                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+            ], style={'margin': 0}),
              dbc.Row([
                 dbc.Col([
                     dbc.Row([
@@ -477,9 +474,8 @@ class ClassificationComponent(ExplainerComponent):
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
             html.Div([
-                dcc.Loading(id="loading-classification-graph-"+self.name, 
-                            children=[dcc.Graph(id='classification-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dcc.Graph(id='classification-graph-'+self.name,
+                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ], style={'margin': 0}),
             make_hideable(
                 html.Div([
@@ -552,9 +548,8 @@ class RocAucComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
-            dcc.Loading(id="loading-roc-auc-graph-"+self.name, 
-                                children=[dcc.Graph(id='rocauc-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            dcc.Graph(id='rocauc-graph-'+self.name,
+                        config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -610,9 +605,8 @@ class PrAucComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
-            dcc.Loading(id="loading-pr-auc-graph-"+self.name, 
-                                children=[dcc.Graph(id='prauc-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            dcc.Graph(id='prauc-graph-'+self.name,
+                        config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -637,7 +631,7 @@ class PrAucComponent(ExplainerComponent):
 class ClassifierModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary", name=None,
                     hide_cutoff=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5):
+                    pos_label=None, cutoff=0.5, round=3):
         """Show model summary statistics (accuracy, precision, recall,  
             f1, roc_auc, pr_auc, log_loss) component.
 
@@ -653,6 +647,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
+            round (int): round floats. Defaults to 3.
         """
         super().__init__(explainer, title, name)
         
@@ -668,8 +663,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
-            dcc.Loading(id="loading-clas-model-summary-"+self.name, 
-                                children=[dcc.Markdown(id='clas-model-summary-md-'+self.name)]),
+            html.Div(id='clas-model-summary-md-'+self.name),
             make_hideable(
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
@@ -691,5 +685,13 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')],
         )
         def update_classifier_summary(cutoff, pos_label):
-            return self.explainer.metrics_markdown(cutoff=cutoff, pos_label=pos_label)
+            metrics_df = (pd.DataFrame(
+                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label), 
+                                index=["Score"])
+                              .T.rename_axis(index="metric").reset_index()
+                              .round(self.round))
+            return html.Div([
+                html.H3("Classifier performance metrics:"),
+                dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)
+            ])
         
