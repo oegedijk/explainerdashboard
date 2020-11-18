@@ -2404,7 +2404,7 @@ class RegressionExplainer(BaseExplainer):
             metrics_markdown += f"Predicting: {self.target} " + f"({self.units})\n\n" if self.units else "\n\n"
         metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)} {self.units}\n\n"
         metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)} {self.units}\n\n"
-        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)} {self.units}\n\n"
+        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)}\n\n"
         
         return metrics_markdown
 
