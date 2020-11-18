@@ -590,7 +590,7 @@ class BaseExplainer(ABC):
         """Permutation importances """
         if not hasattr(self, '_perm_imps'):
             print("Calculating importances...", flush=True)
-                self._perm_imps = cv_permutation_importances(
+            self._perm_imps = cv_permutation_importances(
                                 self.model, self.X, self.y, self.metric,
                                 cv=self.permutation_cv,
                                 n_jobs=self.n_jobs,
