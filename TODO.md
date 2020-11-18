@@ -27,6 +27,8 @@
     - Breaking change!
 - automatically store params to attrs, param_dict in explainer
 - add integer option to X_background to use X.sample(sample_size)
+- add index_name (read from X.index.name by default)
+- change docstring style of BaseExplainer
 
 
 ## notebooks:
@@ -47,7 +49,10 @@
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - set equivalent_col when toggling cats in dependence/interactions
-- Write demo on how to write constraints
+- Add a constraints function to whatif component:
+    - tests if current feature input is allowed
+    - gives specific feedback when constraint broken
+    - could build WhatIfComponentException for this?
 
 ## Methods:
 - Add LIME values
@@ -74,12 +79,14 @@
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
+- add actual_vs_col and pred_vs_col screenshots to components docs
 
 ## Library level:
-- remove all the register_components() args
 - hide (prefix '_') to non-API class methods
 - build release for conda-forge
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
+- build explainerhub for hosting multiple explainerdashboard models
+    - using django?

@@ -56,7 +56,7 @@ class DecisionTreesComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Index:"),
+                        dbc.Label(f"{self.explainer.index_name}:"),
                         dcc.Dropdown(id='decisiontrees-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -148,7 +148,7 @@ class DecisionPathTableComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Index:"),
+                        dbc.Label(f"{self.explainer.index_name}:"),
                         dcc.Dropdown(id='decisionpath-table-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -230,7 +230,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Index:"),
+                        dbc.Label(f"{self.explainer.index_name}:"),
                         dcc.Dropdown(id='decisionpath-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],

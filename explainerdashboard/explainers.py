@@ -40,43 +40,47 @@ class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, target=None,
+                    cats=None, idxs=None, index_name=None, target=None,
+                    descriptions=None, 
                     n_jobs=None, permutation_cv=None, na_fill=-999):
-        """Defines the basic functionality of an ExplainerBunch
+        """Defines the basic functionality that is shared by both
+        ClassifierExplainer and RegressionExplainer. 
 
-        :param model: a model with a scikit-learn compatible .fit and .predict method
-        :type model: [type]
-        :param X: a pd.DataFrame with your model features
-        :type X: pd.DataFrame
-        :param y: Dependent variable of your model, defaults to None
-        :type y: pd.Series, optional
-        :param permutation_metric: is a scikit-learn compatible metric function (or string), 
-            defaults to r2_score
-        :type permutation_metric: metric function, optional
-        :param shap: type of shap_explainer to fit: 'tree', 'linear', 'kernel', defaults to 'guess'
-        :type shap: str
-        :param X_background: background X to be used by shap explainer
-        :type X_background: pd.DataFrame
-        :param model_output: model_output of shap values, either 'raw', 'logodds' or 'probability'
-        :type model_output: str
-        :param cats: list of variables that have been onehotencoded. Allows to 
-            group categorical variables together in plots, defaults to None
-        :type cats: list, optional
-        :param idxs: list of row identifiers. Can be names, id's, etc. Get 
-            converted to str, defaults to None
-        :type idxs: list, optional
-        :param target: name of the predicted target, e.g. "Survival", 
-            "Ticket price", etc. Default is y.name, but can override with target.
-            Defaults to None.
-        :type target: str
-        :param n_jobs: for jobs that can be parallelized using joblib,
-            how many processes to split the job in. For now only used
-            for calculating permutation importances. Defaults to None.
-        :param permutation_cv: If given permutation importances get calculated 
-            using cross validation, defaults to None
-        :type permutation_cv: int, optional
-        :param na_fill: The filler used for missing values, defaults to -999
-        :type na_fill: int, optional
+        Args:
+            model: a model with a scikit-learn compatible .fit and .predict methods
+            X (pd.DataFrame): a pd.DataFrame with your model features
+            y (pd.Series): Dependent variable of your model, defaults to None
+            permutation_metric (function or str): is a scikit-learn compatible 
+                metric function (or string). Defaults to r2_score
+            shap (str): type of shap_explainer to fit: 'tree', 'linear', 'kernel'. 
+                Defaults to 'guess'.
+            X_background (pd.DataFrame): background X to be used by shap 
+                explainers that need a background dataset (e.g. shap.KernelExplainer
+                or shap.TreeExplainer with boosting models and 
+                model_output='probability').
+            model_output (str): model_output of shap values, either 'raw', 
+                'logodds' or 'probability'. Defaults to 'raw' for regression and
+                'probability' for classification.
+            cats ({dict, list}): dict of features that have been 
+                onehotencoded. e.g. cats={'Sex':['Sex_male', 'Sex_female']}. 
+                If all encoded columns are underscore-seperated (as above), can simply
+                pass a list of prefixes: cats=['Sex']. Allows to 
+                group onehot encoded categorical variables together in 
+                various plots. Defaults to None.
+            idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
+                Defaults to X.index.
+            index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
+                Defaults to X.index.name or idxs.name.
+            target: name of the predicted target, e.g. "Survival", 
+                "Ticket price", etc. Defaults to y.name.
+            n_jobs (int): for jobs that can be parallelized using joblib,
+                how many processes to split the job in. For now only used
+                for calculating permutation importances. Defaults to None.
+            permutation_cv (int): If not None then permutation importances 
+                will get calculated using cross validation across X. 
+                This is for calculating permutation importances against
+                X_train. Defaults to None
+            na_fill (int): The filler used for missing values, defaults to -999.
         """
         self._params_dict = dict(
             shap=shap, model_output=model_output, cats=cats, 
@@ -131,6 +135,14 @@ class BaseExplainer(ABC):
         else:
             self.idxs = X.index.astype(str)
             self.y.index = self.idxs
+
+        if index_name is None:
+            if X.index.name is not None:
+                self.index_name = X.index.name.capitalize()
+            else:
+                self.index_name = "Index"
+        else:
+            self.index_name = index_name.capitalize()
 
         self.descriptions = {} if descriptions is None else descriptions
         self.target = target if target is not None else self.y.name
@@ -1326,7 +1338,8 @@ class BaseExplainer(ABC):
                                 idxs=self.idxs.values,
                                 highlight_index=index,
                                 title=title,
-                                na_fill=self.na_fill)
+                                na_fill=self.na_fill,
+                                index_name=self.index_name)
         else:
             return plotly_shap_scatter_plot(
                                 self.shap_values(pos_label),
@@ -1336,7 +1349,8 @@ class BaseExplainer(ABC):
                                 idxs=self.idxs.values,
                                 highlight_index=index,
                                 title=title,
-                                na_fill=self.na_fill)
+                                na_fill=self.na_fill,
+                                index_name=self.index_name)
 
     def plot_shap_interaction_summary(self, col, index=None, topx=None, cats=False, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
@@ -1363,7 +1377,8 @@ class BaseExplainer(ABC):
         return plotly_shap_scatter_plot(
                 self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
                 self.X_cats if cats else self.X, interact_cols[:topx], title=title, 
-                idxs=self.idxs.values, highlight_index=index, na_fill=self.na_fill)
+                idxs=self.idxs.values, highlight_index=index, na_fill=self.na_fill,
+                index_name=self.index_name)
 
     def plot_shap_dependence(self, col, color_col=None, highlight_index=None, pos_label=None):
         """plot shap dependence
@@ -1394,7 +1409,8 @@ class BaseExplainer(ABC):
                             col, 
                             color_col, 
                             highlight_index=highlight_idx,
-                            idxs=self.idxs.values)
+                            idxs=self.idxs.values,
+                            index_name=self.index_name)
             else:
                 return plotly_dependence_plot(
                             self.X_cats, 
@@ -1404,7 +1420,8 @@ class BaseExplainer(ABC):
                             na_fill=self.na_fill, 
                             units=self.units, 
                             highlight_index=highlight_idx,
-                            idxs=self.idxs.values)
+                            idxs=self.idxs.values,
+                            index_name=self.index_name)
         else:
             return plotly_dependence_plot(
                             self.X, 
@@ -1414,7 +1431,8 @@ class BaseExplainer(ABC):
                             na_fill=self.na_fill, 
                             units=self.units, 
                             highlight_index=highlight_idx,
-                            idxs=self.idxs.values)
+                            idxs=self.idxs.values,
+                            index_name=self.index_name)
 
     def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
                                 pos_label=None):
@@ -1438,12 +1456,14 @@ class BaseExplainer(ABC):
                 self.X_cats, 
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
                 interact_col, col, interaction=True, units=self.units, 
-                highlight_index=highlight_idx, idxs=self.idxs.values)
+                highlight_index=highlight_idx, idxs=self.idxs.values,
+                index_name=self.index_name)
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
                 interact_col, col, interaction=True, units=self.units,
-                highlight_index=highlight_idx, idxs=self.idxs.values)
+                highlight_index=highlight_idx, idxs=self.idxs.values,
+                index_name=self.index_name)
 
     def plot_pdp(self, col, index=None, X_row=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, pos_label=None):
@@ -1503,8 +1523,8 @@ class ClassifierExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X, y=None,  permutation_metric=roc_auc_score, 
                     shap='guess', X_background=None, model_output="probability",
-                    cats=None, idxs=None, descriptions=None, target=None,
-                    n_jobs=None, permutation_cv=None, na_fill=-999,
+                    cats=None, idxs=None, index_name=None, target=None,
+                    descriptions=None, n_jobs=None, permutation_cv=None, na_fill=-999,
                     labels=None, pos_label=1):
         """
         Explainer for classification models. Defines the shap values for
@@ -1525,7 +1545,7 @@ class ClassifierExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
-                            cats, idxs, descriptions, target, 
+                            cats, idxs, index_name, target, descriptions, 
                             n_jobs, permutation_cv, na_fill)
 
         assert hasattr(model, "predict_proba"), \
@@ -2284,9 +2304,9 @@ class RegressionExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
                     shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, descriptions=None, target=None,
-                    n_jobs=None, permutation_cv=None, na_fill=-999,
-                    units=""):
+                    cats=None, idxs=None, index_name=None, target=None,
+                    descriptions=None, n_jobs=None, permutation_cv=None, 
+                    na_fill=-999, units=""):
         """Explainer for regression models.
 
         In addition to BaseExplainer defines a number of plots specific to 
@@ -2299,7 +2319,7 @@ class RegressionExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
-                            cats, idxs, descriptions, target,
+                            cats, idxs, index_name, target, descriptions,
                             n_jobs, permutation_cv, na_fill)
 
         self._params_dict = {**self._params_dict, **dict(units=units)}
@@ -2453,7 +2473,8 @@ class RegressionExplainer(BaseExplainer):
         """
         return plotly_predicted_vs_actual(self.y, self.preds, 
                 target=self.target, units=self.units, idxs=self.idxs.values, 
-                logs=logs, log_x=log_x, log_y=log_y, round=round)
+                logs=logs, log_x=log_x, log_y=log_y, round=round, 
+                index_name=self.index_name)
     
     def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
         """plot of residuals. x-axis is the predicted outcome by default
@@ -2471,7 +2492,7 @@ class RegressionExplainer(BaseExplainer):
         return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs.values,
                                      vs_actual=vs_actual, target=self.target, 
                                      units=self.units, residuals=residuals, 
-                                     round=round)
+                                     round=round, index_name=self.index_name)
     
     def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
                 dropna=True, points=True, winsor=0):
@@ -2495,8 +2516,10 @@ class RegressionExplainer(BaseExplainer):
             f'{col} not in columns or columns_cats!'
         col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
-        return plotly_residuals_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor)
+        return plotly_residuals_vs_col(
+            self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+            residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
+            round=round, winsor=winsor, index_name=self.index_name)
 
     def plot_y_vs_feature(self, col, residuals='difference', round=2, 
                 dropna=True, points=True, winsor=0):
@@ -2520,7 +2543,7 @@ class RegressionExplainer(BaseExplainer):
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
                 idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
-                units=self.units, target=self.target)
+                units=self.units, target=self.target, index_name=self.index_name)
 
     def plot_preds_vs_feature(self, col, residuals='difference', round=2, 
                 dropna=True, points=True, winsor=0):
@@ -2544,7 +2567,7 @@ class RegressionExplainer(BaseExplainer):
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
                 idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
-                units=self.units, target=self.target)
+                units=self.units, target=self.target, index_name=self.index_name)
 
 
 class RandomForestExplainer(BaseExplainer):
