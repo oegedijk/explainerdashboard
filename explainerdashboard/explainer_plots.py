@@ -37,7 +37,7 @@ def plotly_contribution_plot(contrib_df, target="",
                          model_output="raw", higher_is_better=False,
                          include_base_value=True, include_prediction=True, 
                          orientation='vertical', round=2, units=""):
-    """Generate a shap contributions plot from a contrib_df dataframe
+    """Generate a shap contributions waterfall plot from a contrib_df dataframe
 
     Args:
         contrib_df (pd.DataFrame): contrib_df generated with get_contrib_df(...)
@@ -601,7 +601,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
 
 def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
                             interaction=False, na_fill=-999, round=2, units="", 
-                            highlight_index=None, idxs=None):
+                            highlight_index=None, idxs=None, index_name="index"):
     """Returns a dependence plot showing the relationship between feature col_name
     and shap values for col_name. Do higher values of col_name increase prediction
     or decrease them? Or some kind of U-shape or other?
@@ -622,6 +622,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         he plot. Defaults to None.
         idxs (list, optional): list of descriptors of the index, e.g. 
             names or other identifiers. Defaults to None.
+        index_name (str): identifier for idxs. Defaults to "index".
 
 
     Returns:
@@ -655,10 +656,10 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
     
     if interact_col_name is not None:
-        text = np.array([f'index={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
+        text = np.array([f'{index_name}={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
                     for index, col_val, col_col_val, shap_val in zip(idxs, x, X[interact_col_name], np.round(y, round))])
     else:
-        text = np.array([f'index={index}<br>{col_name}={col_val}<br>SHAP={shap_val}' 
+        text = np.array([f'{index_name}={index}<br>{col_name}={col_val}<br>SHAP={shap_val}' 
                     for index, col_val, shap_val in zip(idxs, x, np.round(y, round))])  
         
     data = []
@@ -680,7 +681,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         opacity=0.8,
                         hoverinfo="text",
                         name=onehot_col,
-                        text=[f'index={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
+                        text=[f'{index_name}={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
                                 for index, col_val, col_col_val, shap_val in zip(idxs,
                                     X[X[interact_col_name]==onehot_col][col_name], 
                                     X[X[interact_col_name]==onehot_col][interact_col_name], 
@@ -759,8 +760,8 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         width=4
                     )
                 ),
-                name = f"index {highlight_name}",
-                text=f"index {highlight_name}",
+                name=f"{index_name} {highlight_name}",
+                text=f"{index_name} {highlight_name}",
                 hoverinfo="text",
                 showlegend=False,
             ),
@@ -770,7 +771,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
 
 
 def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, 
-        interaction=False, units="", highlight_index=None, idxs=None):
+        interaction=False, units="", highlight_index=None, idxs=None, index_name="index"):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
 
@@ -788,6 +789,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         highlight_index (int, str, optional): Row index to highligh. Defaults to None.
         idxs (List[str], optional): List of identifiers for each row in X, e.g. 
             names or id's. Defaults to None.
+        index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         Plotly fig
@@ -846,7 +848,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                                 # hovertemplate = 
                                 # "<i>shap</i>: %{y:.2f}<BR>" +
                                 # f"<i>{color_col}" + ": %{marker.color}",
-                                text = [f"index: {index}<br>shap: {shap}<br>{color_col}: {col}" 
+                                text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
                                             for index, shap, col in zip(idxs[x==cat], shaps[x == cat], X[color_col][x==cat])],
                                 marker=dict(size=7, 
                                         opacity=0.6,
@@ -872,7 +874,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                                     mode='markers',
                                     showlegend=showscale,
                                     hoverinfo="text",
-                                    text = [f"index: {index}<br>shap: {shap}<br>{color_col}: {col}" 
+                                    text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
                                                 for index, shap, col in zip(
                                                                 idxs[(x == cat) & (X[color_col] == color_cat)], 
                                                                 shaps[(x == cat) & (X[color_col] == color_cat)], 
@@ -896,8 +898,8 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                             # hovertemplate = 
                             # "<i>shap</i>: %{y:.2f}",
                             hoverinfo="text",
-                                    text = [f"index: {index}<br>shap: {shap}" 
-                                                for index, shap in zip(idxs[(x == cat)], shaps[x == cat])],
+                            text = [f"{index_name}: {index}<br>shap: {shap}" 
+                                        for index, shap in zip(idxs[(x == cat)], shaps[x == cat])],
                             marker=dict(size=7, 
                                     opacity=0.6,
                                        color='blue'),
@@ -917,8 +919,8 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                             width=4
                         )
                     ),
-                    name = f"index {highlight_name}",
-                    text=f"index {highlight_name}",
+                    name = f"{index_name} {highlight_name}",
+                    text=f"{index_name} {highlight_name}",
                     hoverinfo="text",
                     showlegend=False,
                 ), row=1, col=col+1)
@@ -945,7 +947,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
 def plotly_pdp(pdp_result, 
                display_index=None, index_feature_value=None, index_prediction=None,
                absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None,
-               round=2, target="", units=""):
+               round=2, target="", units="", index_name="index"):
     """Display partial-dependence plot (pdp)
 
     Args:
@@ -967,6 +969,7 @@ def plotly_pdp(pdp_result,
         round (int, optional): Rounding to apply to floats. Defaults to 2.
         target (str, optional): Name of target variables. Defaults to "".
         units (str, optional): Units of target variable. Defaults to "".
+        index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         Plotly fig
@@ -991,7 +994,7 @@ def plotly_pdp(pdp_result,
                 pdp_result.ice_lines.iloc[display_index].round(round).values - pdp_result.ice_lines.iloc[display_index].round(round).values[0],
             mode = 'lines+markers',
             line = dict(color='blue', width = 4),
-            name = f'prediction for index {display_index} <br>for different values of <br>{pdp_result.feature}'
+            name = f'prediction for {index_name} {display_index} <br>for different values of <br>{pdp_result.feature}'
         )
         data.append(trace1)
 
@@ -1380,7 +1383,7 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
 
 
 def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap values", 
-                idxs=None, highlight_index=None, na_fill=-999):
+                idxs=None, highlight_index=None, na_fill=-999, index_name="index"):
     """Generate a shap values summary plot where features are ranked from
     highest mean absolute shap value to lowest, with point clouds shown
     for each feature. 
@@ -1398,6 +1401,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
             Defaults to None.
         na_fill (int, optional): Fill value used to fill missing values, 
             will be colored grey in the graph.. Defaults to -999.
+        index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         Plotly fig
@@ -1451,7 +1455,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"index={i}<br>{col}={onehot_col}<br>shap={np.round(shap,3)}" 
+                                text=[f"{index_name}={i}<br>{col}={onehot_col}<br>shap={np.round(shap,3)}" 
                                       for i, shap in zip(idxs[X[col]==onehot_col], shap_df[X[col]==onehot_col][col])],
                                 ),
                      row=i+1, col=1);
@@ -1474,7 +1478,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"index={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
+                                text=[f"{index_name}={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
                                       for i, shap, value in zip(idxs, shap_df[col], X[col].replace({-999:np.nan}))],
                                 ),
                      row=i+1, col=1);
@@ -1493,7 +1497,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                         width=4
                     )
                 ),
-                name = f"index {highlight_index}",
+                name = f"{index_name} {highlight_index}",
                 text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_df[col].iloc[highlight_idx]}",
                 hoverinfo="text",
                 showlegend=False,
@@ -1518,7 +1522,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
 
 
 def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2, 
-            logs=False, log_x=False, log_y=False, idxs=None):
+            logs=False, log_x=False, log_y=False, idxs=None, index_name="index"):
     """Generate graph showing predicted values from a regressor model vs actual
     values.
 
@@ -1532,6 +1536,7 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
         log_x (bool, optional): Log x axis. Defaults to False.
         log_y (bool, optional): Log y axis. Defaults to False.
         idxs (List[str], optional): list of identifiers for each observation. Defaults to None.
+        index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         Plotly fig
@@ -1543,7 +1548,7 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     else:
         idxs = [str(i) for i in range(len(preds))]
         
-    marker_text=[f"Index: {idx}<br>Actual: {actual}<br>Prediction: {pred}" 
+    marker_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}" 
                   for idx, actual, pred in zip(idxs, 
                                                 np.round(y, round), 
                                                 np.round(preds, round))] 
@@ -1590,7 +1595,8 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     return fig
 
 
-def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", residuals='difference', round=2, idxs=None):
+def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", 
+        residuals='difference', round=2, idxs=None, index_name="index"):
     """generates a residual plot
 
     Args:
@@ -1604,6 +1610,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", residu
                     How to calcualte residuals. Defaults to 'difference'.
         round (int, optional): [description]. Defaults to 2.
         idxs ([type], optional): [description]. Defaults to None.
+        index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         [type]: [description]
@@ -1630,7 +1637,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", residu
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
         
-    residuals_text=[f"Index: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
+    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
                   for idx, actual, pred, residual in zip(idxs, 
                                                     np.round(y, round), 
                                                     np.round(preds, round), 
@@ -1674,7 +1681,8 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="", residu
     
 
 def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference',
-                            idxs=None, round=2, points=True, winsor=0, na_fill=-999):
+                            idxs=None, round=2, points=True, winsor=0, 
+                            na_fill=-999, index_name="index"):
     """Generates a residuals plot vs a particular feature column.
 
     Args:
@@ -1693,6 +1701,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         winsor (int, optional): Winsorize the outliers. Remove the top `winsor` 
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
+        index_name (str): identifier for idxs. Defaults to "index".
 
 
     Returns:
@@ -1726,7 +1735,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
 
-    residuals_text=[f"Index: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
+    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
                   for idx, actual, pred, residual in zip(idxs, 
                                                     np.round(y, round), 
                                                     np.round(preds, round), 
@@ -1820,7 +1829,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
 
 def plotly_actual_vs_col(y, preds, col, col_name=None, 
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999,
-                            units="", target=""):
+                            units="", target="", index_name="index"):
     """Generates a residuals plot vs a particular feature column.
 
     Args:
@@ -1837,6 +1846,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         winsor (int, optional): Winsorize the outliers. Remove the top `winsor` 
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
+        index_name (str): identifier for idxs. Defaults to "index".
 
 
     Returns:
@@ -1855,7 +1865,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         idxs = [str(i) for i in range(len(preds))]
         
 
-    y_text=[f"Index: {idx}<br>Observed {target}: {actual}<br>Prediction: {pred}" 
+    y_text=[f"{index_name}: {idx}<br>Observed {target}: {actual}<br>Prediction: {pred}" 
                   for idx, actual, pred in zip(idxs, 
                                                     np.round(y, round), 
                                                     np.round(preds, round))] 
@@ -1942,7 +1952,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
 
 def plotly_preds_vs_col(y, preds, col, col_name=None, 
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999,
-                            units="", target=""):
+                            units="", target="", index_name="index"):
     """Generates plot of predictions vs a particular feature column.
 
     Args:
@@ -1959,6 +1969,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         winsor (int, optional): Winsorize the outliers. Remove the top `winsor` 
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
+        index_name (str): identifier for idxs. Defaults to "index".
 
 
     Returns:
@@ -1977,7 +1988,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         idxs = [str(i) for i in range(len(preds))]
         
 
-    preds_text=[f"Index: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
+    preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
                   for idx, actual, pred in zip(idxs, 
                                                     np.round(y, round), 
                                                     np.round(preds, round))] 
@@ -2256,7 +2267,6 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
                     name="",
                     showlegend=False,
                     marker=dict(color='rgba(1,1,1, 0.0)'))
-    
     
     trace1 = go.Bar(x=trees, 
                     y=diffs, 

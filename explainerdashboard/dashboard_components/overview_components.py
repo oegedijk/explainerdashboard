@@ -55,7 +55,7 @@ class PredictionSummaryComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Index:"),
+                        dbc.Label(f"{self.explainer.index_name}:"),
                         dcc.Dropdown(id='modelprediction-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -282,7 +282,7 @@ class PdpComponent(ExplainerComponent):
                         ], md=4), hide=self.hide_col),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Index:"),
+                            dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='pdp-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -454,7 +454,7 @@ class WhatIfComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Index:"),
+                            dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='whatif-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],

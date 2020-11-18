@@ -107,7 +107,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([
                         html.Div([
-                            dbc.Label("Index:"),
+                            dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='shap-summary-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -250,7 +250,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     ], md=3), self.hide_color_col),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Index:"),
+                            dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='shap-dependence-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -432,7 +432,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([
                         html.Div([
-                            dbc.Label("Index:"),
+                            dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='interaction-summary-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -590,7 +590,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     ], md=3), hide=self.hide_interact_col), 
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Index:"),
+                            dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -756,7 +756,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Index:"),
+                        dbc.Label(f"{self.explainer.index_name}:"),
                         dcc.Dropdown(id='contributions-graph-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -887,7 +887,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Display contributions for:"),
+                        dbc.Label(f"{self.explainer.index_name}:"),
                         dcc.Dropdown(id='contributions-table-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],

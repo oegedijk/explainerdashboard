@@ -82,7 +82,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-            make_hideable(html.H3("Select index:"), hide=self.hide_title),
+            make_hideable(html.H3(f"Select {self.explainer.index_name}:"), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -93,7 +93,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         ], md=8), hide=self.hide_index),
                 make_hideable(
                     dbc.Col([
-                        dbc.Button("Random Index", color="primary", id='random-index-clas-button-'+self.name, block=True)
+                        dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-clas-button-'+self.name, block=True)
                     ], md=4), hide=self.hide_button),
             ], form=True),
             dbc.Row([
@@ -249,7 +249,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
     def layout(self):
         return html.Div([
-            html.H3("Select index:"),
+            html.H3(f"Select {self.explainer.index_name}:"),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -260,7 +260,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         ], md=8), hide=self.hide_index),
                 make_hideable(
                     dbc.Col([
-                        dbc.Button("Random Index", color="primary", id='random-index-reg-button-'+self.name, block=True)
+                        dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name, block=True)
                     ], md=4), hide=self.hide_button),
             ], form=True),
             make_hideable(
