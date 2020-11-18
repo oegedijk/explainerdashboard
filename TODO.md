@@ -33,19 +33,10 @@
 
 ## Dashboard:
 - organize explainer components according to tab
-- make dashboard work with y=None
-    - no permutation importances
-    - no model performance
-    - no label selection in index selector
-    - contributions graph without outcome
-    - contributions table without outcome
-
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
     - https://arxiv.org/pdf/1910.05591.pdf
-
-
 
 
 ### Components
