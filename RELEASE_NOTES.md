@@ -26,6 +26,7 @@
     - Hiding label/y/residuals selector in RandomIndexSelectors
     - Hiding y/residuals in prediction summary
     - Hiding model_summary tab
+    - Removing permutation importances from dashboard
 
 
 ### Improvements
