@@ -118,7 +118,7 @@ to the explainer::
 index_name
 ----------
 
-By default X.index.name or idxs.name is used as the description of the index,
+By default ``X.index.name`` or ``idxs.name`` is used as the description of the index,
 but you can also pass it explicitly, e.g.: ``index_name="Passenger"``.
 
 descriptions
