@@ -93,7 +93,7 @@ class BaseExplainer(ABC):
         else:
             self.X, self.X_background = X, X_background
             self.model = model
-            
+
         if y is not None:
             self.y = pd.Series(y)
             self.y_missing = False
@@ -590,11 +590,11 @@ class BaseExplainer(ABC):
         """Permutation importances """
         if not hasattr(self, '_perm_imps'):
             print("Calculating importances...", flush=True)
-            self._perm_imps = cv_permutation_importances(
-                            self.model, self.X, self.y, self.metric,
-                            cv=self.permutation_cv,
-                            n_jobs=self.n_jobs,
-                            needs_proba=self.is_classifier)
+                self._perm_imps = cv_permutation_importances(
+                                self.model, self.X, self.y, self.metric,
+                                cv=self.permutation_cv,
+                                n_jobs=self.n_jobs,
+                                needs_proba=self.is_classifier)
         return make_callable(self._perm_imps)
 
     @property
@@ -705,9 +705,11 @@ class BaseExplainer(ABC):
         Returns:
 
         """
-        _ = (self.preds, self.permutation_importances, self.pred_percentiles,
+        _ = (self.preds,  self.pred_percentiles,
                 self.shap_base_value, self.shap_values,
                 self.mean_abs_shap)
+        if not self.y_missing:
+            _ = self.permutation_importances
         if self.cats is not None:
             _ = (self.mean_abs_shap_cats, self.X_cats,
                     self.shap_values_cats)
