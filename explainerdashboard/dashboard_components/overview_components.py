@@ -82,8 +82,7 @@ class PredictionSummaryComponent(ExplainerComponent):
             ]),
             dbc.Row([
                 dbc.Col([
-                    dcc.Loading(id='loading-modelprediction-'+self.name, 
-                         children=[dcc.Markdown(id='modelprediction-'+self.name)]),    
+                    dcc.Markdown(id='modelprediction-'+self.name),    
                 ], md=12)
             ])
         ])
@@ -200,9 +199,8 @@ class ImportancesComponent(ExplainerComponent):
 
             dbc.Row([
                 dbc.Col([
-                    dcc.Loading(id='loading-importances-graph-'+self.name, 
-                            children=[dcc.Graph(id='importances-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
+                    dcc.Graph(id='importances-graph-'+self.name,
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))
                 ]),
             ]), 
         ])
@@ -481,9 +479,8 @@ class WhatIfComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([
                         html.H3("Prediction and contributions:"),
-                        dcc.Loading(id='loading-whatif-contrib-graph-'+self.name, 
-                            children=[dcc.Graph(id='whatif-contrib-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                        dcc.Graph(id='whatif-contrib-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ]), hide=self.hide_contributions),
                 make_hideable(
                     dbc.Col([
@@ -491,9 +488,8 @@ class WhatIfComponent(ExplainerComponent):
                         dcc.Dropdown(id='whatif-pdp-col-'+self.name, 
                                      options=[dict(label=col, value=col) for col in self._input_features],
                                      value=self.pdp_col),
-                        dcc.Loading(id='loading-whatif-pdp-graph-'+self.name, 
-                            children=[dcc.Graph(id='whatif-pdp-graph-'+self.name, 
-                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                        dcc.Graph(id='whatif-pdp-graph-'+self.name, 
+                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ]), hide=self.hide_pdp),
             ])
         ], fluid=True)

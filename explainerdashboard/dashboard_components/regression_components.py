@@ -65,9 +65,8 @@ class PredictedVsActualComponent(ExplainerComponent):
                         ], check=True),
                     ], md=1, align="center"), hide=self.hide_log_y),
                 dbc.Col([
-                    dcc.Loading(id="loading-pred-vs-actual-graph-"+self.name, 
-                                children=[dcc.Graph(id='pred-vs-actual-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                    dcc.Graph(id='pred-vs-actual-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], md=11)
             ]),
             dbc.Row([
@@ -134,9 +133,8 @@ class ResidualsComponent(ExplainerComponent):
             ]),
             dbc.Row([
                 dbc.Col([
-                    dcc.Loading(id="loading-residuals-graph-"+self.name, 
-                                children=[dcc.Graph(id='residuals-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                    dcc.Graph(id='residuals-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ])
             ]),
             dbc.Row([
@@ -248,9 +246,8 @@ class ResidualsVsColComponent(ExplainerComponent):
                         ], md=2), self.hide_cats),
             ]),
             dbc.Row([
-                dcc.Loading(id="loading-residuals-vs-col-graph-"+self.name, 
-                                children=[dcc.Graph(id='residuals-vs-col-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dcc.Graph(id='residuals-vs-col-graph-'+self.name,
+                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
             dbc.Row([
                 make_hideable(
@@ -373,9 +370,8 @@ class ActualVsColComponent(ExplainerComponent):
                         ], md=2), self.hide_cats),
             ]),
             dbc.Row([
-                dcc.Loading(id="loading-observed-vs-col-graph-"+self.name, 
-                                children=[dcc.Graph(id='observed-vs-col-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dcc.Graph(id='observed-vs-col-graph-'+self.name,
+                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
             dbc.Row([
                 make_hideable(
@@ -487,9 +483,8 @@ class PredsVsColComponent(ExplainerComponent):
                         ], md=2), self.hide_cats),
             ]),
             dbc.Row([
-                dcc.Loading(id="loading-preds-vs-col-graph-"+self.name, 
-                                children=[dcc.Graph(id='preds-vs-col-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dcc.Graph(id='preds-vs-col-graph-'+self.name,
+                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
             dbc.Row([
                 make_hideable(
@@ -536,7 +531,7 @@ class PredsVsColComponent(ExplainerComponent):
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Model Summary", name=None):
+    def __init__(self, explainer, title="Model Summary", name=None, round=3):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -547,11 +542,15 @@ class RegressionModelSummaryComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            round (int): rounding to perform to metric floats.
         """
         super().__init__(explainer, title, name)
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
+        metrics_df = (pd.DataFrame(self.explainer.metrics(), index=["Score"]).T
+                        .rename_axis(index="metric").reset_index().round(self.round))
         return html.Div([
-            dcc.Markdown(id='model-summary-'+self.name, children=self.explainer.metrics_markdown())
+            html.H3("Regression performance metrics:"),
+            dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)
         ])

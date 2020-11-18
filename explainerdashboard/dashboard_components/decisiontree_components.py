@@ -76,9 +76,8 @@ class DecisionTreesComponent(ExplainerComponent):
             ]),
             dbc.Row([
                 dbc.Col([
-                    dcc.Loading(id="loading-decisiontrees-graph-"+self.name, 
-                        children=dcc.Graph(id="decisiontrees-graph-"+self.name,
-                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))),  
+                    dcc.Graph(id="decisiontrees-graph-"+self.name,
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),  
                 ])
             ]),
         ])
@@ -168,8 +167,7 @@ class DecisionPathTableComponent(ExplainerComponent):
             ]),
             dbc.Row([
                 dbc.Col([
-                    dcc.Loading(id="loading-decisionpath-table-"+self.name, 
-                        children=html.Div(id="decisionpath-table-"+self.name)),  
+                    html.Div(id="decisionpath-table-"+self.name),  
                 ])
             ]),
         ])
