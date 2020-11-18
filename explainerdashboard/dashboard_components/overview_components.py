@@ -125,7 +125,7 @@ class ImportancesComponent(ExplainerComponent):
                         Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
-            importance_type (str, {'permuation', 'shap'} optional): 
+            importance_type (str, {'permutation', 'shap'} optional): 
                         initial importance type to display. Defaults to "shap".
             depth (int, optional): Initial number of top features to display. 
                         Defaults to None (=show all).
@@ -142,9 +142,16 @@ class ImportancesComponent(ExplainerComponent):
         if depth is not None:
             self.depth = min(depth, len(explainer.columns_ranked_by_shap(cats)))
 
+        
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.register_dependencies(['shap_values', 'shap_values_cats',
-            'permutation_importances', 'permutation_importances_cats'])
+
+        if self.explainer.y_missing:
+            self.hide_type = True
+            self.importance_type = 'shap'
+        self.register_dependencies('shap_values', 'shap_values_cats')
+        if not (self.hide_type and self.importance_type == 'shap'):
+            self.register_dependencies('permutation_importances', 'permutation_importances_cats')
 
     def layout(self):
         return html.Div([
@@ -177,7 +184,7 @@ class ImportancesComponent(ExplainerComponent):
                                             options = [{'label': str(i+1), 'value':i+1} 
                                                         for i in range(self.explainer.n_features(self.cats))],
                                             value=self.depth)
-                    ]), self.hide_depth),
+                    ], md=3), self.hide_depth),
                 make_hideable(
                     dbc.Col([
                         dbc.Label("Grouping:"),
