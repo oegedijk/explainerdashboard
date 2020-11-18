@@ -137,8 +137,8 @@ class BaseExplainer(ABC):
             self.y.index = self.idxs
 
         if index_name is None:
-            if X.index.name is not None:
-                self.index_name = X.index.name.capitalize()
+            if self.idxs.name is not None:
+                self.index_name = self.idxs.name.capitalize()
             else:
                 self.index_name = "Index"
         else:
