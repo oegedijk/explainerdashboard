@@ -2471,6 +2471,9 @@ class RegressionExplainer(BaseExplainer):
 
     def metrics(self):
         """dict of performance metrics: rmse, mae and R^2"""
+
+        if self.y_missing:
+            raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
         metrics_dict = {
             'rmse' : np.sqrt(mean_squared_error(self.y, self.preds)),
             'mae' : mean_absolute_error(self.y, self.preds),
@@ -2513,6 +2516,8 @@ class RegressionExplainer(BaseExplainer):
           Plotly fig
 
         """
+        if self.y_missing:
+            raise ValueError("No y was passed to explainer, so cannot plot predicted vs actual!")
         return plotly_predicted_vs_actual(self.y, self.preds, 
                 target=self.target, units=self.units, idxs=self.idxs.values, 
                 logs=logs, log_x=log_x, log_y=log_y, round=round, 
@@ -2531,6 +2536,8 @@ class RegressionExplainer(BaseExplainer):
           Plotly fig
 
         """
+        if self.y_missing:
+            raise ValueError("No y was passed to explainer, so cannot plot residuals!")
         return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs.values,
                                      vs_actual=vs_actual, target=self.target, 
                                      units=self.units, residuals=residuals, 
@@ -2554,6 +2561,8 @@ class RegressionExplainer(BaseExplainer):
         Returns:
           plotly fig
         """
+        if self.y_missing:
+            raise ValueError("No y was passed to explainer, so cannot plot residuals!")
         assert col in self.columns or col in self.columns_cats, \
             f'{col} not in columns or columns_cats!'
         col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
@@ -2579,6 +2588,8 @@ class RegressionExplainer(BaseExplainer):
         Returns:
           plotly fig
         """
+        if self.y_missing:
+            raise ValueError("No y was passed to explainer, so cannot plot y vs feature!")
         assert col in self.columns or col in self.columns_cats, \
             f'{col} not in columns or columns_cats!'
         col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
