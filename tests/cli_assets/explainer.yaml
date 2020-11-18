@@ -3,7 +3,7 @@ explainer:
   datafile: data.csv
   explainerfile: explainer.joblib
   data_target: Survival
-  data_index: Name
+  data_index: Passenger
   explainer_type: classifier
   dashboard_yaml: dashboard.yaml
   params:
