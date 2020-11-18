@@ -21,8 +21,12 @@
     etc.
 
 ### Bug Fixes
--
--
+- Fixed a number of bugs for when no labels are passed (`y=None`):
+    - fixing explainer.random_index() for when y is missing
+    - Hiding label/y/residuals selector in RandomIndexSelectors
+    - Hiding y/residuals in prediction summary
+    - Hiding model_summary tab
+
 
 ### Improvements
 - Seperated labels for "observed" and "average prediction" better in tree plot
