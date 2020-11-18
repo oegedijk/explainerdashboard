@@ -91,9 +91,9 @@ class BaseExplainer(ABC):
             self.X, self.model = split_pipeline(model, X)
             self.X_background, _ = split_pipeline(model, X_background, verbose=0)
         else:
-            self.X, self.model  = X, model
-            self.X_background = X_background
-        
+            self.X, self.X_background = X, X_background
+            self.model = model
+            
         if y is not None:
             self.y = pd.Series(y)
             self.y_missing = False

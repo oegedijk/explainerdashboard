@@ -34,7 +34,6 @@ def get_regression_explainer():
     reg_explainer.calculate_properties()
     return reg_explainer
 
-
 def get_multiclass_explainer():
     X_train, y_train, X_test, y_test = titanic_embarked()
     train_names, test_names = titanic_names()
