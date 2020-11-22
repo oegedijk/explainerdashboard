@@ -253,27 +253,14 @@ ResidualsComponent
 .. autoclass:: explainerdashboard.dashboard_components.regression_components.ResidualsComponent
    :members:
 
-ResidualsVsColComponent
+RegressionVsColComponent
 -----------------------
 
 .. image:: screenshots/components/residuals_vs_col.png
 
-.. autoclass:: explainerdashboard.dashboard_components.regression_components.ResidualsVsColComponent
+.. autoclass:: explainerdashboard.dashboard_components.regression_components.RegressionVsColComponent
    :members:
 
-ActualVsColComponent
------------------------
-
-
-.. autoclass:: explainerdashboard.dashboard_components.regression_components.ActualVsColComponent
-   :members:
-
-ResidualsVsColComponent
------------------------
-
-
-.. autoclass:: explainerdashboard.dashboard_components.regression_components.PredsVsColComponent
-   :members:
 
 RegressionModelSummaryComponent
 -------------------------------
