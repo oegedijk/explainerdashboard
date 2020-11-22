@@ -48,14 +48,13 @@ class LinearRegressionTests(unittest.TestCase):
     def test_pred_percentiles(self):
         self.assertIsInstance(self.explainer.pred_percentiles, np.ndarray)
 
-
     def test_permutation_importances(self):
         self.assertIsInstance(self.explainer.permutation_importances, pd.DataFrame)
         self.assertIsInstance(self.explainer.permutation_importances_cats, pd.DataFrame)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics_markdown(), str)
+        self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
 
     def test_mean_abs_shap_df(self):
         self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
@@ -133,7 +132,7 @@ class LogisticRegressionTests(unittest.TestCase):
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics_markdown(), str)
+        self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
 
     def test_mean_abs_shap_df(self):
         self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
@@ -171,8 +170,8 @@ class LogisticRegressionTests(unittest.TestCase):
         self.explainer.pos_label = "Not survived"
         self.assertIsInstance(self.explainer.pos_label, int)
         self.assertIsInstance(self.explainer.pos_label_str, str)
-        self.assertEquals(self.explainer.pos_label, 0)
-        self.assertEquals(self.explainer.pos_label_str, "Not survived")
+        self.assertEqual(self.explainer.pos_label, 0)
+        self.assertEqual(self.explainer.pos_label_str, "Not survived")
 
     def test_get_prop_for_label(self):
         self.explainer.pos_label = 1

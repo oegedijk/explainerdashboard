@@ -446,7 +446,6 @@ Base outputs
 Some other useful tables and outputs you can get out of the explainer::
 
     metrics()
-    metrics_markdown(round=2)
     mean_abs_shap_df(topx=None, cutoff=None, cats=False, pos_label=None)
     permutation_importances_df(topx=None, cutoff=None, cats=False, pos_label=None)
     importances_df(kind="shap", topx=None, cutoff=None, cats=False, pos_label=None)
@@ -459,10 +458,11 @@ metrics
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.metrics
 
-metrics_markdown
+metrics_descriptions
 ^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.metrics_markdown
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.metrics_descriptions
+.. automethod:: explainerdashboard.explainers.RegressionExplainer.metrics_descriptions
 
 mean_abs_shap_df
 ^^^^^^^^^^^^^^^^

@@ -724,23 +724,6 @@ class BaseExplainer(ABC):
         Implemented by either ClassifierExplainer or RegressionExplainer
         """
         return {}
-
-    def metrics_markdown(self, round=2, **kwargs):
-        """markdown makeup of self.metrics() dict
-
-        Args:
-          round:  (Default value = 2)
-          **kwargs: 
-
-        Returns:
-
-        """
-        metrics_dict = self.metrics(**kwargs)
-        
-        metrics_markdown = "# Model Summary: \n\n"
-        for k, v in metrics_dict.items():
-            metrics_markdown += f"### {k}: {np.round(v, round)}\n"
-        return metrics_markdown
     
     def mean_abs_shap_df(self, topx=None, cutoff=None, cats=False, pos_label=None):
         """sorted dataframe with mean_abs_shap
@@ -1938,7 +1921,7 @@ class ClassifierExplainer(BaseExplainer):
             pos_label = self.get_pos_label_index(pos_label)
             return 1-np.mean(self.pred_probas_raw[:, pos_label] < cutoff)
 
-    def metrics(self, cutoff=0.5, pos_label=None):
+    def metrics(self, cutoff=0.5, pos_label=None, **kwargs):
         """returns a dict with useful metrics for your classifier:
         
         accuracy, precision, recall, f1, roc auc, pr auc, log loss
@@ -1985,23 +1968,6 @@ class ClassifierExplainer(BaseExplainer):
             if k == 'log_loss':
                 metrics_descriptions_dict[k] = f"A measure of how far the predicted label is from the true label on average in log space {round(v, 2)}"
         return metrics_descriptions_dict
-            
-    def metrics_markdown(self, cutoff=0.5, round=2, pos_label=None):
-        """markdown makeup of self.metrics() dict
-
-        Args:
-          round:  (Default value = 2)
-          **kwargs: 
-
-        Returns:
-
-        """
-        metrics_dict = self.metrics(cutoff, pos_label)
-        
-        metrics_markdown = "# Model Summary: \n\n"
-        for k, v in metrics_dict.items():
-            metrics_markdown += f"### {k}: {np.round(v, round)}\n"
-        return metrics_markdown
 
     def get_pdp_result(self, col, index=None, X_row=None, drop_na=True,
                         sample=1000, num_grid_points=20, pos_label=None):
@@ -2515,27 +2481,6 @@ class RegressionExplainer(BaseExplainer):
             if k == 'R-squared':
                 metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of all variation in {self.target} was explained by the model."
         return metrics_descriptions_dict
-
-    def metrics_markdown(self, round=2, **kwargs):
-        """markdown makeup of self.metrics() dict
-
-        Args:
-          round:  (Default value = 2)
-          **kwargs: 
-
-        Returns:
-
-        """
-        metrics_dict = self.metrics(**kwargs)
-        
-        metrics_markdown = "# Model Summary: \n\n"
-        if self.target:
-            metrics_markdown += f"Predicting: {self.target} " + f"({self.units})\n\n" if self.units else "\n\n"
-        metrics_markdown += f"Average root mean squared error (rmse): {np.round(metrics_dict['rmse'], 2)} {self.units}\n\n"
-        metrics_markdown += f"Average absolute error (mae): {np.round(metrics_dict['mae'], 2)} {self.units}\n\n"
-        metrics_markdown += f"Proportion of variance explained (R-squared): {np.round(metrics_dict['R2'], 2)}\n\n"
-        
-        return metrics_markdown
 
     def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, **kwargs):
         """plot with predicted value on x-axis and actual value on y axis.

@@ -16,7 +16,7 @@ def get_classification_explainer(xgboost=False, include_y=True):
     if xgboost:
         model = XGBClassifier().fit(X_train, y_train)
     else:
-        model = RandomForestClassifier(X_train, y_train)
+        model = RandomForestClassifier(n_estimators=50, max_depth=10).fit(X_train, y_train)
     if include_y:
         explainer = ClassifierExplainer(
                             model, X_test, y_test, 
