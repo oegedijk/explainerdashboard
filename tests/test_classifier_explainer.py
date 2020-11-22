@@ -47,6 +47,8 @@ class ClassifierBunchTests(unittest.TestCase):
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
         self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
+        self.assertIsInstance(self.explainer.metrics_descriptions(cutoff=0.9), dict)
+
 
     def test_precision_df(self):
         self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)

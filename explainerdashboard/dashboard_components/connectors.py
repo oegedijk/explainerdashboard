@@ -26,7 +26,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
                         pos_label=None, index=None, slider= None, labels=None,
-                        pred_or_perc='predictions'):
+                        pred_or_perc='predictions', **kwargs):
         """Select a random index subject to constraints component
 
         Args:
@@ -83,26 +83,49 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         assert self.pred_or_perc in ['predictions', 'percentiles'], \
             "pred_or_perc should either be `predictions` or `percentiles`!"
 
+        self.description = f"""
+        You can select a {self.explainer.index_name} directly by choosing it 
+        from the dropdown (if you start typing you can search inside the list),
+        or hit the Random {self.explainer.index_name} button to randomly select
+        a {self.explainer.index_name} that fits the constraints. For example
+        you can select a {self.explainer.index_name} where the observed
+        {self.explainer.target} is {self.explainer.labels[0]} but the
+        predicted probability of {self.explainer.labels[1]} is very high. This
+        allows you to for example sample only false positives or only false negatives.
+        """
+
     def layout(self):
         return html.Div([
-            make_hideable(html.H3(f"Select {self.explainer.index_name}:"), hide=self.hide_title),
+            dbc.Row([
+                make_hideable(
+                html.Div([
+                    html.H3(f"Select {self.explainer.index_name}", id='random-index-clas-title-'+self.name),
+                    dbc.Tooltip(self.description, target='random-index-clas-title-'+self.name),
+                ]), hide=self.hide_title),
+            ]),
+
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                            dcc.Dropdown(id='random-index-clas-index-'+self.name,
-                                    options = [{'label': str(idx), 'value':idx}
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index)
-                        ], md=8), hide=self.hide_index),
+                        dcc.Dropdown(id='random-index-clas-index-'+self.name,
+                                options = [{'label': str(idx), 'value':idx}
+                                                for idx in self.explainer.idxs],
+                                value=self.index),
+                    ], md=8), hide=self.hide_index),
                 make_hideable(
                     dbc.Col([
-                        dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-clas-button-'+self.name, block=True)
+                        dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-clas-button-'+self.name, block=True),
+                        dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
+                                        target='random-index-clas-button-'+self.name),
                     ], md=4), hide=self.hide_button),
             ], form=True),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Include labels (y):"),
+                        dbc.Label(f"Observed {self.explainer.target}:", id='random-index-clas-labels-label-'+self.name),
+                        dbc.Tooltip(f"Only select a random {self.explainer.index_name} where the observed "
+                                    f"{self.explainer.target} is one of the selected labels:",
+                                target='random-index-clas-labels-label-'+self.name),
                         dcc.Dropdown(
                             id='random-index-clas-labels-'+self.name,
                             options=[{'label': lab, 'value': lab} for lab in self.explainer.labels],
@@ -115,8 +138,12 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                     dbc.Col([
                         html.Div([
                             dbc.Label(id='random-index-clas-slider-label-'+self.name,
-                                children="Predictions range:",
+                                children="Predicted probability range:",
                                 html_for='prediction-range-slider-'+self.name,),
+                            dbc.Tooltip(f"Only select a random {self.explainer.index_name} where the "
+                                         "predicted probability of positive label is in the following range:",
+                                        id='random-index-clas-slider-label-tooltip-'+self.name,
+                                        target='random-index-clas-slider-label-'+self.name),
                             dcc.RangeSlider(
                                 id='random-index-clas-slider-'+self.name,
                                 min=0.0, max=1.0, step=0.01,
@@ -126,18 +153,26 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                         0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
                                 tooltip = {'always_visible' : False})
                         ], style={'margin-bottom':25})
-                    ], md=6), hide=self.hide_slider),
+                    ], md=5), hide=self.hide_slider),
                 make_hideable(
                     dbc.Col([
+                        html.Div([
                         dbc.RadioItems(
                             id='random-index-clas-pred-or-perc-'+self.name,
                             options=[
-                                {'label': 'Use predictions', 'value': 'predictions'},
-                                {'label': 'Use percentiles', 'value': 'percentiles'},
+                                {'label': 'Use predicted probability', 'value': 'predictions'},
+                                {'label': 'Use predicted percentile', 'value': 'percentiles'},
                             ],
                             value=self.pred_or_perc,
                             inline=True)
-                    ], md=3, align="center"), hide=self.hide_pred_or_perc),
+                        ], id='random-index-clas-pred-or-perc-div-'+self.name),
+                        dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
+                                    "you can also select from a range of predicted percentiles. "
+                                    "For example if you set the slider to (0.9-1.0) you would"
+                                    f" only sample random {self.explainer.index_name} from the top "
+                                    "10% highest predicted probabilities.",
+                                target='random-index-clas-pred-or-perc-div-'+self.name),
+                    ], md=4, align="center"), hide=self.hide_pred_or_perc),
                 make_hideable(
                     dbc.Col([
                         self.selector.layout()
@@ -164,24 +199,37 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                     return_str=True, pos_label=pos_label)
 
         @app.callback(
-            Output('random-index-clas-slider-label-'+self.name, 'children'),
-            [Input('random-index-clas-pred-or-perc-'+self.name, 'value')]
+            [Output('random-index-clas-slider-label-'+self.name, 'children'),
+             Output('random-index-clas-slider-label-tooltip-'+self.name, 'children')],
+            [Input('random-index-clas-pred-or-perc-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')]
         )
-        def update_slider_label(pred_or_perc):
+        def update_slider_label(pred_or_perc, pos_label):
             if pred_or_perc == 'predictions':
-                return "Predictions range:"
+                return (
+                    "Predicted probability range:",
+                    f"Only select a random {self.explainer.index_name} where the "
+                    f"predicted probability of {self.explainer.labels[pos_label]}"
+                    " is in the following range:"
+                )
             elif pred_or_perc == 'percentiles':
-                return "Percentiles range:"
+                return (
+                    "Predicted percentile range:",
+                    f"Only select a random {self.explainer.index_name} where the "
+                    f"predicted probability of {self.explainer.labels[pos_label]}"
+                    " is in the following percentile range. For example you can "
+                    "only sample from the top 10% highest predicted probabilities."
+                )
             raise PreventUpdate
 
 class RegressionRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
-                        hide_index=False, hide_pred_slider=False,
+                        hide_title=False, hide_index=False, hide_pred_slider=False,
                         hide_residual_slider=False, hide_pred_or_y=False,
                         hide_abs_residuals=False, hide_button=False,
                         index=None, pred_slider=None, y_slider=None,
                         residual_slider=None, abs_residual_slider=None,
-                        pred_or_y="preds", abs_residuals=True, round=2):
+                        pred_or_y="preds", abs_residuals=True, round=2, **kwargs):
         """Select a random index subject to constraints component
 
         Args:
@@ -192,6 +240,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements.
                         If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title
             hide_index (bool, optional): Hide index selector.
                         Defaults to False.
             hide_pred_slider (bool, optional): Hide prediction slider.
@@ -260,9 +309,27 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
         assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
 
+        self.description = f"""
+        You can select a {self.explainer.index_name} directly by choosing it 
+        from the dropdown (if you start typing you can search inside the list),
+        or hit the Random {self.explainer.index_name} button to randomly select
+        a {self.explainer.index_name} that fits the constraints. For example
+        you can select a {self.explainer.index_name} with a very high predicted
+        {self.explainer.target}, or a very low observed {self.explainer.target},
+        or a {self.explainer.index_name} whose predicted {self.explainer.target} 
+        was very far off from the observed {self.explainer.target} and so had a 
+        high (absolute) residual.
+        """
+
     def layout(self):
         return html.Div([
-            html.H3(f"Select {self.explainer.index_name}:"),
+            dbc.Row([
+                make_hideable(
+                html.Div([
+                    html.H3(f"Select {self.explainer.index_name}", id='random-index-reg-title-'+self.name),
+                    dbc.Tooltip(self.description, target='random-index-reg-title-'+self.name),
+                ]), hide=self.hide_title),
+            ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -273,7 +340,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         ], md=8), hide=self.hide_index),
                 make_hideable(
                     dbc.Col([
-                        dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name, block=True)
+                        dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name, block=True),
+                        dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
+                                        target='random-index-reg-button-'+self.name),
                     ], md=4), hide=self.hide_button),
             ], form=True),
             make_hideable(
@@ -282,8 +351,11 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                     dbc.Row([
                             dbc.Col([
                                 html.Div([
-                                    dbc.Label("Predictions range:",
+                                    dbc.Label("Predicted range:", id='random-index-reg-pred-slider-label-'+self.name,
                                         html_for='random-index-reg-pred-slider-'+self.name),
+                                    dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                                                f"predicted {self.explainer.target} was within the following range:", 
+                                                target='random-index-reg-pred-slider-label-'+self.name),
                                     dcc.RangeSlider(
                                         id='random-index-reg-pred-slider-'+self.name,
                                         min=self.explainer.preds.min(),
@@ -303,8 +375,11 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                     dbc.Row([
                             dbc.Col([
                                 html.Div([
-                                    dbc.Label("Y range:",
+                                    dbc.Label("Observed range:", id='random-index-reg-y-slider-label-'+self.name,
                                         html_for='random-index-reg-y-slider-'+self.name),
+                                    dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                                                f"observed {self.explainer.target} was within the following range:", 
+                                    target='random-index-reg-y-slider-label-'+self.name),
                                     dcc.RangeSlider(
                                         id='random-index-reg-y-slider-'+self.name,
                                         min=self.explainer.y.min(),
@@ -327,8 +402,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                     dbc.Row([
                         dbc.Col([
                             html.Div([
-                                dbc.Label("Residuals range:",
+                                dbc.Label("Residuals range:", id='random-index-reg-residual-slider-label-'+self.name,
                                     html_for='random-index-reg-residual-slider-'+self.name),
+                                dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                                            f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
+                                            " was within the following range:", 
+                                    target='random-index-reg-residual-slider-label-'+self.name),
                                 dcc.RangeSlider(
                                     id='random-index-reg-residual-slider-'+self.name,
                                     min=self.explainer.residuals.min(),
@@ -348,8 +427,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                     dbc.Row([
                         dbc.Col([
                             html.Div([
-                                dbc.Label("Absolute residuals range:",
+                                dbc.Label("Absolute residuals", id='random-index-reg-abs-residual-slider-label'+self.name,
                                     html_for='random-index-reg-abs-residual-slider-'+self.name),
+                                dbc.Tooltip(f"Only select {self.explainer.index_name} where the absolute "
+                                            f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
+                                            " was within the following range:", 
+                                    target='random-index-reg-abs-residual-slider-label'+self.name),
                                 dcc.RangeSlider(
                                     id='random-index-reg-abs-residual-slider-'+self.name,
                                     min=self.explainer.abs_residuals.min(),
@@ -369,28 +452,44 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
+                        html.Div([
                         dbc.RadioItems(
                             id='random-index-reg-preds-or-y-'+self.name,
                             options=[
-                                {'label': 'Use preds', 'value': 'preds'},
-                                {'label': 'Use y', 'value': 'y'},
+                                {'label': 'Use Predicted Range', 'value': 'preds'},
+                                {'label': 'Use Observed Range', 'value': 'y'},
                             ],
                             value=self.pred_or_y,
                             inline=True)
+                        ], id='random-index-reg-preds-or-y-div-'+self.name),
+                        dbc.Tooltip(f"You can either only select a random {self.explainer.index_name}"
+                                    f"from within a certain range of observed {self.explainer.target} or"
+                                    f"from within a certain range of predicted {self.explainer.target}.", 
+                            target='random-index-reg-preds-or-y-div-'+self.name)
                     ], md=4), hide=self.hide_pred_or_y),
                 make_hideable(
                     dbc.Col([
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
+                        html.Div([
+                            dbc.RadioItems(
                                 id='random-index-reg-abs-residual-'+self.name,
-                                className="form-check-input",
-                                checked=self.abs_residuals),
-                            dbc.Label("Absolute residuals range:",
-                                    html_for='random-index-reg-abs-residual-'+self.name,
-                                    className="form-check-label"),
-                        ], check=True),
-                    ]), hide=self.hide_abs_residuals),
+                                options=[
+                                    {'label': 'Use Residuals', 'value': 'relative'},
+                                    {'label': 'Use Absolute Residuals', 'value': 'absolute'},
+                                ],
+                                value='absolute' if self.abs_residuals else 'relative',
+                                inline=True),
+                        ], id='random-index-reg-abs-residual-div-'+self.name),
+                        dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
+                                    f"from within a certain range of residuals "
+                                    f"(difference between observed and predicted {self.explainer.target}), "
+                                    f"so for example only {self.explainer.index_name} for whom the prediction "
+                                    f"was too high or too low."
+                                    f"Or you can select only from a certain absolute residual range. So for "
+                                    f"example only select {self.explainer.index_name} for which the prediction was at "
+                                    f"least a certain amount of {self.explainer.units} off.",
+                        target='random-index-reg-abs-residual-div-'+self.name),
+
+                    ], md=4), hide=self.hide_abs_residuals),
             ]),
         ])
 
@@ -409,9 +508,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
         @app.callback(
             [Output('random-index-reg-residual-slider-div-'+self.name, 'style'),
              Output('random-index-reg-abs-residual-slider-div-'+self.name, 'style')],
-            [Input('random-index-reg-abs-residual-'+self.name, 'checked')])
+            [Input('random-index-reg-abs-residual-'+self.name, 'value')])
         def update_reg_hidden_div_pred_sliders(abs_residuals):
-            if abs_residuals:
+            if abs_residuals == 'absolute':
                 return (dict(display="none"), None)
             else:
                 return (None, dict(display="none"))
@@ -460,10 +559,10 @@ class RegressionRandomIndexComponent(ExplainerComponent):
              State('random-index-reg-residual-slider-'+self.name, 'value'),
              State('random-index-reg-abs-residual-slider-'+self.name, 'value'),
              State('random-index-reg-preds-or-y-'+self.name, 'value'),
-             State('random-index-reg-abs-residual-'+self.name, 'checked')])
+             State('random-index-reg-abs-residual-'+self.name, 'value')])
         def update_index(n_clicks, pred_range, y_range, residual_range, abs_residuals_range, preds_or_y, abs_residuals):
             if preds_or_y == 'preds':
-                if abs_residuals:
+                if abs_residuals=='absolute':
                     return self.explainer.random_index(
                                 pred_min=pred_range[0], pred_max=pred_range[1],
                                 abs_residuals_min=abs_residuals_range[0],
@@ -476,7 +575,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                 residuals_max=residual_range[1],
                                 return_str=True)
             elif preds_or_y == 'y':
-                if abs_residuals:
+                if abs_residuals=='absolute':
                     return self.explainer.random_index(
                                 y_min=y_range[0], y_max=y_range[1],
                                 abs_residuals_min=abs_residuals_range[0],
@@ -494,7 +593,7 @@ class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff", name=None,
                         hide_cutoff=False, hide_percentile=False,
                         hide_selector=False,
-                        pos_label=None, cutoff=0.5, percentile=None):
+                        pos_label=None, cutoff=0.5, percentile=None, **kwargs):
         """
         Slider to set a cutoff for Classifier components, based on setting the
         cutoff at a certain percentile of predictions, e.g.:
@@ -540,8 +639,12 @@ class CutoffPercentileComponent(ExplainerComponent):
                                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                         0.75: '0.75', 0.99: '0.99'},
                                                 included=False,
-                                                tooltip = {'always_visible' : False})
-                                ], style={'margin-bottom': 15}),
+                                                tooltip = {'always_visible' : False}),
+                                    
+                                ], style={'margin-bottom': 15}, id='cutoffconnector-cutoff-div-'+self.name),
+                                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                                target='cutoffconnector-cutoff-div-'+self.name,
+                                                placement='bottom'),
                             ]), hide=self.hide_cutoff),
                     ]),
                     dbc.Row([
@@ -554,8 +657,12 @@ class CutoffPercentileComponent(ExplainerComponent):
                                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                         0.75: '0.75', 0.99: '0.99'},
                                                 included=False,
-                                                tooltip = {'always_visible' : False})
-                                ], style={'margin-bottom': 15}),
+                                                tooltip = {'always_visible' : False}),
+                                    
+                                ], style={'margin-bottom': 15}, id='cutoffconnector-percentile-div-'+self.name),
+                                dbc.Tooltip(f"example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
+                                                target='cutoffconnector-percentile-div-'+self.name,
+                                                placement='bottom'),
                             ]), hide=self.hide_percentile),
                     ])
                 ]),

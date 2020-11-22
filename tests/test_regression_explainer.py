@@ -40,9 +40,10 @@ class RegressionBunchTests(unittest.TestCase):
     def test_metrics(self):
         metrics_dict = self.explainer.metrics()
         self.assertIsInstance(metrics_dict, dict)
-        self.assertTrue('rmse' in metrics_dict)
-        self.assertTrue('mae' in metrics_dict)
-        self.assertTrue('R2' in metrics_dict)
+        self.assertTrue('root_mean_squared_error' in metrics_dict)
+        self.assertTrue('mean_absolute_error' in metrics_dict)
+        self.assertTrue('R-squared' in metrics_dict)
+        self.assertIsInstance(self.explainer.metrics_descriptions(), dict) 
 
     def test_plot_predicted_vs_actual(self):
         fig = self.explainer.plot_predicted_vs_actual(logs=False)

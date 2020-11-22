@@ -25,10 +25,11 @@ from ..dashboard_methods import *
 
 class PrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Precision Plot", name=None,
+                    hide_title=False,
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
                     hide_multiclass=False, hide_selector=False, pos_label=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5,
-                    quantiles_or_binsize='bin_size', multiclass=False):
+                    quantiles_or_binsize='bin_size', multiclass=False, **kwargs):
         """Shows a precision graph with toggles.
 
         Args:
@@ -39,6 +40,7 @@ class PrecisionComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_binsize (bool, optional): hide binsize/quantiles slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -57,10 +59,25 @@ class PrecisionComponent(ExplainerComponent):
         self.cutoff_name = 'precision-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = f"""
+        On this plot you can see the relation between the predicted probability
+        that a {self.explainer.index_name} belongs to the positive class, and
+        the percentage of observed {self.explainer.index_name} in the positive class.
+        The observations get binned together in groups of roughly 
+        equal predicted probabilities, and the percentage of positives is calculated
+        for each bin. A perfectly calibrated model would show a straight line
+        from the bottom left corner to the top right corner. A strong model would
+        classify most observations correctly and close to 0% or 100% probability.
+        """
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='precision-title-'+self.name),
+                    dbc.Tooltip(self.description, target='precision-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
@@ -77,19 +94,24 @@ class PrecisionComponent(ExplainerComponent):
                 dbc.Col([
                     make_hideable(
                         html.Div([
-                            dbc.Label('Bin size:', html_for='precision-binsize-'+self.name),
                             html.Div([
-                                dcc.Slider(id='precision-binsize-'+self.name, 
-                                        min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
-                                        marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
-                                            0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
-                                            0.5: '0.5'}, 
-                                        included=False,
-                                        tooltip = {'always_visible' : False})
-                            ], style={'margin-bottom': 5}),
-                        ], id='precision-bin-size-div-'+self.name, style=dict(margin=5)),  
-                    hide=self.hide_binsize),
+                                dbc.Label('Bin size:', html_for='precision-binsize-'+self.name),
+                                html.Div([
+                                    dcc.Slider(id='precision-binsize-'+self.name, 
+                                            min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
+                                            marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
+                                                0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
+                                                0.5: '0.5'}, 
+                                            included=False,
+                                            tooltip = {'always_visible' : False})
+                                ], style={'margin-bottom': 5}),
+                            ], id='precision-bin-size-div-'+self.name, style=dict(margin=5)),
+                            dbc.Tooltip("Size of the bins to divide prediction score by", 
+                                    target='precision-bin-size-div-'+self.name,
+                                    placement='bottom'),
+                        ]), hide=self.hide_binsize),
                     make_hideable(
+                        html.Div([
                         html.Div([
                             dbc.Label('Quantiles:', html_for='precision-quantiles-'+self.name),
                             html.Div([
@@ -99,8 +121,13 @@ class PrecisionComponent(ExplainerComponent):
                                             included=False,
                                             tooltip = {'always_visible' : False}),
                             ], style={'margin-bottom':5}),
-                        ], id='precision-quantiles-div-'+self.name), hide=self.hide_binsize),
+                        ], id='precision-quantiles-div-'+self.name), 
+                        dbc.Tooltip("Number of equally populated bins to divide prediction score by", 
+                                    target='precision-quantiles-div-'+self.name,
+                                    placement='bottom'),
+                        ]), hide=self.hide_binsize),
                     make_hideable(
+                        html.Div([
                         html.Div([
                             html.Label('Cutoff prediction probability:'),
                             dcc.Slider(id='precision-cutoff-'+self.name, 
@@ -108,7 +135,11 @@ class PrecisionComponent(ExplainerComponent):
                                         marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                 0.75: '0.75', 0.99: '0.99'}, 
                                         included=False,
-                                        tooltip = {'always_visible' : False})
+                                        tooltip = {'always_visible' : False}),
+                        ], id='precision-cutoff-div-'+self.name),
+                        dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                        target='precision-cutoff-div-'+self.name,
+                                        placement='bottom'),
                         ], style={'margin-bottom': 5}), hide=self.hide_cutoff),
                 ]),
             ]),
@@ -126,6 +157,9 @@ class PrecisionComponent(ExplainerComponent):
                             ],
                             value=self.quantiles_or_binsize,
                             inline=True),
+                        dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bin size),"
+                                    " or bins with the same number of observations (counts) in each bin: quantiles",
+                                    target='precision-binsize-or-quantiles-'+self.name),     
                     ], width=3), hide=self.hide_binmethod),
                 make_hideable(
                     dbc.Col([
@@ -140,7 +174,8 @@ class PrecisionComponent(ExplainerComponent):
                                     html_for="precision-multiclass-"+self.name,
                                     className="form-check-label",
                                 ),
-                                
+                                dbc.Tooltip("Display the percentage of all labels or only of the positive label",
+                                    target="precision-multiclass-"+self.name),                              
                         ], check=True),
                     ], width=3), hide=self.hide_multiclass), 
             ])    
@@ -183,9 +218,10 @@ class PrecisionComponent(ExplainerComponent):
 
 class ConfusionMatrixComponent(ExplainerComponent):
     def __init__(self, explainer, title="Confusion Matrix", name=None,
+                    hide_title=False,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
                     hide_selector=False, pos_label=None,
-                    cutoff=0.5, percentage=True, binary=True):
+                    cutoff=0.5, percentage=True, binary=True, **kwargs):
         """Display confusion matrix component
 
         Args:
@@ -196,6 +232,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_binary (bool, optional): Hide binary toggle. Defaults to False.
@@ -209,11 +246,30 @@ class ConfusionMatrixComponent(ExplainerComponent):
 
         self.cutoff_name = 'confusionmatrix-cutoff-' + self.name
 
+        if len(self.explainer.labels) <= 2:
+            self.hide_binary = True
+
+        self.description = """
+        The confusion matrix shows the number of true negatives (predicted negative, observed negative), 
+        true positives (predicted positive, observed positive), 
+        false negatives (predicted negative, but observed positive) and
+        false positives (predicted positive, but observed negative). The amount
+        of false negatives and false positives determine the costs of deploying
+        and imperfect model. For different cutoffs you will get a different number
+        of false positives and false negatives. This plot can help you select
+        the optimal cutoff.
+        """
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='confusionmatrix-title-'+self.name),
+                    dbc.Tooltip(self.description, target='confusionmatrix-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
@@ -222,13 +278,19 @@ class ConfusionMatrixComponent(ExplainerComponent):
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             make_hideable(
                 html.Div([
+                html.Div([
                     html.Label('Cutoff prediction probability:'),
                     dcc.Slider(id='confusionmatrix-cutoff-'+self.name, 
                                 min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                         0.75: '0.75', 0.99: '0.99'}, 
                                 included=False,
-                                tooltip = {'always_visible' : False})
+                                tooltip = {'always_visible' : False},
+                                updatemode='drag'),
+                ], id='confusionmatrix-cutoff-div-'+self.name),
+                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                target='confusionmatrix-cutoff-div-'+self.name,
+                                placement='bottom'),
                 ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
             make_hideable(
                 html.Div([
@@ -243,6 +305,8 @@ class ConfusionMatrixComponent(ExplainerComponent):
                                 html_for="confusionmatrix-percentage-"+self.name,
                                 className="form-check-label",
                             ),
+                            dbc.Tooltip("Highlight the percentage in each cell instead of the absolute numbers",
+                                    target='confusionmatrix-percentage-'+self.name),  
                     ], check=True),
                 ]), hide=self.hide_percentage),
             make_hideable(
@@ -254,10 +318,14 @@ class ConfusionMatrixComponent(ExplainerComponent):
                                 checked=self.binary
                             ),
                             dbc.Label(
-                                "Binary (use cutoff for positive vs not positive)",
+                                "Binary",
                                 html_for="confusionmatrix-binary-"+self.name,
                                 className="form-check-label",
                             ),
+                            dbc.Tooltip("display a binary confusion matrix of positive "
+                                        "class vs all other classes instead of a multi"
+                                        " class confusion matrix.",
+                                    target="confusionmatrix-binary-"+self.name)
                     ], check=True),
                 ]), hide=self.hide_binary),
         ])
@@ -277,8 +345,9 @@ class ConfusionMatrixComponent(ExplainerComponent):
 
 class LiftCurveComponent(ExplainerComponent):
     def __init__(self, explainer, title="Lift Curve", name=None,
+                    hide_title=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5, percentage=True):
+                    pos_label=None, cutoff=0.5, percentage=True, **kwargs):
         """Show liftcurve component
 
         Args:
@@ -289,6 +358,7 @@ class LiftCurveComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -301,10 +371,20 @@ class LiftCurveComponent(ExplainerComponent):
         self.cutoff_name = 'liftcurve-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        The lift curve shows you the percentage of positive classes when you only
+        select observations with a score above cutoff vs selecting observations
+        randomly. This shows you how much better the model is than random (the lift).
+        """
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='liftcurve-title-'+self.name),
+                    dbc.Tooltip(self.description, target='liftcurve-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
@@ -315,13 +395,20 @@ class LiftCurveComponent(ExplainerComponent):
             ], style={'margin': 0}),
             make_hideable(
                 html.Div([
+                html.Div([
                     html.Label('Cutoff prediction probability:'),
                     dcc.Slider(id='liftcurve-cutoff-'+self.name, 
                                 min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                         0.75: '0.75', 0.99: '0.99'}, 
                                 included=False,
-                                tooltip = {'always_visible' : False})
+                                tooltip = {'always_visible' : False},
+                                updatemode='drag'),
+                    
+                ], id='liftcurve-cutoff-div-'+self.name),
+                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                target='liftcurve-cutoff-div-'+self.name,
+                                placement='bottom'),
                 ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
             make_hideable(
                 html.Div([
@@ -336,6 +423,9 @@ class LiftCurveComponent(ExplainerComponent):
                             html_for="liftcurve-percentage-"+self.name,
                             className="form-check-label",
                         ),
+                        dbc.Tooltip("Display percentages positive and sampled"
+                                " instead of absolute numbers",
+                                target="liftcurve-percentage-"+self.name)
                     ], check=True), 
                 ]), hide=self.hide_percentage),         
         ])
@@ -353,9 +443,10 @@ class LiftCurveComponent(ExplainerComponent):
 
 class CumulativePrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Cumulative Precision", name=None,
+                    hide_title=False,
                     hide_selector=False, pos_label=None,
                     hide_cutoff=False, cutoff=None,
-                    hide_percentile=False, percentile=None):
+                    hide_percentile=False, percentile=None, **kwargs):
         """Show cumulative precision component
 
         Args:
@@ -366,6 +457,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
         """
@@ -373,10 +465,20 @@ class CumulativePrecisionComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.cutoff_name = 'cumulative-precision-cutoff-'+self.name
+
+        self.description = """
+        This plot shows the percentage of each label that you can expect when you
+        only sample the top x% highest scores. 
+        """
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='cumulative-precision-title-'+self.name),
+                    dbc.Tooltip(self.description, target='cumulative-precision-title-'+self.name),
+                ]), hide=self.hide_title),
             html.Div([
                 dcc.Graph(id='cumulative-precision-graph-'+self.name,
                             config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
@@ -393,8 +495,11 @@ class CumulativePrecisionComponent(ExplainerComponent):
                                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                         0.75: '0.75', 0.99: '0.99'},
                                                 included=False,
-                                                tooltip = {'always_visible' : False})
-                                ], style={'margin-bottom': 15}),
+                                                tooltip = {'always_visible' : False},
+                                                updatemode='drag')
+                                ], style={'margin-bottom': 15}, id='cumulative-precision-percentile-div-'+self.name),
+                                dbc.Tooltip("Draw the line where you only sample the top x% fraction of all samples",
+                                        target='cumulative-precision-percentile-div-'+self.name)
                             ]), hide=self.hide_percentile),
                     ]),
                     dbc.Row([
@@ -407,8 +512,12 @@ class CumulativePrecisionComponent(ExplainerComponent):
                                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                                         0.75: '0.75', 0.99: '0.99'},
                                                 included=False,
-                                                tooltip = {'always_visible' : False})
-                                ], style={'margin-bottom': 15}),
+                                                tooltip = {'always_visible' : False}),
+                                    
+                                ], style={'margin-bottom': 15}, id='cumulative-precision-cutoff-div-'+self.name),
+                                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                                target='cumulative-precision-cutoff-div-'+self.name,
+                                                placement='bottom'),
                             ]), hide=self.hide_cutoff),
                     ]),    
                 ]),
@@ -440,8 +549,9 @@ class CumulativePrecisionComponent(ExplainerComponent):
 
 class ClassificationComponent(ExplainerComponent):
     def __init__(self, explainer, title="Classification Plot", name=None,
+                    hide_title=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5, percentage=True):
+                    pos_label=None, cutoff=0.5, percentage=True, **kwargs):
         """Shows a barchart of the number of classes above the cutoff and below
         the cutoff.
 
@@ -453,6 +563,7 @@ class ClassificationComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -465,10 +576,18 @@ class ClassificationComponent(ExplainerComponent):
         self.cutoff_name = 'classification-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        Plot showing the fraction of each class above and below the cutoff.
+        """
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='classification-title-'+self.name),
+                    dbc.Tooltip(self.description, target='classification-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
@@ -479,13 +598,20 @@ class ClassificationComponent(ExplainerComponent):
             ], style={'margin': 0}),
             make_hideable(
                 html.Div([
+                html.Div([
                     html.Label('Cutoff prediction probability:'),
                     dcc.Slider(id='classification-cutoff-'+self.name, 
                                 min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                         0.75: '0.75', 0.99: '0.99'}, 
                                 included=False,
-                                tooltip = {'always_visible' : False})
+                                tooltip = {'always_visible' : False},
+                                updatemode='drag'),
+                    
+                ], id='classification-cutoff-div-'+self.name),
+                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                target='classification-cutoff-div-'+self.name,
+                                placement='bottom'),
                 ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
             make_hideable(
                 html.Div([
@@ -500,6 +626,8 @@ class ClassificationComponent(ExplainerComponent):
                             html_for="classification-percentage-"+self.name,
                             className="form-check-label",
                         ),
+                        dbc.Tooltip("Do not resize the bar chart by absolute number of observations",
+                            target="classification-percentage-"+self.name,)
                     ], check=True),
                 ]), hide=self.hide_percentage),
         ])
@@ -518,8 +646,9 @@ class ClassificationComponent(ExplainerComponent):
 
 class RocAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
+                    hide_title=False,
                     hide_cutoff=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5):
+                    pos_label=None, cutoff=0.5, **kwargs):
         """Show ROC AUC curve component
 
         Args:
@@ -530,6 +659,7 @@ class RocAucComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -540,10 +670,17 @@ class RocAucComponent(ExplainerComponent):
         self.cutoff_name = 'rocauc-cutoff-' + self.name
         
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        """
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='rocauc-title-'+self.name),
+                    dbc.Tooltip(self.description, target='rocauc-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
@@ -552,6 +689,7 @@ class RocAucComponent(ExplainerComponent):
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             make_hideable(
                 html.Div([
+                html.Div([
                     html.Label('Cutoff prediction probability:'),
                     dcc.Slider(id='rocauc-cutoff-'+self.name, 
                                 min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
@@ -559,7 +697,11 @@ class RocAucComponent(ExplainerComponent):
                                         0.75: '0.75', 0.99: '0.99'}, 
                                 included=False,
                                 tooltip = {'always_visible' : False},
-                                updatemode='drag' )
+                                updatemode='drag' ),
+                ] ,id='rocauc-cutoff-div-'+self.name),
+                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                target='rocauc-cutoff-div-'+self.name,
+                                placement='bottom'),
                 ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
         ])
 
@@ -575,8 +717,9 @@ class RocAucComponent(ExplainerComponent):
 
 class PrAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="PR AUC Plot", name=None,
+                    hide_title=False,
                     hide_cutoff=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5):
+                    pos_label=None, cutoff=0.5, **kwargs):
         """Display PR AUC plot component
 
         Args:
@@ -587,6 +730,7 @@ class PrAucComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -597,10 +741,17 @@ class PrAucComponent(ExplainerComponent):
         self.cutoff_name = 'prauc-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        """
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='prauc-title-'+self.name),
+                    dbc.Tooltip(self.description, target='prauc-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
@@ -609,13 +760,20 @@ class PrAucComponent(ExplainerComponent):
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             make_hideable(
                 html.Div([
+                    html.Div([
                     html.Label('Cutoff prediction probability:'),
                     dcc.Slider(id='prauc-cutoff-'+self.name, 
                                 min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                         0.75: '0.75', 0.99: '0.99'}, 
                                 included=False,
-                                tooltip = {'always_visible' : False})
+                                tooltip = {'always_visible' : False},
+                                updatemode='drag'),
+                    
+                    ], id='prauc-cutoff-div-'+self.name),
+                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                target='prauc-cutoff-div-'+self.name,
+                                placement='bottom'),
                 ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
         ])
 
@@ -629,9 +787,10 @@ class PrAucComponent(ExplainerComponent):
             return self.explainer.plot_pr_auc(cutoff=cutoff, pos_label=pos_label)
 
 class ClassifierModelSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Model Summary", name=None,
+    def __init__(self, explainer, title="Model performance metrics", name=None,
+                    hide_title=False,
                     hide_cutoff=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5, round=3):
+                    pos_label=None, cutoff=0.5, round=3, **kwargs):
         """Show model summary statistics (accuracy, precision, recall,  
             f1, roc_auc, pr_auc, log_loss) component.
 
@@ -639,10 +798,11 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Model Summary".
+                        "Model performance metrics".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -654,17 +814,27 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
         self.cutoff_name = 'clas-model-summary-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        Shows a list of various performance metrics.
+        """
 
         self.register_dependencies(['preds', 'pred_probas'])
 
     def layout(self):
         return html.Div([
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='clas-model-summary-title-'+self.name),
+                    dbc.Tooltip(self.description, target='clas-model-summary-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
+
                 make_hideable(
                     dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
             ], justify="end"),
-            html.Div(id='clas-model-summary-md-'+self.name),
+            html.Div(id='clas-model-summary-div-'+self.name),
             make_hideable(
+                html.Div([
                 html.Div([
                     html.Label('Cutoff prediction probability:'),
                     dcc.Slider(id='clas-model-summary-cutoff-'+self.name, 
@@ -672,26 +842,36 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                                 marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
                                         0.75: '0.75', 0.99: '0.99'}, 
                                 included=False,
-                                tooltip = {'always_visible' : False})
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-
-            
+                                tooltip = {'always_visible' : False},
+                                updatemode='drag'),
+                ], id='clas-model-summary-cutoff-div-'+self.name),
+                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                target='clas-model-summary-cutoff-div-'+self.name,
+                                placement='bottom'),
+                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),     
         ])
     
     def _register_callbacks(self, app):
         @app.callback(
-            Output('clas-model-summary-md-'+self.name, 'children'),
+            Output('clas-model-summary-div-'+self.name, 'children'),
             [Input('clas-model-summary-cutoff-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
         def update_classifier_summary(cutoff, pos_label):
+            metrics_dict = self.explainer.metrics_descriptions(cutoff, pos_label)
             metrics_df = (pd.DataFrame(
                                 self.explainer.metrics(cutoff=cutoff, pos_label=pos_label), 
                                 index=["Score"])
                               .T.rename_axis(index="metric").reset_index()
                               .round(self.round))
+            metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)        
+            metrics_table, tooltips = get_dbc_tooltips(metrics_table, 
+                                                   metrics_dict, 
+                                                   "clas-model-summary-div-hover", 
+                                                   self.name)
+
             return html.Div([
-                html.H3("Classifier performance metrics:"),
-                dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)
+                metrics_table,
+                *tooltips
             ])
         

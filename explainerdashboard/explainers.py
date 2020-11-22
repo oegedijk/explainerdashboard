@@ -1270,7 +1270,8 @@ class BaseExplainer(ABC):
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
     def plot_shap_contributions(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, 
-                        sort='abs', orientation='vertical', round=2, pos_label=None):
+                        sort='abs', orientation='vertical', higher_is_better=True,
+                        round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
 
         Args:
@@ -1287,9 +1288,11 @@ class BaseExplainer(ABC):
                 sort by absolute shap value, or from high to low, 
                 or low to high, or by order of shap feature importance.
                 Defaults to 'abs'.
-          orientation({'vertical', 'horizontal'}) Horizontal or vertical bar chart. 
+          orientation({'vertical', 'horizontal'}): Horizontal or vertical bar chart. 
                     Horizontal may be better if you have lots of features. 
                     Defaults to 'vertical'.
+          higher_is_better (bool): if True, up=green, down=red. If false reversed.
+                Defaults to True.
           round(int, optional, optional): round contributions to round precision, 
                         defaults to 2
           pos_label:  (Default value = None)
@@ -1301,7 +1304,7 @@ class BaseExplainer(ABC):
         assert orientation in ['vertical', 'horizontal']
         contrib_df = self.contrib_df(self.get_int_idx(index), X_row, cats, topx, cutoff, sort, pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
-                    orientation=orientation, round=round, 
+                    orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
 
     def plot_shap_summary(self, index=None, topx=None, cats=False, pos_label=None):
@@ -1963,6 +1966,26 @@ class ClassifierExplainer(BaseExplainer):
         }
         return metrics_dict
 
+    def metrics_descriptions(self, cutoff=0.5, pos_label=None):
+        metrics_dict = self.metrics(cutoff, pos_label)
+        metrics_descriptions_dict = {}
+        for k, v in metrics_dict.items():
+            if k == 'accuracy':
+                metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of predicted labels was predicted correctly."
+            if k == 'precision':
+                metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of predicted positive labels was predicted correctly."
+            if k == 'recall':
+                metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of positive labels was predicted correctly."
+            if k == 'f1':
+                metrics_descriptions_dict[k] = f"The weighted average of precision and recall is {round(v, 2)}"
+            if k == 'roc_auc_score':
+                metrics_descriptions_dict[k] = f"The probability that a random positive label has a higher score than a random negative label is {round(100*v, 2)}%"
+            if k == 'pr_auc_score':
+                metrics_descriptions_dict[k] = f"The average precision score calculated for each recall threshold is {round(v, 2)}. This ignores true negatives."
+            if k == 'log_loss':
+                metrics_descriptions_dict[k] = f"A measure of how far the predicted label is from the true label on average in log space {round(v, 2)}"
+        return metrics_descriptions_dict
+            
     def metrics_markdown(self, cutoff=0.5, round=2, pos_label=None):
         """markdown makeup of self.metrics() dict
 
@@ -2475,11 +2498,23 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
         metrics_dict = {
-            'rmse' : np.sqrt(mean_squared_error(self.y, self.preds)),
-            'mae' : mean_absolute_error(self.y, self.preds),
-            'R2' : r2_score(self.y, self.preds),
+            'root_mean_squared_error' : np.sqrt(mean_squared_error(self.y, self.preds)),
+            'mean_absolute_error' : mean_absolute_error(self.y, self.preds),
+            'R-squared' : r2_score(self.y, self.preds),
         }
         return metrics_dict
+
+    def metrics_descriptions(self):
+        metrics_dict = self.metrics()
+        metrics_descriptions_dict = {}
+        for k, v in metrics_dict.items():
+            if k == 'root_mean_squared_error':
+                metrics_descriptions_dict[k] = f"A measure of how close predicted value fits true values, where large deviations are punished more heavily. So the lower this number the better the model."
+            if k == 'mean_absolute_error':
+                metrics_descriptions_dict[k] = f"On average predictions deviate {round(v, 2)} {self.units} off the observed value of {self.target} (can be both above or below)"
+            if k == 'R-squared':
+                metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of all variation in {self.target} was explained by the model."
+        return metrics_descriptions_dict
 
     def metrics_markdown(self, round=2, **kwargs):
         """markdown makeup of self.metrics() dict
@@ -2787,13 +2822,16 @@ class RandomForestExplainer(BaseExplainer):
         return svg_encoded
 
 
-    def plot_trees(self, index, highlight_tree=None, round=2, pos_label=None):
+    def plot_trees(self, index, highlight_tree=None, round=2, 
+                higher_is_better=True, pos_label=None):
         """plot barchart predictions of each individual prediction tree
 
         Args:
           index: index to display predictions for
           highlight_tree:  tree to highlight in plot (Default value = None)
           round: rounding of numbers in plot (Default value = 2)
+          higher_is_better (bool): flip red and green. Dummy bool for compatibility
+                with gbm plot_trees().
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -3009,13 +3047,16 @@ class XGBExplainer(BaseExplainer):
         return svg_encoded
 
 
-    def plot_trees(self, index, highlight_tree=None, round=2, pos_label=None):
+    def plot_trees(self, index, highlight_tree=None, round=2, 
+                higher_is_better=True, pos_label=None):
         """plot barchart predictions of each individual prediction tree
 
         Args:
           index: index to display predictions for
           highlight_tree:  tree to highlight in plot (Default value = None)
           round: rounding of numbers in plot (Default value = 2)
+          higher_is_better (bool, optional): up is green, down is red. If False
+            flip the colors. 
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -3030,15 +3071,18 @@ class XGBExplainer(BaseExplainer):
             xgboost_preds_df = get_xgboost_preds_df(
                 self.model, self.X.iloc[[idx]], pos_label=pos_label)
             return plotly_xgboost_trees(xgboost_preds_df, 
-                            y=y, highlight_tree=highlight_tree,
-                            target=self.target)
+                            y=y, 
+                            highlight_tree=highlight_tree, 
+                            target=self.target, 
+                            higher_is_better=higher_is_better)
         else:
             y = self.y[idx]
             xgboost_preds_df = get_xgboost_preds_df(
                 self.model, self.X.iloc[[idx]])
             return plotly_xgboost_trees(xgboost_preds_df, 
                             y=y, highlight_tree=highlight_tree,
-                            target=self.target, units=self.units)
+                            target=self.target, units=self.units,
+                            higher_is_better=higher_is_better)
 
     def calculate_properties(self, include_interactions=True):
         """

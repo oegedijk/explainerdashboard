@@ -341,39 +341,12 @@ class ExplainerDashboard:
         """
         print("Building ExplainerDashboard..", flush=True)  
 
-
         self._store_params(no_param=['explainer', 'tabs'])
         self._stored_params['tabs'] = self._tabs_to_yaml(tabs)
 
         if self.hide_header:
             self.header_hide_title = True
             self.header_hide_selector = True
-
-        
-
-        # self.explainer = explainer
-        # self.mode, self.width, self.height = mode, width, height
-        # self.hide_header, self.header_hide_title, self.header_hide_selector = \
-        #     hide_header, header_hide_title, header_hide_selector
-        # self.external_stylesheets = external_stylesheets
-        # self.server, self.url_base_pathname = server, url_base_pathname
-        # self.responsive, self.port = responsive, port
-        # self._params_dict = dict(
-        #         tabs=self._tabs_to_yaml(tabs),
-        #         title=title, hide_header=hide_header, 
-        #         header_hide_title=header_hide_title,
-        #         header_hide_selector=header_hide_selector,
-        #         block_selector_callbacks=block_selector_callbacks,
-        #         pos_label=pos_label, fluid=fluid, mode=mode,
-        #         width=width, height=height, 
-        #         external_stylesheets=external_stylesheets, server=server,
-        #         url_base_pathname=url_base_pathname, responsive=responsive,
-        #         logins=logins, port=port, importances=importances,
-        #         model_summary=model_summary, contributions=contributions,
-        #         whatif=whatif, shap_dependence=shap_dependence,
-        #         shap_interaction=shap_interaction, 
-        #         decision_trees=decision_trees
-        # )
 
         try:
             ipython_kernel = str(get_ipython())
@@ -387,7 +360,9 @@ class ExplainerDashboard:
             self.mode = 'external'
         elif self.mode == 'dash' and self.is_notebook:
             print("Detected notebook environment, consider setting "
-                    "mode='external', mode='inline' or mode='jupyterlab'...", flush=True)
+                    "mode='external', mode='inline' or mode='jupyterlab' "
+                    "to keep the notebook interactive while the dashboard "
+                    "is running...", flush=True)
 
         self.app = self._get_dash_app()
         if logins is not None:
@@ -438,7 +413,7 @@ class ExplainerDashboard:
                             hide_selector=header_hide_selector, 
                             block_selector_callbacks=block_selector_callbacks,
                             pos_label=pos_label,
-                            fluid=fluid)
+                            fluid=fluid, **kwargs)
         else:
             tabs = self._convert_str_tabs(tabs)
             explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
@@ -446,7 +421,7 @@ class ExplainerDashboard:
                             hide_selector=header_hide_selector, 
                             block_selector_callbacks=block_selector_callbacks,
                             pos_label=pos_label,
-                            fluid=fluid)
+                            fluid=fluid, **kwargs)
 
         self.app.layout = explainer_layout.layout()
 
@@ -512,6 +487,24 @@ class ExplainerDashboard:
 
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
+        """Stores the parameter of the class to instance attributes and
+        to a ._stored_params dict. You can optionall exclude all or some 
+        parameters from being stored.
+
+        Args:
+            no_store ({bool, List[str]}, optional): If True do not store any
+                parameters to either attribute or _stored_params dict. If
+                a list of str, then do not store parameters with those names. 
+                Defaults to None.
+            no_attr ({bool, List[str]},, optional): . If True do not store any
+                parameters to class attribute. If
+                a list of str, then do not store parameters with those names. 
+                Defaults to None.
+            no_param ({bool, List[str]},, optional): If True do not store any
+                parameters to _stored_params dict. If
+                a list of str, then do not store parameters with those names. 
+                Defaults to None.
+        """
         if not hasattr(self, '_stored_params'): 
             self._stored_params = {}
 
@@ -548,6 +541,8 @@ class ExplainerDashboard:
                 return ModelSummaryTab
             elif component == 'contributions':
                 return ContributionsTab
+            elif component == 'whatif':
+                return WhatIfTab
             elif component == 'shap_dependence':
                 return ShapDependenceTab
             elif component == 'shap_interaction':

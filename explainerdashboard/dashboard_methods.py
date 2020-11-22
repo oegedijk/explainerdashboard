@@ -5,6 +5,7 @@ __all__ = [
     'ExplainerComponent',
     'PosLabelSelector',
     'make_hideable',
+    'get_dbc_tooltips',
 ]
 
 import sys
@@ -61,6 +62,34 @@ def delegates_doc(to=None, keep=False):
         from_f.__doc__ = to_f.__doc__
         return f
     return _f
+
+
+def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):
+                """Return a dbc.Table and a list of dbc.Tooltips.
+
+                Args:
+                    dbc_table (dbc.Table): Table with first column consisting of label
+                    desc_dict (dict): dict that map labels to a description (str)
+                    hover_id (str): dash component_id base: tooltips will have 
+                        component_id=f"{hover_id}-{label}-{name}"
+                    name (str): name to be used in hover_id
+
+                Returns:
+                    dbc.Table, List[dbc.Tooltip]
+                """
+                tooltips_dict = {}
+                for tr in dbc_table.children[1].children:
+                    tds = tr.children
+                    label = tds[0].children
+                    if label in desc_dict:
+                        tr.id = f'{hover_id}-{label}-'+name
+                        tooltips_dict[label] = desc_dict[label]
+
+                tooltips = [dbc.Tooltip(desc,
+                    target=f'{hover_id}-{label}-'+name, 
+                    placement="top") for label, desc in tooltips_dict.items()]
+
+                return dbc_table, tooltips
 
 
 def make_hideable(element, hide=False):
@@ -322,12 +351,16 @@ class PosLabelSelector(ExplainerComponent):
     def layout(self):
         if self.explainer.is_classifier:
             return html.Div([
-                            dbc.Label("Positive class:", html_for="pos-label"),
-                            dcc.Dropdown(
-                                id='pos-label-'+self.name,
-                                options = [{'label': label, 'value': i}
-                                        for i, label in enumerate(self.explainer.labels)],
-                                value = self.pos_label)
-                            ])
+                    dbc.Label("Positive class:", 
+                        html_for="pos-label-"+self.name, 
+                        id="pos-label-label-"+self.name),
+                    dbc.Tooltip("Select the label to be set as the positive class",
+                        target="pos-label-label-"+self.name),
+                    dcc.Dropdown(
+                        id='pos-label-'+self.name,
+                        options = [{'label': label, 'value': i}
+                                for i, label in enumerate(self.explainer.labels)],
+                        value = self.pos_label)
+            ])
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))

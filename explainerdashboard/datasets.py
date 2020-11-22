@@ -16,8 +16,7 @@ feature_descriptions = {
     "Gender": "Gender of passenger",
     "Deck": "The deck the passenger had their cabin on",
     "PassengerClass": "The class of the ticket: 1st, 2nd or 3rd class",
-    "Fare": "The amount of money people paid", 
-    "No_of_relatives_on_board": "number of siblings, spouses, parents plus children on board",
+    "Fare": "The amount of money people paid for their ticket", 
     "Embarked": "the port where the passenger boarded the Titanic. Either Southampton, Cherbourg or Queenstown",
     "Age": "Age of the passenger",
     "No_of_siblings_plus_spouses_on_board": "The sum of the number of siblings plus the number of spouses on board",
@@ -77,5 +76,5 @@ def titanic_names(train_only=False, test_only=False):
     if train_only:
         return d_train['Name'].values.tolist()
     if test_only:
-        d_test['Name'].values.tolist()
+        return d_test['Name'].values.tolist()
     return (d_train['Name'].values.tolist(), d_test['Name'].values.tolist())
