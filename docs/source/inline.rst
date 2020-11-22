@@ -44,7 +44,7 @@ Example use::
     ie.regression.model_stats()
     ie.regression.pred_vs_actual()
     ie.regression.residuals()
-    ie.regression.residuals_vs_col()
+    ie.regression.plots_vs_col()
     ie.decisiontrees.overview()
     ie.decisiontrees.decision_trees()
     ie.decisiontrees.decisionpath_table()
