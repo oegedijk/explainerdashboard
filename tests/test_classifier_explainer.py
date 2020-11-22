@@ -31,8 +31,8 @@ class ClassifierBunchTests(unittest.TestCase):
         self.explainer.pos_label = "Not survived"
         self.assertIsInstance(self.explainer.pos_label, int)
         self.assertIsInstance(self.explainer.pos_label_str, str)
-        self.assertEquals(self.explainer.pos_label, 0)
-        self.assertEquals(self.explainer.pos_label_str, "Not survived")
+        self.assertEqual(self.explainer.pos_label, 0)
+        self.assertEqual(self.explainer.pos_label_str, "Not survived")
 
     def test_get_prop_for_label(self):
         self.explainer.pos_label = 1

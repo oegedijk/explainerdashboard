@@ -78,7 +78,6 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics_markdown(), str)
 
     def test_mean_abs_shap_df(self):
         self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
@@ -141,9 +140,9 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
 
     def test_shap_interaction_values_by_col(self):
         self.assertIsInstance(self.explainer.shap_interaction_values_by_col("Age"), np.ndarray)
-        self.assertEquals(self.explainer.shap_interaction_values_by_col("Age").shape, 
+        self.assertEqual(self.explainer.shap_interaction_values_by_col("Age").shape, 
                         self.explainer.shap_values.shape)
-        self.assertEquals(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape, 
+        self.assertEqual(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape, 
                         self.explainer.shap_values_cats.shape)
 
     def test_pdp_result(self):

@@ -58,7 +58,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics_markdown(), str)
+        self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
 
     def test_mean_abs_shap_df(self):
         self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)

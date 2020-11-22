@@ -2,11 +2,12 @@
 
 ## Version 0.2.11:
 ### Breaking Changes
-- 
+- removed metrics_markdown() method. Added metrics_description() that
+    describes the metric in words.
 - 
 
 ### New Features
--   Added tooltips everywhere throughout the dashboard to explainer the
+-   Added tooltips everywhere throughout the dashboard to explainer 
     components, plots, dropdowns and toggles of the dashboard itself.
 -
 
