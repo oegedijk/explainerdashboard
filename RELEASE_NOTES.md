@@ -2,14 +2,14 @@
 
 ## Version 0.2.11:
 ### Breaking Changes
-- removed metrics_markdown() method. Added metrics_description() that
+- removed `metrics_markdown()` method. Added `metrics_descriptions()` that
     describes the metric in words.
-- 
+- removed `PredsVsColComponent`, `ResidualsVsColComponent` and `ActualVsColComponent`,
+    these three are now subsumed in `RegressionVsColComponent`.
 
 ### New Features
 -   Added tooltips everywhere throughout the dashboard to explainer 
     components, plots, dropdowns and toggles of the dashboard itself.
--
 
 ### Bug Fixes
 -
@@ -17,7 +17,7 @@
 
 ### Improvements
 - changed colors on contributions graph up=green, down=red
-    - added `higher_is_better` parameter to toggle the colors.
+    - added `higher_is_better` parameter to switch green and red colors.
 - Clarified wording on index selector components
 - hiding `group cats` toggle everywhere when no cats are passed
 - passing `**kwargs` of ExplainerDashbaord down to all all tabs and (sub) components

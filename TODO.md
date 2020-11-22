@@ -12,7 +12,7 @@
 - add some of these:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - seperate standard shap plots for shap_interaction plots 
-    - using some kind of inheritance
+    - using some kind of inheritance?
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -53,9 +53,10 @@
 
 
 ### Components
-- add Tooltips to all the things!
-- confusion matrix component: only show cutoff if binary==True
 - rename to component_callbacks()
+- add Tooltips to whatif component
+- confusion matrix component: only show cutoff if binary==True
+
 - add querystring method to ExplainerComponents
 - add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
@@ -84,7 +85,7 @@
 - write tests for explainer_plots
 
 ## Docs:
-- add preds vs col and y vs col screenshots
+- add regressionVsCol screenshot
 - Add type hints:
     - to explainers
     - to explainer class methods
@@ -97,8 +98,10 @@
 - add actual_vs_col and pred_vs_col screenshots to components docs
 
 ## Library level:
-- hide (prefix '_') to non-API class methods
+- hide (prefix '_') to non-public API class methods
 - build release for conda-forge
+    - get dash-auth on plotly anaconda channel
+    - get dtreeviz on anaconda
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs

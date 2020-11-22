@@ -153,15 +153,13 @@ class RegressionModelStatsComposite(ExplainerComponent):
         assert pred_or_actual in ['vs_actual', 'vs_pred'], \
             "pred_or_actual should be 'vs_actual' or 'vs_pred'!"
 
+        self.modelsummary = RegressionModelSummaryComponent(explainer, **kwargs)
         self.preds_vs_actual = PredictedVsActualComponent(explainer, 
                     logs=logs, **kwargs)
-        self.modelsummary = RegressionModelSummaryComponent(explainer, **kwargs)
         self.residuals = ResidualsComponent(explainer, 
                             pred_or_actual=pred_or_actual, residuals=residuals, **kwargs)
-        self.residuals_vs_col = ResidualsVsColComponent(explainer, 
-                                    col=col, residuals=residuals, **kwargs)
-        self.y_vs_col = ActualVsColComponent(explainer, col=col, **kwargs)
-        self.preds_vs_col = PredsVsColComponent(explainer, col=col, **kwargs)
+        self.reg_vs_col = RegressionVsColComponent(explainer, col=col, **kwargs)
+
         self.register_components()
 
     def layout(self):
@@ -184,17 +182,9 @@ class RegressionModelStatsComposite(ExplainerComponent):
                     self.residuals.layout()
                 ], md=6),
                 dbc.Col([
-                    self.residuals_vs_col.layout()
+                    self.reg_vs_col.layout()
                 ], md=6),
             ]),
-            dbc.Row([
-                dbc.Col([
-                    self.y_vs_col.layout()
-                ], md=6),
-                dbc.Col([
-                    self.preds_vs_col.layout()
-                ], md=6),
-            ])
         ])
 
 

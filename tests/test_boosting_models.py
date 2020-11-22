@@ -25,10 +25,10 @@ class XGBRegressionTests(unittest.TestCase):
 
         model = XGBRegressor()
         model.fit(X_train, y_train)
-        self.explainer = RegressionExplainer(model, X_test, y_test, r2_score, 
+        self.explainer = RegressionExplainer(model, X_test, y_test, 
                                         cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
-                                        idxs=test_names, units="$")
+                                        units="$")
 
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
@@ -178,11 +178,10 @@ class XGBCLassifierTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, roc_auc_score, 
+                            model, X_test, y_test, 
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
-                            labels=['Not survived', 'Survived'],
-                            idxs=test_names)
+                            labels=['Not survived', 'Survived'])
 
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)

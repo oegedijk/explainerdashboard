@@ -63,15 +63,26 @@ def get_multiclass_explainer(xgboost=False, include_y=True):
         model = RandomForestClassifier(n_estimators=50, max_depth=10).fit(X_train, y_train)
 
     if include_y:
-        multi_explainer = ClassifierExplainer(model, X_test, y_test, 
-                                        cats=['Sex', 'Deck'], 
-                                        idxs=test_names,
-                                        labels=['Queenstown', 'Southampton', 'Cherbourg'])
+        if xgboost:
+            multi_explainer = ClassifierExplainer(model, X_test, y_test,
+                                            model_output='logodds',
+                                            cats=['Sex', 'Deck'], 
+                                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
+        else:
+            multi_explainer = ClassifierExplainer(model, X_test, y_test,
+                                            cats=['Sex', 'Deck'], 
+                                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
     else:
-        multi_explainer = ClassifierExplainer(model, X_test,
-                                        cats=['Sex', 'Deck'], 
-                                        idxs=test_names,
-                                        labels=['Queenstown', 'Southampton', 'Cherbourg'])
+        if xgboost:
+            multi_explainer = ClassifierExplainer(model, X_test, 
+                                            model_output='logodds',
+                                            cats=['Sex', 'Deck'], 
+                                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
+        else:
+            multi_explainer = ClassifierExplainer(model, X_test, 
+                                            cats=['Sex', 'Deck'], 
+                                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
+
     multi_explainer.calculate_properties()
     return multi_explainer
 
