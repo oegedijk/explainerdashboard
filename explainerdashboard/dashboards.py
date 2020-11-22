@@ -1087,12 +1087,12 @@ class InlineRegressionExplainer(InlineExplainerComponent):
         comp = ResidualsComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
-    @delegates_kwargs(ResidualsVsColComponent)
-    @delegates_doc(ResidualsVsColComponent)
-    def residuals_vs_col(self, title="Residuals vs col", **kwargs):
-        "shows residuals vs col for regression"
+    @delegates_kwargs(RegressionVsColComponent)
+    @delegates_doc(RegressionVsColComponent)
+    def plots_vs_col(self, title="Plots vs col", **kwargs):
+        "shows plots vs col for regression"
         assert self._explainer.is_regression
-        comp = ResidualsVsColComponent(self._explainer, **kwargs)
+        comp = RegressionVsColComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
 
