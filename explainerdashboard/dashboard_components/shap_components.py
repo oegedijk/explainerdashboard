@@ -23,7 +23,7 @@ class ShapSummaryComponent(ExplainerComponent):
                     hide_title=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, depth=None, 
-                    summary_type="aggregate", cats=True, index=None):
+                    summary_type="aggregate", cats=True, index=None, **kwargs):
         """Shows shap summary component
 
         Args:
@@ -59,15 +59,27 @@ class ShapSummaryComponent(ExplainerComponent):
 
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        The shap summary summarizes the shap values per feature.
+        You can either select an aggregates display that shows mean absolute shap value
+        per feature. Or get a more detailed look at the spread of shap values per
+        feature and how they correlate the the feature value (red is high).
+        """
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
         return dbc.Container([
-            make_hideable(html.H3('Shap Summary'), hide=self.hide_title),
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='shap-summary-title-'+self.name),
+                    dbc.Tooltip(self.description, target='shap-summary-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Depth:"),
+                        dbc.Label("Depth:", id='shap-summary-depth-label-'+self.name),
+                        dbc.Tooltip("Number of features to display", 
+                                    target='shap-summary-depth-label-'+self.name),
                         dcc.Dropdown(id='shap-summary-depth-'+self.name,
                             options=[{'label': str(i+1), 'value': i+1} for i in 
                                         range(self.explainer.n_features(self.cats))],
@@ -77,7 +89,10 @@ class ShapSummaryComponent(ExplainerComponent):
                     dbc.Col([
                         dbc.FormGroup(
                             [
-                                dbc.Label("Summary Type"),
+                                dbc.Label("Summary Type", id='shap-summary-type-label-'+self.name),
+                                dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
+                                            " or display every single shap value per feature (detailed)", 
+                                            target='shap-summary-type-label-'+self.name),
                                 dbc.RadioItems(
                                     options=[
                                         {"label": "Aggregate", "value": "aggregate"},
@@ -92,7 +107,9 @@ class ShapSummaryComponent(ExplainerComponent):
                     ]), self.hide_type),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Grouping:"),
+                        dbc.Label("Grouping:", id='shap-summary-group-cats-label-'+self.name),
+                        dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                    target='shap-summary-group-cats-label-'+self.name),
                         dbc.FormGroup(
                         [
                             dbc.RadioButton(
@@ -100,14 +117,17 @@ class ShapSummaryComponent(ExplainerComponent):
                                 className="form-check-input",
                                 checked=self.cats),
                             dbc.Label("Group Cats",
-                                    html_for='shap-summary-group-'+self.name, 
+                                    html_for='shap-summary-group-cats-'+self.name, 
                                     className="form-check-label"),
-                        ], check=True)
+                        ], check=True),
                     ], md=3), self.hide_cats),
                 make_hideable(
                     dbc.Col([
                         html.Div([
-                            dbc.Label(f"{self.explainer.index_name}:"),
+                            dbc.Label(f"{self.explainer.index_name}:", id='shap-summary-index-label-'+self.name),
+                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
+                                        "You can also select by clicking on a scatter point in the graph.", 
+                                        target='shap-summary-index-label-'+self.name),
                             dcc.Dropdown(id='shap-summary-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -174,7 +194,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     hide_color_col=False, hide_index=False,
                     hide_selector=False,
                     pos_label=None, cats=True, col=None, 
-                    color_col=None, index=None):
+                    color_col=None, index=None, **kwargs):
         """Show shap dependence graph
 
         Args:
@@ -208,11 +228,25 @@ class ShapDependenceComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_name = 'shap-dependence-index-'+self.name
+
+        self.description = """
+        This plot shows the relation between feature values and shap values.
+        This allows you to investigate the general relationship between feature
+        value and impact on the prediction, i.e. "older passengers were predicted
+        to be less likely to survive the titanic". You can check whether the mode
+        uses features in line with your intuitions, or use the plots to learn
+        about the relationships that the model has learned between the input features
+        and the predicted outcome.
+        """
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
         return html.Div([
-            make_hideable(html.H3('Shap Dependence Plot'), hide=self.hide_title),
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='shap-dependence-title-'+self.name),
+                    dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                         dbc.Col([self.selector.layout()
@@ -221,7 +255,9 @@ class ShapDependenceComponent(ExplainerComponent):
             dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:"),
+                            dbc.Label("Grouping:", id='shap-dependence-group-cats-label-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='shap-dependence-group-cats-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -232,17 +268,23 @@ class ShapDependenceComponent(ExplainerComponent):
                                         html_for='shap-dependence-group-cats-'+self.name,
                                         className="form-check-label"),
                             ], check=True),
+                            
                         ],  md=2), self.hide_cats),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label('Feature:'),
+                            dbc.Label('Feature:', id='shap-dependence-col-label-'+self.name),
+                            dbc.Tooltip("Select feature to display shap dependence for", 
+                                        target='shap-dependence-col-label-'+self.name),
                             dcc.Dropdown(id='shap-dependence-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                 value=self.col)
                         ], md=3), self.hide_col),
                     make_hideable(dbc.Col([
-                            html.Label('Color feature:'),
+                            html.Label('Color feature:', id='shap-dependence-color-col-label-'+self.name),
+                            dbc.Tooltip("Select feature to color the scatter markers by. This "
+                                        "allows you to see interactions between various features in the graph.", 
+                                        target='shap-dependence-color-col-label-'+self.name),
                             dcc.Dropdown(id='shap-dependence-color-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
@@ -250,7 +292,11 @@ class ShapDependenceComponent(ExplainerComponent):
                     ], md=3), self.hide_color_col),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label(f"{self.explainer.index_name}:"),
+                            dbc.Label(f"{self.explainer.index_name}:", id='shap-dependence-index-label-'+self.name),
+                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in the plot."
+                                        "You can also select by clicking on a scatter marker in the accompanying"
+                                        " shap summary plot (detailed).", 
+                                        target='shap-dependence-index-label-'+self.name),
                             dcc.Dropdown(id='shap-dependence-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -341,7 +387,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                     hide_title=False, hide_col=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
-                    summary_type="aggregate", cats=True, index=None):
+                    summary_type="aggregate", cats=True, index=None, **kwargs):
         """Show SHAP Interaciton values summary component
 
         Args:
@@ -373,17 +419,34 @@ class InteractionSummaryComponent(ExplainerComponent):
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats)-1)
+        if not self.explainer.cats:
+            self.hide_cats = True
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        Shows shap interaction values. Each shap value can be decomposed into a direct
+        effect and indirect effects. The indirect effects are due to interactions
+        of the feature with other feature. For example the fact that you know
+        the gender of a passenger on the titanic will have a direct effect (women
+        more likely to survive then men), but may also have indirect effects through
+        for example passenger class (first class women more likely to survive than
+        average woman, third class women less likely).
+        """
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
         return dbc.Container([
-            make_hideable(html.H3('Shap Interaction Summary'), hide=self.hide_title),
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='interaction-summary-title-'+self.name),
+                    dbc.Tooltip(self.description, target='interaction-summary-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Feature"),
+                        dbc.Label("Feature", id='interaction-summary-col-label-'+self.name),
+                        dbc.Tooltip("Feature to select interactions effects for",
+                                target='interaction-summary-col-label-'+self.name),
                         dcc.Dropdown(id='interaction-summary-col-'+self.name, 
                             options=[{'label': col, 'value': col} 
                                         for col in self.explainer.columns_ranked_by_shap(self.cats)],
@@ -392,7 +455,9 @@ class InteractionSummaryComponent(ExplainerComponent):
                 make_hideable(
                     dbc.Col([
     
-                        dbc.Label("Depth:"),
+                        dbc.Label("Depth:", id='interaction-summary-depth-label-'+self.name),
+                        dbc.Tooltip("Number of interaction features to display",
+                                target='interaction-summary-depth-label-'+self.name),
                         dcc.Dropdown(id='interaction-summary-depth-'+self.name, 
                             options = [{'label': str(i+1), 'value':i+1} 
                                             for i in range(self.explainer.n_features(self.cats)-1)],
@@ -402,7 +467,10 @@ class InteractionSummaryComponent(ExplainerComponent):
                     dbc.Col([
                         dbc.FormGroup(
                             [
-                                dbc.Label("Summary Type"),
+                                dbc.Label("Summary Type", id='interaction-summary-type-label-'+self.name),
+                                dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
+                                            " or display every single shap value per feature (detailed)", 
+                                            target='interaction-summary-type-label-'+self.name),
                                 dbc.RadioItems(
                                     options=[
                                         {"label": "Aggregate", "value": "aggregate"},
@@ -417,7 +485,9 @@ class InteractionSummaryComponent(ExplainerComponent):
                     ], md=3), self.hide_type),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Grouping:"),
+                        dbc.Label("Grouping:", id='interaction-summary-group-cats-label-'+self.name),
+                        dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                    target='interaction-summary-group-cats-label-'+self.name),
                         dbc.FormGroup(
                         [
                             dbc.RadioButton(
@@ -427,12 +497,15 @@ class InteractionSummaryComponent(ExplainerComponent):
                             dbc.Label("Group Cats",
                                     html_for='interaction-summary-group-cats-'+self.name, 
                                     className="form-check-label"),
-                        ], check=True)
+                        ], check=True),
                     ],md=2), self.hide_cats),
                 make_hideable(
                     dbc.Col([
                         html.Div([
-                            dbc.Label(f"{self.explainer.index_name}:"),
+                            dbc.Label(f"{self.explainer.index_name}:", id='interaction-summary-index-label-'+self.name),
+                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
+                                        "You can also select by clicking on a scatter point in the graph.", 
+                                        target='interaction-summary-index-label-'+self.name),
                             dcc.Dropdown(id='interaction-summary-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -502,7 +575,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
                     hide_selector=False, hide_top=False, hide_bottom=False,
-                    pos_label=None, cats=True, col=None, interact_col=None, index=None):
+                    pos_label=None, cats=True, col=None, interact_col=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
         Shows two graphs:
@@ -544,12 +617,22 @@ class InteractionDependenceComponent(ExplainerComponent):
         if self.interact_col is None:
             self.interact_col = explainer.shap_top_interactions(self.col, cats=cats)[1]
         
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.description = """
+        This plot shows the relation between feature values and shap interaction values.
+        This allows you to investigate interactions between features in determining
+        the prediction of the model.
+        """
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
         return dbc.Container([
-            make_hideable(html.H3('Shap Interaction Plots'), hide=self.hide_title),
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='interaction-dependence-title-'+self.name),
+                    dbc.Tooltip(self.description, target='interaction-dependence-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                         dbc.Col([self.selector.layout()
@@ -558,7 +641,9 @@ class InteractionDependenceComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Grouping:"),
+                        dbc.Label("Grouping:", id='interaction-dependence-group-cats-label-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='interaction-dependence-group-cats-label-'+self.name),
                         dbc.FormGroup(
                         [
                             dbc.RadioButton(
@@ -568,11 +653,15 @@ class InteractionDependenceComponent(ExplainerComponent):
                             dbc.Label("Group Cats",
                                     html_for='interaction-dependence-group-cats-'+self.name, 
                                     className="form-check-label"),
-                        ], check=True)
+                        ], check=True, id='interaction-dependence-group-cats-form-'+self.name),
+                        dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='interaction-dependence-group-cats-form-'+self.name),
                     ], md=2), hide=self.hide_cats),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Feature"),
+                        dbc.Label('Feature:', id='interaction-dependence-col-label-'+self.name),
+                            dbc.Tooltip("Select feature to display shap interactions for", 
+                                        target='interaction-dependence-col-label-'+self.name),
                         dcc.Dropdown(id='interaction-dependence-col-'+self.name,
                             options=[{'label': col, 'value':col} 
                                         for col in self.explainer.columns_ranked_by_shap(self.cats)],
@@ -581,7 +670,10 @@ class InteractionDependenceComponent(ExplainerComponent):
                     ], md=3), hide=self.hide_col), 
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Interaction:"),
+                        html.Label('Interaction feature:', id='interaction-dependence-interact-col-label-'+self.name),
+                            dbc.Tooltip("Select feature to show interaction values for.  Two plots will be shown: "
+                                        "both Feature vs Interaction Feature and Interaction Feature vs Feature.", 
+                                        target='interaction-dependence-interact-col-label-'+self.name),
                         dcc.Dropdown(id='interaction-dependence-interact-col-'+self.name, 
                             options=[{'label': col, 'value':col} 
                                         for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
@@ -590,7 +682,11 @@ class InteractionDependenceComponent(ExplainerComponent):
                     ], md=3), hide=self.hide_interact_col), 
                 make_hideable(
                         dbc.Col([
-                            dbc.Label(f"{self.explainer.index_name}:"),
+                            dbc.Label(f"{self.explainer.index_name}:", id='interaction-dependence-index-label-'+self.name),
+                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in the plot."
+                                        "You can also select by clicking on a scatter marker in the accompanying"
+                                        " shap interaction summary plot (detailed).", 
+                                        target='interaction-dependence-index-label-'+self.name),
                             dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
@@ -701,19 +797,19 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
 
 class ShapContributionsGraphComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Contributions", name=None,
+    def __init__(self, explainer, title="Contributions Plot", name=None,
                     hide_title=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=False, hide_cats=False, 
                     hide_selector=False,
                     pos_label=None, index=None, depth=None, sort='high-to-low', 
-                    orientation='vertical', cats=True):
+                    orientation='vertical', cats=True, higher_is_better=True, **kwargs):
         """Display Shap contributions to prediction graph component
 
         Args:
-            explainer (Explainer): explainer object constructed with either
+            explainer (Explainer): explainer object constructed , with either
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Contributions".
+                        "Contributions Plot".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -734,6 +830,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             orientation ({'vertical', 'horizontal'}, optional): orientation of bar chart.
                         Defaults to 'vertical'.
             cats (bool, optional): Group cats. Defaults to True.
+            higher_is_better (bool, optional): Color positive shap values green and
+                negative shap values red, or the reverse. 
         """
         super().__init__(explainer, title, name)
 
@@ -742,12 +840,27 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats))
 
+        if not self.explainer.cats:
+            self.hide_cats = True
+
+        self.description = """
+        This plot shows the contribution that each individual feature has had
+        on the prediction for a specific observation. The contributions (starting
+        from the population average) add up to the final prediction. This allows you
+        to explain exactly how each individual prediction has been built up
+        from all the individual ingredients in the model.
+        """
+
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
 
     def layout(self):
         return html.Div([
-            make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='contributions-graph-title-'+self.name),
+                    dbc.Tooltip(self.description, target='contributions-graph-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                         dbc.Col([self.selector.layout()
@@ -756,7 +869,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:"),
+                        dbc.Label(f"{self.explainer.index_name}:", id='contributions-graph-index-label-'+self.name),
+                        dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
+                                    target='contributions-graph-index-label-'+self.name),
                         dcc.Dropdown(id='contributions-graph-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -764,7 +879,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_index), 
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Depth:"),
+                        dbc.Label("Depth:", id='contributions-graph-depth-label-'+self.name),
+                        dbc.Tooltip("Number of features to display",
+                                target='contributions-graph-depth-label-'+self.name),
                         dcc.Dropdown(id='contributions-graph-depth-'+self.name, 
                             options = [{'label': str(i+1), 'value':i+1} 
                                             for i in range(self.explainer.n_features(self.cats))],
@@ -772,7 +889,12 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     ], md=2), hide=self.hide_depth),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Sorting:"),
+                        dbc.Label("Sorting:", id='contributions-graph-sorting-label-'+self.name),
+                        dbc.Tooltip("Sort the features either by highest absolute (positive or negative) impact (absolute), "
+                                    "from most positive the most negative (high-to-low)"
+                                    "from most negative to most positive (low-to-high or "
+                                    "according the global feature importance ordering (importance).",
+                                target='contributions-graph-sorting-label-'+self.name),
                         dcc.Dropdown(id='contributions-graph-sorting-'+self.name, 
                             options = [{'label': 'Absolute', 'value': 'abs'},
                                         {'label': 'High to Low', 'value': 'high-to-low'},
@@ -782,7 +904,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     ], md=2), hide=self.hide_sort),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Orientation:"),
+                        dbc.Label("Orientation:", id='contributions-graph-orientation-label-'+self.name),
+                        dbc.Tooltip("Show vertical bars left to right or horizontal bars from top to bottom",
+                                target='contributions-graph-orientation-label-'+self.name),
                         dcc.Dropdown(id='contributions-graph-orientation-'+self.name, 
                             options = [{'label': 'Vertical', 'value': 'vertical'},
                                         {'label': 'Horizontal', 'value': 'horizontal'}],
@@ -790,7 +914,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     ], md=2), hide=self.hide_orientation),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Grouping:"),
+                        dbc.Label("Grouping:", id='contributions-graph-group-cats-label-'+self.name),
+                        dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='contributions-graph-group-cats-label-'+self.name),
                         dbc.FormGroup(
                         [
                             dbc.RadioButton(
@@ -800,7 +926,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Label("Group Cats",
                                     html_for='contributions-graph-group-cats-'+self.name, 
                                     className="form-check-label"),
-                        ], check=True)
+                        ], check=True),
                     ], md=2), hide=self.hide_cats),
                 ], form=True),
                 
@@ -831,7 +957,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 raise PreventUpdate
 
             plot = self.explainer.plot_shap_contributions(index, topx=depth, 
-                        cats=cats, sort=sort, orientation=orientation, pos_label=pos_label)
+                        cats=cats, sort=sort, orientation=orientation, 
+                        pos_label=pos_label, higher_is_better=self.higher_is_better)
             
             ctx = dash.callback_context
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -844,18 +971,19 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
 
 class ShapContributionsTableComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Contributions", name=None,
+    def __init__(self, explainer, title="Contributions Table", name=None,
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_sort=False, hide_cats=False, 
                     hide_selector=False,
-                    pos_label=None, index=None, depth=None, sort='abs', cats=True):
+                    pos_label=None, index=None, depth=None, sort='abs', cats=True, 
+                    **kwargs):
         """Show SHAP values contributions to prediction in a table component
 
         Args:
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Contributions".
+                        "Contributions Table".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -877,17 +1005,32 @@ class ShapContributionsTableComponent(ExplainerComponent):
 
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats))
-
+        
+        if not self.explainer.cats:
+            self.hide_cats = True
+        self.description = """
+        This tables shows the contribution that each individual feature has had
+        on the prediction for a specific observation. The contributions (starting
+        from the population average) add up to the final prediction. This allows you
+        to explain exactly how each individual prediction has been built up
+        from all the individual ingredients in the model.
+        """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.register_dependencies('shap_values', 'shap_values_cats')
 
     def layout(self):
         return html.Div([
-            make_hideable(html.H3("Contributions to prediction:"), hide=self.hide_title),
+            make_hideable(
+                html.Div([
+                    html.H3(self.title, id='contributions-table-title-'+self.name),
+                    dbc.Tooltip(self.description, target='contributions-table-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:"),
+                        dbc.Label(f"{self.explainer.index_name}:", id='contributions-table-index-label-'+self.name),
+                        dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
+                                    target='contributions-table-index-label-'+self.name),
                         dcc.Dropdown(id='contributions-table-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -895,7 +1038,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_index), 
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Depth:"),
+                        dbc.Label("Depth:", id='contributions-table-depth-label-'+self.name),
+                        dbc.Tooltip("Number of features to display",
+                                target='contributions-table-depth-label-'+self.name),
                         dcc.Dropdown(id='contributions-table-depth-'+self.name, 
                             options = [{'label': str(i+1), 'value':i+1} 
                                             for i in range(self.explainer.n_features(self.cats))],
@@ -903,7 +1048,12 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     ], md=2), hide=self.hide_depth),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Sorting:"),
+                        dbc.Label("Sorting:", id='contributions-table-sorting-label-'+self.name),
+                        dbc.Tooltip("Sort the features either by highest absolute (positive or negative) impact (absolute), "
+                                    "from most positive the most negative (high-to-low)"
+                                    "from most negative to most positive (low-to-high or "
+                                    "according the global feature importance ordering (importance).",
+                                target='contributions-table-sorting-label-'+self.name),
                         dcc.Dropdown(id='contributions-table-sorting-'+self.name, 
                             options = [{'label': 'Absolute', 'value': 'abs'},
                                         {'label': 'High to Low', 'value': 'high-to-low'},
@@ -915,7 +1065,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     ], width=2), hide=self.hide_selector),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Grouping:"),
+                        dbc.Label("Grouping:", id='contributions-table-group-cats-label-'+self.name),
+                        dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='contributions-table-group-cats-label-'+self.name),
                         dbc.FormGroup(
                         [
                             dbc.RadioButton(
@@ -925,7 +1077,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Label("Group Cats",
                                     html_for='contributions-table-group-cats-'+self.name, 
                                     className="form-check-label"),
-                        ], check=True)
+                        ], check=True),
                     ], md=3), hide=self.hide_cats),
             ], form=True),
             dbc.Row([

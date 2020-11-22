@@ -13,7 +13,9 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from ..explainers import RandomForestExplainer, XGBExplainer
 from ..dashboard_methods import *
+
 from .connectors import ClassifierRandomIndexComponent, IndexConnector, HighlightConnector
 
 
@@ -21,7 +23,8 @@ class DecisionTreesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
-                    pos_label=None, index=None, highlight=None):
+                    pos_label=None, index=None, highlight=None, 
+                    higher_is_better=True, **kwargs):
         """Show prediction from individual decision trees inside RandomForest component
 
         Args:
@@ -39,7 +42,9 @@ class DecisionTreesComponent(ExplainerComponent):
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
-            highlight ([type], optional): Initial tree to highlight. Defaults to None.
+            highlight (int, optional): Initial tree to highlight. Defaults to None.
+            higher_is_better (bool, optional): up is green, down is red. If False
+                flip the colors. (for gbm models only)
         """
         super().__init__(explainer, title, name)
 
@@ -47,16 +52,36 @@ class DecisionTreesComponent(ExplainerComponent):
         self.highlight_name = 'decisiontrees-highlight-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
+        if isinstance(self.explainer, RandomForestExplainer):
+            self.description = """
+            Show the prediction of every individul tree in a random forest.
+            This demonstrates how a random forest is simply an average of an
+            ensemble of decision trees.
+            """
+        elif isinstance(self.explainer, XGBExplainer):
+            self.description = """
+            Shows the marginal contributions of each decision tree in an 
+            xgboost ensemble to the final prediction. This demonstrates that
+            an xgboost model is simply a sum of individual decision trees.
+            """
+        else:
+            self.description = ""
         self.register_dependencies("preds", "pred_probas")
 
     def layout(self):
         return html.Div([
             make_hideable(
-                html.H3("Decision trees:"), hide=self.hide_title),
+                html.Div([
+                    html.H3(self.title, id='decisiontrees-title-'+self.name),
+                    dbc.Tooltip(self.description, target='decisiontrees-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:"),
+                        dbc.Label(f"{self.explainer.index_name}:", id='decisiontrees-index-label-'+self.name),
+                            dbc.Tooltip(f"Select {self.explainer.index_name} to display decision trees for", 
+                                        target='decisiontrees-index-label-'+self.name),
                         dcc.Dropdown(id='decisiontrees-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -64,7 +89,10 @@ class DecisionTreesComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_index),
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Highlight tree:"),
+                        dbc.Label("Highlight tree:", id='decisiontrees-tree-label-'+self.name),
+                            dbc.Tooltip(f"Select a specific tree to highlight. You can also "
+                                        "highlight by clicking on a specifc bar in the bar chart.", 
+                                        target='decisiontrees-tree-label-'+self.name),
                         dcc.Dropdown(id='decisiontrees-highlight-'+self.name, 
                             options = [{'label': str(tree), 'value': tree} 
                                             for tree in range(self.explainer.no_of_trees)],
@@ -91,7 +119,9 @@ class DecisionTreesComponent(ExplainerComponent):
         )
         def update_tree_graph(index, highlight, pos_label):
             if index is not None:
-                return self.explainer.plot_trees(index, highlight_tree=highlight, pos_label=pos_label)
+                return self.explainer.plot_trees(index, 
+                        highlight_tree=highlight, pos_label=pos_label,
+                        higher_is_better=self.higher_is_better)
             return {}
 
         @app.callback(
@@ -107,7 +137,7 @@ class DecisionPathTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path table", name=None,
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
-                    pos_label=None, index=None, highlight=None):
+                    pos_label=None, index=None, highlight=None, **kwargs):
         """Display a table of the decision path through a particular decision tree
 
         Args:
@@ -138,16 +168,25 @@ class DecisionPathTableComponent(ExplainerComponent):
         self.highlight_name = 'decisionpath-table-highlight-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
+        self.description = """
+        Shows the path that an observation took down a specific decision tree.
+        """
         self.register_dependencies("decision_trees")
 
     def layout(self):
         return html.Div([
             make_hideable(
-                html.H3("Decision path:"), hide=self.hide_title),
+                html.Div([
+                    html.H3(self.title, id='decisionpath-table-title-'+self.name),
+                    dbc.Tooltip(self.description, target='decisionpath-table-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:"),
+                        dbc.Label(f"{self.explainer.index_name}:", id='decisionpath-table-index-label-'+self.name),
+                        dbc.Tooltip(f"Select {self.explainer.index_name} to display decision tree for", 
+                                        target='decisionpath-table-index-label-'+self.name),
                         dcc.Dropdown(id='decisionpath-table-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -155,7 +194,9 @@ class DecisionPathTableComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_index),
                     make_hideable(
                     dbc.Col([
-                        dbc.Label("Highlight tree:"),
+                        dbc.Label("Show tree:", id='decisionpath-table-tree-label-'+self.name),
+                        dbc.Tooltip(f"Select decision tree to display decision tree path for", 
+                                        target='decisionpath-table-tree-label-'+self.name),
                         dcc.Dropdown(id='decisionpath-table-highlight-'+self.name, 
                             options = [{'label': str(tree), 'value': tree} 
                                             for tree in range(self.explainer.no_of_trees)],
@@ -191,7 +232,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                     hide_title=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
                     hide_selector=False,
-                    pos_label=None, index=None, highlight=None):
+                    pos_label=None, index=None, highlight=None, **kwargs):
         """Display dtreeviz decision path
 
         Args:
@@ -218,17 +259,27 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
         self.index_name = 'decisionpath-index-'+self.name
         self.highlight_name = 'decisionpath-highlight-'+self.name
+        self.description = """
+        Visualizes the path that an observation took down a specific decision tree,
+        by showing the entire decision tree and the path that a specific observation
+        took down this tree.
+        """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
     def layout(self):
         return html.Div([
             make_hideable(
-                html.H3("Decision Tree Graph:"), hide=self.hide_title),
+                html.Div([
+                    html.H3(self.title, id='decisionpath-title-'+self.name),
+                    dbc.Tooltip(self.description, target='decisionpath-title-'+self.name),
+                ]), hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:"),
+                        dbc.Label(f"{self.explainer.index_name}:", id='decisionpath-index-label-'+self.name),
+                            dbc.Tooltip(f"Select {self.explainer.index_name} to display decision tree for", 
+                                        target='decisionpath-index-label-'+self.name),
                         dcc.Dropdown(id='decisionpath-index-'+self.name, 
                             options = [{'label': str(idx), 'value':idx} 
                                             for idx in self.explainer.idxs],
@@ -236,7 +287,9 @@ class DecisionPathGraphComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_index),
                     make_hideable(
                     dbc.Col([
-                        dbc.Label("Highlight tree:"),
+                        dbc.Label("Show tree:", id='decisionpath-tree-label-'+self.name),
+                        dbc.Tooltip(f"Select decision tree to display decision tree for", 
+                                        target='decisionpath-tree-label-'+self.name),
                         dcc.Dropdown(id='decisionpath-highlight-'+self.name, 
                             options = [{'label': str(tree), 'value': tree} 
                                             for tree in range(self.explainer.no_of_trees)],
@@ -248,7 +301,11 @@ class DecisionPathGraphComponent(ExplainerComponent):
                     make_hideable(
                     dbc.Col([
                         dbc.Button("Generate Tree Graph", color="primary", 
-                                    id='decisionpath-button-'+self.name)
+                                    id='decisionpath-button-'+self.name),
+                        dbc.Tooltip("Generate visualisation of decision tree. "
+                                    "Only works if graphviz is properly installed,"
+                                    " and may take a while for large trees.",
+                                target='decisionpath-button-'+self.name)
                     ], md=2, align="end"), hide=self.hide_button),           
             ]),
             dbc.Row([

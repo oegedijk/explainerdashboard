@@ -16,6 +16,8 @@
 
 ### Classifier plots:
 - pdp: add multiclass option
+- add label percentage at cutoff to cumulative precision plot
+- add wizard to lift curve
 
 ### Regression plots:
 - add linear trendlines to y/preds vs col plots:
@@ -24,6 +26,11 @@
 
 ## Explainers:
 - add plain language explanations
+    - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
+        case instead of a plot the function returns a verbal description of the 
+        relationship in the plot.
+    - Then add an "in words" button to the components, that show a popup with
+        the verbal explanation.
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
 
@@ -37,9 +44,18 @@
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
 - add group fairness metrics
     - https://arxiv.org/pdf/1910.05591.pdf
+    - https://cran.r-project.org/web/packages/fairmodels/vignettes/Basic_tutorial.html
+    - http://manifold.mlvis.io/
+        - generate groups programmatically!
+- make terminate a class method
+- add description param to all components
+- add when warning when kwargs is not empty that will be passed down to all components
 
 
 ### Components
+- add Tooltips to all the things!
+- confusion matrix component: only show cutoff if binary==True
+- rename to component_callbacks()
 - add querystring method to ExplainerComponents
 - add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
@@ -49,11 +65,13 @@
     - tests if current feature input is allowed
     - gives specific feedback when constraint broken
     - could build WhatIfComponentException for this?
+- Add side-by-side option to cutoff selector component
+- Add sliders option to what if component
+- unify ClassifierMetricsSummaryComponent and RegressionMetricsSummaryComponent 
+    to a single component
+- add a barchart/piechart to classifier prediction summary component
 
 ## Methods:
-- Add LIME values
-    - but tricky how to set kernel, model, etc
-    - Lime values take a lot more DS judgement than SHAP values
 - add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
 - add support for LimeTabularExplainer:
     - http://gael-varoquaux.info/interpreting_ml_tuto/content/02_why/04_black_box_interpretation.html
@@ -61,7 +79,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add tests for dashboard with y=None
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots

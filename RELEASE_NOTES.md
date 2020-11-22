@@ -6,6 +6,37 @@
 - 
 
 ### New Features
+-   Added tooltips everywhere throughout the dashboard to explainer the
+    components, plots, dropdowns and toggles of the dashboard itself.
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- changed colors on contributions graph up=green, down=red
+    - added `higher_is_better` parameter to toggle the colors.
+- Clarified wording on index selector components
+- hiding `group cats` toggle everywhere when no cats are passed
+- passing `**kwargs` of ExplainerDashbaord down to all all tabs and (sub) components
+    so that you can configure components from an ExplainerDashboard param. 
+    e.g. `ExplainerDashboard(explainer, higher_is_better=False).run()` will
+    pass the higher_is_better param down to all components. In the case of the
+    ShapContributionsGraphComponent and the XGBoostDecisionTrees component
+    this will cause the red and green colors to flip (normally green is up
+    and red is down.)
+
+### Other Changes
+-
+-
+
+## Version 0.2.11:
+### Breaking Changes
+- 
+- 
+
+### New Features
 - added (very limited) sklearn.Pipeline support. You can pass a Pipeline as
     `model` parameter as long as the pipeline either:
     1. Does not add, remove or reorders any input columns

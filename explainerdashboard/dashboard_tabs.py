@@ -16,7 +16,7 @@ from .dashboard_components import *
 class ImportancesTab(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
                     hide_selector=True, importance_type="shap", depth=None, 
-                    cats=True):
+                    cats=True, **kwargs):
         """Overview tab of feature importances
 
         Can show both permutation importances and mean absolute shap values.
@@ -55,7 +55,8 @@ class ImportancesTab(ExplainerComponent):
 class ModelSummaryTab(ExplainerComponent):
     def __init__(self, explainer, title="Model Performance", name=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5, 
-                    logs=False, pred_or_actual="vs_pred", residuals='difference', col=None):
+                    logs=False, pred_or_actual="vs_pred", residuals='difference', 
+                    col=None, **kwargs):
         """Tab shows a summary of model performance.
 
         Args:
@@ -80,10 +81,10 @@ class ModelSummaryTab(ExplainerComponent):
         
         if self.explainer.is_classifier:
             self.model_stats = ClassifierModelStatsComposite(explainer, 
-                bin_size=bin_size, quantiles=quantiles, cutoff=cutoff) 
+                bin_size=bin_size, quantiles=quantiles, cutoff=cutoff, **kwargs) 
         elif explainer.is_regression:
             self.model_stats = RegressionModelStatsComposite(explainer,
-                logs=logs, pred_or_actual=pred_or_actual, residuals=residuals)
+                logs=logs, pred_or_actual=pred_or_actual, residuals=residuals, **kwargs)
 
         self.register_components(self.model_stats)
 
@@ -94,22 +95,27 @@ class ModelSummaryTab(ExplainerComponent):
 
 
 class ContributionsTab(ExplainerComponent):
-    def __init__(self, explainer, title="Individual Predictions", name=None):
+    def __init__(self, explainer, title="Individual Predictions", name=None, 
+                     **kwargs):
         """Tab showing individual predictions, the SHAP contributions that
         add up to this predictions, in both graph and table form, and a pdp plot.
 
         Args:
             explainer (Explainer): explainer object constructed with either
-                        ClassifierExplainer() or RegressionExplainer()
+                ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Individual Predictions".
+                "Individual Predictions".
             name (str, optional): unique name to add to Component elements. 
-                        If None then random uuid is generated to make sure 
-                        it's unique. Defaults to None.
+                If None then random uuid is generated to make sure  it's unique. 
+                Defaults to None.
+            higher_is_better (bool, optional): in contributions plot, up is green
+                and down is red. (set to False to flip)
         """
         super().__init__(explainer, title, name)
         self.tab_id = "contributions"
-        self.contribs = IndividualPredictionsComposite(explainer)
+        self.contribs = IndividualPredictionsComposite(explainer, 
+                            #higher_is_better=higher_is_better, 
+                            **kwargs)
         self.register_components(self.contribs)
     
     def layout(self):
@@ -118,7 +124,8 @@ class ContributionsTab(ExplainerComponent):
         ])
 
 class WhatIfTab(ExplainerComponent):
-    def __init__(self, explainer, title="What if...", name=None):
+    def __init__(self, explainer, title="What if...", name=None,
+                    **kwargs):
         """Tab showing individual predictions and allowing edits 
             to the features...
 
@@ -133,7 +140,7 @@ class WhatIfTab(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
         self.tab_id = "whatif"
-        self.whatif = WhatIfComposite(explainer)
+        self.whatif = WhatIfComposite(explainer, **kwargs)
         self.register_components(self.whatif)
     
     def layout(self):
@@ -145,7 +152,7 @@ class WhatIfTab(ExplainerComponent):
 class ShapDependenceTab(ExplainerComponent):
     def __init__(self, explainer, title='Feature Dependence', name=None,
                     tab_id="shap_dependence", 
-                    depth=None, cats=True):
+                    depth=None, cats=True, **kwargs):
         """Tab showing both a summary of feature importance (aggregate or detailed).
         for each feature, and a shap dependence graph.
 
@@ -161,7 +168,7 @@ class ShapDependenceTab(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         self.shap_overview = ShapDependenceComposite(
-            explainer, depth=depth, cats=cats)
+            explainer, depth=depth, cats=cats, **kwargs)
         self.register_components(self.shap_overview)
 
     def layout(self):
@@ -172,7 +179,7 @@ class ShapDependenceTab(ExplainerComponent):
 
 class ShapInteractionsTab(ExplainerComponent):
     def __init__(self, explainer, title='Feature Interactions', name=None,
-                    depth=None, cats=True):
+                    depth=None, cats=True, **kwargs):
         """[summary]
 
         Args:
@@ -188,7 +195,7 @@ class ShapInteractionsTab(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
         self.interaction_overview = ShapInteractionsComposite(
-                    explainer, depth=depth, cats=cats)
+                    explainer, depth=depth, cats=cats, **kwargs)
         self.register_components(self.interaction_overview)
 
     def layout(self):
@@ -198,7 +205,8 @@ class ShapInteractionsTab(ExplainerComponent):
 
 
 class DecisionTreesTab(ExplainerComponent):
-    def __init__(self, explainer, title="Decision Trees", name=None):
+    def __init__(self, explainer, title="Decision Trees", name=None,
+                        **kwargs):
         """Tab showing individual decision trees
 
         Args:
@@ -212,7 +220,7 @@ class DecisionTreesTab(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.trees = DecisionTreesComposite(explainer)
+        self.trees = DecisionTreesComposite(explainer, **kwargs)
         self.register_components(self.trees)
 
     def layout(self):

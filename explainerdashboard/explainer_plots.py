@@ -34,7 +34,7 @@ from sklearn.metrics import (classification_report, confusion_matrix,
 
 
 def plotly_contribution_plot(contrib_df, target="", 
-                         model_output="raw", higher_is_better=False,
+                         model_output="raw", higher_is_better=True,
                          include_base_value=True, include_prediction=True, 
                          orientation='vertical', round=2, units=""):
     """Generate a shap contributions waterfall plot from a contrib_df dataframe
@@ -103,20 +103,25 @@ def plotly_contribution_plot(contrib_df, target="",
         hover_text=[f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib} {units}"  
                   for col, contrib in zip(cols, contribs)]
 
-    fill_color_up = 'rgba(55, 128, 191, 0.7)' if higher_is_better else 'rgba(219, 64, 82, 0.7)'
-    fill_color_down = 'rgba(219, 64, 82, 0.7)' if higher_is_better else 'rgba(55, 128, 191, 0.7)'
-    line_color_up = 'rgba(55, 128, 191, 1.0)' if higher_is_better else 'rgba(219, 64, 82, 1.0)'
-    line_color_down = 'rgba(219, 64, 82, 1.0)' if higher_is_better else 'rgba(55, 128, 191, 1.0)'
+
+    green_fill, green_line =  'rgba(50, 200, 50, 1.0)', 'rgba(40, 160, 50, 1.0)'
+    yellow_fill, yellow_line = 'rgba(230, 230, 30, 1.0)', 'rgba(190, 190, 30, 1.0)'
+    blue_fill, blue_line = 'rgba(55, 128, 191, 0.7)', 'rgba(55, 128, 191, 1.0)' 
+    red_fill, red_line = 'rgba(219, 64, 82, 0.7)', 'rgba(219, 64, 82, 1.0)'
+
+    fill_color_up = green_fill if higher_is_better else red_fill
+    fill_color_down = red_fill if higher_is_better else green_fill
+    line_color_up = green_line if higher_is_better else red_line
+    line_color_down = red_line if higher_is_better else green_line
 
     fill_colors = [fill_color_up if y > 0 else fill_color_down for y in contribs]
     line_colors = [line_color_up if y > 0 else line_color_down for y in contribs]
     if include_base_value:
-        fill_colors[0] = 'rgba(230, 230, 30, 1.0)'
-        line_colors[0] = 'rgba(190, 190, 30, 1.0)'
+        fill_colors[0] = yellow_fill
+        line_colors[0] = yellow_line
     if include_prediction:
-        fill_colors[-1] = 'rgba(50, 200, 50, 1.0)'
-        line_colors[-1] = 'rgba(40, 160, 50, 1.0)'
-        
+        fill_colors[-1] = blue_fill
+        line_colors[-1] = blue_line
     
     if orientation == 'horizontal':
         cols = cols[::-1]
@@ -2188,7 +2193,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
 
 
 def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,  
-                            pos_label=1, target="", units=""):
+                            pos_label=1, target="", units="", higher_is_better=True):
     """Generate a plot showing the prediction of every single tree inside an XGBoost model
 
     Args:
@@ -2200,6 +2205,8 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
             to generate graph for. Defaults to 1.
         target (str, optional): Description of target variable. Defaults to "".
         units (str, optional): Units of target variable. Defaults to "".
+        higher_is_better (bool, optional): up is green, down is red. If False then
+            flip the colors. 
 
     Returns:
         Plotly fig
@@ -2239,20 +2246,26 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
         texts.insert(0, f"Base prediction: <br>pred = {np.round(base_prediction, round)}")
         texts.append(f"Final Prediction: <br>pred = {np.round(final_prediction, round)}")
         
-    fill_color_up='rgba(55, 128, 191, 0.7)' 
-    fill_color_down='rgba(219, 64, 82, 0.7)' 
-    line_color_up='rgba(55, 128, 191, 1.0)'
-    line_color_down='rgba(219, 64, 82, 1.0)'
+    green_fill, green_line =  'rgba(50, 200, 50, 1.0)', 'rgba(40, 160, 50, 1.0)'
+    yellow_fill, yellow_line = 'rgba(230, 230, 30, 1.0)', 'rgba(190, 190, 30, 1.0)'
+    blue_fill, blue_line = 'rgba(55, 128, 191, 0.7)', 'rgba(55, 128, 191, 1.0)' 
+    red_fill, red_line = 'rgba(219, 64, 82, 0.7)', 'rgba(219, 64, 82, 1.0)'
+
+    if higher_is_better:
+        fill_color_up, line_color_up = green_fill, green_line
+        fill_color_down, line_color_down =red_fill, red_line
+    else:
+        fill_color_up, line_color_up = red_fill, red_line
+        fill_color_down, line_color_down = green_fill, green_line
 
     fill_colors = [fill_color_up if diff > 0 else fill_color_down for diff in diffs]
     line_colors = [line_color_up if diff > 0 else line_color_down for diff in diffs]
 
-    fill_colors.insert(0, 'rgba(230, 230, 30, 1.0)')
-    line_colors.insert(0, 'rgba(190, 190, 30, 1.0)')
+    fill_colors.insert(0, yellow_fill)
+    line_colors.insert(0, yellow_line)
 
-    fill_colors.append('rgba(50, 200, 50, 1.0)')
-    line_colors.append('rgba(40, 160, 50, 1.0)')
-        
+    fill_colors.append(blue_fill)
+    line_colors.append(blue_line)
             
     trees = np.append(trees, len(trees))
     trees = np.insert(trees, 0, -1)

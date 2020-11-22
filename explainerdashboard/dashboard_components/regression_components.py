@@ -22,7 +22,7 @@ from ..dashboard_methods import *
 class PredictedVsActualComponent(ExplainerComponent):
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     hide_title=False, hide_log_x=False, hide_log_y=False,
-                    logs=False, log_x=False, log_y=False):
+                    logs=False, log_x=False, log_y=False, **kwargs):
         """Shows a plot of predictions vs y.
 
         Args:
@@ -43,12 +43,24 @@ class PredictedVsActualComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
+
+        self.description = f"""
+        Plot shows the observed {self.explainer.target} and the predicted 
+        {self.explainer.target} in the same plot. A perfect model would have
+        all the points on the diagonal (predicted matches observed). The further
+        away point are from the diagonal the worse the model is in predicting
+        {self.explainer.target}.
+        """
         self.register_dependencies(['preds'])
 
     def layout(self):
         return html.Div([
             dbc.Row([
-                make_hideable(html.H3("Predictions"), hide=self.hide_title)
+                make_hideable(
+                html.Div([
+                    html.H3(self.title, id='pred-vs-actual-title-'+self.name),
+                    dbc.Tooltip(self.description, target='pred-vs-actual-title-'+self.name),
+                ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 make_hideable(
@@ -59,7 +71,10 @@ class PredictedVsActualComponent(ExplainerComponent):
                             dbc.RadioButton(
                                 id='pred-vs-actual-logy-'+self.name,
                                 className="form-check-input",
-                                checked=self.log_y),   
+                                checked=self.log_y),
+                            dbc.Tooltip("By using a log axis, it is easier to see relative "
+                                    "errors instead of absolute errors.",
+                                    target='pred-vs-actual-logy-'+self.name),
                             dbc.Label("Log y",
                                     html_for='pred-vs-actual-logy-'+self.name,
                                     className="form-check-label"), 
@@ -79,6 +94,9 @@ class PredictedVsActualComponent(ExplainerComponent):
                                 id='pred-vs-actual-logx-'+self.name,
                                 className="form-check-input",
                                 checked=self.log_x),
+                            dbc.Tooltip("By using a log axis, it is easier to see relative "
+                                    "errors instead of absolute errors.",
+                                    target='pred-vs-actual-logx-'+self.name),
                             dbc.Label("Log x",
                                     html_for='pred-vs-actual-logx-'+self.name,
                                     className="form-check-label"),   
@@ -99,7 +117,7 @@ class PredictedVsActualComponent(ExplainerComponent):
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
                     hide_title=False, hide_pred_or_actual=False, hide_ratio=False,
-                    pred_or_actual="vs_pred", residuals="difference"):
+                    pred_or_actual="vs_pred", residuals="difference", **kwargs):
         """Residuals plot component
 
         Args:
@@ -125,12 +143,23 @@ class ResidualsComponent(ExplainerComponent):
         assert residuals in ['difference', 'ratio', 'log-ratio'], \
             ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
              f" but you passed residuals={residuals}")
+        self.description = f"""
+        The residuals are the difference between the observed {self.explainer.target}
+        and predicted {self.explainer.target}. In this plot you can check if 
+        the residuals are higher or lower for higher/lower actual/predicted outcomes. 
+        So you can check if the model works better or worse for different {self.explainer.target}
+        levels.
+        """
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
         return html.Div([
             dbc.Row([
-                make_hideable(html.H3("Residuals"), hide=self.hide_title)
+                make_hideable(
+                html.Div([
+                    html.H3(self.title, id='residuals-title-'+self.name),
+                    dbc.Tooltip(self.description, target='residuals-title-'+self.name),
+                ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 dbc.Col([
@@ -152,11 +181,17 @@ class ResidualsComponent(ExplainerComponent):
                                 id='residuals-pred-or-actual-'+self.name,
                                 inline=True,
                             ),
-                        ]),
+                        ], id='residuals-pred-or-actual-form-'+self.name),
+                        dbc.Tooltip("Select what you would like to put on the x-axis:"
+                            f" observed {self.explainer.target} or predicted {self.explainer.target}.",
+                            target='residuals-pred-or-actual-form-'+self.name),
                     ], md=3), hide=self.hide_pred_or_actual),
                 make_hideable(
                     dbc.Col([
-                        html.Label('Residual type:'),
+                        html.Label('Residual type:', id='residuals-type-label-'+self.name),
+                        dbc.Tooltip("Type of residuals to display: y-preds (difference), "
+                                    "y/preds (ratio) or log(y/preds) (logratio).", 
+                                    target='residuals-type-label-'+self.name),
                         dcc.Dropdown(id='residuals-type-'+self.name,
                                 options = [{'label': 'Difference', 'value': 'difference'},
                                             {'label': 'Ratio', 'value': 'ratio'},
@@ -181,7 +216,7 @@ class ResidualsVsColComponent(ExplainerComponent):
                     hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
                     hide_points=False, hide_winsor=False,
                     col=None, residuals='difference', cats=True, 
-                    points=True, winsor=0):
+                    points=True, winsor=0, **kwargs):
         """Show residuals vs a particular Feature component
 
         Args:
@@ -215,17 +250,31 @@ class ResidualsVsColComponent(ExplainerComponent):
         assert residuals in ['difference', 'ratio', 'log-ratio'], \
             ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
              f" but you passed residuals={residuals}")
+
+        self.description = f"""
+        This plot shows the residuals (difference between observed {self.explainer.target}
+        and predicted {self.explainer.target}) plotted against the values of different features.
+        This allows you to inspect whether the model is more wrong for particular
+        range of feature values than others. 
+
+        """
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
         return html.Div([
             dbc.Row([
-                make_hideable(html.H3("Residuals vs Feature"), hide=self.hide_title)
+                make_hideable(
+                html.Div([
+                    html.H3(self.title, id='residuals-vs-col-title-'+self.name),
+                    dbc.Tooltip(self.description, target='residuals-vs-col-title-'+self.name),
+                ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Column:"),
+                        dbc.Label("Feature:", id='residuals-vs-col-col-label-'+self.name),
+                        dbc.Tooltip("Select the feature to display on the x-axis.", 
+                                    target='residuals-vs-col-col-label-'+self.name),
                         dcc.Dropdown(id='residuals-vs-col-col-'+self.name,
                             options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
@@ -233,7 +282,9 @@ class ResidualsVsColComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_col),
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:"),
+                            dbc.Label("Grouping:", id='residuals-vs-col-group-cats-label-'+self.name),
+                            dbc.Tooltip("group onehot encoded features together.",
+                                        target='residuals-vs-col-group-cats-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -253,7 +304,11 @@ class ResidualsVsColComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                         dbc.Col([
-                            html.Label('Residual type:'),
+                            html.Label('Residual type:', id='residuals-vs-col-residuals-type-label-'+self.name),
+                            dbc.Tooltip(f"Select how to calculate the difference between observed {self.explainer.target}"
+                                        f" and predicted {self.explainer.target}: by takind the difference (y-preds), "
+                                        "ratio (y/preds) or log ratio log(y/preds).", 
+                                        target='residuals-vs-col-residuals-type-label-'+self.name),
                             dcc.Dropdown(id='residuals-vs-col-residuals-type-'+self.name,
                                     options = [{'label': 'Difference', 'value': 'difference'},
                                                 {'label': 'Ratio', 'value': 'ratio'},
@@ -262,14 +317,20 @@ class ResidualsVsColComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_ratio),
                 make_hideable(
                         dbc.Col([ 
-                            dbc.Label("Winsor:"),
+                            dbc.Label("Winsor:", id='residuals-vs-col-winsor-label-'+self.name),
+                            dbc.Tooltip("Excluded the highest and lowest residuals from the plot. "
+                                        "When you have some real outliers it can help to remove them"
+                                        " from the plot so it is easier to see the overall pattern.", 
+                                    target='residuals-vs-col-winsor-label-'+self.name),
                             dbc.Input(id='residuals-vs-col-winsor-'+self.name, 
                                     value=self.winsor,
                                 type="number", min=0, max=49, step=1),
                         ], md=2), hide=self.hide_winsor),  
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Points:"),
+                            dbc.Label("Points:", id='residuals-vs-col-show-points-label-'+self.name),
+                            dbc.Tooltip("For categorical features, display a point cloud next to the violin plot.", 
+                                    target='residuals-vs-col-show-points-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -310,7 +371,7 @@ class ActualVsColComponent(ExplainerComponent):
                     hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
                     hide_points=False, hide_winsor=False,
                     col=None, cats=True, 
-                    points=True, winsor=0):
+                    points=True, winsor=0, **kwargs):
         """Show residuals vs a particular Feature component
 
         Args:
@@ -338,18 +399,28 @@ class ActualVsColComponent(ExplainerComponent):
 
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
-
+        self.description = f"""
+        Plot showing the observed {self.explainer.target} (y) vs various features.
+        This allows you too see whether the observed {self.explainer.target} 
+        was higher or lower for certain feature ranges than others.
+        """
         self.register_dependencies(['preds'])
 
     def layout(self):
         return html.Div([
             dbc.Row([
-                make_hideable(html.H3(self.title), hide=self.hide_title)
+                make_hideable(
+                html.Div([
+                    html.H3(self.title, id='observed-vs-col-title-'+self.name),
+                    dbc.Tooltip(self.description, target='observed-vs-col-title-'+self.name),
+                ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Column:"),
+                        dbc.Label("Feature:", id='observed-vs-col-col-label-'+self.name),
+                        dbc.Tooltip("Select the feature to display on the x-axis.", 
+                                    target='observed-vs-col-col-label-'+self.name),
                         dcc.Dropdown(id='observed-vs-col-col-'+self.name,
                             options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
@@ -357,7 +428,9 @@ class ActualVsColComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_col),
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:"),
+                            dbc.Label("Grouping:", id='observed-vs-col-group-cats-label-'+self.name),
+                            dbc.Tooltip("group onehot encoded features together.",
+                                        target='observed-vs-col-group-cats-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -377,14 +450,20 @@ class ActualVsColComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                         dbc.Col([ 
-                            dbc.Label("Winsor:"),
+                            dbc.Label("Winsor:", id='observed-vs-col-winsor-label-'+self.name),
+                            dbc.Tooltip("Excluded the highest and lowest observations from the plot. "
+                                        "When you have some real outliers it can help to remove them"
+                                        " from the plot so it is easier to see the overall pattern.", 
+                                    target='observed-vs-col-winsor-label-'+self.name),
                             dbc.Input(id='observed-vs-col-winsor-'+self.name, 
                                     value=self.winsor,
                                 type="number", min=0, max=49, step=1),
                         ], md=2), hide=self.hide_winsor),  
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Points:"),
+                            dbc.Label("Points:", id='observed-vs-col-show-points-label-'+self.name),
+                            dbc.Tooltip("For categorical features, display a point cloud next to the violin plot.", 
+                                    target='observed-vs-col-show-points-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -423,7 +502,7 @@ class PredsVsColComponent(ExplainerComponent):
                     hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
                     hide_points=False, hide_winsor=False,
                     col=None, cats=True, 
-                    points=True, winsor=0):
+                    points=True, winsor=0, **kwargs):
         """Show residuals vs a particular Feature component
 
         Args:
@@ -451,18 +530,28 @@ class PredsVsColComponent(ExplainerComponent):
 
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
-
+        self.description = f"""
+        Plot showing the predicted {self.explainer.target} (y) vs various features.
+        This allows you too see whether the predicted {self.explainer.target} 
+        was higher or lower for certain feature ranges than others.
+        """
         self.register_dependencies(['preds'])
 
     def layout(self):
         return html.Div([
             dbc.Row([
-                make_hideable(html.H3(self.title), hide=self.hide_title)
+                make_hideable(
+                html.Div([
+                    html.H3(self.title, id='preds-vs-col-title-'+self.name),
+                    dbc.Tooltip(self.description, target='preds-vs-col-title-'+self.name),
+                ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        dbc.Label("Column:"),
+                        dbc.Label("Feature:", id='preds-vs-col-col-label-'+self.name),
+                        dbc.Tooltip("Select the feature to display on the x-axis.", 
+                                    target='preds-vs-col-col-label-'+self.name),
                         dcc.Dropdown(id='preds-vs-col-col-'+self.name,
                             options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
@@ -470,7 +559,9 @@ class PredsVsColComponent(ExplainerComponent):
                     ], md=4), hide=self.hide_col),
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:"),
+                            dbc.Label("Grouping:", id='preds-vs-col-group-cats-label-'+self.name),
+                            dbc.Tooltip("group onehot encoded features together.",
+                                        target='preds-vs-col-group-cats-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -490,14 +581,20 @@ class PredsVsColComponent(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                         dbc.Col([ 
-                            dbc.Label("Winsor:"),
+                            dbc.Label("Winsor:", id='preds-vs-col-winsor-label-'+self.name),
+                            dbc.Tooltip("Excluded the highest and lowest predictions from the plot. "
+                                        "When you have some real outliers it can help to remove them"
+                                        " from the plot so it is easier to see the overall pattern.", 
+                                    target='preds-vs-col-winsor-label-'+self.name),
                             dbc.Input(id='preds-vs-col-winsor-'+self.name, 
                                     value=self.winsor,
                                 type="number", min=0, max=49, step=1),
                         ], md=2), hide=self.hide_winsor),  
                 make_hideable(
                         dbc.Col([
-                            dbc.Label("Points:"),
+                            dbc.Label("Points:", id='preds-vs-col-show-points-label-'+self.name),
+                            dbc.Tooltip("For categorical features, display a point cloud next to the violin plot.", 
+                                    target='preds-vs-col-show-points-label-'+self.name),
                             dbc.FormGroup(
                             [
                                 dbc.RadioButton(
@@ -532,7 +629,8 @@ class PredsVsColComponent(ExplainerComponent):
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Model Summary", name=None, round=3):
+    def __init__(self, explainer, title="Model Summary", name=None, 
+                    hide_title=False, round=3, **kwargs):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -543,15 +641,34 @@ class RegressionModelSummaryComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide title
             round (int): rounding to perform to metric floats.
         """
         super().__init__(explainer, title, name)
+        self.description = f"""
+        In the table below you can find a number of regression performance 
+        metrics that describe how well the model is able to predict 
+        {self.explainer.target}.
+        """
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
+        metrics_dict = self.explainer.metrics_descriptions()
         metrics_df = (pd.DataFrame(self.explainer.metrics(), index=["Score"]).T
                         .rename_axis(index="metric").reset_index().round(self.round))
+        metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)      
+        metrics_table, tooltips = get_dbc_tooltips(metrics_table, 
+                                                    metrics_dict, 
+                                                    "reg-model-summary-div-hover", 
+                                                    self.name)
         return html.Div([
-            html.H3("Regression performance metrics:"),
-            dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)
+            dbc.Row([
+                make_hideable(
+                html.Div([
+                    html.H3(self.title, id='reg-model-summary-title-'+self.name),
+                    dbc.Tooltip(self.description, target='reg-model-summary-title-'+self.name),
+                ]), hide=self.hide_title),
+            ]),
+            metrics_table,
+            *tooltips
         ])
