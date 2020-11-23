@@ -168,7 +168,7 @@ class CustomTab(ExplainerComponent):
         super().__init__(explainer, title="Custom Tab")
         self.dependence = ShapDependenceComponent(explainer, 
             hide_selector=True, hide_cats=True, hide_title=True)
-        self.register_components(self.dependence)
+        self.register_components()
         
     def layout(self):
         return dbc.Container([
