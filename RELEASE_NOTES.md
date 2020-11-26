@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 0.2.11:
+## Version 0.2.12:
 ### Breaking Changes
 - removed `metrics_markdown()` method. Added `metrics_descriptions()` that
     describes the metric in words.

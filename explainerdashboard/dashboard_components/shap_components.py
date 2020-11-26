@@ -799,7 +799,7 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Plot", name=None,
                     hide_title=False, hide_index=False, hide_depth=False, 
-                    hide_sort=False, hide_orientation=False, hide_cats=False, 
+                    hide_sort=False, hide_orientation=True, hide_cats=False, 
                     hide_selector=False,
                     pos_label=None, index=None, depth=None, sort='high-to-low', 
                     orientation='vertical', cats=True, higher_is_better=True, **kwargs):
@@ -818,7 +818,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_sort (bool, optional): Hide the sorting dropdown. Defaults to False.
             hide_orientation (bool, optional): Hide the orientation dropdown. 
-                    Defaults to False
+                    Defaults to True.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 

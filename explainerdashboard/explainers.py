@@ -133,11 +133,10 @@ class BaseExplainer(ABC):
                 ("idxs should be same length as X but is not: "
                 f"len(idxs)={len(idxs)} but  len(X)={len(self.X)}!")
             self.idxs = pd.Index(idxs, dtype=str)
-            self.X.index = self.idxs
-            self.y.index = self.idxs
         else:
             self.idxs = X.index.astype(str)
-            self.y.index = self.idxs
+        self.X.index = self.idxs
+        self.y.index = self.idxs
 
         if index_name is None:
             if self.idxs.name is not None:
