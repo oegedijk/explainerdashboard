@@ -1,6 +1,9 @@
 
 # TODO:
 
+## Bugs:
+- PDP showing random thick blue line for regression?
+
 ## Layout:
 - Find a proper frontender to help :)
 
