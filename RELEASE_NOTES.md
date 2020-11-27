@@ -1,5 +1,35 @@
 # Release Notes
 
+## Version 0.2.13:
+### Breaking Changes
+- Now always have to pass a specific port when terminating a JupyterDash-based 
+(i.e. inline, external or jupyterlab) dashboard: ExplainerDashboard.terminate(port=8050)
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- using `go.Scattergl` instead of `go.Scatter` for some plots which should improve
+    performance with largere datasets
+- ExplainerDashboard.terminate() is now a classmethod, so don't have to build
+    an ExplainerDashboard instance in order to terminate a running JupyterDash
+    dashboard.
+- added `disable_permutations` boolean argument to `ImportancesComponent` (that
+    you can also pass to `ExplainerDashboard` `**kwargs`)
+
+
+### Other Changes
+- Added warning that kwargs get passed down the ExplainerComponents
+- Added exception when trying to use `ClassifierRandomIndexComponent` with a
+    `RegressionExplainer` or `RegressionRandomIndexComponent` with a `ClassifierExplainer`
+
+
 ## Version 0.2.12:
 ### Breaking Changes
 - removed `metrics_markdown()` method. Added `metrics_descriptions()` that

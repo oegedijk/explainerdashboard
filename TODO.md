@@ -16,7 +16,6 @@
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
-- change to scattergl
 - change lines and annotation to this:
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
 
@@ -39,6 +38,7 @@
         the verbal explanation.
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
+- add explainer.is_tree_explainer
 
 
 ## notebooks:
@@ -53,9 +53,10 @@
     - https://cran.r-project.org/web/packages/fairmodels/vignettes/Basic_tutorial.html
     - http://manifold.mlvis.io/
         - generate groups programmatically!
-- make terminate a class method
 - add description param to all components
-- add when warning when kwargs is not empty that will be passed down to all components
+- add a way to disable permutation importances from dashboard
+- add instruction to use .terminate when starting JupyterDash dashboard.
+- add kwargs to dashboard.to_yaml()
 
 
 ### Components
@@ -105,6 +106,7 @@
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
 - add actual_vs_col and pred_vs_col screenshots to components docs
+- Add to custom a list of reasonable kwargs, e.g.: disable_permutations, etc.
 
 ## Library level:
 - hide (prefix '_') to non-public API class methods

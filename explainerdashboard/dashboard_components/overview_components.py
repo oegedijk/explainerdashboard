@@ -104,7 +104,7 @@ class ImportancesComponent(ExplainerComponent):
                         hide_type=False, hide_depth=False, hide_cats=False,
                         hide_title=False, hide_selector=False,
                         pos_label=None, importance_type="shap", depth=None, 
-                        cats=True, **kwargs):
+                        cats=True, disable_permutations=False, **kwargs):
         """Display features importances component
 
         Args:
@@ -131,6 +131,8 @@ class ImportancesComponent(ExplainerComponent):
             depth (int, optional): Initial number of top features to display. 
                         Defaults to None (=show all).
             cats (bool, optional): Group categoricals. Defaults to True.
+            disable_permutation (bool, optional): Do not use the permutation
+                importances for this component. Defaults to False. 
         """
         super().__init__(explainer, title, name)
 
@@ -145,7 +147,7 @@ class ImportancesComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
-        if self.explainer.y_missing:
+        if self.explainer.y_missing or self.disable_permutations:
             self.hide_type = True
             self.importance_type = 'shap'
         self.register_dependencies('shap_values', 'shap_values_cats')
