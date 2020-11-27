@@ -57,7 +57,9 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         percentiles slider. Defaults to 'predictions'.
         """
         super().__init__(explainer, title, name)
-
+        assert self.explainer.is_classiier, \
+            ("explainer is not a ClassifierExplainer ""so the ClassifierRandomIndexComponent "
+            " will not work. Try using the RegressionRandomIndexComponent instead.")
         self.index_name = 'random-index-clas-index-'+self.name
 
         if self.slider is None:

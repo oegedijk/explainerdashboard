@@ -16,6 +16,9 @@
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
+- change to scattergl
+- change lines and annotation to this:
+    - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -56,6 +59,7 @@
 
 
 ### Components
+
 - rename to component_callbacks()
 - add Tooltips to whatif component
 - confusion matrix component: only show cutoff if binary==True
@@ -88,6 +92,8 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add ExplainerDashboard **kwargs to custom documentation
+- Document ClassifierRandomIndexComponent vs RegressionRandomIndexComponent
 - add regressionVsCol screenshot
 - Add type hints:
     - to explainers
