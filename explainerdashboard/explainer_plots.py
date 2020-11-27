@@ -672,7 +672,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
         for onehot_col in X[interact_col_name].unique().tolist():
                 data.append(
-                    go.Scatter(
+                    go.Scattergl(
                         x=X[X[interact_col_name]==onehot_col][col_name].replace({-999:np.nan}),
                         y=shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)],
                         mode='markers',
@@ -695,7 +695,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                     )
                 
     elif interact_col_name is not None and is_numeric_dtype(X[interact_col_name]):
-        data.append(go.Scatter(
+        data.append(go.Scattergl(
                         x=x[X[interact_col_name]!=na_fill],
                         y=y[X[interact_col_name]!=na_fill], 
                         mode='markers',
@@ -710,7 +710,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                                         ),
                                     showscale=True),    
                 ))
-        data.append(go.Scatter(
+        data.append(go.Scattergl(
                         x=x[X[interact_col_name]==na_fill],
                         y=y[X[interact_col_name]==na_fill], 
                         mode='markers',
@@ -721,7 +721,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                                     color='grey'),
                 ))
     else:
-        data.append(go.Scatter(
+        data.append(go.Scattergl(
                         x=x, 
                         y=y, 
                         mode='markers',
@@ -752,7 +752,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                                                       
     if highlight_index is not None:
         fig.add_trace(
-            go.Scatter(
+            go.Scattergl(
                 x=[x[highlight_idx]], 
                 y=[y[highlight_idx]], 
                 mode='markers',
@@ -843,7 +843,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                      row=1, col=col)
         if color_col is not None:
             if is_numeric_dtype(X[color_col]):
-                fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scattergl(
                                 x=np.random.randn(len(x[x == cat])),
                                 y=shaps[x == cat],
                                 name=color_col,
@@ -871,7 +871,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                 colors = colors * (1+int(n_color_cats / len(colors)))
                 colors = colors[:n_color_cats]
                 for color_cat, color in zip(X[color_col].unique(), colors):
-                    fig.add_trace(go.Scatter(
+                    fig.add_trace(go.Scattergl(
                                     x=np.random.randn(len(x[(x == cat) & (X[color_col] == color_cat)])),
                                     y=shaps[(x == cat) & (X[color_col] == color_cat)],
                                     name=color_cat,
@@ -895,7 +895,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                 
             showscale = False
         elif points:
-            fig.add_trace(go.Scatter(
+            fig.add_trace(go.Scattergl(
                             x=np.random.randn(len(x[x == cat])),
                             y=shaps[x == cat],
                             mode='markers',
@@ -911,7 +911,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                         ), row=1, col=col+1)
         if highlight_index is not None and X[col_name][highlight_idx]==cat:
             fig.add_trace(
-                go.Scatter(
+                go.Scattergl(
                     x=[0], 
                     y=[shaps[highlight_idx]], 
                     mode='markers',
@@ -1447,7 +1447,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
             # if str type then categorical variable, 
             # so plot each category in a different color:
             for onehot_col in X[col].unique().tolist():
-                fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scattergl(
                                 x=shap_df[X[col]==onehot_col][col],
                                 y=np.random.rand(len(shap_df[X[col]==onehot_col])),
                                 mode='markers',
@@ -1466,7 +1466,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                      row=i+1, col=1);
         else:
             # numerical feature get a single bluered plot
-            fig.add_trace(go.Scatter(x=shap_df[col],
+            fig.add_trace(go.Scattergl(x=shap_df[col],
                                    y=np.random.rand(len(shap_df)),
                                   mode='markers',
                                   marker=dict(
@@ -1489,7 +1489,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                      row=i+1, col=1);
         if highlight_index is not None:
             fig.add_trace(
-            go.Scatter(
+            go.Scattergl(
                 x=[shap_df[col].iloc[highlight_idx]], 
                 y=[0], 
                 mode='markers',
@@ -1558,7 +1558,7 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
                                                 np.round(y, round), 
                                                 np.round(preds, round))] 
     
-    trace0 = go.Scatter(
+    trace0 = go.Scattergl(
         x = y,
         y = preds,
         mode='markers', 
@@ -1568,7 +1568,7 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     )
     
     sorted_y = np.sort(y)
-    trace1 = go.Scatter(
+    trace1 = go.Scattergl(
         x = sorted_y,
         y = sorted_y,
         mode='lines', 
@@ -1647,7 +1647,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
                                                     np.round(y, round), 
                                                     np.round(preds, round), 
                                                     np.round(res, round))] 
-    trace0 = go.Scatter(
+    trace0 = go.Scattergl(
         x=y if vs_actual else preds, 
         y=residuals_display, 
         mode='markers', 
@@ -1656,7 +1656,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
         hoverinfo="text",
     )
     
-    trace1 = go.Scatter(
+    trace1 = go.Scattergl(
         x=y if vs_actual else preds, 
         y=np.ones(len(preds)) if residuals=='ratio' else np.zeros(len(preds)),
         mode='lines', 
@@ -1769,7 +1769,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
                                 showlegend=False),
                          row=1, col=column)
             if points:
-                fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scattergl(
                                 x=np.random.randn(len(col[col == cat])),
                                 y=residuals_display[col == cat],
                                 mode='markers',
@@ -1794,7 +1794,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
     else:
         col[col==na_fill] = np.nan
         
-        trace0 = go.Scatter(
+        trace0 = go.Scattergl(
             x=col, 
             y=residuals_display, 
             mode='markers', 
@@ -1803,7 +1803,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
             hoverinfo="text",
         )
 
-        trace1 = go.Scatter(
+        trace1 = go.Scattergl(
             x=col, 
             y=np.ones(len(preds)) if residuals=='ratio' else np.zeros(len(preds)),
             mode='lines', 
@@ -1898,7 +1898,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
                                 showlegend=False),
                          row=1, col=column)
             if points:
-                fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scattergl(
                                 x=np.random.randn(len(col[col == cat])),
                                 y=y[col == cat],
                                 mode='markers',
@@ -1925,7 +1925,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
     else:
         col[col==na_fill] = np.nan
         
-        trace0 = go.Scatter(
+        trace0 = go.Scattergl(
             x=col, 
             y=y, 
             mode='markers', 
@@ -1994,9 +1994,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         
 
     preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
-                  for idx, actual, pred in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round))] 
+                  for idx, actual, pred in zip(idxs,np.round(y, round), np.round(preds, round))] 
     
     if is_string_dtype(col):
         n_cats = col.nunique()
@@ -2021,7 +2019,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
                                 showlegend=False),
                          row=1, col=column)
             if points:
-                fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scattergl(
                                 x=np.random.randn(len(col[col == cat])),
                                 y=preds[col == cat],
                                 mode='markers',
@@ -2048,7 +2046,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
     else:
         col[col==na_fill] = np.nan
         
-        trace0 = go.Scatter(
+        trace0 = go.Scattergl(
             x=col, 
             y=preds, 
             mode='markers', 
