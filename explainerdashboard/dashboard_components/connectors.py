@@ -57,7 +57,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         percentiles slider. Defaults to 'predictions'.
         """
         super().__init__(explainer, title, name)
-        assert self.explainer.is_classiier, \
+        assert self.explainer.is_classifier, \
             ("explainer is not a ClassifierExplainer ""so the ClassifierRandomIndexComponent "
             " will not work. Try using the RegressionRandomIndexComponent instead.")
         self.index_name = 'random-index-clas-index-'+self.name
@@ -272,6 +272,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             round (int, optional): rounding used for slider spacing. Defaults to 2.
         """
         super().__init__(explainer, title, name)
+        assert self.explainer.is_regression, \
+            ("explainer is not a RegressionExplainer so the RegressionRandomIndexComponent "
+            " will not work. Try using the ClassifierRandomIndexComponent instead.")
 
         self.index_name = 'random-index-reg-index-'+self.name
 

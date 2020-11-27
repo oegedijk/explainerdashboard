@@ -373,6 +373,10 @@ class ExplainerDashboard:
             ("explainer should be an instance of BaseExplainer, such as "
             "ClassifierExplainer or RegressionExplainer!")
         
+        if kwargs: 
+            print("**kwargs: Passing the following keyword arguments to all the dashboard"
+                f" ExplainerComponents: {', '.join([f'{k}={v}' for k,v in kwargs.items()])}...")
+
         if tabs is None:
             tabs = []
             if model_summary and explainer.y_missing:
@@ -681,29 +685,28 @@ class ExplainerDashboard:
         else:
             raise ValueError(f"Unknown mode: {mode}...")
 
-    def terminate(self, port=None, token=None):
-        """terminate a JupyterDash based DashboardExplainer i.e. mode 
-        in ['inline', 'jupyterlab', 'external']
+    @classmethod
+    def terminate(cls, port, token=None):
+        """
+        Classmethodd to terminate any JupyterDash dashboard (so started with 
+        mode='inline',  mode='external' or mode='jupyterlab') from any 
+        ExplainerDashboard by specifying the right port. 
 
-        You can kill any JupyterDash dashboard from any ExplainerDashboard
-        by specifying the right port. 
+        Example:
+            ExplainerDashboard(explainer, mode='external').run(port=8050)
+
+            ExplainerDashboard.terminate(8050) 
+            db = ExplainerDashboard(explainer)
+            db.terminate(8050)
 
         Args:
-            port (int, optional): port on which the dashboard is running. 
-                        Defaults to the last port the instance had started on.
+            port (int): port on which the dashboard is running. 
             token (str, optional): JupyterDash._token class property. 
                 Defaults to the _token of the JupyterDash in the current namespace.
 
         Raises:
             ValueError: if can't find the port to terminate.
         """
-        if port is None:
-            try:
-                port = self.port
-            except:
-                raise ValueError("Can't find port to terminate. You either first "
-                        "need to run() a dashboard with this instance, or you "
-                        "need to pass a port to terminate...")
         if token is None:
             token = JupyterDash._token
         
