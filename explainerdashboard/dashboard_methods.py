@@ -6,6 +6,8 @@ __all__ = [
     'PosLabelSelector',
     'make_hideable',
     'get_dbc_tooltips',
+    'update_params',
+    'update_kwargs',
 ]
 
 import sys
@@ -62,6 +64,16 @@ def delegates_doc(to=None, keep=False):
         from_f.__doc__ = to_f.__doc__
         return f
     return _f
+
+
+def update_params(kwargs, **params):
+    """kwargs override params"""
+    return dict(params, **kwargs)
+
+
+def update_kwargs(kwargs, **params):
+    """params override kwargs"""
+    return dict(kwargs, **params)
 
 
 def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):

@@ -49,41 +49,45 @@ class PredictionSummaryComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.H3("Predictions summary:"), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:"),
-                        dcc.Dropdown(id='modelprediction-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index)
-                    ], md=6), hide=self.hide_index),
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=3), hide=self.hide_selector),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Show Percentile:"),
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='modelprediction-percentile-'+self.name, 
-                                className="form-check-input",
-                                checked=self.percentile),
-                            dbc.Label("Show percentile",
-                                    html_for='modelprediction-percentile'+self.name, 
-                                    className="form-check-label"),
-                        ], check=True)
-                    ], md=3), hide=self.hide_percentile),
-                
+                html.H3("Predictions summary:"), hide=self.hide_title), 
             ]),
-            dbc.Row([
-                dbc.Col([
-                    dcc.Markdown(id='modelprediction-'+self.name),    
-                ], md=12)
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label(f"{self.explainer.index_name}:"),
+                            dcc.Dropdown(id='modelprediction-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                        ], md=6), hide=self.hide_index),
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=3), hide=self.hide_selector),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Show Percentile:"),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='modelprediction-percentile-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.percentile),
+                                dbc.Label("Show percentile",
+                                        html_for='modelprediction-percentile'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True)
+                        ], md=3), hide=self.hide_percentile),
+                    
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        dcc.Markdown(id='modelprediction-'+self.name),    
+                    ], md=12)
+                ])
             ])
         ])
 
@@ -104,7 +108,7 @@ class ImportancesComponent(ExplainerComponent):
                         hide_type=False, hide_depth=False, hide_cats=False,
                         hide_title=False, hide_selector=False,
                         pos_label=None, importance_type="shap", depth=None, 
-                        cats=True, disable_permutations=False, **kwargs):
+                        cats=True, no_permutations=False, **kwargs):
         """Display features importances component
 
         Args:
@@ -131,7 +135,7 @@ class ImportancesComponent(ExplainerComponent):
             depth (int, optional): Initial number of top features to display. 
                         Defaults to None (=show all).
             cats (bool, optional): Group categoricals. Defaults to True.
-            disable_permutation (bool, optional): Do not use the permutation
+            no_permutations (bool, optional): Do not use the permutation
                 importances for this component. Defaults to False. 
         """
         super().__init__(explainer, title, name)
@@ -147,7 +151,7 @@ class ImportancesComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
-        if self.explainer.y_missing or self.disable_permutations:
+        if self.explainer.y_missing or self.no_permutations:
             self.hide_type = True
             self.importance_type = 'shap'
         self.register_dependencies('shap_values', 'shap_values_cats')
@@ -155,71 +159,74 @@ class ImportancesComponent(ExplainerComponent):
             self.register_dependencies('permutation_importances', 'permutation_importances_cats')
 
     def layout(self):
-        return html.Div([
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([html.H2('Feature Importances:')]), hide=self.hide_title),
-            ]),
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        dbc.FormGroup([
-                            dbc.Label("Importances type:"),
-                            dbc.RadioItems(
-                                options=[
-                                    {'label': 'Permutation Importances', 
-                                    'value': 'permutation'},
-                                    {'label': 'SHAP values', 
-                                    'value': 'shap'}
-                                ],
-                                value=self.importance_type,
-                                id='importances-permutation-or-shap-'+self.name,
-                                inline=True,
-                            ),
-                            
-                        ], id='importances-permutation-or-shap-form-'+self.name),
-                        dbc.Tooltip("Select Feature importance type: \n"
-                                "Permutation Importance: How much does performance metric decrease when shuffling this feature?\n"
-                                "SHAP values: What is the average SHAP contribution (positive or negative) of this feature?",
-                                target='importances-permutation-or-shap-form-'+self.name),
-                    ]), self.hide_type),
-                make_hideable(
-                    dbc.Col([
-                        html.Label('Depth:', id='importances-depth-label-'+self.name),
-                        dcc.Dropdown(id='importances-depth-'+self.name,
-                                            options = [{'label': str(i+1), 'value':i+1} 
-                                                        for i in range(self.explainer.n_features(self.cats))],
-                                            value=self.depth),
-                        dbc.Tooltip("Select how many features to display", target='importances-depth-label-'+self.name)
-                    ], md=3), self.hide_depth),
-                make_hideable(
-                    dbc.Col([
-                        dbc.FormGroup(
-                        [
-                            dbc.Label("Grouping:", id='importances-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='importances-group-cats-label-'+self.name),
-                            dbc.RadioButton(
-                                id='importances-group-cats-'+self.name, 
-                                className="form-check-input",
-                                checked=self.cats),
-                            dbc.Label("Group Cats",
-                                    html_for='importances-group-cats-'+self.name,
-                                    className="form-check-label"),
-                        ], check=True, id='importances-group-cats-form-'+self.name), 
-                    ]),  self.hide_cats),    
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector)    
-            ], form=True),
-
-            dbc.Row([
-                dbc.Col([
-                    dcc.Loading(id='importances-graph-loading-'+self.name,
-                        children=dcc.Graph(id='importances-graph-'+self.name,
-                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))),
+        return dbc.Card([
+            dbc.CardHeader([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([html.H2('Feature Importances:')]), hide=self.hide_title),
                 ]),
-            ]), 
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup([
+                                dbc.Label("Importances type:"),
+                                dbc.RadioItems(
+                                    options=[
+                                        {'label': 'Permutation Importances', 
+                                        'value': 'permutation'},
+                                        {'label': 'SHAP values', 
+                                        'value': 'shap'}
+                                    ],
+                                    value=self.importance_type,
+                                    id='importances-permutation-or-shap-'+self.name,
+                                    inline=True,
+                                ),
+                                
+                            ], id='importances-permutation-or-shap-form-'+self.name),
+                            dbc.Tooltip("Select Feature importance type: \n"
+                                    "Permutation Importance: How much does performance metric decrease when shuffling this feature?\n"
+                                    "SHAP values: What is the average SHAP contribution (positive or negative) of this feature?",
+                                    target='importances-permutation-or-shap-form-'+self.name),
+                        ]), self.hide_type),
+                    make_hideable(
+                        dbc.Col([
+                            html.Label('Depth:', id='importances-depth-label-'+self.name),
+                            dcc.Dropdown(id='importances-depth-'+self.name,
+                                                options = [{'label': str(i+1), 'value':i+1} 
+                                                            for i in range(self.explainer.n_features(self.cats))],
+                                                value=self.depth),
+                            dbc.Tooltip("Select how many features to display", target='importances-depth-label-'+self.name)
+                        ], md=3), self.hide_depth),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup(
+                            [
+                                dbc.Label("Grouping:", id='importances-group-cats-label-'+self.name),
+                                dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                            target='importances-group-cats-label-'+self.name),
+                                dbc.RadioButton(
+                                    id='importances-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='importances-group-cats-'+self.name,
+                                        className="form-check-label"),
+                            ], check=True, id='importances-group-cats-form-'+self.name), 
+                        ]),  self.hide_cats),    
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector)    
+                ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        dcc.Loading(id='importances-graph-loading-'+self.name,
+                            children=dcc.Graph(id='importances-graph-'+self.name,
+                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))),
+                    ]),
+                ]), 
+            ])         
         ])
         
     def _register_callbacks(self, app, **kwargs):
@@ -295,106 +302,111 @@ class PdpComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
     def layout(self):
-        return html.Div([
-                make_hideable(
-                html.Div([
-                    html.H3(self.title, id='pdp-title-'+self.name),
-                    dbc.Tooltip(self.description, target='pdp-title-'+self.name),
-                ]), hide=self.hide_title),
-                dbc.Row([
+        return dbc.Card([
+                dbc.CardHeader([
                     make_hideable(
-                        dbc.Col([
-                            dbc.Label("Feature:", 
-                                    html_for='pdp-col'+self.name, id='pdp-col-label-'+self.name),
-                            dbc.Tooltip("Select the feature for which you want to see the partial dependence plot", 
-                                        target='pdp-col-label-'+self.name),
-                            dcc.Dropdown(id='pdp-col-'+self.name,       
-                                options=[{'label': col, 'value':col} 
-                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
-                                value=self.col),
-                        ], md=4), hide=self.hide_col),
-                    make_hideable(
-                        dbc.Col([
-                            dbc.Label(f"{self.explainer.index_name}:", id='pdp-index-label-'+self.name),
-                            dbc.Tooltip(f"Select the {self.explainer.index_name} to display the partial dependence plot for", 
-                                    target='pdp-index-label-'+self.name),
-                            dcc.Dropdown(id='pdp-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=None)
-                        ], md=4), hide=self.hide_index), 
-                    make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
-                    make_hideable(
-                        dbc.Col([
-                            dbc.Label("Grouping:", id='pdp-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='pdp-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='pdp-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='pdp-group-cats-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True),
-                        ], md=2), hide=self.hide_cats),
-                    
-                ], form=True),
-                dbc.Row([
-                    dbc.Col([
-                        dcc.Loading(id='loading-pdp-graph-'+self.name, 
-                            children=[dcc.Graph(id='pdp-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
-                    ])
+                        html.Div([
+                            html.H3(self.title, id='pdp-title-'+self.name),
+                            dbc.Tooltip(self.description, target='pdp-title-'+self.name),
+                        ]), hide=self.hide_title),
                 ]),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([ #
-                            dbc.Label("Drop na:",id='pdp-dropna-label-'+self.name ),
-                            dbc.Tooltip(f"drop all observations with feature values equal to {self.explainer.na_fill}"
-                                        " from the plot. This prevents the filler values from "
-                                        "ruining the x-axis.", target='pdp-dropna-label-'+self.name ),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='pdp-dropna-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.dropna),
-                                dbc.Label("Drop na's",
-                                        html_for='pdp-dropna-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True),
-                        ]), hide=self.hide_dropna),
-                    make_hideable(
-                        dbc.Col([ 
-                            dbc.Label("pdp sample size", id='pdp-sample-label-'+self.name ),
-                            dbc.Tooltip("Number of observations to use to calculate average partial dependence", 
-                                        target='pdp-sample-label-'+self.name ),
-                            dbc.Input(id='pdp-sample-'+self.name, value=self.sample,
-                                type="number", min=0, max=len(self.explainer), step=1),
-                        ]), hide=self.hide_sample),  
-                    make_hideable(   
-                        dbc.Col([ #gridlines
-                            dbc.Label("gridlines", id='pdp-gridlines-label-'+self.name ),
-                            dbc.Tooltip("Number of individual observations' partial dependences to show in plot", 
-                                        target='pdp-gridlines-label-'+self.name),
-                            dbc.Input(id='pdp-gridlines-'+self.name, value=self.gridlines,
+                dbc.CardBody([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                dbc.Label("Feature:", 
+                                        html_for='pdp-col'+self.name, id='pdp-col-label-'+self.name),
+                                dbc.Tooltip("Select the feature for which you want to see the partial dependence plot", 
+                                            target='pdp-col-label-'+self.name),
+                                dcc.Dropdown(id='pdp-col-'+self.name,       
+                                    options=[{'label': col, 'value':col} 
+                                                for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                    value=self.col),
+                            ], md=4), hide=self.hide_col),
+                        make_hideable(
+                            dbc.Col([
+                                dbc.Label(f"{self.explainer.index_name}:", id='pdp-index-label-'+self.name),
+                                dbc.Tooltip(f"Select the {self.explainer.index_name} to display the partial dependence plot for", 
+                                        target='pdp-index-label-'+self.name),
+                                dcc.Dropdown(id='pdp-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=None)
+                            ], md=4), hide=self.hide_index), 
+                        make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector),
+                        make_hideable(
+                            dbc.Col([
+                                dbc.Label("Grouping:", id='pdp-group-cats-label-'+self.name),
+                                dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                            target='pdp-group-cats-label-'+self.name),
+                                dbc.FormGroup(
+                                [
+                                    dbc.RadioButton(
+                                        id='pdp-group-cats-'+self.name, 
+                                        className="form-check-input",
+                                        checked=self.cats),
+                                    dbc.Label("Group Cats",
+                                            html_for='pdp-group-cats-'+self.name, 
+                                            className="form-check-label"),
+                                ], check=True),
+                            ], md=2), hide=self.hide_cats),
+                    ], form=True),
+                    dbc.Row([
+                        dbc.Col([
+                            dcc.Loading(id='loading-pdp-graph-'+self.name, 
+                                children=[dcc.Graph(id='pdp-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                        ])
+                    ]),
+                ]),
+                dbc.CardFooter([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([ #
+                                dbc.Label("Drop na:",id='pdp-dropna-label-'+self.name ),
+                                dbc.Tooltip(f"drop all observations with feature values equal to {self.explainer.na_fill}"
+                                            " from the plot. This prevents the filler values from "
+                                            "ruining the x-axis.", target='pdp-dropna-label-'+self.name ),
+                                dbc.FormGroup(
+                                [
+                                    dbc.RadioButton(
+                                        id='pdp-dropna-'+self.name, 
+                                        className="form-check-input",
+                                        checked=self.dropna),
+                                    dbc.Label("Drop na's",
+                                            html_for='pdp-dropna-'+self.name, 
+                                            className="form-check-label"),
+                                ], check=True),
+                            ]), hide=self.hide_dropna),
+                        make_hideable(
+                            dbc.Col([ 
+                                dbc.Label("pdp sample size", id='pdp-sample-label-'+self.name ),
+                                dbc.Tooltip("Number of observations to use to calculate average partial dependence", 
+                                            target='pdp-sample-label-'+self.name ),
+                                dbc.Input(id='pdp-sample-'+self.name, value=self.sample,
                                     type="number", min=0, max=len(self.explainer), step=1),
-                        ]), hide=self.hide_gridlines),
-                    make_hideable(
-                        dbc.Col([ #gridpoints
-                            dbc.Label("gridpoints", id='pdp-gridpoints-label-'+self.name ),
-                            dbc.Tooltip("Number of points to sample the feature axis for predictions."
-                                        " The higher, the smoother the curve, but takes longer to calculate", 
-                                        target='pdp-gridpoints-label-'+self.name ),
-                            dbc.Input(id='pdp-gridpoints-'+self.name, value=self.gridpoints,
-                                type="number", min=0, max=100, step=1),
-                        ]), hide=self.hide_gridpoints),
-                ], form=True)
+                            ]), hide=self.hide_sample),  
+                        make_hideable(   
+                            dbc.Col([ #gridlines
+                                dbc.Label("gridlines", id='pdp-gridlines-label-'+self.name ),
+                                dbc.Tooltip("Number of individual observations' partial dependences to show in plot", 
+                                            target='pdp-gridlines-label-'+self.name),
+                                dbc.Input(id='pdp-gridlines-'+self.name, value=self.gridlines,
+                                        type="number", min=0, max=len(self.explainer), step=1),
+                            ]), hide=self.hide_gridlines),
+                        make_hideable(
+                            dbc.Col([ #gridpoints
+                                dbc.Label("gridpoints", id='pdp-gridpoints-label-'+self.name ),
+                                dbc.Tooltip("Number of points to sample the feature axis for predictions."
+                                            " The higher, the smoother the curve, but takes longer to calculate", 
+                                            target='pdp-gridpoints-label-'+self.name ),
+                                dbc.Input(id='pdp-gridpoints-'+self.name, value=self.gridpoints,
+                                    type="number", min=0, max=100, step=1),
+                            ]), hide=self.hide_gridpoints),
+                    ], form=True),
+                ]),
         ])
                 
     def _register_callbacks(self, app):
@@ -491,58 +503,62 @@ class WhatIfComponent(ExplainerComponent):
                     ])
         
     def layout(self):
-        return dbc.Container([
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        html.H1("What if...analysis")
-                    ]), hide=self.hide_title)
-            ]),
-            dbc.Row([
-                make_hideable(
+        return dbc.Card([
+            dbc.CardHeader([
+                dbc.Row([
+                    make_hideable(
                         dbc.Col([
-                            dbc.Label(f"{self.explainer.index_name}:"),
-                            dcc.Dropdown(id='whatif-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index)
-                        ], md=4), hide=self.hide_index), 
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], md=2), hide=self.hide_selector),
-                ], form=True),
-            dbc.Row([
-                dbc.Col([
-                    html.H3("Edit Feature input:")
+                            html.H1("What if...analysis")
+                        ]), hide=self.hide_title)
+                ]),
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                            dbc.Col([
+                                dbc.Label(f"{self.explainer.index_name}:"),
+                                dcc.Dropdown(id='whatif-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                            ], md=4), hide=self.hide_index), 
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], md=2), hide=self.hide_selector),
+                    ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        html.H3("Edit Feature input:")
+                    ])
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        *self._feature_inputs[:int((len(self._feature_inputs) + 1)/2)]
+                    ]),
+                    dbc.Col([
+                        *self._feature_inputs[int((len(self._feature_inputs) + 1)/2):]
+                    ]),
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            html.H3("Prediction and contributions:"),
+                            dcc.Graph(id='whatif-contrib-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                        ]), hide=self.hide_contributions),
+                    make_hideable(
+                        dbc.Col([
+                            html.H3("Partial dependence:"),
+                            dcc.Dropdown(id='whatif-pdp-col-'+self.name, 
+                                        options=[dict(label=col, value=col) for col in self._input_features],
+                                        value=self.pdp_col),
+                            dcc.Graph(id='whatif-pdp-graph-'+self.name, 
+                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                        ]), hide=self.hide_pdp),
                 ])
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    *self._feature_inputs[:int((len(self._feature_inputs) + 1)/2)]
-                ]),
-                dbc.Col([
-                    *self._feature_inputs[int((len(self._feature_inputs) + 1)/2):]
-                ]),
-            ]),
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        html.H3("Prediction and contributions:"),
-                        dcc.Graph(id='whatif-contrib-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-                    ]), hide=self.hide_contributions),
-                make_hideable(
-                    dbc.Col([
-                        html.H3("Partial dependence:"),
-                        dcc.Dropdown(id='whatif-pdp-col-'+self.name, 
-                                     options=[dict(label=col, value=col) for col in self._input_features],
-                                     value=self.pdp_col),
-                        dcc.Graph(id='whatif-pdp-graph-'+self.name, 
-                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-                    ]), hide=self.hide_pdp),
             ])
-        ], fluid=True)
-        
+        ])
+
     def _register_callbacks(self, app):
         @app.callback(
             [Output('whatif-contrib-graph-'+self.name, 'figure'),

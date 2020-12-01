@@ -387,25 +387,25 @@ class ExplainerDashboard:
                 print("For this type of model and model_output interactions don't "
                           "work, so setting shap_interaction=False...", flush=True)
                 shap_interaction = False
-            if decision_trees and not hasattr(explainer, 'decision_trees'):
-                print("the explainer object has no decision_trees property. so "
+            if decision_trees and not hasattr(explainer, 'is_tree_explainer'):
+                print("The explainer object has no decision_trees property. so "
                         "setting decision_trees=False...", flush=True)
                 decision_trees = False
         
             if importances:
-                tabs.append(ImportancesTab)
+                tabs.append(ImportancesComposite)
             if model_summary:
-                tabs.append(ModelSummaryTab)
+                tabs.append(ClassifierModelStatsComposite if explainer.is_classifier else RegressionModelStatsComposite)
             if contributions:
-                tabs.append(ContributionsTab)
+                tabs.append(IndividualPredictionsComposite)
             if whatif:
-                tabs.append(WhatIfTab)
+                tabs.append(WhatIfComposite)
             if shap_dependence:
-                tabs.append(ShapDependenceTab)
+                tabs.append(ShapDependenceComposite)
             if shap_interaction:
-                tabs.append(ShapInteractionsTab)
+                tabs.append(ShapInteractionsComposite)
             if decision_trees:
-                tabs.append(DecisionTreesTab)
+                tabs.append(DecisionTreesComposite)
 
         if isinstance(tabs, list) and len(tabs)==1:
             tabs = tabs[0]
