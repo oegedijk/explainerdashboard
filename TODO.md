@@ -21,7 +21,6 @@
 
 
 ### Classifier plots:
-- add prediction piechart plot to explainer
 - add label percentage at cutoff to cumulative precision plot
 - add wizard to lift curve
 - pdp: add multiclass option
@@ -47,7 +46,6 @@
 - hide whole card header with hide_title=True
 - organize explainer components according to tab
 - add kwargs to dashboard.to_yaml()
-
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -61,10 +59,9 @@
 
 
 ### Components
-- add Tooltips to FeatureInputComponent
-- add subtitles to most components
 - add description parameter to all components
 
+- hide show points when feature is not in cats
 - change single radioitems to dbc.Checklist switch=True
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search

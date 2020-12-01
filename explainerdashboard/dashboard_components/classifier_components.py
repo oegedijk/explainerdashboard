@@ -28,6 +28,7 @@ from ..dashboard_methods import *
 
 class ClassifierRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
+                        subtitle="Select from list or pick at random",
                         hide_title=False, hide_index=False, hide_slider=False,
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
@@ -43,6 +44,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements.
                         If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): Hide title. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_slider (bool, optional): Hide prediction/percentile slider.
@@ -108,6 +110,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(f"Select {self.explainer.index_name}", id='random-index-clas-title-'+self.name),
+                        html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='random-index-clas-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -310,19 +313,9 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')])
         def update_output_div(index, pos_label):
             if index is not None:
-                preds_df = self.explainer.prediction_result_df(index, self.round, logodds=True)
-                preds_piechart = go.Figure(
-                    data=[go.Pie(
-                        labels=preds_df.label.values, 
-                        values=preds_df.probability.values, 
-                        hole=0.3,
-                        sort=False)],
-                    layout=dict(
-                        autosize=False, width=250, height=250, 
-                        margin=dict(l=10, r=10, b=10, t=20, pad=4),
-                        showlegend=False)
-                )
-                
+                fig = self.explainer.plot_prediction_result(index, showlegend=False)
+
+                preds_df = self.explainer.prediction_result_df(index, self.round, logodds=True)                
                 preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
                 preds_df.probability = preds_df.probability + ' %'
                 preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
@@ -330,15 +323,15 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 if self.explainer.model_output!='logodds':
                     preds_df = preds_df[['label', 'probability']]
                     
-                preds_table = dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False)  
-                
-                return preds_table, preds_piechart
-            
+                preds_table = dbc.Table.from_dataframe(preds_df, 
+                                    striped=False, bordered=False, hover=False)  
+                return preds_table, fig
             raise PreventUpdate
 
 
 class PrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Precision Plot", name=None,
+                    subtitle="Does fraction positive increase with predicted probability?",
                     hide_title=False,
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
                     hide_multiclass=False, hide_selector=False, pos_label=None,
@@ -354,6 +347,7 @@ class PrecisionComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_binsize (bool, optional): hide binsize/quantiles slider. Defaults to False.
@@ -391,6 +385,7 @@ class PrecisionComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='precision-title-'+self.name, className="card-title"),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='precision-title-'+self.name),
                     ]), hide=self.hide_title),
                 dbc.Row([
@@ -539,6 +534,7 @@ class PrecisionComponent(ExplainerComponent):
 
 class ConfusionMatrixComponent(ExplainerComponent):
     def __init__(self, explainer, title="Confusion Matrix", name=None,
+                    subtitle="How many false positives and false negatives?",
                     hide_title=False,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
                     hide_selector=False, pos_label=None,
@@ -553,6 +549,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
@@ -590,6 +587,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='confusionmatrix-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='confusionmatrix-title-'+self.name),
                     ]), hide=self.hide_title),
                 dbc.Row([
@@ -672,6 +670,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
 
 class LiftCurveComponent(ExplainerComponent):
     def __init__(self, explainer, title="Lift Curve", name=None,
+                    subtitle="Performance how much better than random?",
                     hide_title=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, percentage=True, **kwargs):
@@ -685,6 +684,7 @@ class LiftCurveComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
@@ -711,6 +711,7 @@ class LiftCurveComponent(ExplainerComponent):
                 make_hideable(
                 html.Div([
                     html.H3(self.title, id='liftcurve-title-'+self.name),
+                    html.H6(self.subtitle, className="card-subtitle"),
                     dbc.Tooltip(self.description, target='liftcurve-title-'+self.name),
                 ]), hide=self.hide_title),
                 dbc.Row([
@@ -776,6 +777,7 @@ class LiftCurveComponent(ExplainerComponent):
 
 class CumulativePrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Cumulative Precision", name=None,
+                    subtitle="Expected distribution for highest scores",
                     hide_title=False,
                     hide_selector=False, pos_label=None,
                     hide_cutoff=False, cutoff=None,
@@ -790,6 +792,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide the title.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -811,6 +814,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='cumulative-precision-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='cumulative-precision-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -888,6 +892,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
 
 class ClassificationComponent(ExplainerComponent):
     def __init__(self, explainer, title="Classification Plot", name=None,
+                    subtitle="Distribution of labels above and below cutoff",
                     hide_title=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, percentage=True, **kwargs):
@@ -902,6 +907,7 @@ class ClassificationComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide the title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
@@ -926,6 +932,7 @@ class ClassificationComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='classification-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='classification-title-'+self.name),
                     ]), hide=self.hide_title),
                 dbc.Row([
@@ -991,6 +998,7 @@ class ClassificationComponent(ExplainerComponent):
 
 class RocAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
+                    subtitle="Trade-off between False positives and false negatives",
                     hide_title=False,
                     hide_cutoff=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, **kwargs):
@@ -1004,6 +1012,7 @@ class RocAucComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -1025,6 +1034,7 @@ class RocAucComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='rocauc-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='rocauc-title-'+self.name),
                     ]), hide=self.hide_title),
                 dbc.Row([
@@ -1068,6 +1078,7 @@ class RocAucComponent(ExplainerComponent):
 
 class PrAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="PR AUC Plot", name=None,
+                    subtitle="Trade-off between Precision and Recall",
                     hide_title=False,
                     hide_cutoff=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, **kwargs):
@@ -1081,6 +1092,7 @@ class PrAucComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -1102,6 +1114,7 @@ class PrAucComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='prauc-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='prauc-title-'+self.name),
                     ]), hide=self.hide_title),
                 dbc.Row([

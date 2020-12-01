@@ -2346,6 +2346,19 @@ class ClassifierExplainer(BaseExplainer):
             raise ValueError("No y was passed to explainer, so cannot plot PR AUC!")
         return plotly_pr_auc_curve(self.y_binary(pos_label), self.pred_probas(pos_label), cutoff=cutoff)
 
+    def plot_prediction_result(self, index, showlegend=True):
+        """Returns a piechart with the predicted probabilities distribution
+
+        Args:
+            index ({int, str}): Index for which to display prediction
+            showlegend (bool, optional): Display legend. Defaults to False.
+
+        Returns:
+            plotly.fig
+        """
+        preds_df = self.prediction_result_df(index)
+        return plotly_prediction_piechart(preds_df, showlegend=showlegend)
+
     def calculate_properties(self, include_interactions=True):
         """calculate all lazily calculated properties of explainer
 
