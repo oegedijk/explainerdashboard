@@ -677,9 +677,12 @@ class ExplainerDashboard:
             self.app.run_server(port=port, **kwargs)
         elif self.mode == 'external':
             if not self.is_colab:
-                print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
+                print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
+                      f"You can terminate it with ExplainerDashboard.terminate({port})", flush=True)
             self.app.run_server(port=port, mode=self.mode, **kwargs)
         elif self.mode in ['inline', 'jupyterlab']:
+            print(f"Starting ExplainerDashboard inline (terminate it with "
+                    "ExplainerDashboard.terminate({port}))", flush=True)
             self.app.run_server(port=port, mode=self.mode, 
                                 width=self.width, height=self.height, **kwargs)
         else:

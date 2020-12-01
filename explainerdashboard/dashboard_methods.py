@@ -157,9 +157,9 @@ class ExplainerComponent(ABC):
     the same type in a layout. 
 
     Important:
-        define your callbacks in _register_callbacks() and
+        define your callbacks in component_callbacks() and
         ExplainerComponent will register callbacks of subcomponents in addition
-        to _register_callbacks() when calling register_callbacks()
+        to component_callbacks() when calling register_callbacks()
     """
     def __init__(self, explainer, title=None, name=None):
         """initialize the ExplainerComponent
@@ -321,19 +321,22 @@ class ExplainerComponent(ABC):
         All element id's should append +self.name to make sure they are unique."""
         return None
 
-    def _register_callbacks(self, app):
-        """register callbacks specific to this ExplainerComponent"""
-        pass
+    def component_callbacks(self, app):
+        """register callbacks specific to this ExplainerComponent."""
+        if hasattr(self, "_register_callbacks"):
+            print("Warning: the use of _register_callbacks() will be deprecated!"
+                  " Use component_callbacks() from now on...")
+            self._register_callbacks(app)
 
     def register_callbacks(self, app):
         """First register callbacks of all subcomponents, then call
-        _register_callbacks(app)
+        component_callbacks(app)
         """
         if not hasattr(self, '_components'):
             self._components = []
         for comp in self._components:
             comp.register_callbacks(app)
-        self._register_callbacks(app)
+        self.component_callbacks(app)
 
 
 class PosLabelSelector(ExplainerComponent):

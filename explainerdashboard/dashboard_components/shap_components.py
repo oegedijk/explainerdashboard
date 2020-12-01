@@ -147,7 +147,7 @@ class ShapSummaryComponent(ExplainerComponent):
             ]),
         ])
     
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
 
         @app.callback(
             Output('shap-summary-index-'+self.name, 'value'),
@@ -315,7 +315,7 @@ class ShapDependenceComponent(ExplainerComponent):
             ]), 
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('shap-dependence-color-col-'+self.name, 'options'),
              Output('shap-dependence-color-col-'+self.name, 'value')],
@@ -365,7 +365,7 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
         self.sum_name = shap_summary_component.name
         self.dep_name = shap_dependence_component.name
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('shap-dependence-group-cats-'+self.dep_name, 'checked'),
             [Input('shap-summary-group-cats-'+self.sum_name, 'checked')])
@@ -536,7 +536,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             ]),
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('interaction-summary-index-'+self.name, 'value'),
             [Input('interaction-summary-graph-'+self.name, 'clickData')])
@@ -728,7 +728,7 @@ class InteractionDependenceComponent(ExplainerComponent):
             ]),
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('interaction-dependence-col-'+self.name, 'options'), 
             [Input('interaction-dependence-group-cats-'+self.name, 'checked'),
@@ -783,7 +783,7 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
         self.sum_name = interaction_summary_component.name
         self.dep_name = interaction_dependence_component.name
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('interaction-dependence-group-cats-'+self.dep_name, 'checked'),
             [Input('interaction-summary-group-cats-'+self.sum_name, 'checked')])
@@ -964,7 +964,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             ]),
         ])
         
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         
         if self.feature_input_component is None:
             @app.callback(
@@ -1139,7 +1139,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             ]),   
         ])
         
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('contributions-table-'+self.name, 'children'),
              Output('contributions-table-depth-'+self.name, 'options')],

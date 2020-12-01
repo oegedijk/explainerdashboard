@@ -189,7 +189,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             ]),
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('random-index-clas-index-'+self.name, 'value'),
             [Input('random-index-clas-button-'+self.name, 'n_clicks')],
@@ -302,7 +302,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('clas-prediction-div-'+self.name, 'children'),
              Output('clas-prediction-graph-'+self.name, 'figure')],
@@ -502,7 +502,7 @@ class PrecisionComponent(ExplainerComponent):
             ])    
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('precision-bin-size-div-'+self.name, 'style'),
              Output('precision-quantiles-div-'+self.name, 'style')],
@@ -657,7 +657,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
              Output('confusionmatrix-graph-'+self.name, 'figure'),
             [Input('confusionmatrix-cutoff-'+self.name, 'value'),
@@ -763,7 +763,7 @@ class LiftCurveComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('liftcurve-graph-'+self.name, 'figure'),
             [Input('liftcurve-cutoff-'+self.name, 'value'),
@@ -868,7 +868,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
             ])     
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('cumulative-precision-graph-'+self.name, 'figure'),
             [Input('cumulative-precision-percentile-'+self.name, 'value'),
@@ -977,7 +977,7 @@ class ClassificationComponent(ExplainerComponent):
             ]) 
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('classification-graph-'+self.name, 'figure'),
             [Input('classification-cutoff-'+self.name, 'value'),
@@ -1056,7 +1056,7 @@ class RocAucComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('rocauc-graph-'+self.name, 'figure'),
             [Input('rocauc-cutoff-'+self.name, 'value'),
@@ -1134,7 +1134,7 @@ class PrAucComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('prauc-graph-'+self.name, 'figure'),
             [Input('prauc-cutoff-'+self.name, 'value'),
@@ -1213,7 +1213,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
             ])
         ])
     
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('clas-model-summary-div-'+self.name, 'children'),
             [Input('clas-model-summary-cutoff-'+self.name, 'value'),

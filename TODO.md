@@ -12,23 +12,22 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- add some of these:
-    https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
 - change lines and annotation to this:
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
+- add some of these:
+    https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
+
 
 ### Classifier plots:
-- pdp: add multiclass option
+- add prediction piechart plot to explainer
 - add label percentage at cutoff to cumulative precision plot
-    - set x limits to (0, 100)
 - add wizard to lift curve
+- pdp: add multiclass option
+    - no icelines to keep it from getting too busy?
 
 ### Regression plots:
-- add linear trendlines to y/preds vs col plots:
-    - https://stackoverflow.com/questions/58708230/plotly-how-to-plot-a-regression-line-using-plotly
-
 
 
 ## Explainers:
@@ -47,6 +46,8 @@
 ## Dashboard:
 - hide whole card header with hide_title=True
 - organize explainer components according to tab
+- add kwargs to dashboard.to_yaml()
+
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -56,32 +57,29 @@
     - http://manifold.mlvis.io/
         - generate groups programmatically!
 - add description param to all components
-- add instruction to use .terminate when starting JupyterDash dashboard.
-- add kwargs to dashboard.to_yaml()
+
 
 
 ### Components
-- add n_columns option to FeatureInputComponent
-- add width/height to components
+- add Tooltips to FeatureInputComponent
 - add subtitles to most components
-- rename to component_callbacks()
-- add Tooltips to whatif component
-- confusion matrix component: only show cutoff if binary==True
+- add description parameter to all components
 
+- change single radioitems to dbc.Checklist switch=True
 - add querystring method to ExplainerComponents
-- add "experiment tracker" for what if...
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - set equivalent_col when toggling cats in dependence/interactions
-- Add a constraints function to whatif component:
-    - tests if current feature input is allowed
-    - gives specific feedback when constraint broken
-    - could build WhatIfComponentException for this?
 - Add side-by-side option to cutoff selector component
-- Add sliders option to what if component
-- unify ClassifierMetricsSummaryComponent and 
-    RegressionMetricsSummaryComponent to a single component
-- add a barchart/piechart to classifier prediction summary component
+- add width/height to components
+- whatif:
+    - add n_columns option to FeatureInputComponent
+    - Add a constraints function to whatif component:
+        - tests if current feature input is allowed
+        - gives specific feedback when constraint broken
+        - could build WhatIfComponentException for this?
+    - Add sliders option to what if component
+
 
 ## Methods:
 - add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
@@ -91,16 +89,22 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add test for get_row_from_inputs test
+- add prediction_summary_df test
+
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
 
 ## Docs:
+- add customizing section in README
 - add ClassifierPredictionSummaryComponent to docs
 - move classifierindexselector and regressionindexselector in docs
 - add ExplainerDashboard **kwargs to custom documentation
 - Document ClassifierRandomIndexComponent vs RegressionRandomIndexComponent
 - add regressionVsCol screenshot
+- Add to custom a list of reasonable kwargs, e.g.: disable_permutations, etc.
+
 - Add type hints:
     - to explainers
     - to explainer class methods
@@ -110,8 +114,7 @@
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
-- add actual_vs_col and pred_vs_col screenshots to components docs
-- Add to custom a list of reasonable kwargs, e.g.: disable_permutations, etc.
+
 
 ## Library level:
 - hide (prefix '_') to non-public API class methods

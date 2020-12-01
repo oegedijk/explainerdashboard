@@ -111,7 +111,7 @@ class CutoffPercentileComponent(ExplainerComponent):
         ])
 
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('cutoffconnector-cutoff-'+self.name, 'value'),
             [Input('cutoffconnector-percentile-'+self.name, 'value'),
@@ -160,7 +160,7 @@ class PosLabelConnector(ExplainerComponent):
         else:
             return get_pos_labels(output_pos_labels)
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         if self.output_pos_label_names:
             @app.callback(
                 [Output(pos_label_name, 'value') for pos_label_name in self.output_pos_label_names],
@@ -212,7 +212,7 @@ class CutoffConnector(ExplainerComponent):
         else:
             return get_cutoff_name(cutoffs)
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output(cutoff_name, 'value') for cutoff_name in self.output_cutoff_names],
             [Input(self.input_cutoff_name, 'value')]
@@ -262,7 +262,7 @@ class IndexConnector(ExplainerComponent):
         else:
             return get_index_name(indexes)
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output(index_name, 'value') for index_name in self.output_index_names],
             [Input(self.input_index_name, 'value')]
@@ -312,7 +312,7 @@ class HighlightConnector(ExplainerComponent):
         else:
             return get_highlight_name(highlights)
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output(highlight_name, 'value') for highlight_name in self.output_highlight_names],
             [Input(self.input_highlight_name, 'value')])
