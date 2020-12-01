@@ -1,6 +1,6 @@
 ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/oegedijk/explainerdashboard/explainerdashboard/master?style=plastic)
 ![https://pypi.python.org/pypi/explainerdashboard/](https://img.shields.io/pypi/v/explainerdashboard.svg)
-![https://anaconda.org/conda-forge/explainerdashboard/badges/version.svg](https://anaconda.org/conda-forge/explainerdashboard/)
+![https://anaconda.org/conda-forge/explainerdashboard/](https://anaconda.org/conda-forge/explainerdashboard/badges/version.svg)
 [![codecov](https://codecov.io/gh/oegedijk/explainerdashboard/branch/master/graph/badge.svg?token=0XU6HNEGBK)](undefined)
 
 # explainerdashboard
