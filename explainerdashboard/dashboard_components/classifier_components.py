@@ -1,4 +1,6 @@
 __all__ = [
+    'ClassifierRandomIndexComponent',
+    'ClassifierPredictionSummaryComponent',
     'PrecisionComponent',
     'ConfusionMatrixComponent',
     'LiftCurveComponent',
@@ -19,8 +21,319 @@ import dash_html_components as html
 
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+import plotly.graph_objs as go
 
 from ..dashboard_methods import *
+
+
+class ClassifierRandomIndexComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Select Random Index", name=None,
+                        hide_title=False, hide_index=False, hide_slider=False,
+                        hide_labels=False, hide_pred_or_perc=False,
+                        hide_selector=False, hide_button=False,
+                        pos_label=None, index=None, slider= None, labels=None,
+                        pred_or_perc='predictions', **kwargs):
+        """Select a random index subject to constraints component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to
+                        "Select Random Index".
+            name (str, optional): unique name to add to Component elements.
+                        If None then random uuid is generated to make sure
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): Hide title. Defaults to False.
+            hide_index (bool, optional): Hide index selector. Defaults to False.
+            hide_slider (bool, optional): Hide prediction/percentile slider.
+                        Defaults to False.
+            hide_labels (bool, optional): Hide label selector Defaults to False.
+            hide_pred_or_perc (bool, optional): Hide prediction/percentiles
+                        toggle. Defaults to False.
+            hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            hide_button (bool, optional): Hide button. Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
+            index ({str, int}, optional): Initial index to display.
+                        Defaults to None.
+            slider ([float,float], optional): initial slider position
+                        [lower bound, upper bound]. Defaults to None.
+            labels ([str], optional): list of initial labels(str) to include.
+                        Defaults to None.
+            pred_or_perc (str, optional): Whether to use prediction or
+                        percentiles slider. Defaults to 'predictions'.
+        """
+        super().__init__(explainer, title, name)
+        assert self.explainer.is_classifier, \
+            ("explainer is not a ClassifierExplainer ""so the ClassifierRandomIndexComponent "
+            " will not work. Try using the RegressionRandomIndexComponent instead.")
+        self.index_name = 'random-index-clas-index-'+self.name
+
+        if self.slider is None:
+            self.slider = [0.0, 1.0]
+
+        if self.labels is None:
+            self.labels = self.explainer.labels
+
+        if self.explainer.y_missing:
+            self.hide_labels = True
+
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+
+        assert (len(self.slider) == 2 and
+                self.slider[0] >= 0 and self.slider[0] <=1 and
+                self.slider[1] >= 0.0 and self.slider[1] <= 1.0 and
+                self.slider[0] <= self.slider[1]), \
+                    "slider should be e.g. [0.5, 1.0]"
+
+        assert all([lab in self.explainer.labels for lab in self.labels]), \
+            f"These labels are not in explainer.labels: {[lab for lab in self.labels if lab not in explainer.labels]}!"
+
+        assert self.pred_or_perc in ['predictions', 'percentiles'], \
+            "pred_or_perc should either be `predictions` or `percentiles`!"
+
+        self.description = f"""
+        You can select a {self.explainer.index_name} directly by choosing it 
+        from the dropdown (if you start typing you can search inside the list),
+        or hit the Random {self.explainer.index_name} button to randomly select
+        a {self.explainer.index_name} that fits the constraints. For example
+        you can select a {self.explainer.index_name} where the observed
+        {self.explainer.target} is {self.explainer.labels[0]} but the
+        predicted probability of {self.explainer.labels[1]} is very high. This
+        allows you to for example sample only false positives or only false negatives.
+        """
+
+    def layout(self):
+        return dbc.Card([
+            dbc.CardHeader([
+                dbc.Row([
+                    make_hideable(
+                        html.Div([
+                            html.H3(f"Select {self.explainer.index_name}", id='random-index-clas-title-'+self.name),
+                            dbc.Tooltip(self.description, target='random-index-clas-title-'+self.name),
+                        ]), hide=self.hide_title),
+                ]),
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dcc.Dropdown(id='random-index-clas-index-'+self.name,
+                                    options = [{'label': str(idx), 'value':idx}
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index),
+                        ], md=8), hide=self.hide_index),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-clas-button-'+self.name, block=True),
+                            dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
+                                            target='random-index-clas-button-'+self.name),
+                        ], md=4), hide=self.hide_button),
+                ], form=True),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label(f"Observed {self.explainer.target}:", id='random-index-clas-labels-label-'+self.name),
+                            dbc.Tooltip(f"Only select a random {self.explainer.index_name} where the observed "
+                                        f"{self.explainer.target} is one of the selected labels:",
+                                    target='random-index-clas-labels-label-'+self.name),
+                            dcc.Dropdown(
+                                id='random-index-clas-labels-'+self.name,
+                                options=[{'label': lab, 'value': lab} for lab in self.explainer.labels],
+                                multi=True,
+                                value=self.labels),
+                        ], md=8), hide=self.hide_labels),
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label(id='random-index-clas-slider-label-'+self.name,
+                                    children="Predicted probability range:",
+                                    html_for='prediction-range-slider-'+self.name,),
+                                dbc.Tooltip(f"Only select a random {self.explainer.index_name} where the "
+                                            "predicted probability of positive label is in the following range:",
+                                            id='random-index-clas-slider-label-tooltip-'+self.name,
+                                            target='random-index-clas-slider-label-'+self.name),
+                                dcc.RangeSlider(
+                                    id='random-index-clas-slider-'+self.name,
+                                    min=0.0, max=1.0, step=0.01,
+                                    value=self.slider,  allowCross=False,
+                                    marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3',
+                                            0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7',
+                                            0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
+                                    tooltip = {'always_visible' : False})
+                            ], style={'margin-bottom':25})
+                        ], md=5), hide=self.hide_slider),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                            dbc.RadioItems(
+                                id='random-index-clas-pred-or-perc-'+self.name,
+                                options=[
+                                    {'label': 'Use predicted probability', 'value': 'predictions'},
+                                    {'label': 'Use predicted percentile', 'value': 'percentiles'},
+                                ],
+                                value=self.pred_or_perc,
+                                inline=True)
+                            ], id='random-index-clas-pred-or-perc-div-'+self.name),
+                            dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
+                                        "you can also select from a range of predicted percentiles. "
+                                        "For example if you set the slider to (0.9-1.0) you would"
+                                        f" only sample random {self.explainer.index_name} from the top "
+                                        "10% highest predicted probabilities.",
+                                    target='random-index-clas-pred-or-perc-div-'+self.name),
+                        ], md=4, align="center"), hide=self.hide_pred_or_perc),
+                    make_hideable(
+                        dbc.Col([
+                            self.selector.layout()
+                        ], md=3), hide=self.hide_selector),
+                ], justify="start"),
+            ]),
+        ])
+
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('random-index-clas-index-'+self.name, 'value'),
+            [Input('random-index-clas-button-'+self.name, 'n_clicks')],
+            [State('random-index-clas-slider-'+self.name, 'value'),
+             State('random-index-clas-labels-'+self.name, 'value'),
+             State('random-index-clas-pred-or-perc-'+self.name, 'value'),
+             State('pos-label-'+self.name, 'value')])
+        def update_index(n_clicks, slider_range, labels, pred_or_perc, pos_label):
+            if pred_or_perc == 'predictions':
+                return self.explainer.random_index(y_values=labels,
+                    pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
+                    return_str=True, pos_label=pos_label)
+            elif pred_or_perc == 'percentiles':
+                return self.explainer.random_index(y_values=labels,
+                    pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1],
+                    return_str=True, pos_label=pos_label)
+
+        @app.callback(
+            [Output('random-index-clas-slider-label-'+self.name, 'children'),
+             Output('random-index-clas-slider-label-tooltip-'+self.name, 'children')],
+            [Input('random-index-clas-pred-or-perc-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')]
+        )
+        def update_slider_label(pred_or_perc, pos_label):
+            if pred_or_perc == 'predictions':
+                return (
+                    "Predicted probability range:",
+                    f"Only select a random {self.explainer.index_name} where the "
+                    f"predicted probability of {self.explainer.labels[pos_label]}"
+                    " is in the following range:"
+                )
+            elif pred_or_perc == 'percentiles':
+                return (
+                    "Predicted percentile range:",
+                    f"Only select a random {self.explainer.index_name} where the "
+                    f"predicted probability of {self.explainer.labels[pos_label]}"
+                    " is in the following percentile range. For example you can "
+                    "only sample from the top 10% highest predicted probabilities."
+                )
+            raise PreventUpdate
+
+
+class ClassifierPredictionSummaryComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Prediction Summary", name=None,
+                    hide_index=False, hide_title=False, hide_table=False, 
+                    hide_piechart=False, hide_selector=False,
+                    pos_label=None, index=None,  round=3, **kwargs):
+        """Shows a summary for a particular prediction
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                "Prediction Summary".
+            name (str, optional): unique name to add to Component elements. 
+                If None then random uuid is generated to make sure 
+                it's unique. Defaults to None.
+            hide_index (bool, optional): hide index selector. Defaults to False.
+            hide_title (bool, optional): hide title. Defaults to False.
+            hide_table (bool, optional): hide the results table
+            hide_piechart (bool, optional): hide the results piechart
+            hide_selector (bool, optional): hide pos label selectors. 
+                Defaults to False.
+            pos_label ({int, str}, optional): initial pos label. 
+                Defaults to explainer.pos_label
+            index ({int, str}, optional): Index to display prediction summary 
+                for. Defaults to None.
+            round (int, optional): rounding to apply to pred_proba float. 
+                Defaults to 3.
+        """
+        super().__init__(explainer, title, name)
+
+        self.index_name = 'clas-prediction-index-'+self.name
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+
+    def layout(self):
+        return dbc.Card([
+            dbc.CardHeader([
+                make_hideable(
+                    html.Div([
+                        html.H3("Predictions summary:", className='card-title'),
+                        #html.H6("What was the prediction?", className="card-subtitle") ,
+                    ]), hide=self.hide_title), 
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label(f"{self.explainer.index_name}:"),
+                            dcc.Dropdown(id='clas-prediction-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                        ], md=6), hide=self.hide_index),
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=3), hide=self.hide_selector),  
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div(id='clas-prediction-div-'+self.name)
+                    ])
+                ])
+            ])
+        ])
+
+    def _register_callbacks(self, app):
+        @app.callback(
+            Output('clas-prediction-div-'+self.name, 'children'),
+            [Input('clas-prediction-index-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value')])
+        def update_output_div(index, pos_label):
+            if index is not None:
+                preds_df = self.explainer.prediction_result_df(index, self.round, logodds = True)
+                fig = go.Figure(
+                    data=[go.Pie(labels=preds_df.label.values, values=preds_df.probability.values)],
+                    layout=dict(autosize=False, height=250, margin=dict(l=10, r=10, b=10, t=20, pad=4))
+                )
+                
+                preds_df.probability = np.round(preds_df.probability.values, self.round).astype(str)
+                preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+                
+                if self.explainer.model_output!='logodds':
+                    preds_df = preds_df[['label', 'probability']]
+                    
+                preds_table = dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False)  
+                
+                return html.Div([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                preds_table, 
+                                html.Div("* indicates observed label") if not self.explainer.y_missing else None
+                            ]), hide=self.hide_table),
+                        make_hideable(
+                            dbc.Col([
+                                dcc.Graph(figure=fig)
+                            ]), hide=self.hide_piechart),
+                    ])
+                ])
+            
+            raise PreventUpdate
 
 
 class PrecisionComponent(ExplainerComponent):
@@ -72,112 +385,119 @@ class PrecisionComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='precision-title-'+self.name),
-                    dbc.Tooltip(self.description, target='precision-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            dbc.Row([
-                dbc.Col([
                     html.Div([
-                        dcc.Graph(id='precision-graph-'+self.name,
-                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-                    ], style={'margin': 0}),
-                ])
+                        html.H3(self.title, id='precision-title-'+self.name, className="card-title"),
+                        dbc.Tooltip(self.description, target='precision-title-'+self.name),
+                    ]), hide=self.hide_title),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+                
             ]),
-            dbc.Row([
-                dbc.Col([
-                    make_hideable(
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
                         html.Div([
-                            html.Div([
-                                dbc.Label('Bin size:', html_for='precision-binsize-'+self.name),
-                                html.Div([
-                                    dcc.Slider(id='precision-binsize-'+self.name, 
-                                            min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
-                                            marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
-                                                0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
-                                                0.5: '0.5'}, 
-                                            included=False,
-                                            tooltip = {'always_visible' : False})
-                                ], style={'margin-bottom': 5}),
-                            ], id='precision-bin-size-div-'+self.name, style=dict(margin=5)),
-                            dbc.Tooltip("Size of the bins to divide prediction score by", 
-                                    target='precision-bin-size-div-'+self.name,
-                                    placement='bottom'),
-                        ]), hide=self.hide_binsize),
-                    make_hideable(
-                        html.Div([
-                        html.Div([
-                            dbc.Label('Quantiles:', html_for='precision-quantiles-'+self.name),
-                            html.Div([
-                                dcc.Slider(id='precision-quantiles-'+self.name, 
-                                            min = 1, max = 20, step=1, value=self.quantiles,
-                                            marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
-                                            included=False,
-                                            tooltip = {'always_visible' : False}),
-                            ], style={'margin-bottom':5}),
-                        ], id='precision-quantiles-div-'+self.name), 
-                        dbc.Tooltip("Number of equally populated bins to divide prediction score by", 
-                                    target='precision-quantiles-div-'+self.name,
-                                    placement='bottom'),
-                        ]), hide=self.hide_binsize),
-                    make_hideable(
-                        html.Div([
-                        html.Div([
-                            html.Label('Cutoff prediction probability:'),
-                            dcc.Slider(id='precision-cutoff-'+self.name, 
-                                        min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                        marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                0.75: '0.75', 0.99: '0.99'}, 
-                                        included=False,
-                                        tooltip = {'always_visible' : False}),
-                        ], id='precision-cutoff-div-'+self.name),
-                        dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                        target='precision-cutoff-div-'+self.name,
-                                        placement='bottom'),
-                        ], style={'margin-bottom': 5}), hide=self.hide_cutoff),
+                            dcc.Graph(id='precision-graph-'+self.name,
+                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                        ], style={'margin': 0}),
+                    ])
                 ]),
             ]),
-            dbc.Row([
-                make_hideable(
+            dbc.CardFooter([
+                dbc.Row([
                     dbc.Col([
-                        dbc.Label('Binning Method:', html_for='precision-binsize-or-quantiles-'+self.name),
-                        dbc.RadioItems(
-                            id='precision-binsize-or-quantiles-'+self.name,
-                            options=[
-                                {'label': 'Bin Size', 
-                                'value': 'bin_size'},
-                                {'label': 'Quantiles', 
-                                'value': 'quantiles'}
-                            ],
-                            value=self.quantiles_or_binsize,
-                            inline=True),
-                        dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bin size),"
-                                    " or bins with the same number of observations (counts) in each bin: quantiles",
-                                    target='precision-binsize-or-quantiles-'+self.name),     
-                    ], width=3), hide=self.hide_binmethod),
-                make_hideable(
-                    dbc.Col([
-                        dbc.FormGroup([
-                                dbc.RadioButton(
-                                    id="precision-multiclass-"+self.name, 
-                                    className="form-check-input",
-                                    checked=self.multiclass
-                                ),
-                                dbc.Label(
-                                    "Display all classes",
-                                    html_for="precision-multiclass-"+self.name,
-                                    className="form-check-label",
-                                ),
-                                dbc.Tooltip("Display the percentage of all labels or only of the positive label",
-                                    target="precision-multiclass-"+self.name),                              
-                        ], check=True),
-                    ], width=3), hide=self.hide_multiclass), 
+                        make_hideable(
+                            html.Div([
+                                html.Div([
+                                    dbc.Label('Bin size:', html_for='precision-binsize-'+self.name),
+                                    html.Div([
+                                        dcc.Slider(id='precision-binsize-'+self.name, 
+                                                min = 0.01, max = 0.5, step=0.01, value=self.bin_size,
+                                                marks={0.01: '0.01', 0.05: '0.05', 0.10: '0.10',
+                                                    0.20: '0.20', 0.25: '0.25' , 0.33: '0.33', 
+                                                    0.5: '0.5'}, 
+                                                included=False,
+                                                tooltip = {'always_visible' : False})
+                                    ], style={'margin-bottom': 5}),
+                                ], id='precision-bin-size-div-'+self.name, style=dict(margin=5)),
+                                dbc.Tooltip("Size of the bins to divide prediction score by", 
+                                        target='precision-bin-size-div-'+self.name,
+                                        placement='bottom'),
+                            ]), hide=self.hide_binsize),
+                        make_hideable(
+                            html.Div([
+                            html.Div([
+                                dbc.Label('Quantiles:', html_for='precision-quantiles-'+self.name),
+                                html.Div([
+                                    dcc.Slider(id='precision-quantiles-'+self.name, 
+                                                min = 1, max = 20, step=1, value=self.quantiles,
+                                                marks={1: '1', 5: '5', 10: '10', 15: '15', 20:'20'}, 
+                                                included=False,
+                                                tooltip = {'always_visible' : False}),
+                                ], style={'margin-bottom':5}),
+                            ], id='precision-quantiles-div-'+self.name), 
+                            dbc.Tooltip("Number of equally populated bins to divide prediction score by", 
+                                        target='precision-quantiles-div-'+self.name,
+                                        placement='bottom'),
+                            ]), hide=self.hide_binsize),
+                        make_hideable(
+                            html.Div([
+                            html.Div([
+                                html.Label('Cutoff prediction probability:'),
+                                dcc.Slider(id='precision-cutoff-'+self.name, 
+                                            min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                            marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                    0.75: '0.75', 0.99: '0.99'}, 
+                                            included=False,
+                                            tooltip = {'always_visible' : False}),
+                            ], id='precision-cutoff-div-'+self.name),
+                            dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                            target='precision-cutoff-div-'+self.name,
+                                            placement='bottom'),
+                            ], style={'margin-bottom': 5}), hide=self.hide_cutoff),
+                    ]),
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label('Binning Method:', html_for='precision-binsize-or-quantiles-'+self.name),
+                            dbc.RadioItems(
+                                id='precision-binsize-or-quantiles-'+self.name,
+                                options=[
+                                    {'label': 'Bin Size', 
+                                    'value': 'bin_size'},
+                                    {'label': 'Quantiles', 
+                                    'value': 'quantiles'}
+                                ],
+                                value=self.quantiles_or_binsize,
+                                inline=True),
+                            dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bin size),"
+                                        " or bins with the same number of observations (counts) in each bin: quantiles",
+                                        target='precision-binsize-or-quantiles-'+self.name),     
+                        ], width=3), hide=self.hide_binmethod),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup([
+                                    dbc.RadioButton(
+                                        id="precision-multiclass-"+self.name, 
+                                        className="form-check-input",
+                                        checked=self.multiclass
+                                    ),
+                                    dbc.Label(
+                                        "Display all classes",
+                                        html_for="precision-multiclass-"+self.name,
+                                        className="form-check-label",
+                                    ),
+                                    dbc.Tooltip("Display the percentage of all labels or only of the positive label",
+                                        target="precision-multiclass-"+self.name),                              
+                            ], check=True),
+                        ], width=3), hide=self.hide_multiclass), 
+                ]),
             ])    
         ])
 
@@ -264,70 +584,76 @@ class ConfusionMatrixComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='confusionmatrix-title-'+self.name),
-                    dbc.Tooltip(self.description, target='confusionmatrix-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            dcc.Graph(id='confusionmatrix-graph-'+self.name,
+                    html.Div([
+                        html.H3(self.title, id='confusionmatrix-title-'+self.name),
+                        dbc.Tooltip(self.description, target='confusionmatrix-title-'+self.name),
+                    ]), hide=self.hide_title),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+            ]),
+            dbc.CardBody([
+                dcc.Graph(id='confusionmatrix-graph-'+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-            make_hideable(
-                html.Div([
-                html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='confusionmatrix-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False},
-                                updatemode='drag'),
-                ], id='confusionmatrix-cutoff-div-'+self.name),
-                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                target='confusionmatrix-cutoff-div-'+self.name,
-                                placement='bottom'),
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup([
-                            dbc.RadioButton(
-                                id='confusionmatrix-percentage-'+self.name, 
-                                className="form-check-input", 
-                                checked=self.percentage
-                            ),
-                            dbc.Label(
-                                "Display percentages",
-                                html_for="confusionmatrix-percentage-"+self.name,
-                                className="form-check-label",
-                            ),
-                            dbc.Tooltip("Highlight the percentage in each cell instead of the absolute numbers",
-                                    target='confusionmatrix-percentage-'+self.name),  
-                    ], check=True),
-                ]), hide=self.hide_percentage),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup([
-                            dbc.RadioButton(
-                                id="confusionmatrix-binary-"+self.name, 
-                                className="form-check-input", 
-                                checked=self.binary
-                            ),
-                            dbc.Label(
-                                "Binary",
-                                html_for="confusionmatrix-binary-"+self.name,
-                                className="form-check-label",
-                            ),
-                            dbc.Tooltip("display a binary confusion matrix of positive "
-                                        "class vs all other classes instead of a multi"
-                                        " class confusion matrix.",
-                                    target="confusionmatrix-binary-"+self.name)
-                    ], check=True),
-                ]), hide=self.hide_binary),
+            ]),
+            dbc.CardFooter([
+                make_hideable(
+                    html.Div([
+                    html.Div([
+                        html.Label('Cutoff prediction probability:'),
+                        dcc.Slider(id='confusionmatrix-cutoff-'+self.name, 
+                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                            0.75: '0.75', 0.99: '0.99'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : False},
+                                    updatemode='drag'),
+                    ], id='confusionmatrix-cutoff-div-'+self.name),
+                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                    target='confusionmatrix-cutoff-div-'+self.name,
+                                    placement='bottom'),
+                    ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+                make_hideable(
+                    html.Div([
+                        dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id='confusionmatrix-percentage-'+self.name, 
+                                    className="form-check-input", 
+                                    checked=self.percentage
+                                ),
+                                dbc.Label(
+                                    "Display percentages",
+                                    html_for="confusionmatrix-percentage-"+self.name,
+                                    className="form-check-label",
+                                ),
+                                dbc.Tooltip("Highlight the percentage in each cell instead of the absolute numbers",
+                                        target='confusionmatrix-percentage-'+self.name),  
+                        ], check=True),
+                    ]), hide=self.hide_percentage),
+                make_hideable(
+                    html.Div([
+                        dbc.FormGroup([
+                                dbc.RadioButton(
+                                    id="confusionmatrix-binary-"+self.name, 
+                                    className="form-check-input", 
+                                    checked=self.binary
+                                ),
+                                dbc.Label(
+                                    "Binary",
+                                    html_for="confusionmatrix-binary-"+self.name,
+                                    className="form-check-label",
+                                ),
+                                dbc.Tooltip("display a binary confusion matrix of positive "
+                                            "class vs all other classes instead of a multi"
+                                            " class confusion matrix.",
+                                        target="confusionmatrix-binary-"+self.name)
+                        ], check=True),
+                    ]), hide=self.hide_binary),
+            ])
         ])
 
     def _register_callbacks(self, app):
@@ -379,55 +705,61 @@ class LiftCurveComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
+        return dbc.Card([
+            dbc.CardHeader([
+                make_hideable(
                 html.Div([
                     html.H3(self.title, id='liftcurve-title-'+self.name),
                     dbc.Tooltip(self.description, target='liftcurve-title-'+self.name),
                 ]), hide=self.hide_title),
-            dbc.Row([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+            ]),
+            dbc.CardBody([
+                html.Div([
+                    dcc.Graph(id='liftcurve-graph-'+self.name,
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                ], style={'margin': 0}),
+            ]),
+            dbc.CardFooter([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            html.Div([
-                dcc.Graph(id='liftcurve-graph-'+self.name,
-                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-            ], style={'margin': 0}),
-            make_hideable(
-                html.Div([
-                html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='liftcurve-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False},
-                                updatemode='drag'),
-                    
-                ], id='liftcurve-cutoff-div-'+self.name),
-                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                target='liftcurve-cutoff-div-'+self.name,
-                                placement='bottom'),
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup([
-                        dbc.RadioButton(
-                            id="liftcurve-percentage-"+self.name, 
-                            className="form-check-input", 
-                            checked=True
-                        ),
-                        dbc.Label(
-                            "Display percentages",
-                            html_for="liftcurve-percentage-"+self.name,
-                            className="form-check-label",
-                        ),
-                        dbc.Tooltip("Display percentages positive and sampled"
-                                " instead of absolute numbers",
-                                target="liftcurve-percentage-"+self.name)
-                    ], check=True), 
-                ]), hide=self.hide_percentage),         
+                    html.Div([
+                    html.Div([
+                        html.Label('Cutoff prediction probability:'),
+                        dcc.Slider(id='liftcurve-cutoff-'+self.name, 
+                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                            0.75: '0.75', 0.99: '0.99'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : False},
+                                    updatemode='drag'),
+                        
+                    ], id='liftcurve-cutoff-div-'+self.name),
+                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                    target='liftcurve-cutoff-div-'+self.name,
+                                    placement='bottom'),
+                    ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+                make_hideable(
+                    html.Div([
+                        dbc.FormGroup([
+                            dbc.RadioButton(
+                                id="liftcurve-percentage-"+self.name, 
+                                className="form-check-input", 
+                                checked=True
+                            ),
+                            dbc.Label(
+                                "Display percentages",
+                                html_for="liftcurve-percentage-"+self.name,
+                                className="form-check-label",
+                            ),
+                            dbc.Tooltip("Display percentages positive and sampled"
+                                    " instead of absolute numbers",
+                                    target="liftcurve-percentage-"+self.name)
+                        ], check=True), 
+                    ]), hide=self.hide_percentage),  
+            ])
         ])
 
     def _register_callbacks(self, app):
@@ -473,60 +805,66 @@ class CumulativePrecisionComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='cumulative-precision-title-'+self.name),
-                    dbc.Tooltip(self.description, target='cumulative-precision-title-'+self.name),
-                ]), hide=self.hide_title),
-            html.Div([
-                dcc.Graph(id='cumulative-precision-graph-'+self.name,
-                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-            ], style={'margin': 0}),
-             dbc.Row([
-                dbc.Col([
-                    dbc.Row([
-                            make_hideable(
-                            dbc.Col([
-                                html.Div([
-                                    html.Label('Sample top fraction:'),
-                                    dcc.Slider(id='cumulative-precision-percentile-'+self.name,
-                                                min = 0.01, max = 0.99, step=0.01, value=self.percentile,
-                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                        0.75: '0.75', 0.99: '0.99'},
-                                                included=False,
-                                                tooltip = {'always_visible' : False},
-                                                updatemode='drag')
-                                ], style={'margin-bottom': 15}, id='cumulative-precision-percentile-div-'+self.name),
-                                dbc.Tooltip("Draw the line where you only sample the top x% fraction of all samples",
-                                        target='cumulative-precision-percentile-div-'+self.name)
-                            ]), hide=self.hide_percentile),
-                    ]),
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
-                                html.Div([
-                                    html.Label('Cutoff prediction probability:'),
-                                    dcc.Slider(id='cumulative-precision-cutoff-'+self.name,
-                                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                        0.75: '0.75', 0.99: '0.99'},
-                                                included=False,
-                                                tooltip = {'always_visible' : False}),
-                                    
-                                ], style={'margin-bottom': 15}, id='cumulative-precision-cutoff-div-'+self.name),
-                                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                                target='cumulative-precision-cutoff-div-'+self.name,
-                                                placement='bottom'),
-                            ]), hide=self.hide_cutoff),
-                    ]),    
-                ]),
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
+                    html.Div([
+                        html.H3(self.title, id='cumulative-precision-title-'+self.name),
+                        dbc.Tooltip(self.description, target='cumulative-precision-title-'+self.name),
+                    ]), hide=self.hide_title),
+            ]),
+            dbc.CardBody([
+                html.Div([
+                    dcc.Graph(id='cumulative-precision-graph-'+self.name,
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                ], style={'margin': 0}),
+            ]),
+            dbc.CardFooter([
+                dbc.Row([
                     dbc.Col([
-                        self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
-            ])
-                 
+                        dbc.Row([
+                                make_hideable(
+                                dbc.Col([
+                                    html.Div([
+                                        html.Label('Sample top fraction:'),
+                                        dcc.Slider(id='cumulative-precision-percentile-'+self.name,
+                                                    min = 0.01, max = 0.99, step=0.01, value=self.percentile,
+                                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                            0.75: '0.75', 0.99: '0.99'},
+                                                    included=False,
+                                                    tooltip = {'always_visible' : False},
+                                                    updatemode='drag')
+                                    ], style={'margin-bottom': 15}, id='cumulative-precision-percentile-div-'+self.name),
+                                    dbc.Tooltip("Draw the line where you only sample the top x% fraction of all samples",
+                                            target='cumulative-precision-percentile-div-'+self.name)
+                                ]), hide=self.hide_percentile),
+                        ]),
+                        dbc.Row([
+                            make_hideable(
+                                dbc.Col([
+                                    html.Div([
+                                        html.Label('Cutoff prediction probability:'),
+                                        dcc.Slider(id='cumulative-precision-cutoff-'+self.name,
+                                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                            0.75: '0.75', 0.99: '0.99'},
+                                                    included=False,
+                                                    tooltip = {'always_visible' : False}),
+                                        
+                                    ], style={'margin-bottom': 15}, id='cumulative-precision-cutoff-div-'+self.name),
+                                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                                    target='cumulative-precision-cutoff-div-'+self.name,
+                                                    placement='bottom'),
+                                ]), hide=self.hide_cutoff),
+                        ]),    
+                    ]),
+                    make_hideable(
+                        dbc.Col([
+                            self.selector.layout()
+                        ], width=2), hide=self.hide_selector),
+
+                ])
+            ])     
         ])
 
     def _register_callbacks(self, app):
@@ -582,54 +920,60 @@ class ClassificationComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='classification-title-'+self.name),
-                    dbc.Tooltip(self.description, target='classification-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            html.Div([
-                dcc.Graph(id='classification-graph-'+self.name,
-                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-            ], style={'margin': 0}),
-            make_hideable(
+                    html.Div([
+                        html.H3(self.title, id='classification-title-'+self.name),
+                        dbc.Tooltip(self.description, target='classification-title-'+self.name),
+                    ]), hide=self.hide_title),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+            ]),
+            dbc.CardBody([
                 html.Div([
-                html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='classification-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False},
-                                updatemode='drag'),
-                    
-                ], id='classification-cutoff-div-'+self.name),
-                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                target='classification-cutoff-div-'+self.name,
-                                placement='bottom'),
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-            make_hideable(
-                html.Div([
-                    dbc.FormGroup([
-                        dbc.RadioButton(
-                            id="classification-percentage-"+self.name, 
-                            className="form-check-input", 
-                            checked=True
-                        ),
-                        dbc.Label(
-                            "Display percentages",
-                            html_for="classification-percentage-"+self.name,
-                            className="form-check-label",
-                        ),
-                        dbc.Tooltip("Do not resize the bar chart by absolute number of observations",
-                            target="classification-percentage-"+self.name,)
-                    ], check=True),
-                ]), hide=self.hide_percentage),
+                    dcc.Graph(id='classification-graph-'+self.name,
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                ], style={'margin': 0}),
+            ]),
+            dbc.CardFooter([
+                make_hideable(
+                    html.Div([
+                    html.Div([
+                        html.Label('Cutoff prediction probability:'),
+                        dcc.Slider(id='classification-cutoff-'+self.name, 
+                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                            0.75: '0.75', 0.99: '0.99'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : False},
+                                    updatemode='drag'),
+                        
+                    ], id='classification-cutoff-div-'+self.name),
+                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                    target='classification-cutoff-div-'+self.name,
+                                    placement='bottom'),
+                    ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+                make_hideable(
+                    html.Div([
+                        dbc.FormGroup([
+                            dbc.RadioButton(
+                                id="classification-percentage-"+self.name, 
+                                className="form-check-input", 
+                                checked=True
+                            ),
+                            dbc.Label(
+                                "Display percentages",
+                                html_for="classification-percentage-"+self.name,
+                                className="form-check-label",
+                            ),
+                            dbc.Tooltip("Do not resize the bar chart by absolute number of observations",
+                                target="classification-percentage-"+self.name,)
+                        ], check=True),
+                    ]), hide=self.hide_percentage),
+            ]) 
         ])
 
     def _register_callbacks(self, app):
@@ -675,34 +1019,40 @@ class RocAucComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='rocauc-title-'+self.name),
-                    dbc.Tooltip(self.description, target='rocauc-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            dcc.Graph(id='rocauc-graph-'+self.name,
+                    html.Div([
+                        html.H3(self.title, id='rocauc-title-'+self.name),
+                        dbc.Tooltip(self.description, target='rocauc-title-'+self.name),
+                    ]), hide=self.hide_title),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+            ]),
+            dbc.CardBody([
+                dcc.Graph(id='rocauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-            make_hideable(
-                html.Div([
-                html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='rocauc-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False},
-                                updatemode='drag' ),
-                ] ,id='rocauc-cutoff-div-'+self.name),
-                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                target='rocauc-cutoff-div-'+self.name,
-                                placement='bottom'),
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+            ]),
+            dbc.CardFooter([
+                make_hideable(
+                    html.Div([
+                    html.Div([
+                        html.Label('Cutoff prediction probability:'),
+                        dcc.Slider(id='rocauc-cutoff-'+self.name, 
+                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                            0.75: '0.75', 0.99: '0.99'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : False},
+                                    updatemode='drag' ),
+                    ] ,id='rocauc-cutoff-div-'+self.name),
+                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                    target='rocauc-cutoff-div-'+self.name,
+                                    placement='bottom'),
+                    ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+            ])
         ])
 
     def _register_callbacks(self, app):
@@ -746,35 +1096,41 @@ class PrAucComponent(ExplainerComponent):
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='prauc-title-'+self.name),
-                    dbc.Tooltip(self.description, target='prauc-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            dcc.Graph(id='prauc-graph-'+self.name,
-                        config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-            make_hideable(
-                html.Div([
                     html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='prauc-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False},
-                                updatemode='drag'),
-                    
-                    ], id='prauc-cutoff-div-'+self.name),
-                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                target='prauc-cutoff-div-'+self.name,
-                                placement='bottom'),
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+                        html.H3(self.title, id='prauc-title-'+self.name),
+                        dbc.Tooltip(self.description, target='prauc-title-'+self.name),
+                    ]), hide=self.hide_title),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+            ]),
+            dbc.CardBody([
+                dcc.Graph(id='prauc-graph-'+self.name,
+                        config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+            ]),
+            dbc.CardFooter([
+                make_hideable(
+                    html.Div([
+                        html.Div([
+                        html.Label('Cutoff prediction probability:'),
+                        dcc.Slider(id='prauc-cutoff-'+self.name, 
+                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                            0.75: '0.75', 0.99: '0.99'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : False},
+                                    updatemode='drag'),
+                        
+                        ], id='prauc-cutoff-div-'+self.name),
+                        dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                    target='prauc-cutoff-div-'+self.name,
+                                    placement='bottom'),
+                    ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
+            ])
         ])
 
     def _register_callbacks(self, app):
@@ -821,34 +1177,39 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
         self.register_dependencies(['preds', 'pred_probas'])
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='clas-model-summary-title-'+self.name),
-                    dbc.Tooltip(self.description, target='clas-model-summary-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
-
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-            ], justify="end"),
-            html.Div(id='clas-model-summary-div-'+self.name),
-            make_hideable(
-                html.Div([
-                html.Div([
-                    html.Label('Cutoff prediction probability:'),
-                    dcc.Slider(id='clas-model-summary-cutoff-'+self.name, 
-                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                        0.75: '0.75', 0.99: '0.99'}, 
-                                included=False,
-                                tooltip = {'always_visible' : False},
-                                updatemode='drag'),
-                ], id='clas-model-summary-cutoff-div-'+self.name),
-                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                target='clas-model-summary-cutoff-div-'+self.name,
-                                placement='bottom'),
-                ], style={'margin-bottom': 25}), hide=self.hide_cutoff),     
+                    html.Div([
+                        html.H3(self.title, id='clas-model-summary-title-'+self.name),
+                        dbc.Tooltip(self.description, target='clas-model-summary-title-'+self.name),
+                    ]), hide=self.hide_title),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                ], justify="end"),
+            ]),
+            dbc.CardBody([
+                html.Div(id='clas-model-summary-div-'+self.name),
+            ]),
+            dbc.CardFooter([
+                make_hideable(
+                    html.Div([
+                    html.Div([
+                        html.Label('Cutoff prediction probability:'),
+                        dcc.Slider(id='clas-model-summary-cutoff-'+self.name, 
+                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                            0.75: '0.75', 0.99: '0.99'}, 
+                                    included=False,
+                                    tooltip = {'always_visible' : False},
+                                    updatemode='drag'),
+                    ], id='clas-model-summary-cutoff-div-'+self.name),
+                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                    target='clas-model-summary-cutoff-div-'+self.name,
+                                    placement='bottom'),
+                    ], style={'margin-bottom': 25}), hide=self.hide_cutoff), 
+            ])
         ])
     
     def _register_callbacks(self, app):

@@ -1642,7 +1642,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
         
-    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
+    residuals_text=[f"{index_name}: {idx}<br>Observed: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
                   for idx, actual, pred, residual in zip(idxs, 
                                                     np.round(y, round), 
                                                     np.round(preds, round), 
@@ -1660,7 +1660,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
         x=y if vs_actual else preds, 
         y=np.ones(len(preds)) if residuals=='ratio' else np.zeros(len(preds)),
         mode='lines', 
-        name=(f"Actual {target}" + f" ({units})" if units else "") if vs_actual \
+        name=(f"Observed {target}" + f" ({units})" if units else "") if vs_actual \
                 else (f"Predicted {target}" + f" ({units})" if units else ""),
         hoverinfo="none",
     )
@@ -1668,13 +1668,13 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
     data = [trace0, trace1]
     
     layout = go.Layout(
-        title=f"Residuals vs {'actual' if vs_actual else 'predicted'} {target}",
+        title=f"Residuals vs {'observed' if vs_actual else 'predicted'} {target}",
         yaxis=dict(
             title=residuals_name
         ),
         
         xaxis=dict(
-            title=(f"Actual {target}" + f" ({units})" if units else "") if vs_actual \
+            title=(f"Observed {target}" + f" ({units})" if units else "") if vs_actual \
                 else (f"Predicted {target}" + f" ({units})" if units else "")
         ),
         plot_bgcolor = '#fff',

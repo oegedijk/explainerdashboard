@@ -15,8 +15,10 @@ from .dashboard_components import *
 
 class ImportancesTab(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
-                    hide_selector=True, importance_type="shap", depth=None, 
-                    cats=True, **kwargs):
+                    hide_type=False, hide_depth=False, hide_cats=False,
+                    hide_title=False, hide_selector=False,
+                    pos_label=None, importance_type="shap", depth=None, 
+                    cats=True, disable_permutations=False, **kwargs):
         """Overview tab of feature importances
 
         Can show both permutation importances and mean absolute shap values.
@@ -42,7 +44,7 @@ class ImportancesTab(ExplainerComponent):
                 hide_selector=hide_selector,
                 importance_type=importance_type, 
                 depth=depth, 
-                cats=cats)
+                cats=cats, hide_cats=hide_cats)
 
         self.register_components(self.importances)
 

@@ -1,4 +1,5 @@
 __all__ = [
+    'ImportancesComposite',
     'ClassifierModelStatsComposite',
     'RegressionModelStatsComposite',
     'IndividualPredictionsComposite',
@@ -11,6 +12,7 @@ __all__ = [
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 
+from ..explainers import RandomForestExplainer, XGBExplainer
 from ..dashboard_methods import *
 from .classifier_components import *
 from .regression_components import *
@@ -18,6 +20,40 @@ from .overview_components import *
 from .connectors import *
 from .shap_components import *
 from .decisiontree_components import *
+
+
+class ImportancesComposite(ExplainerComponent):
+    def __init__(self, explainer, title="Feature Importances", name=None,
+                    hide_selector=True, **kwargs):
+        """Overview tab of feature importances
+
+        Can show both permutation importances and mean absolute shap values.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Feature Importances".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_selector (bool, optional): hide the post label selector. 
+                Defaults to True.
+        """
+        super().__init__(explainer, title, name)
+
+        self.importances = ImportancesComponent(
+                explainer, hide_selector=hide_selector, **kwargs)
+        self.register_components()
+
+    def layout(self):
+        return html.Div([
+            dbc.Row([
+                dbc.Col([
+                    self.importances.layout(),
+                ]),
+            ], style=dict(margin=25))
+        ])
 
 
 class ClassifierModelStatsComposite(ExplainerComponent):
@@ -49,25 +85,25 @@ class ClassifierModelStatsComposite(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        self.summary = ClassifierModelSummaryComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+        self.summary = ClassifierModelSummaryComponent(explainer,  
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.precision = PrecisionComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.confusionmatrix = ConfusionMatrixComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.cumulative_precision = CumulativePrecisionComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.liftcurve = LiftCurveComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.classification = ClassificationComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.rocauc = RocAucComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.prauc = PrAucComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
 
         self.cutoffpercentile = CutoffPercentileComponent(explainer, 
-                    hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
                 [self.summary, self.precision, self.confusionmatrix, self.liftcurve, 
                  self.cumulative_precision, self.classification, self.rocauc, self.prauc])
@@ -86,38 +122,22 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                     self.cutoffpercentile.layout(),
                 ])
             ]),
-            dbc.Row([
-                dbc.Col([
-                    self.summary.layout()
-                ], md=6, align="start"),
-                dbc.Col([
-                    self.confusionmatrix.layout()
-                ], md=6, align="start"),              
-            ]),
-            dbc.Row([    
-                dbc.Col([
-                    self.precision.layout()
-                ], md=6, align="start"),
-                dbc.Col([
-                    self.classification.layout()
-                ], md=6, align="start"),
-            ]),
-            dbc.Row([    
-                dbc.Col([
-                    self.rocauc.layout()
-                ], md=6),
-                dbc.Col([
-                    self.prauc.layout()
-                ], md=6),
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    self.liftcurve.layout()         
-                ], md=6, align="start"),
-                dbc.Col([
-                    self.cumulative_precision.layout()
-                ], md=6, align="start"), 
-            ]), 
+            dbc.CardDeck([
+                self.summary.layout(),
+                self.confusionmatrix.layout(),
+            ], style=dict(marginBottom=25)),
+            dbc.CardDeck([
+                self.precision.layout(),
+                self.classification.layout()
+            ], style=dict(marginBottom=25)),
+            dbc.CardDeck([
+                self.rocauc.layout(),
+                self.prauc.layout()
+            ], style=dict(marginBottom=25)),
+            dbc.CardDeck([
+                self.liftcurve.layout(),
+                self.cumulative_precision.layout()
+            ], style=dict(marginBottom=25)),
         ])
 
 
@@ -157,8 +177,9 @@ class RegressionModelStatsComposite(ExplainerComponent):
         self.preds_vs_actual = PredictedVsActualComponent(explainer, 
                     logs=logs, **kwargs)
         self.residuals = ResidualsComponent(explainer, 
-                            pred_or_actual=pred_or_actual, residuals=residuals, **kwargs)
-        self.reg_vs_col = RegressionVsColComponent(explainer, col=col, **kwargs)
+                    pred_or_actual=pred_or_actual, residuals=residuals, **kwargs)
+        self.reg_vs_col = RegressionVsColComponent(explainer, 
+                    logs=logs, **kwargs)
 
         self.register_components()
 
@@ -169,22 +190,14 @@ class RegressionModelStatsComposite(ExplainerComponent):
                     dbc.Col([
                         html.H2('Model Performance:')]), hide=self.hide_title)
             ]),
-            dbc.Row([
-                dbc.Col([
-                    self.modelsummary.layout()     
-                ], md=6),
-                dbc.Col([
-                    self.preds_vs_actual.layout()
-                ], md=6),
-            ], align="start"),
-            dbc.Row([
-                dbc.Col([
-                    self.residuals.layout()
-                ], md=6),
-                dbc.Col([
-                    self.reg_vs_col.layout()
-                ], md=6),
-            ]),
+            dbc.CardDeck([
+                self.modelsummary.layout(),
+                self.preds_vs_actual.layout(),
+            ], style=dict(marginBottom=25)),
+            dbc.CardDeck([
+                self.residuals.layout(),
+                self.reg_vs_col.layout(),
+            ], style=dict(marginBottom=25))
         ])
 
 
@@ -214,11 +227,15 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(explainer, 
-                        hide_selector=hide_selector, **kwargs)
+                    hide_selector=hide_selector, **kwargs)
+            self.summary = ClassifierPredictionSummaryComponent(explainer, 
+                    hide_selector=hide_selector, **kwargs)
         elif self.explainer.is_regression:
-            self.index = RegressionRandomIndexComponent(explainer, **kwargs)
-        self.summary = PredictionSummaryComponent(explainer, 
-                        hide_selector=hide_selector, **kwargs)
+            self.index = RegressionRandomIndexComponent(explainer, 
+                    hide_selector=hide_selector, **kwargs)
+            self.summary = RegressionPredictionSummaryComponent(explainer, 
+                    hide_selector=hide_selector, **kwargs)
+
         self.contributions = ShapContributionsGraphComponent(explainer, 
                         hide_selector=hide_selector, **kwargs)
         self.pdp = PdpComponent(explainer, 
@@ -233,22 +250,14 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
     def layout(self):
         return dbc.Container([
-                dbc.Row([
-                    dbc.Col([
-                        self.index.layout()
-                    ], md=6),
-                    dbc.Col([
-                        self.summary.layout()
-                    ], md=6)
-                ]),
-                dbc.Row([
-                    dbc.Col([
-                        self.contributions.layout()
-                    ], md=6),
-                    dbc.Col([
-                        self.pdp.layout()
-                    ], md=6),
-                ]),
+                dbc.CardDeck([
+                    self.index.layout(),
+                    self.summary.layout()
+                ], style=dict(marginBottom=25, marginTop=25)),
+                dbc.CardDeck([
+                    self.contributions.layout(),
+                    self.pdp.layout(),
+                ], style=dict(marginBottom=25, marginTop=25)),
                 dbc.Row([
                     dbc.Col([
                         self.contributions_list.layout()
@@ -285,8 +294,8 @@ class WhatIfComposite(ExplainerComponent):
             self.index = RegressionRandomIndexComponent(explainer)
 
         self.whatif = WhatIfComponent(explainer, 
-                        hide_title=True, hide_index=True, 
-                        hide_selector=hide_selector, **kwargs)
+                        hide_selector=hide_selector, 
+                        **update_params(kwargs, hide_title=True, hide_index=True))
 
         self.index_connector = IndexConnector(self.index, [self.whatif])
 
@@ -334,29 +343,25 @@ class ShapDependenceComposite(ExplainerComponent):
         super().__init__(explainer, title, name)
         
         self.shap_summary = ShapSummaryComponent(
-                    self.explainer, 
+                    self.explainer, **update_params(kwargs,
                     hide_selector=hide_selector, 
-                    depth=depth, cats=cats, **kwargs)
+                    depth=depth, cats=cats))
         self.shap_dependence = ShapDependenceComponent(
                     self.explainer, 
-                    hide_selector=hide_selector, hide_cats=True, 
-                    cats=cats, **kwargs)
+                    hide_selector=hide_selector, cats=cats,
+                    **update_params(kwargs, hide_cats=True)
+                    )
         self.connector = ShapSummaryDependenceConnector(
                     self.shap_summary, self.shap_dependence)
         self.register_components()
 
     def layout(self):
         return dbc.Container([
-            dbc.Row([
-                dbc.Col([
-                    self.shap_summary.layout()
-                ], md=6),
-                dbc.Col([
-                    self.shap_dependence.layout()
-                ], md=6),
-                ]),
-            ],  fluid=True)
-
+            dbc.CardDeck([
+                self.shap_summary.layout(),
+                self.shap_dependence.layout()
+            ], style=dict(marginTop=25)),
+        ], fluid=True)
 
 class ShapInteractionsComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Interactions', name=None,
@@ -381,21 +386,17 @@ class ShapInteractionsComposite(ExplainerComponent):
         self.interaction_summary = InteractionSummaryComponent(explainer, 
                 hide_selector=hide_selector, depth=depth, cats=cats, **kwargs)
         self.interaction_dependence = InteractionDependenceComponent(explainer, 
-                hide_selector=hide_selector, cats=cats, hide_cats=True, **kwargs)
+                hide_selector=hide_selector, cats=cats, **update_params(kwargs, hide_cats=True))
         self.connector = InteractionSummaryDependenceConnector(
             self.interaction_summary, self.interaction_dependence)
         self.register_components()
         
     def layout(self):
         return dbc.Container([
-                dbc.Row([
-                    dbc.Col([
-                        self.interaction_summary.layout()
-                    ], md=6),
-                    dbc.Col([
-                        self.interaction_dependence.layout()
-                    ], md=6),
-                ]) 
+                dbc.CardDeck([
+                    self.interaction_summary.layout(),
+                    self.interaction_dependence.layout()
+                ], style=dict(marginTop=25))
         ], fluid=True)
 
 
@@ -404,6 +405,7 @@ class DecisionTreesComposite(ExplainerComponent):
                     hide_selector=True, **kwargs):
         """Composite of decision tree related components:
         
+        - index selector
         - individual decision trees barchart
         - decision path table
         - deciion path graph
@@ -443,25 +445,49 @@ class DecisionTreesComposite(ExplainerComponent):
         self.register_components()
         
     def layout(self):
-        return html.Div([
-            dbc.Row([
-                dbc.Col([
-                    self.index.layout(),
-                ])
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    self.trees.layout(),
-                ])
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    self.decisionpath_table.layout()
-                ])
-            ]),
-            dbc.Row([
-                dbc.Col([
-                    self.decisionpath_graph.layout()
-                ])
-            ]),
-        ])
+        if isinstance(self.explainer, XGBExplainer):
+            return html.Div([
+                dbc.Row([
+                    dbc.Col([
+                        self.index.layout(),
+                    ])
+                ], style=dict(margin=25)),
+                dbc.Row([
+                    dbc.Col([
+                        self.trees.layout(),
+                    ], md=8),
+                    dbc.Col([
+                        self.decisionpath_table.layout()
+                    ], md=4)
+                ], style=dict(margin=25)),
+                dbc.Row([
+                    dbc.Col([
+                        self.decisionpath_graph.layout()
+                    ])
+                ], style=dict(margin=25)),
+            ])
+        elif isinstance(self.explainer, RandomForestExplainer):
+            return html.Div([
+                dbc.Row([
+                    dbc.Col([
+                        self.index.layout(),
+                    ])
+                ], style=dict(margin=25)),
+                dbc.Row([
+                    dbc.Col([
+                        self.trees.layout(),
+                    ]),
+                ], style=dict(margin=25)),
+                dbc.Row([
+                    dbc.Col([
+                        self.decisionpath_table.layout() 
+                    ]),
+                ], style=dict(margin=25)),
+                dbc.Row([
+                    dbc.Col([
+                        self.decisionpath_graph.layout()
+                    ])
+                ], style=dict(margin=25)),
+            ])
+        else:
+            raise ValueError("explainer is neither a RandomForestExplainer nor an XGBExplainer!")

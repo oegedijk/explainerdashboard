@@ -22,11 +22,13 @@
 ### Classifier plots:
 - pdp: add multiclass option
 - add label percentage at cutoff to cumulative precision plot
+    - set x limits to (0, 100)
 - add wizard to lift curve
 
 ### Regression plots:
 - add linear trendlines to y/preds vs col plots:
     - https://stackoverflow.com/questions/58708230/plotly-how-to-plot-a-regression-line-using-plotly
+
 
 
 ## Explainers:
@@ -38,29 +40,28 @@
         the verbal explanation.
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
-- add explainer.is_tree_explainer
-
 
 ## notebooks:
 
 
 ## Dashboard:
+- hide whole card header with hide_title=True
 - organize explainer components according to tab
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
+    - add Youden J's calculation
 - add group fairness metrics
     - https://arxiv.org/pdf/1910.05591.pdf
     - https://cran.r-project.org/web/packages/fairmodels/vignettes/Basic_tutorial.html
     - http://manifold.mlvis.io/
         - generate groups programmatically!
 - add description param to all components
-- add a way to disable permutation importances from dashboard
 - add instruction to use .terminate when starting JupyterDash dashboard.
 - add kwargs to dashboard.to_yaml()
 
 
 ### Components
-
+- add subtitles to most components
 - rename to component_callbacks()
 - add Tooltips to whatif component
 - confusion matrix component: only show cutoff if binary==True
@@ -76,8 +77,8 @@
     - could build WhatIfComponentException for this?
 - Add side-by-side option to cutoff selector component
 - Add sliders option to what if component
-- unify ClassifierMetricsSummaryComponent and RegressionMetricsSummaryComponent 
-    to a single component
+- unify ClassifierMetricsSummaryComponent and 
+    RegressionMetricsSummaryComponent to a single component
 - add a barchart/piechart to classifier prediction summary component
 
 ## Methods:
@@ -93,6 +94,8 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add ClassifierPredictionSummaryComponent to docs
+- move classifierindexselector and regressionindexselector in docs
 - add ExplainerDashboard **kwargs to custom documentation
 - Document ClassifierRandomIndexComponent vs RegressionRandomIndexComponent
 - add regressionVsCol screenshot
@@ -116,6 +119,7 @@
 - launch gunicorn server from python:
     https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
 - Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
-- submit pull request to shap with broken test for https://github.com/slundberg/shap/issues/723
+- submit pull request to shap with broken test for 
+    https://github.com/slundberg/shap/issues/723
 - build explainerhub for hosting multiple explainerdashboard models
     - using django?

@@ -2069,6 +2069,28 @@ class ClassifierExplainer(BaseExplainer):
             return idx
         return self.idxs.get_loc(idx)
 
+    def prediction_result_df(self, index, add_star=True, logodds=False, round=3):
+        """returns a tab le with the predicted probability for each label for index
+
+        Args:
+            index ({int, str}): index
+            add_star(bool): add a star to the observed label
+            round (int): rounding to apply to pred_proba float
+
+        Returns:
+            pd.DataFrame
+        """
+        int_idx = self.get_int_idx(index)
+        preds_df =  pd.DataFrame(dict(
+            label=self.labels, 
+            probability=self.pred_probas_raw[int_idx, :]))
+        if logodds:
+            preds_df.loc[:, "logodds"] = \
+                preds_df.probability.apply(lambda p: np.log(p / (1-p)))
+        if not self.y_missing and not np.isnan(self.y[int_idx]):
+            preds_df.iloc[self.y[int_idx], 0] = f"{preds_df.iloc[self.y[int_idx], 0]}*"
+        return preds_df.round(round)
+
     def precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
                         round=3, pos_label=None):
         """dataframe with predicted probabilities and precision
@@ -2434,7 +2456,7 @@ class RegressionExplainer(BaseExplainer):
             return idx
         return self.idxs.get_loc(idx)
 
-    def prediction_result_markdown(self, index, include_percentile=True, round=2, **kwargs):
+    def prediction_result_markdown(self, index, include_percentile=True, round=2):
         """markdown of prediction result
 
         Args:
@@ -2456,6 +2478,31 @@ class RegressionExplainer(BaseExplainer):
             percentile = np.round(100*(1-self.pred_percentiles[int_idx]))
             model_prediction += f"\nIn top {percentile}% percentile predicted {self.target}"
         return model_prediction
+
+    def prediction_result_df(self, index, round=3):
+        """prediction result in dataframe format
+
+        Args:
+            index:  row index to be predicted
+            round (int):  rounding applied to floats (defaults to 3)
+
+        Returns:
+            pd.DataFrame
+
+        """
+        int_idx = self.get_int_idx(index)
+        preds_df = pd.DataFrame(columns = ["", self.target])
+        preds_df = preds_df.append(
+            pd.Series(("Predicted", str(np.round(self.preds[int_idx], round)) + f" {self.units}"), 
+                    index=preds_df.columns), ignore_index=True)
+        if not self.y_missing:
+            preds_df = preds_df.append(
+                pd.Series(("Observed", str(np.round(self.y[int_idx], round)) + f" {self.units}"), 
+                    index=preds_df.columns), ignore_index=True)
+            preds_df = preds_df.append(
+                pd.Series(("Residual", str(np.round(self.residuals[int_idx], round)) + f" {self.units}"), 
+                    index=preds_df.columns), ignore_index=True)
+        return preds_df
 
     def metrics(self):
         """dict of performance metrics: rmse, mae and R^2"""
@@ -2608,6 +2655,11 @@ class RandomForestExplainer(BaseExplainer):
 
     """
     
+    @property
+    def is_tree_explainer(self):
+        """this is either a RandomForestExplainer or XGBExplainer"""
+        return True
+
     @property
     def no_of_trees(self):
         """The number of trees in the RandomForest model"""
@@ -2818,6 +2870,12 @@ class XGBExplainer(BaseExplainer):
     """XGBExplainer allows for the analysis of individual DecisionTrees that
     make up the xgboost model.
     """
+
+    @property
+    def is_tree_explainer(self):
+        """this is either a RandomForestExplainer or XGBExplainer"""
+        return True
+
     @property
     def model_dump_list(self):
         if not hasattr(self, "_model_dump_list"):

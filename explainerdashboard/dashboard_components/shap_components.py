@@ -68,82 +68,84 @@ class ShapSummaryComponent(ExplainerComponent):
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
-        return dbc.Container([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='shap-summary-title-'+self.name),
-                    dbc.Tooltip(self.description, target='shap-summary-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([
-                        dbc.Label("Depth:", id='shap-summary-depth-label-'+self.name),
-                        dbc.Tooltip("Number of features to display", 
-                                    target='shap-summary-depth-label-'+self.name),
-                        dcc.Dropdown(id='shap-summary-depth-'+self.name,
-                            options=[{'label': str(i+1), 'value': i+1} for i in 
-                                        range(self.explainer.n_features(self.cats))],
-                            value=self.depth)
-                    ], md=2), self.hide_depth),
-                make_hideable(
-                    dbc.Col([
-                        dbc.FormGroup(
+                    html.Div([
+                        html.H3(self.title, id='shap-summary-title-'+self.name),
+                        dbc.Tooltip(self.description, target='shap-summary-title-'+self.name),
+                    ]), hide=self.hide_title),
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Depth:", id='shap-summary-depth-label-'+self.name),
+                            dbc.Tooltip("Number of features to display", 
+                                        target='shap-summary-depth-label-'+self.name),
+                            dcc.Dropdown(id='shap-summary-depth-'+self.name,
+                                options=[{'label': str(i+1), 'value': i+1} for i in 
+                                            range(self.explainer.n_features(self.cats))],
+                                value=self.depth)
+                        ], md=2), self.hide_depth),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup(
+                                [
+                                    dbc.Label("Summary Type", id='shap-summary-type-label-'+self.name),
+                                    dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
+                                                " or display every single shap value per feature (detailed)", 
+                                                target='shap-summary-type-label-'+self.name),
+                                    dbc.RadioItems(
+                                        options=[
+                                            {"label": "Aggregate", "value": "aggregate"},
+                                            {"label": "Detailed", "value": "detailed"},
+                                        ],
+                                        value=self.summary_type,
+                                        id="shap-summary-type-"+self.name,
+                                        inline=True,
+                                    ),
+                                ]
+                            )
+                        ]), self.hide_type),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:", id='shap-summary-group-cats-label-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='shap-summary-group-cats-label-'+self.name),
+                            dbc.FormGroup(
                             [
-                                dbc.Label("Summary Type", id='shap-summary-type-label-'+self.name),
-                                dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
-                                            " or display every single shap value per feature (detailed)", 
-                                            target='shap-summary-type-label-'+self.name),
-                                dbc.RadioItems(
-                                    options=[
-                                        {"label": "Aggregate", "value": "aggregate"},
-                                        {"label": "Detailed", "value": "detailed"},
-                                    ],
-                                    value=self.summary_type,
-                                    id="shap-summary-type-"+self.name,
-                                    inline=True,
-                                ),
-                            ]
-                        )
-                    ]), self.hide_type),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Grouping:", id='shap-summary-group-cats-label-'+self.name),
-                        dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                    target='shap-summary-group-cats-label-'+self.name),
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='shap-summary-group-cats-'+self.name, 
-                                className="form-check-input",
-                                checked=self.cats),
-                            dbc.Label("Group Cats",
-                                    html_for='shap-summary-group-cats-'+self.name, 
-                                    className="form-check-label"),
-                        ], check=True),
-                    ], md=3), self.hide_cats),
-                make_hideable(
-                    dbc.Col([
-                        html.Div([
-                            dbc.Label(f"{self.explainer.index_name}:", id='shap-summary-index-label-'+self.name),
-                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
-                                        "You can also select by clicking on a scatter point in the graph.", 
-                                        target='shap-summary-index-label-'+self.name),
-                            dcc.Dropdown(id='shap-summary-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index),
-                        ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
-                    ], md=3), hide=self.hide_index),  
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector)
-                ], form=True),
-
-            dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
-                    children=[dcc.Graph(id="shap-summary-graph-"+self.name,
-                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
-            
-        ], fluid=True)
+                                dbc.RadioButton(
+                                    id='shap-summary-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='shap-summary-group-cats-'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True),
+                        ], md=3), self.hide_cats),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label(f"{self.explainer.index_name}:", id='shap-summary-index-label-'+self.name),
+                                dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
+                                            "You can also select by clicking on a scatter point in the graph.", 
+                                            target='shap-summary-index-label-'+self.name),
+                                dcc.Dropdown(id='shap-summary-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index),
+                            ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
+                        ], md=3), hide=self.hide_index),  
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector)
+                    ], form=True),
+                dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
+                        children=[dcc.Graph(id="shap-summary-graph-"+self.name,
+                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            ]),
+        ])
     
     def _register_callbacks(self, app):
 
@@ -241,18 +243,21 @@ class ShapDependenceComponent(ExplainerComponent):
         self.register_dependencies('shap_values', 'shap_values_cats')
              
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='shap-dependence-title-'+self.name),
-                    dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),    
+                    html.Div([
+                        html.H3(self.title, id='shap-dependence-title-'+self.name),
+                        dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
+                    ]), hide=self.hide_title),
             ]),
-            dbc.Row([
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector),    
+                ]),
+                dbc.Row([
                     make_hideable(
                         dbc.Col([
                             dbc.Label("Grouping:", id='shap-dependence-group-cats-label-'+self.name),
@@ -302,10 +307,12 @@ class ShapDependenceComponent(ExplainerComponent):
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
                         ], md=4), hide=self.hide_index),         
-            ], form=True),
-            dcc.Loading(id="loading-dependence-graph-"+self.name, 
-                         children=[dcc.Graph(id='shap-dependence-graph-'+self.name,
-                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                ], form=True),
+                dcc.Loading(id="loading-dependence-graph-"+self.name, 
+                            children=[
+                                dcc.Graph(id='shap-dependence-graph-'+self.name,
+                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+            ]), 
         ])
 
     def _register_callbacks(self, app):
@@ -435,95 +442,99 @@ class InteractionSummaryComponent(ExplainerComponent):
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
-        return dbc.Container([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='interaction-summary-title-'+self.name),
-                    dbc.Tooltip(self.description, target='interaction-summary-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([
-                        dbc.Label("Feature", id='interaction-summary-col-label-'+self.name),
-                        dbc.Tooltip("Feature to select interactions effects for",
-                                target='interaction-summary-col-label-'+self.name),
-                        dcc.Dropdown(id='interaction-summary-col-'+self.name, 
-                            options=[{'label': col, 'value': col} 
-                                        for col in self.explainer.columns_ranked_by_shap(self.cats)],
-                            value=self.col),
-                    ], md=3), self.hide_col),
-                make_hideable(
-                    dbc.Col([
-    
-                        dbc.Label("Depth:", id='interaction-summary-depth-label-'+self.name),
-                        dbc.Tooltip("Number of interaction features to display",
-                                target='interaction-summary-depth-label-'+self.name),
-                        dcc.Dropdown(id='interaction-summary-depth-'+self.name, 
-                            options = [{'label': str(i+1), 'value':i+1} 
-                                            for i in range(self.explainer.n_features(self.cats)-1)],
-                            value=self.depth)
-                    ], md=1), self.hide_depth),
-                make_hideable(
-                    dbc.Col([
-                        dbc.FormGroup(
+                    html.Div([
+                        html.H3(self.title, id='interaction-summary-title-'+self.name),
+                        dbc.Tooltip(self.description, target='interaction-summary-title-'+self.name),
+                    ]), hide=self.hide_title),
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Feature", id='interaction-summary-col-label-'+self.name),
+                            dbc.Tooltip("Feature to select interactions effects for",
+                                    target='interaction-summary-col-label-'+self.name),
+                            dcc.Dropdown(id='interaction-summary-col-'+self.name, 
+                                options=[{'label': col, 'value': col} 
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                value=self.col),
+                        ], md=3), self.hide_col),
+                    make_hideable(
+                        dbc.Col([
+        
+                            dbc.Label("Depth:", id='interaction-summary-depth-label-'+self.name),
+                            dbc.Tooltip("Number of interaction features to display",
+                                    target='interaction-summary-depth-label-'+self.name),
+                            dcc.Dropdown(id='interaction-summary-depth-'+self.name, 
+                                options = [{'label': str(i+1), 'value':i+1} 
+                                                for i in range(self.explainer.n_features(self.cats)-1)],
+                                value=self.depth)
+                        ], md=1), self.hide_depth),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup(
+                                [
+                                    dbc.Label("Summary Type", id='interaction-summary-type-label-'+self.name),
+                                    dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
+                                                " or display every single shap value per feature (detailed)", 
+                                                target='interaction-summary-type-label-'+self.name),
+                                    dbc.RadioItems(
+                                        options=[
+                                            {"label": "Aggregate", "value": "aggregate"},
+                                            {"label": "Detailed", "value": "detailed"},
+                                        ],
+                                        value=self.summary_type,
+                                        id='interaction-summary-type-'+self.name, 
+                                        inline=True,
+                                    ),
+                                ]
+                            )
+                        ], md=3), self.hide_type),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:", id='interaction-summary-group-cats-label-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                        target='interaction-summary-group-cats-label-'+self.name),
+                            dbc.FormGroup(
                             [
-                                dbc.Label("Summary Type", id='interaction-summary-type-label-'+self.name),
-                                dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
-                                            " or display every single shap value per feature (detailed)", 
-                                            target='interaction-summary-type-label-'+self.name),
-                                dbc.RadioItems(
-                                    options=[
-                                        {"label": "Aggregate", "value": "aggregate"},
-                                        {"label": "Detailed", "value": "detailed"},
-                                    ],
-                                    value=self.summary_type,
-                                    id='interaction-summary-type-'+self.name, 
-                                    inline=True,
-                                ),
-                            ]
-                        )
-                    ], md=3), self.hide_type),
-                make_hideable(
+                                dbc.RadioButton(
+                                    id='interaction-summary-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='interaction-summary-group-cats-'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True),
+                        ],md=2), self.hide_cats),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label(f"{self.explainer.index_name}:", id='interaction-summary-index-label-'+self.name),
+                                dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
+                                            "You can also select by clicking on a scatter point in the graph.", 
+                                            target='interaction-summary-index-label-'+self.name),
+                                dcc.Dropdown(id='interaction-summary-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index),
+                            ], id='interaction-summary-index-col-'+self.name, style=dict(display="none")), 
+                        ], md=3), hide=self.hide_index),  
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector),
+                    ], form=True),
+                dbc.Row([
                     dbc.Col([
-                        dbc.Label("Grouping:", id='interaction-summary-group-cats-label-'+self.name),
-                        dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                    target='interaction-summary-group-cats-label-'+self.name),
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='interaction-summary-group-cats-'+self.name, 
-                                className="form-check-input",
-                                checked=self.cats),
-                            dbc.Label("Group Cats",
-                                    html_for='interaction-summary-group-cats-'+self.name, 
-                                    className="form-check-label"),
-                        ], check=True),
-                    ],md=2), self.hide_cats),
-                make_hideable(
-                    dbc.Col([
-                        html.Div([
-                            dbc.Label(f"{self.explainer.index_name}:", id='interaction-summary-index-label-'+self.name),
-                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
-                                        "You can also select by clicking on a scatter point in the graph.", 
-                                        target='interaction-summary-index-label-'+self.name),
-                            dcc.Dropdown(id='interaction-summary-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index),
-                        ], id='interaction-summary-index-col-'+self.name, style=dict(display="none")), 
-                    ], md=3), hide=self.hide_index),  
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
-                ], form=True),
-            dbc.Row([
-                dbc.Col([
-                    dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
-                         children=[dcc.Graph(id='interaction-summary-graph-'+self.name, 
-                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
-                ])
-            ]), 
-        ], fluid=True)
+                        dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
+                            children=[dcc.Graph(id='interaction-summary-graph-'+self.name, 
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
+                    ])
+                ]), 
+            ]),
+        ])
 
     def _register_callbacks(self, app):
         @app.callback(
@@ -627,91 +638,95 @@ class InteractionDependenceComponent(ExplainerComponent):
         self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
 
     def layout(self):
-        return dbc.Container([
-            make_hideable(
+        return dbc.Card([
+            dbc.CardHeader([
+                make_hideable(
                 html.Div([
                     html.H3(self.title, id='interaction-dependence-title-'+self.name),
                     dbc.Tooltip(self.description, target='interaction-dependence-title-'+self.name),
                 ]), hide=self.hide_title),
-            dbc.Row([
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
             ]),
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Grouping:", id='interaction-dependence-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='interaction-dependence-group-cats-label-'+self.name),
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='interaction-dependence-group-cats-'+self.name, 
-                                className="form-check-input",
-                                checked=self.cats),
-                            dbc.Label("Group Cats",
-                                    html_for='interaction-dependence-group-cats-'+self.name, 
-                                    className="form-check-label"),
-                        ], check=True, id='interaction-dependence-group-cats-form-'+self.name),
-                        dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='interaction-dependence-group-cats-form-'+self.name),
-                    ], md=2), hide=self.hide_cats),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label('Feature:', id='interaction-dependence-col-label-'+self.name),
-                            dbc.Tooltip("Select feature to display shap interactions for", 
-                                        target='interaction-dependence-col-label-'+self.name),
-                        dcc.Dropdown(id='interaction-dependence-col-'+self.name,
-                            options=[{'label': col, 'value':col} 
-                                        for col in self.explainer.columns_ranked_by_shap(self.cats)],
-                            value=self.col
-                        ),
-                    ], md=3), hide=self.hide_col), 
-                make_hideable(
-                    dbc.Col([
-                        html.Label('Interaction feature:', id='interaction-dependence-interact-col-label-'+self.name),
-                            dbc.Tooltip("Select feature to show interaction values for.  Two plots will be shown: "
-                                        "both Feature vs Interaction Feature and Interaction Feature vs Feature.", 
-                                        target='interaction-dependence-interact-col-label-'+self.name),
-                        dcc.Dropdown(id='interaction-dependence-interact-col-'+self.name, 
-                            options=[{'label': col, 'value':col} 
-                                        for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
-                            value=self.interact_col
-                        ),
-                    ], md=3), hide=self.hide_interact_col), 
-                make_hideable(
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector),
+                ]),
+                dbc.Row([
+                    make_hideable(
                         dbc.Col([
-                            dbc.Label(f"{self.explainer.index_name}:", id='interaction-dependence-index-label-'+self.name),
-                            dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in the plot."
-                                        "You can also select by clicking on a scatter marker in the accompanying"
-                                        " shap interaction summary plot (detailed).", 
-                                        target='interaction-dependence-index-label-'+self.name),
-                            dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index)
-                        ], md=4), hide=self.hide_index), 
-                ], form=True),
-        dbc.Row([
-            dbc.Col([
-                make_hideable(
-                dcc.Loading(id='loading-interaction-dependence-graph-'+self.name, 
-                         children=[dcc.Graph(id='interaction-dependence-graph-'+self.name,
-                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
-                         hide=self.hide_top),
-            ])
-        ]),
-        dbc.Row([
-            dbc.Col([
-                make_hideable(
-                dcc.Loading(id='loading-reverse-interaction-graph-'+self.name, 
-                         children=[dcc.Graph(id='interaction-dependence-reverse-graph-'+self.name,
-                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
-                         hide=self.hide_bottom),
-            ])
-        ]),
-        ], fluid=True)
+                            dbc.Label("Grouping:", id='interaction-dependence-group-cats-label-'+self.name),
+                                dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                            target='interaction-dependence-group-cats-label-'+self.name),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='interaction-dependence-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='interaction-dependence-group-cats-'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True, id='interaction-dependence-group-cats-form-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                            target='interaction-dependence-group-cats-form-'+self.name),
+                        ], md=2), hide=self.hide_cats),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label('Feature:', id='interaction-dependence-col-label-'+self.name),
+                                dbc.Tooltip("Select feature to display shap interactions for", 
+                                            target='interaction-dependence-col-label-'+self.name),
+                            dcc.Dropdown(id='interaction-dependence-col-'+self.name,
+                                options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                value=self.col
+                            ),
+                        ], md=3), hide=self.hide_col), 
+                    make_hideable(
+                        dbc.Col([
+                            html.Label('Interaction feature:', id='interaction-dependence-interact-col-label-'+self.name),
+                                dbc.Tooltip("Select feature to show interaction values for.  Two plots will be shown: "
+                                            "both Feature vs Interaction Feature and Interaction Feature vs Feature.", 
+                                            target='interaction-dependence-interact-col-label-'+self.name),
+                            dcc.Dropdown(id='interaction-dependence-interact-col-'+self.name, 
+                                options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
+                                value=self.interact_col
+                            ),
+                        ], md=3), hide=self.hide_interact_col), 
+                    make_hideable(
+                            dbc.Col([
+                                dbc.Label(f"{self.explainer.index_name}:", id='interaction-dependence-index-label-'+self.name),
+                                dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in the plot."
+                                            "You can also select by clicking on a scatter marker in the accompanying"
+                                            " shap interaction summary plot (detailed).", 
+                                            target='interaction-dependence-index-label-'+self.name),
+                                dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                            ], md=4), hide=self.hide_index), 
+                    ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        make_hideable(
+                        dcc.Loading(id='loading-interaction-dependence-graph-'+self.name, 
+                                children=[dcc.Graph(id='interaction-dependence-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                                hide=self.hide_top),
+                    ]),
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        make_hideable(
+                        dcc.Loading(id='loading-reverse-interaction-graph-'+self.name, 
+                                children=[dcc.Graph(id='interaction-dependence-reverse-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                                hide=self.hide_bottom),
+                    ]),
+                ]),
+            ]),
+        ])
 
     def _register_callbacks(self, app):
         @app.callback(
@@ -855,91 +870,92 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         self.register_dependencies('shap_values', 'shap_values_cats')
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='contributions-graph-title-'+self.name),
-                    dbc.Tooltip(self.description, target='contributions-graph-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], md=2), hide=self.hide_selector),
-            ], justify="right"),
-            dbc.Row([
-                make_hideable(
+                    html.Div([
+                        html.H3(self.title, id='contributions-graph-title-'+self.name),
+                        dbc.Tooltip(self.description, target='contributions-graph-title-'+self.name),
+                    ]), hide=self.hide_title),
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], md=2), hide=self.hide_selector),
+                ], justify="right"),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label(f"{self.explainer.index_name}:", id='contributions-graph-index-label-'+self.name),
+                            dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
+                                        target='contributions-graph-index-label-'+self.name),
+                            dcc.Dropdown(id='contributions-graph-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=None)
+                        ], md=4), hide=self.hide_index), 
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Depth:", id='contributions-graph-depth-label-'+self.name),
+                            dbc.Tooltip("Number of features to display",
+                                    target='contributions-graph-depth-label-'+self.name),
+                            dcc.Dropdown(id='contributions-graph-depth-'+self.name, 
+                                options = [{'label': str(i+1), 'value':i+1} 
+                                                for i in range(self.explainer.n_features(self.cats))],
+                                value=self.depth)
+                        ], md=2), hide=self.hide_depth),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Sorting:", id='contributions-graph-sorting-label-'+self.name),
+                            dbc.Tooltip("Sort the features either by highest absolute (positive or negative) impact (absolute), "
+                                        "from most positive the most negative (high-to-low)"
+                                        "from most negative to most positive (low-to-high or "
+                                        "according the global feature importance ordering (importance).",
+                                    target='contributions-graph-sorting-label-'+self.name),
+                            dcc.Dropdown(id='contributions-graph-sorting-'+self.name, 
+                                options = [{'label': 'Absolute', 'value': 'abs'},
+                                            {'label': 'High to Low', 'value': 'high-to-low'},
+                                            {'label': 'Low to High', 'value': 'low-to-high'},
+                                            {'label': 'Importance', 'value': 'importance'}],
+                                value=self.sort)
+                        ], md=2), hide=self.hide_sort),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Orientation:", id='contributions-graph-orientation-label-'+self.name),
+                            dbc.Tooltip("Show vertical bars left to right or horizontal bars from top to bottom",
+                                    target='contributions-graph-orientation-label-'+self.name),
+                            dcc.Dropdown(id='contributions-graph-orientation-'+self.name, 
+                                options = [{'label': 'Vertical', 'value': 'vertical'},
+                                            {'label': 'Horizontal', 'value': 'horizontal'}],
+                                value=self.orientation)
+                        ], md=2), hide=self.hide_orientation),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:", id='contributions-graph-group-cats-label-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                            target='contributions-graph-group-cats-label-'+self.name),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='contributions-graph-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='contributions-graph-group-cats-'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True),
+                        ], md=2), hide=self.hide_cats),
+                    ], form=True),
+                    
+                dbc.Row([
                     dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:", id='contributions-graph-index-label-'+self.name),
-                        dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
-                                    target='contributions-graph-index-label-'+self.name),
-                        dcc.Dropdown(id='contributions-graph-index-'+self.name, 
-                            options = [{'label': str(idx), 'value':idx} 
-                                            for idx in self.explainer.idxs],
-                            value=None)
-                    ], md=4), hide=self.hide_index), 
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Depth:", id='contributions-graph-depth-label-'+self.name),
-                        dbc.Tooltip("Number of features to display",
-                                target='contributions-graph-depth-label-'+self.name),
-                        dcc.Dropdown(id='contributions-graph-depth-'+self.name, 
-                            options = [{'label': str(i+1), 'value':i+1} 
-                                            for i in range(self.explainer.n_features(self.cats))],
-                            value=self.depth)
-                    ], md=2), hide=self.hide_depth),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Sorting:", id='contributions-graph-sorting-label-'+self.name),
-                        dbc.Tooltip("Sort the features either by highest absolute (positive or negative) impact (absolute), "
-                                    "from most positive the most negative (high-to-low)"
-                                    "from most negative to most positive (low-to-high or "
-                                    "according the global feature importance ordering (importance).",
-                                target='contributions-graph-sorting-label-'+self.name),
-                        dcc.Dropdown(id='contributions-graph-sorting-'+self.name, 
-                            options = [{'label': 'Absolute', 'value': 'abs'},
-                                        {'label': 'High to Low', 'value': 'high-to-low'},
-                                        {'label': 'Low to High', 'value': 'low-to-high'},
-                                        {'label': 'Importance', 'value': 'importance'}],
-                            value=self.sort)
-                    ], md=2), hide=self.hide_sort),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Orientation:", id='contributions-graph-orientation-label-'+self.name),
-                        dbc.Tooltip("Show vertical bars left to right or horizontal bars from top to bottom",
-                                target='contributions-graph-orientation-label-'+self.name),
-                        dcc.Dropdown(id='contributions-graph-orientation-'+self.name, 
-                            options = [{'label': 'Vertical', 'value': 'vertical'},
-                                        {'label': 'Horizontal', 'value': 'horizontal'}],
-                            value=self.orientation)
-                    ], md=2), hide=self.hide_orientation),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Grouping:", id='contributions-graph-group-cats-label-'+self.name),
-                        dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='contributions-graph-group-cats-label-'+self.name),
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='contributions-graph-group-cats-'+self.name, 
-                                className="form-check-input",
-                                checked=self.cats),
-                            dbc.Label("Group Cats",
-                                    html_for='contributions-graph-group-cats-'+self.name, 
-                                    className="form-check-label"),
-                        ], check=True),
-                    ], md=2), hide=self.hide_cats),
-                ], form=True),
-                
-            dbc.Row([
-                dbc.Col([
-                    dcc.Loading(id='loading-contributions-graph-'+self.name, 
-                        children=[dcc.Graph(id='contributions-graph-'+self.name,
-                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                        dcc.Loading(id='loading-contributions-graph-'+self.name, 
+                            children=[dcc.Graph(id='contributions-graph-'+self.name,
+                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                    ]),
                 ]),
             ]),
-            dbc.Row([
-                
-                ], form=True),
         ])
         
     def _register_callbacks(self, app):
@@ -1019,72 +1035,76 @@ class ShapContributionsTableComponent(ExplainerComponent):
         self.register_dependencies('shap_values', 'shap_values_cats')
 
     def layout(self):
-        return html.Div([
-            make_hideable(
-                html.Div([
-                    html.H3(self.title, id='contributions-table-title-'+self.name),
-                    dbc.Tooltip(self.description, target='contributions-table-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.Row([
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
-                    dbc.Col([
-                        dbc.Label(f"{self.explainer.index_name}:", id='contributions-table-index-label-'+self.name),
-                        dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
-                                    target='contributions-table-index-label-'+self.name),
-                        dcc.Dropdown(id='contributions-table-index-'+self.name, 
-                            options = [{'label': str(idx), 'value':idx} 
-                                            for idx in self.explainer.idxs],
-                            value=None)
-                    ], md=4), hide=self.hide_index), 
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Depth:", id='contributions-table-depth-label-'+self.name),
-                        dbc.Tooltip("Number of features to display",
-                                target='contributions-table-depth-label-'+self.name),
-                        dcc.Dropdown(id='contributions-table-depth-'+self.name, 
-                            options = [{'label': str(i+1), 'value':i+1} 
-                                            for i in range(self.explainer.n_features(self.cats))],
-                            value=self.depth)
-                    ], md=2), hide=self.hide_depth),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Sorting:", id='contributions-table-sorting-label-'+self.name),
-                        dbc.Tooltip("Sort the features either by highest absolute (positive or negative) impact (absolute), "
-                                    "from most positive the most negative (high-to-low)"
-                                    "from most negative to most positive (low-to-high or "
-                                    "according the global feature importance ordering (importance).",
-                                target='contributions-table-sorting-label-'+self.name),
-                        dcc.Dropdown(id='contributions-table-sorting-'+self.name, 
-                            options = [{'label': 'Absolute', 'value': 'abs'},
-                                        {'label': 'High to Low', 'value': 'high-to-low'},
-                                        {'label': 'Low to High', 'value': 'low-to-high'}],
-                            value=self.sort)
-                    ], md=2), hide=self.hide_sort),
-                make_hideable(
-                        dbc.Col([self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
-                make_hideable(
-                    dbc.Col([
-                        dbc.Label("Grouping:", id='contributions-table-group-cats-label-'+self.name),
-                        dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='contributions-table-group-cats-label-'+self.name),
-                        dbc.FormGroup(
-                        [
-                            dbc.RadioButton(
-                                id='contributions-table-group-cats-'+self.name, 
-                                className="form-check-input",
-                                checked=self.cats),
-                            dbc.Label("Group Cats",
-                                    html_for='contributions-table-group-cats-'+self.name, 
-                                    className="form-check-label"),
-                        ], check=True),
-                    ], md=3), hide=self.hide_cats),
-            ], form=True),
-            dbc.Row([
-                dbc.Col([
-                    html.Div(id='contributions-table-'+self.name)
-                ]),
+                    html.Div([
+                        html.H3(self.title, id='contributions-table-title-'+self.name),
+                        dbc.Tooltip(self.description, target='contributions-table-title-'+self.name),
+                    ]), hide=self.hide_title),
             ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label(f"{self.explainer.index_name}:", id='contributions-table-index-label-'+self.name),
+                            dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
+                                        target='contributions-table-index-label-'+self.name),
+                            dcc.Dropdown(id='contributions-table-index-'+self.name, 
+                                options = [{'label': str(idx), 'value':idx} 
+                                                for idx in self.explainer.idxs],
+                                value=None)
+                        ], md=4), hide=self.hide_index), 
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Depth:", id='contributions-table-depth-label-'+self.name),
+                            dbc.Tooltip("Number of features to display",
+                                    target='contributions-table-depth-label-'+self.name),
+                            dcc.Dropdown(id='contributions-table-depth-'+self.name, 
+                                options = [{'label': str(i+1), 'value':i+1} 
+                                                for i in range(self.explainer.n_features(self.cats))],
+                                value=self.depth)
+                        ], md=2), hide=self.hide_depth),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Sorting:", id='contributions-table-sorting-label-'+self.name),
+                            dbc.Tooltip("Sort the features either by highest absolute (positive or negative) impact (absolute), "
+                                        "from most positive the most negative (high-to-low)"
+                                        "from most negative to most positive (low-to-high or "
+                                        "according the global feature importance ordering (importance).",
+                                    target='contributions-table-sorting-label-'+self.name),
+                            dcc.Dropdown(id='contributions-table-sorting-'+self.name, 
+                                options = [{'label': 'Absolute', 'value': 'abs'},
+                                            {'label': 'High to Low', 'value': 'high-to-low'},
+                                            {'label': 'Low to High', 'value': 'low-to-high'}],
+                                value=self.sort)
+                        ], md=2), hide=self.hide_sort),
+                    make_hideable(
+                            dbc.Col([self.selector.layout()
+                        ], width=2), hide=self.hide_selector),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label("Grouping:", id='contributions-table-group-cats-label-'+self.name),
+                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                            target='contributions-table-group-cats-label-'+self.name),
+                            dbc.FormGroup(
+                            [
+                                dbc.RadioButton(
+                                    id='contributions-table-group-cats-'+self.name, 
+                                    className="form-check-input",
+                                    checked=self.cats),
+                                dbc.Label("Group Cats",
+                                        html_for='contributions-table-group-cats-'+self.name, 
+                                        className="form-check-label"),
+                            ], check=True),
+                        ], md=3), hide=self.hide_cats),
+                ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div(id='contributions-table-'+self.name)
+                    ]),
+                ]),
+            ]),   
         ])
         
     def _register_callbacks(self, app):
