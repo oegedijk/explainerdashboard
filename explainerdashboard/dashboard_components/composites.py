@@ -291,13 +291,19 @@ class WhatIfComposite(ExplainerComponent):
             self.index = ClassifierRandomIndexComponent(explainer, 
                         hide_selector=hide_selector, **kwargs)
         elif self.explainer.is_regression:
-            self.index = RegressionRandomIndexComponent(explainer)
+            self.index = RegressionRandomIndexComponent(explainer, **kwargs)
 
-        self.whatif = WhatIfComponent(explainer, 
+        self.input = FeatureInputComponent(explainer, 
                         hide_selector=hide_selector, 
-                        **update_params(kwargs, hide_title=True, hide_index=True))
+                        **update_params(kwargs, hide_index=True))
+        
+        self.contrib = ShapContributionsGraphComponent2(explainer, 
+                        feature_input_component=self.input,
+                        hide_selector=hide_selector, **kwargs)
+        self.pdp = PdpComponent2(explainer, feature_input_component=self.input,
+                        hide_selector=hide_selector, **kwargs)
 
-        self.index_connector = IndexConnector(self.index, [self.whatif])
+        self.index_connector = IndexConnector(self.index, [self.input])
 
         self.register_components()
 
@@ -306,19 +312,20 @@ class WhatIfComposite(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            html.H1("What if...")
+                            html.H1(self.title)
                         ]), hide=self.hide_title),
                 ]),
                 dbc.Row([
                     dbc.Col([
                         self.index.layout()
                     ]),
-                ]),
+                ], style=dict(marginBottom=15, marginTop=15)),
                 dbc.Row([
                     dbc.Col([
-                        self.whatif.layout()
+                        self.input.layout()
                     ]),
-                ]),
+                ], style=dict(marginBottom=15, marginTop=15)),
+                dbc.CardDeck([self.contrib.layout(), self.pdp.layout()])
         ], fluid=True)
 
 

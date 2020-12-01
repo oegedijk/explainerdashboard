@@ -61,6 +61,8 @@
 
 
 ### Components
+- add n_columns option to FeatureInputComponent
+- add width/height to components
 - add subtitles to most components
 - rename to component_callbacks()
 - add Tooltips to whatif component

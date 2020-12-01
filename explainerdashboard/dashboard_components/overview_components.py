@@ -1,6 +1,7 @@
 __all__ = [
     'PredictionSummaryComponent',
     'ImportancesComponent',
+    'FeatureInputComponent',
     'PdpComponent',
     'WhatIfComponent',
 ]
@@ -249,6 +250,7 @@ class PdpComponent(ExplainerComponent):
                     hide_title=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False,
+                    feature_input_component=None,
                     pos_label=None, col=None, index=None, cats=True,
                     dropna=True, sample=100, gridlines=50, gridpoints=10, **kwargs):
         """Show Partial Dependence Plot component
@@ -270,6 +272,9 @@ class PdpComponent(ExplainerComponent):
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
             hide_gridpoints (bool, optional): Hide gridpounts input. Defaults to False.
+            feature_input_component (FeatureInputComponent): A FeatureInputComponent
+                that will give the input to the graph instead of the index selector.
+                If not None, hide_index=True. Defaults to None.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             col (str, optional): Feature to display PDP for. Defaults to None.
@@ -289,6 +294,10 @@ class PdpComponent(ExplainerComponent):
 
         if not self.explainer.cats:
             self.hide_cats = True
+            
+        if self.feature_input_component is not None:
+            self.hide_index = True
+            
         self.description = f"""
         The partial dependence plot (pdp) show how the model prediction would
         change if you change one particular feature. The plot shows you a sample
@@ -410,21 +419,7 @@ class PdpComponent(ExplainerComponent):
         ])
                 
     def _register_callbacks(self, app):
-        @app.callback(
-            Output('pdp-graph-'+self.name, 'figure'),
-            [Input('pdp-index-'+self.name, 'value'),
-             Input('pdp-col-'+self.name, 'value'),
-             Input('pdp-dropna-'+self.name, 'checked'),
-             Input('pdp-sample-'+self.name, 'value'),
-             Input('pdp-gridlines-'+self.name, 'value'),
-             Input('pdp-gridpoints-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')]
-        )
-        def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, pos_label):
-            return self.explainer.plot_pdp(col, index, 
-                drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
-                pos_label=pos_label)
-
+        
         @app.callback(
             Output('pdp-col-'+self.name, 'options'),
             [Input('pdp-group-cats-'+self.name, 'checked')],
@@ -434,6 +429,136 @@ class PdpComponent(ExplainerComponent):
             col_options = [{'label': col, 'value':col} 
                                 for col in self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)]
             return col_options
+        
+        if self.feature_input_component is None:
+            @app.callback(
+                Output('pdp-graph-'+self.name, 'figure'),
+                [Input('pdp-index-'+self.name, 'value'),
+                 Input('pdp-col-'+self.name, 'value'),
+                 Input('pdp-dropna-'+self.name, 'checked'),
+                 Input('pdp-sample-'+self.name, 'value'),
+                 Input('pdp-gridlines-'+self.name, 'value'),
+                 Input('pdp-gridpoints-'+self.name, 'value'),
+                 Input('pos-label-'+self.name, 'value')]
+            )
+            def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, pos_label):
+                return self.explainer.plot_pdp(col, index, 
+                    drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
+                    pos_label=pos_label)
+        else:
+            @app.callback(
+                Output('pdp-graph-'+self.name, 'figure'),
+                [Input('pdp-col-'+self.name, 'value'),
+                 Input('pdp-dropna-'+self.name, 'checked'),
+                 Input('pdp-sample-'+self.name, 'value'),
+                 Input('pdp-gridlines-'+self.name, 'value'),
+                 Input('pdp-gridpoints-'+self.name, 'value'),
+                 Input('pos-label-'+self.name, 'value'),
+                 *self.feature_input_component._feature_callback_inputs]
+            )
+            def update_pdp_graph(col, drop_na, sample, gridlines, gridpoints, pos_label, *inputs):
+                X_row = pd.DataFrame(dict(zip(self.feature_input_component._input_features, inputs)), 
+                                     index=[0]).fillna(0)
+                return self.explainer.plot_pdp(col, X_row=X_row,
+                    drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
+                    pos_label=pos_label)
+
+
+class FeatureInputComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Feature Input", name=None,
+                    hide_title=False, hide_index=False, 
+                    index=None, **kwargs):
+        """Interaction Dependence Component.
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "What if...".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title
+            hide_index (bool, optional): hide the index selector
+            index (str, int, optional): default index
+            
+        """
+        super().__init__(explainer, title, name)
+
+        assert len(explainer.columns) == len(set(explainer.columns)), \
+            "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
+            
+        self.index_name = 'feature-input-index-'+self.name
+        
+        self._input_features = self.explainer.columns_cats
+        self._feature_inputs = [
+            self._generate_dash_input(
+                feature, self.explainer.cats, self.explainer.cats_dict) 
+                                for feature in self._input_features]
+        self._feature_callback_inputs = [Input('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
+        self._feature_callback_outputs = [Output('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features] 
+        self.description = """Adjust the input values to see predictions for what if scenarios."""
+        
+    def _generate_dash_input(self, col, cats, cats_dict):
+        if col in cats:
+            col_values = [
+                col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
+                    for col_val in cats_dict[col]]
+            return html.Div([
+                html.P(col),
+                dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
+                             options=[dict(label=col_val, value=col_val) for col_val in col_values],
+                             clearable=False)
+            ])
+        else:
+            return  html.Div([
+                        html.P(col),
+                        dbc.Input(id='feature-input-'+col+'-input-'+self.name, type="number"),
+                    ])
+        
+    def layout(self):
+        return dbc.Card([
+            dbc.CardHeader([
+                make_hideable(
+                    html.Div([
+                        html.H3(self.title, id='feature-input-title-'+self.name),
+                        dbc.Tooltip(self.description, target='feature-input-title-'+self.name),
+                    ]), hide=self.hide_title),
+            ]),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                            dbc.Col([
+                                dbc.Label(f"{self.explainer.index_name}:"),
+                                dcc.Dropdown(id='feature-input-index-'+self.name, 
+                                    options = [{'label': str(idx), 'value':idx} 
+                                                    for idx in self.explainer.idxs],
+                                    value=self.index)
+                            ], md=4), hide=self.hide_index), 
+                    ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        *self._feature_inputs[:int((len(self._feature_inputs) + 1)/2)]
+                    ]),
+                    dbc.Col([
+                        *self._feature_inputs[int((len(self._feature_inputs) + 1)/2):]
+                    ]),
+                ]),
+            ])
+        ])
+
+    def _register_callbacks(self, app):
+        
+        @app.callback(
+            [*self._feature_callback_outputs],
+            [Input('feature-input-index-'+self.name, 'value')]
+        )
+        def update_whatif_inputs(index):
+            idx = self.explainer.get_int_idx(index)
+            if idx is None:
+                raise PreventUpdate
+            feature_values = self.explainer.X_cats.iloc[[idx]].values[0].tolist()
+            return feature_values
 
 
 class WhatIfComponent(ExplainerComponent):
