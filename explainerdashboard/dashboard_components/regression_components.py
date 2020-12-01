@@ -297,7 +297,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             ]),  
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('random-index-reg-pred-slider-div-'+self.name, 'style'),
              Output('random-index-reg-y-slider-div-'+self.name, 'style')],
@@ -441,7 +441,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('reg-prediction-div-'+self.name, 'children'),
             [Input('reg-prediction-index-'+self.name, 'value')])
@@ -542,7 +542,7 @@ class PredictedVsActualComponent(ExplainerComponent):
             ]), 
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('pred-vs-actual-graph-'+self.name, 'figure'),
             [Input('pred-vs-actual-logx-'+self.name, 'checked'),

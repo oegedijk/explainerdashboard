@@ -114,7 +114,7 @@ class DecisionTreesComponent(ExplainerComponent):
             ])   
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output("decisiontrees-graph-"+self.name, 'figure'),
             [Input('decisiontrees-index-'+self.name, 'value'),
@@ -221,7 +221,7 @@ class DecisionPathTableComponent(ExplainerComponent):
             ]),
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output("decisionpath-table-"+self.name, 'children'),
             [Input('decisionpath-table-index-'+self.name, 'value'),
@@ -328,7 +328,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
             ]),   
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output("decisionpath-svg-"+self.name, 'src'),
             [Input('decisionpath-button-'+self.name, 'n_clicks')],

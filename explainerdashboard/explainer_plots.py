@@ -547,7 +547,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
     fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                    y=lift_curve_df['precision_' +str(pos_label)].values, 
                                    fill='tozeroy', 
-                                   name=labels[pos_label]+"(positive label)",
+                                   name=labels[pos_label],
                                    text=text,
                                    hoverinfo="text")) 
 
@@ -582,7 +582,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
                                  x=0.5, 
                                  font=dict(size=18)),
                      yaxis=dict(title='Cumulative precision per category'),
-                     xaxis=dict(title='Top X% model scores', spikemode="across"),
+                     xaxis=dict(title='Top X% model scores', spikemode="across", range=[0, 100]),
                      hovermode="x",
                      plot_bgcolor = '#fff')
 

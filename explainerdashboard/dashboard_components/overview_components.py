@@ -92,7 +92,7 @@ class PredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('modelprediction-'+self.name, 'children'),
             [Input('modelprediction-index-'+self.name, 'value'),
@@ -230,7 +230,7 @@ class ImportancesComponent(ExplainerComponent):
             ])         
         ])
         
-    def _register_callbacks(self, app, **kwargs):
+    def component_callbacks(self, app, **kwargs):
         @app.callback(  
             Output('importances-graph-'+self.name, 'figure'),
             [Input('importances-depth-'+self.name, 'value'),
@@ -418,7 +418,7 @@ class PdpComponent(ExplainerComponent):
                 ]),
         ])
                 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         
         @app.callback(
             Output('pdp-col-'+self.name, 'options'),
@@ -546,7 +546,7 @@ class FeatureInputComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         
         @app.callback(
             [*self._feature_callback_outputs],
@@ -683,7 +683,7 @@ class WhatIfComponent(ExplainerComponent):
             ])
         ])
 
-    def _register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('whatif-contrib-graph-'+self.name, 'figure'),
              Output('whatif-pdp-graph-'+self.name, 'figure')],

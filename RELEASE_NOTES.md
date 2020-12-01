@@ -6,6 +6,8 @@
 (i.e. inline, external or jupyterlab) dashboard: ExplainerDashboard.terminate(port=8050)
     - but now also works as a classmethod, so don't have to instantiate an 
         actual dashboard just to terminate one!
+- ExplainerComponent `_register_components` has been renamed to `component_callbacks`
+    to avoid the confusing underscore
 
 ### New Features
 - new: `ClassifierPredictionSummaryComponent`,`RegressionPredictionSummaryComponent`
@@ -337,7 +339,7 @@ Version 0.2.6:
     that they are now fully self-containted and independent. No global dash
     elements in component callbacks. 
 - You can define the layout of ExplainerComponents in a layout() method instead
-    of _layout(). Should still define _register_callbacks() to define callbacks
+    of _layout(). Should still define component_callbacks() to define callbacks
     so that all subcomponents that have been registered will automatically
     get their callbacks registered as well. 
 - Added regression `self.units` to prediction summary, shap plots, 
