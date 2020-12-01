@@ -475,6 +475,24 @@ class BaseExplainer(ABC):
             return [k for k, v in self.cats_dict.items() if col in v][0]
         return None
 
+    def get_row_from_input(self, *inputs):
+        """returns a single row pd.DataFrame from a given list of inputs"""
+        if len(inputs)==1 and isinstance(inputs[0], list):
+            inputs = inputs[0]
+        elif len(inputs)==1 and isinstance(inputs[0], tuple):
+            inputs = list(inputs[0])
+        else:
+            inputs = list(inputs)
+        if len(inputs) == len(self.columns_cats):
+            return pd.DataFrame(dict(zip(self.columns_cats, inputs)), index=[0]).fillna(self.na_fill)
+        elif len(inputs) == len(self.columns):
+            return pd.DataFrame(dict(zip(self.columns, inputs)), index=[0]).fillna(self.na_fill)
+        else:
+            raise ValueError(f"len inputs {len(inputs)} should be the same length as either "
+                f"explainer.columns_cats ({len(self.columns_cats)}) or "
+                f"explainer.columns ({len(self.columns)})!")
+
+
     def description(self, col):
         """returns the written out description of what feature col means
 

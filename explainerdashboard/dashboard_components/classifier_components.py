@@ -105,13 +105,11 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
     def layout(self):
         return dbc.Card([
             dbc.CardHeader([
-                dbc.Row([
-                    make_hideable(
-                        html.Div([
-                            html.H3(f"Select {self.explainer.index_name}", id='random-index-clas-title-'+self.name),
-                            dbc.Tooltip(self.description, target='random-index-clas-title-'+self.name),
-                        ]), hide=self.hide_title),
-                ]),
+                make_hideable(
+                    html.Div([
+                        html.H3(f"Select {self.explainer.index_name}", id='random-index-clas-title-'+self.name),
+                        dbc.Tooltip(self.description, target='random-index-clas-title-'+self.name),
+                    ]), hide=self.hide_title),
             ]),
             dbc.CardBody([
                 dbc.Row([
@@ -235,7 +233,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
 
 class ClassifierPredictionSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Prediction Summary", name=None,
+    def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False, hide_table=False, 
                     hide_piechart=False, hide_selector=False,
                     pos_label=None, index=None,  round=3, **kwargs):
@@ -272,7 +270,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             dbc.CardHeader([
                 make_hideable(
                     html.Div([
-                        html.H3("Predictions summary:", className='card-title'),
+                        html.H3(self.title, className='card-title'),
                         #html.H6("What was the prediction?", className="card-subtitle") ,
                     ]), hide=self.hide_title), 
             ]),
@@ -291,27 +289,42 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                         ], width=3), hide=self.hide_selector),  
                 ]),
                 dbc.Row([
-                    dbc.Col([
-                        html.Div(id='clas-prediction-div-'+self.name)
-                    ])
-                ])
+                    make_hideable(
+                        dbc.Col([
+                            html.Div(id='clas-prediction-div-'+self.name), 
+                            html.Div("* indicates observed label") if not self.explainer.y_missing else None
+                        ]), hide=self.hide_table),
+                    make_hideable(
+                        dbc.Col([
+                            dcc.Graph(id='clas-prediction-graph-'+self.name)
+                        ]), hide=self.hide_piechart),
+                ]),
             ])
         ])
 
     def _register_callbacks(self, app):
         @app.callback(
-            Output('clas-prediction-div-'+self.name, 'children'),
+            [Output('clas-prediction-div-'+self.name, 'children'),
+             Output('clas-prediction-graph-'+self.name, 'figure')],
             [Input('clas-prediction-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_output_div(index, pos_label):
             if index is not None:
-                preds_df = self.explainer.prediction_result_df(index, self.round, logodds = True)
-                fig = go.Figure(
-                    data=[go.Pie(labels=preds_df.label.values, values=preds_df.probability.values)],
-                    layout=dict(autosize=False, height=250, margin=dict(l=10, r=10, b=10, t=20, pad=4))
+                preds_df = self.explainer.prediction_result_df(index, self.round, logodds=True)
+                preds_piechart = go.Figure(
+                    data=[go.Pie(
+                        labels=preds_df.label.values, 
+                        values=preds_df.probability.values, 
+                        hole=0.3,
+                        sort=False)],
+                    layout=dict(
+                        autosize=False, width=250, height=250, 
+                        margin=dict(l=10, r=10, b=10, t=20, pad=4),
+                        showlegend=False)
                 )
                 
-                preds_df.probability = np.round(preds_df.probability.values, self.round).astype(str)
+                preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
+                preds_df.probability = preds_df.probability + ' %'
                 preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
                 
                 if self.explainer.model_output!='logodds':
@@ -319,19 +332,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                     
                 preds_table = dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False)  
                 
-                return html.Div([
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
-                                preds_table, 
-                                html.Div("* indicates observed label") if not self.explainer.y_missing else None
-                            ]), hide=self.hide_table),
-                        make_hideable(
-                            dbc.Col([
-                                dcc.Graph(figure=fig)
-                            ]), hide=self.hide_piechart),
-                    ])
-                ])
+                return preds_table, preds_piechart
             
             raise PreventUpdate
 

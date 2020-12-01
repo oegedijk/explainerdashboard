@@ -457,8 +457,7 @@ class PdpComponent(ExplainerComponent):
                  *self.feature_input_component._feature_callback_inputs]
             )
             def update_pdp_graph(col, drop_na, sample, gridlines, gridpoints, pos_label, *inputs):
-                X_row = pd.DataFrame(dict(zip(self.feature_input_component._input_features, inputs)), 
-                                     index=[0]).fillna(0)
+                X_row = self.explainer.get_row_from_input(inputs)
                 return self.explainer.plot_pdp(col, X_row=X_row,
                     drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
                     pos_label=pos_label)
