@@ -815,7 +815,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Plot", name=None,
                     hide_title=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=True, hide_cats=False, 
-                    hide_selector=False,
+                    hide_selector=False, feature_input_component=None,
                     pos_label=None, index=None, depth=None, sort='high-to-low', 
                     orientation='vertical', cats=True, higher_is_better=True, **kwargs):
         """Display Shap contributions to prediction graph component
@@ -836,6 +836,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     Defaults to True.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            feature_input_component (FeatureInputComponent): A FeatureInputComponent
+                that will give the input to the graph instead of the index selector.
+                If not None, hide_index=True. Defaults to None.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
@@ -857,6 +860,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
         if not self.explainer.cats:
             self.hide_cats = True
+        
+        if self.feature_input_component is not None:
+            self.hide_index = True
 
         self.description = """
         This plot shows the contribution that each individual feature has had
@@ -959,31 +965,58 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         ])
         
     def _register_callbacks(self, app):
-        @app.callback(
-            [Output('contributions-graph-'+self.name, 'figure'),
-             Output('contributions-graph-depth-'+self.name, 'options')],
-            [Input('contributions-graph-index-'+self.name, 'value'),
-             Input('contributions-graph-depth-'+self.name, 'value'),
-             Input('contributions-graph-sorting-'+self.name, 'value'),
-             Input('contributions-graph-orientation-'+self.name, 'value'),
-             Input('contributions-graph-group-cats-'+self.name, 'checked'),
-             Input('pos-label-'+self.name, 'value')])
-        def update_output_div(index, depth, sort, orientation, cats, pos_label):
-            if index is None:
-                raise PreventUpdate
+        
+        if self.feature_input_component is None:
+            @app.callback(
+                [Output('contributions-graph-'+self.name, 'figure'),
+                 Output('contributions-graph-depth-'+self.name, 'options')],
+                [Input('contributions-graph-index-'+self.name, 'value'),
+                 Input('contributions-graph-depth-'+self.name, 'value'),
+                 Input('contributions-graph-sorting-'+self.name, 'value'),
+                 Input('contributions-graph-orientation-'+self.name, 'value'),
+                 Input('contributions-graph-group-cats-'+self.name, 'checked'),
+                 Input('pos-label-'+self.name, 'value')])
+            def update_output_div(index, depth, sort, orientation, cats, pos_label):
+                if index is None:
+                    raise PreventUpdate
 
-            plot = self.explainer.plot_shap_contributions(index, topx=depth, 
-                        cats=cats, sort=sort, orientation=orientation, 
-                        pos_label=pos_label, higher_is_better=self.higher_is_better)
-            
-            ctx = dash.callback_context
-            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-            if trigger == 'contributions-graph-group-cats-'+self.name:
-                depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(self.explainer.n_features(cats))]
-                return (plot, depth_options)
-            else:
-                return (plot, dash.no_update)
+                plot = self.explainer.plot_shap_contributions(index, topx=depth, 
+                            cats=cats, sort=sort, orientation=orientation, 
+                            pos_label=pos_label, higher_is_better=self.higher_is_better)
+
+                ctx = dash.callback_context
+                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+                if trigger == 'contributions-graph-group-cats-'+self.name:
+                    depth_options = [{'label': str(i+1), 'value': i+1} 
+                                            for i in range(self.explainer.n_features(cats))]
+                    return (plot, depth_options)
+                else:
+                    return (plot, dash.no_update)
+        else:
+            @app.callback(
+                [Output('contributions-graph-'+self.name, 'figure'),
+                 Output('contributions-graph-depth-'+self.name, 'options')],
+                [Input('contributions-graph-depth-'+self.name, 'value'),
+                 Input('contributions-graph-sorting-'+self.name, 'value'),
+                 Input('contributions-graph-orientation-'+self.name, 'value'),
+                 Input('contributions-graph-group-cats-'+self.name, 'checked'),
+                 Input('pos-label-'+self.name, 'value'),
+                 *self.feature_input_component._feature_callback_inputs])
+            def update_output_div(depth, sort, orientation, cats, pos_label, *inputs):
+                X_row = pd.DataFrame(dict(zip(self.feature_input_component._input_features, inputs)), 
+                                     index=[0]).fillna(0)
+                plot = self.explainer.plot_shap_contributions(X_row=X_row, 
+                            topx=depth, cats=cats, sort=sort, orientation=orientation, 
+                            pos_label=pos_label, higher_is_better=self.higher_is_better)
+
+                ctx = dash.callback_context
+                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+                if trigger == 'contributions-graph-group-cats-'+self.name:
+                    depth_options = [{'label': str(i+1), 'value': i+1} 
+                                            for i in range(self.explainer.n_features(cats))]
+                    return (plot, depth_options)
+                else:
+                    return (plot, dash.no_update)
 
 
 class ShapContributionsTableComponent(ExplainerComponent):
