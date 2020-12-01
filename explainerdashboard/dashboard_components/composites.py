@@ -121,7 +121,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                 dbc.Col([
                     self.cutoffpercentile.layout(),
                 ])
-            ]),
+            ], style=dict(marginBottom=25)),
             dbc.CardDeck([
                 self.summary.layout(),
                 self.confusionmatrix.layout(),
@@ -297,10 +297,10 @@ class WhatIfComposite(ExplainerComponent):
                         hide_selector=hide_selector, 
                         **update_params(kwargs, hide_index=True))
         
-        self.contrib = ShapContributionsGraphComponent2(explainer, 
+        self.contrib = ShapContributionsGraphComponent(explainer, 
                         feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)
-        self.pdp = PdpComponent2(explainer, feature_input_component=self.input,
+        self.pdp = PdpComponent(explainer, feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)
 
         self.index_connector = IndexConnector(self.index, [self.input])

@@ -10,6 +10,7 @@
 ### New Features
 - new: `ClassifierPredictionSummaryComponent`,`RegressionPredictionSummaryComponent`
     - already integrated into the individual predictions tab
+    - also added a piechart with predictions
 - Wrapped all the ExplainerComponents in `dbc.Card` for a cleaner look to the dashboard.
 
 ### Bug Fixes

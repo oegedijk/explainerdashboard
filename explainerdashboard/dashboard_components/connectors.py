@@ -20,7 +20,7 @@ from ..dashboard_methods import  *
 
 class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff", name=None,
-                        hide_cutoff=False, hide_percentile=False,
+                        hide_title=False, hide_cutoff=False, hide_percentile=False,
                         hide_selector=False,
                         pos_label=None, cutoff=0.5, percentile=None, **kwargs):
         """
@@ -39,6 +39,7 @@ class CutoffPercentileComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements.
                         If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
+            hide_title (bool, optional): Hide title.
             hide_cutoff (bool, optional): Hide the cutoff slider. Defaults to False.
             hide_percentile (bool, optional): Hide percentile slider. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
@@ -55,51 +56,58 @@ class CutoffPercentileComponent(ExplainerComponent):
         self.register_dependencies(['preds', 'pred_percentiles'])
 
     def layout(self):
-        return html.Div([
-            dbc.Row([
-                dbc.Col([
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
-                                html.Div([
-                                    html.Label('Cutoff prediction probability:'),
-                                    dcc.Slider(id='cutoffconnector-cutoff-'+self.name,
-                                                min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                        0.75: '0.75', 0.99: '0.99'},
-                                                included=False,
-                                                tooltip = {'always_visible' : False}),
-                                    
-                                ], style={'margin-bottom': 15}, id='cutoffconnector-cutoff-div-'+self.name),
-                                dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                                target='cutoffconnector-cutoff-div-'+self.name,
-                                                placement='bottom'),
-                            ]), hide=self.hide_cutoff),
-                    ]),
-                    dbc.Row([
-                            make_hideable(
-                            dbc.Col([
-                                html.Div([
-                                    html.Label('Cutoff percentile of samples:'),
-                                    dcc.Slider(id='cutoffconnector-percentile-'+self.name,
-                                                min = 0.01, max = 0.99, step=0.01, value=self.percentile,
-                                                marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                        0.75: '0.75', 0.99: '0.99'},
-                                                included=False,
-                                                tooltip = {'always_visible' : False}),
-                                    
-                                ], style={'margin-bottom': 15}, id='cutoffconnector-percentile-div-'+self.name),
-                                dbc.Tooltip(f"example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
-                                                target='cutoffconnector-percentile-div-'+self.name,
-                                                placement='bottom'),
-                            ]), hide=self.hide_percentile),
-                    ])
-                ]),
+        return dbc.Card([
+            dbc.CardHeader([
                 make_hideable(
+                    html.Div(html.H3(self.title)), hide=self.hide_title)
+            ]),
+            dbc.CardBody([
+                dbc.Row([
                     dbc.Col([
-                        self.selector.layout()
-                    ], width=2), hide=self.hide_selector),
+                        dbc.Row([
+                            make_hideable(
+                                dbc.Col([
+                                    html.Div([
+                                        html.Label('Cutoff prediction probability:'),
+                                        dcc.Slider(id='cutoffconnector-cutoff-'+self.name,
+                                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
+                                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                            0.75: '0.75', 0.99: '0.99'},
+                                                    included=False,
+                                                    tooltip = {'always_visible' : False}),
+                                    ], style={'margin-bottom': 15}, id='cutoffconnector-cutoff-div-'+self.name),
+                                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
+                                                    target='cutoffconnector-cutoff-div-'+self.name,
+                                                    placement='bottom'),
+                                ]), hide=self.hide_cutoff),
+                        ]),
+                        dbc.Row([
+                                make_hideable(
+                                dbc.Col([
+                                    html.Div([
+                                        html.Label('Cutoff percentile of samples:'),
+                                        dcc.Slider(id='cutoffconnector-percentile-'+self.name,
+                                                    min = 0.01, max = 0.99, step=0.01, value=self.percentile,
+                                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
+                                                            0.75: '0.75', 0.99: '0.99'},
+                                                    included=False,
+                                                    tooltip = {'always_visible' : False}),
+                                        
+                                    ], style={'margin-bottom': 15}, id='cutoffconnector-percentile-div-'+self.name),
+                                    dbc.Tooltip(f"example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
+                                                    target='cutoffconnector-percentile-div-'+self.name,
+                                                    placement='bottom'),
+                                ]), hide=self.hide_percentile),
+                        ])
+                    ]),
+                    make_hideable(
+                        dbc.Col([
+                            self.selector.layout()
+                        ], width=2), hide=self.hide_selector),
+                ])
+
             ])
+            
         ])
 
 
