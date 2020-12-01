@@ -23,6 +23,7 @@ from ..dashboard_methods import *
 
 class RegressionRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
+                        subtitle="Select from list or pick at random",
                         hide_title=False, hide_index=False, hide_pred_slider=False,
                         hide_residual_slider=False, hide_pred_or_y=False,
                         hide_abs_residuals=False, hide_button=False,
@@ -39,6 +40,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements.
                         If None then random uuid is generated to make sure
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title
             hide_index (bool, optional): Hide index selector.
                         Defaults to False.
@@ -129,6 +131,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(f"Select {self.explainer.index_name}", id='random-index-reg-title-'+self.name),
+                        html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='random-index-reg-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -394,7 +397,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
 
 class RegressionPredictionSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Prediction Summary", name=None,
+    def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False, hide_table=False,
                     index=None,  round=3, **kwargs):
         """Shows a summary for a particular prediction
@@ -403,7 +406,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Prediction Summary".
+                        "Prediction".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -420,7 +423,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
         return dbc.Card([
             dbc.CardHeader([
                 make_hideable(
-                html.H3("Predictions summary:"), hide=self.hide_title), 
+                html.H3(self.title), hide=self.hide_title), 
             ]),
             dbc.CardBody([
                 dbc.Row([
@@ -456,6 +459,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 
 class PredictedVsActualComponent(ExplainerComponent):
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
+                    subtitle="How close is the predicted value to the observed?",
                     hide_title=False, hide_log_x=False, hide_log_y=False,
                     logs=False, log_x=False, log_y=False, **kwargs):
         """Shows a plot of predictions vs y.
@@ -468,6 +472,7 @@ class PredictedVsActualComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
             hide_log_x (bool, optional): Hide the log_x toggle. Defaults to False.
             hide_log_y (bool, optional): Hide the log_y toggle. Defaults to False.
@@ -494,6 +499,7 @@ class PredictedVsActualComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='pred-vs-actual-title-'+self.name),
+                        html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='pred-vs-actual-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -553,6 +559,7 @@ class PredictedVsActualComponent(ExplainerComponent):
 
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
+                    subtitle="How much is the model off?",
                     hide_title=False, hide_pred_or_actual=False, hide_ratio=False,
                     pred_or_actual="vs_pred", residuals="difference", **kwargs):
         """Residuals plot component
@@ -565,6 +572,7 @@ class ResidualsComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
             hide_pred_or_actual (bool, optional): hide vs predictions or vs 
                         actual for x-axis toggle. Defaults to False.
@@ -595,6 +603,7 @@ class ResidualsComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='residuals-title-'+self.name),
+                        html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='residuals-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -655,6 +664,7 @@ class ResidualsComponent(ExplainerComponent):
 
 class RegressionVsColComponent(ExplainerComponent):
     def __init__(self, explainer, title="Plot vs feature", name=None,
+                    subtitle="Are predictions and residuals correlated with features?",
                     hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
                     hide_points=False, hide_winsor=False,
                     col=None, display='difference', cats=True, 
@@ -669,6 +679,7 @@ class RegressionVsColComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
             hide_col (bool, optional): Hide de column selector. Defaults to False.
             hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
@@ -708,6 +719,7 @@ class RegressionVsColComponent(ExplainerComponent):
                 make_hideable(
                 html.Div([
                     html.H3(self.title, id='reg-vs-col-title-'+self.name),
+                    html.H6(self.subtitle, className='card-subtitle'),
                     dbc.Tooltip(self.description, target='reg-vs-col-title-'+self.name),
                 ]), hide=self.hide_title),
             ]),
@@ -827,6 +839,7 @@ class RegressionVsColComponent(ExplainerComponent):
 
 class RegressionModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary", name=None, 
+                    subtitle="Quantitative metrics for model performance",
                     hide_title=False, round=3, **kwargs):
         """Show model summary statistics (RMSE, MAE, R2) component
 
@@ -838,6 +851,7 @@ class RegressionModelSummaryComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title
             round (int): rounding to perform to metric floats.
         """
@@ -863,6 +877,7 @@ class RegressionModelSummaryComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='reg-model-summary-title-'+self.name),
+                        html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='reg-model-summary-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),

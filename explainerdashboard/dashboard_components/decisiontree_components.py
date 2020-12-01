@@ -21,6 +21,7 @@ from .connectors import IndexConnector, HighlightConnector
 
 class DecisionTreesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
+                    subtitle="Displaying individual decision trees",
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
                     pos_label=None, index=None, highlight=None, 
@@ -35,6 +36,7 @@ class DecisionTreesComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title, Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
@@ -59,12 +61,16 @@ class DecisionTreesComponent(ExplainerComponent):
             This demonstrates how a random forest is simply an average of an
             ensemble of decision trees.
             """
+            if self.subtitle == "Displaying individual decision trees":
+                self.subtitle += " inside Random Forest"
         elif isinstance(self.explainer, XGBExplainer):
             self.description = """
             Shows the marginal contributions of each decision tree in an 
             xgboost ensemble to the final prediction. This demonstrates that
             an xgboost model is simply a sum of individual decision trees.
             """
+            if self.subtitle == "Displaying individual decision trees":
+                self.subtitle += " inside xgboost model"
         else:
             self.description = ""
         self.register_dependencies("preds", "pred_probas")
@@ -75,6 +81,7 @@ class DecisionTreesComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='decisiontrees-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='decisiontrees-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -139,6 +146,7 @@ class DecisionTreesComponent(ExplainerComponent):
 
 class DecisionPathTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path table", name=None,
+                    subtitle="Decision path through decision tree",
                     hide_title=False, hide_index=False, hide_highlight=False,
                     hide_selector=False,
                     pos_label=None, index=None, highlight=None, **kwargs):
@@ -152,6 +160,7 @@ class DecisionPathTableComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title, Defaults to False.
             hide_index (bool, optional): Hide index selector. 
                         Defaults to False.
@@ -184,6 +193,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='decisionpath-table-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='decisionpath-table-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -237,6 +247,7 @@ class DecisionPathTableComponent(ExplainerComponent):
 
 class DecisionPathGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path graph", name=None,
+                    subtitle="Visualizing entire decision tree",
                     hide_title=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
                     hide_selector=False,
@@ -251,6 +262,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide title
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
@@ -281,6 +293,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='decisionpath-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='decisionpath-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),

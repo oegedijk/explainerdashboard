@@ -19,7 +19,8 @@ from ..dashboard_methods import *
 
 
 class ShapSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title='Shap Dependence Summary', name=None,
+    def __init__(self, explainer, title='Shap Summary', name=None,
+                    subtitle="Ordering features by shap value",
                     hide_title=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, depth=None, 
@@ -34,6 +35,7 @@ class ShapSummaryComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide the title above component. 
                         Defaults to False.
             hide_depth (bool, optional): hide the depth toggle. 
@@ -73,6 +75,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='shap-summary-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='shap-summary-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -192,6 +195,7 @@ class ShapSummaryComponent(ExplainerComponent):
 
 class ShapDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence', name=None,
+                    subtitle="Relationship between feature value and SHAP value",
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_color_col=False, hide_index=False,
                     hide_selector=False,
@@ -207,6 +211,7 @@ class ShapDependenceComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide component title. Defaults to False.
             hide_cats (bool, optional): hide group cats toggle. Defaults to False.
             hide_col (bool, optional): hide feature selector. Defaults to False.
@@ -248,6 +253,7 @@ class ShapDependenceComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='shap-dependence-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -391,6 +397,7 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 
 class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary", name=None,
+                    subtitle="Ordering features by shap interaction value",
                     hide_title=False, hide_col=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
@@ -405,6 +412,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide the component title. Defaults to False.
             hide_col (bool, optional): Hide the feature selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
@@ -447,6 +455,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='interaction-summary-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='interaction-summary-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -583,6 +592,7 @@ class InteractionSummaryComponent(ExplainerComponent):
 
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence", name=None,
+                    subtitle="Relation between feature value and shap interaction value",
                     hide_title=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
                     hide_selector=False, hide_top=False, hide_bottom=False,
@@ -601,6 +611,7 @@ class InteractionDependenceComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_col (bool, optional): Hide feature selector. Defaults to False.
@@ -643,6 +654,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 make_hideable(
                 html.Div([
                     html.H3(self.title, id='interaction-dependence-title-'+self.name),
+                    html.H6(self.subtitle, className="card-subtitle"),
                     dbc.Tooltip(self.description, target='interaction-dependence-title-'+self.name),
                 ]), hide=self.hide_title),
             ]),
@@ -813,6 +825,7 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
 class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Plot", name=None,
+                    subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=True, hide_cats=False, 
                     hide_selector=False, feature_input_component=None,
@@ -828,6 +841,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
@@ -881,6 +895,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='contributions-graph-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='contributions-graph-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -1020,6 +1035,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
 class ShapContributionsTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Table", name=None,
+                    subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_index=False, 
                     hide_depth=False, hide_sort=False, hide_cats=False, 
                     hide_selector=False,
@@ -1035,6 +1051,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth selector. Defaults to False.
@@ -1072,6 +1089,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='contributions-table-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='contributions-table-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),

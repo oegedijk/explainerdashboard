@@ -1,4 +1,5 @@
 __all__= [
+    'plotly_prediction_piechart',
     'plotly_contribution_plot',
     'plotly_precision_plot',
     'plotly_classification_plot',
@@ -31,6 +32,32 @@ from plotly.subplots import make_subplots
 from sklearn.metrics import (classification_report, confusion_matrix,
                              precision_recall_curve, roc_curve, 
                              roc_auc_score, average_precision_score)
+
+
+def plotly_prediction_piechart(predictions_df, showlegend=True, size=250):
+    """Return piechart with predict_proba distributions for ClassifierExplainer
+
+    Args:
+        predictions_df (pd.DataFrame): generated with 
+            ClassifierExplainer.prediction_summary_df(index)
+        showlegend (bool, optional): Show the legend. Defaults to True.
+        size (int): width and height of the plot
+
+    Returns:
+        plotly.Fig
+    """
+
+    data = [
+        go.Pie(labels=predictions_df.label.values, 
+                values=predictions_df.probability.values, 
+                hole=0.3,
+                sort=False)
+    ]
+    layout = dict(autosize=False, width=size, height=size, 
+                    margin=dict(l=20, r=20, b=20, t=30, pad=4),
+                    showlegend=showlegend)
+    fig = go.Figure(data, layout)
+    return fig
 
 
 def plotly_contribution_plot(contrib_df, target="", 
@@ -1553,7 +1580,7 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     else:
         idxs = [str(i) for i in range(len(preds))]
         
-    marker_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}" 
+    marker_text=[f"{index_name}: {idx}<br>Observed: {actual}<br>Prediction: {pred}" 
                   for idx, actual, pred in zip(idxs, 
                                                 np.round(y, round), 
                                                 np.round(preds, round))] 
@@ -1572,19 +1599,19 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
         x = sorted_y,
         y = sorted_y,
         mode='lines', 
-        name=f"actual {target}" + f" ({units})" if units else "",
+        name=f"observed {target}" + f" ({units})" if units else "",
         hoverinfo="none",
     )
     
     data = [trace0, trace1]
     
     layout = go.Layout(
-        title=f"Predicted {target} vs Actual {target}",
+        title=f"Predicted {target} vs Observed {target}",
         yaxis=dict(
             title=f"Predicted {target}" + f" ({units})" if units else "",
         ),
         xaxis=dict(
-            title=f"Actual {target}" + f" ({units})" if units else "",
+            title=f"Observed {target}" + f" ({units})" if units else "",
         ),
         plot_bgcolor = '#fff',
         hovermode = 'closest',

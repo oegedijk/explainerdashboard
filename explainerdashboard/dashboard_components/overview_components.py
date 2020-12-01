@@ -105,7 +105,8 @@ class PredictionSummaryComponent(ExplainerComponent):
 
 
 class ImportancesComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Importances", name=None,
+    def __init__(self, explainer, title="Feature Importances", name=None,
+                        subtitle="Which features had the biggest impact?",
                         hide_type=False, hide_depth=False, hide_cats=False,
                         hide_title=False, hide_selector=False,
                         pos_label=None, importance_type="shap", depth=None, 
@@ -116,10 +117,11 @@ class ImportancesComponent(ExplainerComponent):
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Importances".
+                        "Feature Importances".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle(str, optional): Subtitle.
             hide_type (bool, optional): Hide permutation/shap selector toggle. 
                         Defaults to False.
             hide_depth (bool, optional): Hide number of features toggle. 
@@ -162,10 +164,11 @@ class ImportancesComponent(ExplainerComponent):
     def layout(self):
         return dbc.Card([
             dbc.CardHeader([
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([html.H2('Feature Importances:')]), hide=self.hide_title),
-                ]),
+                make_hideable(
+                    html.Div([
+                        html.H3(self.title, className="card-title"),
+                        html.H6(self.subtitle, className="card-subtitle"),
+                    ]), hide=self.hide_title),
             ]),
             dbc.CardBody([
                 dbc.Row([
@@ -246,6 +249,7 @@ class ImportancesComponent(ExplainerComponent):
 
 class PdpComponent(ExplainerComponent):
     def __init__(self, explainer, title="Partial Dependence Plot", name=None,
+                    subtitle="How does the prediction change if you change one feature?",
                     hide_col=False, hide_index=False, hide_cats=False,
                     hide_title=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
@@ -263,6 +267,7 @@ class PdpComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
@@ -316,6 +321,7 @@ class PdpComponent(ExplainerComponent):
                     make_hideable(
                         html.Div([
                             html.H3(self.title, id='pdp-title-'+self.name),
+                            html.H6(self.subtitle, className="card-subtitle"),
                             dbc.Tooltip(self.description, target='pdp-title-'+self.name),
                         ]), hide=self.hide_title),
                 ]),
@@ -465,6 +471,7 @@ class PdpComponent(ExplainerComponent):
 
 class FeatureInputComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Input", name=None,
+                    subtitle="Adjust the feature values to change the prediction",
                     hide_title=False, hide_index=False, 
                     index=None, **kwargs):
         """Interaction Dependence Component.
@@ -477,6 +484,7 @@ class FeatureInputComponent(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            subtitle (str): subtitle
             hide_title (bool, optional): hide the title
             hide_index (bool, optional): hide the index selector
             index (str, int, optional): default index
@@ -521,6 +529,7 @@ class FeatureInputComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='feature-input-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='feature-input-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
