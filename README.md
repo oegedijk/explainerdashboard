@@ -150,6 +150,8 @@ There are a few tricks to make this less painful:
 1. Switching off the interactions tab (`shap_interaction=False`) and disabling
     permutation importances (`no_permutations=True`). Especially SHAP interaction
     values can be very slow to calculate, and often are not needed for analysis.
+    For permutation importances you can set the `n_jobs` parameter to speed up
+    the calculation in parallel.
 2. Storing the explainer. The calculated properties are only calculated once
     for each instance, however each time when you instantiate a new explainer
     instance they will have to be recalculated. You can store them with
@@ -157,9 +159,9 @@ There are a few tricks to make this less painful:
     `ClassifierExplainer.from_file("explainer.joblib")`. All calculated properties
     are stored with the explainer.
 3. Using a smaller (test) dataset, or using smaller decision trees. 
-    TreeShap computational complexity from $O(TLD^2)$, where T is the 
-    number of trees, L is the maximum number of leaves in any tree and 
-    D the maximal depth of any tree.
+    TreeShap computational complexity from `O(TLD^2)`, where `T` is the 
+    number of trees, `L` is the maximum number of leaves in any tree and 
+    `D` the maximal depth of any tree.
 
 ## From within a notebook
 
@@ -311,8 +313,8 @@ for more details.
 
 ## Deployment
 
-If you wish to use e.g. ``gunicorn`` to deploy the dashboard you should add 
-`server = db.app.server` to your code to expose the Flask server. You can then 
+If you wish to use e.g. `gunicorn` to deploy the dashboard you should add 
+`server = db.flask_server()` to your code to expose the Flask server. You can then 
 start the server with e.g. `gunicorn dashboard:server` 
 (assuming the file you defined the dashboard in was called `dashboard.py`). 
 See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
