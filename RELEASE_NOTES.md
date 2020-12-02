@@ -1,5 +1,30 @@
 # Release Notes
 
+
+## Version 0.2.13.1
+
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+- fixed pdp bug introduced with setting `X.index` to `self.idxs` where
+    the highlighted index was not the right index
+- now hiding entire `CardHeader` when `hide_title=True`
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.2.13:
 ### Breaking Changes
 - Now always have to pass a specific port when terminating a JupyterDash-based 

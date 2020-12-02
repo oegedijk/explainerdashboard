@@ -73,7 +73,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
         assert self.explainer.is_regression, \
             ("explainer is not a RegressionExplainer so the RegressionRandomIndexComponent "
-            " will not work. Try using the ClassifierRandomIndexComponent instead.")
+             "will not work. Try using the ClassifierRandomIndexComponent instead.")
 
         self.index_name = 'random-index-reg-index-'+self.name
 
@@ -127,14 +127,14 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(f"Select {self.explainer.index_name}", id='random-index-reg-title-'+self.name),
                         html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='random-index-reg-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -421,10 +421,10 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                html.H3(self.title), hide=self.hide_title), 
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                    html.H3(self.title), 
+                ]), hide=self.hide_title), 
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -495,14 +495,14 @@ class PredictedVsActualComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='pred-vs-actual-title-'+self.name),
                         html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='pred-vs-actual-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -599,14 +599,14 @@ class ResidualsComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='residuals-title-'+self.name),
                         html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='residuals-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     dbc.Col([
@@ -715,14 +715,14 @@ class RegressionVsColComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                html.Div([
-                    html.H3(self.title, id='reg-vs-col-title-'+self.name),
-                    html.H6(self.subtitle, className='card-subtitle'),
-                    dbc.Tooltip(self.description, target='reg-vs-col-title-'+self.name),
+            make_hideable(
+                dbc.CardHeader([
+                    html.Div([
+                        html.H3(self.title, id='reg-vs-col-title-'+self.name),
+                        html.H6(self.subtitle, className='card-subtitle'),
+                        dbc.Tooltip(self.description, target='reg-vs-col-title-'+self.name),
+                    ]), 
                 ]), hide=self.hide_title),
-            ]),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -873,14 +873,14 @@ class RegressionModelSummaryComponent(ExplainerComponent):
                                                     "reg-model-summary-div-hover", 
                                                     self.name)
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='reg-model-summary-title-'+self.name),
                         html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='reg-model-summary-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 metrics_table,
                 *tooltips

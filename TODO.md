@@ -2,7 +2,6 @@
 # TODO:
 
 ## Bugs:
-- PDP showing random thick blue line for regression?
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -43,7 +42,10 @@
 
 
 ## Dashboard:
-- hide whole card header with hide_title=True
+- give warning to use smaller dataset or less trees
+- give warning to dump explainer
+
+- add waitress to run options
 - organize explainer components according to tab
 - add kwargs to dashboard.to_yaml()
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
@@ -60,7 +62,6 @@
 
 ### Components
 - add description parameter to all components
-
 - hide show points when feature is not in cats
 - change single radioitems to dbc.Checklist switch=True
 - add querystring method to ExplainerComponents
@@ -88,12 +89,12 @@
 ## Tests:
 - add test for get_row_from_inputs test
 - add prediction_summary_df test
-
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
 
 ## Docs:
+- add waitress to deployment examples
 - add customizing section in README
 - add ClassifierPredictionSummaryComponent to docs
 - move classifierindexselector and regressionindexselector in docs
@@ -114,6 +115,7 @@
 
 
 ## Library level:
+- add waitress to CLI
 - hide (prefix '_') to non-public API class methods
 - build release for conda-forge
     - get dash-auth on plotly anaconda channel

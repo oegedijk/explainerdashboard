@@ -51,10 +51,10 @@ class PredictionSummaryComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                html.H3("Predictions summary:"), hide=self.hide_title), 
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                    html.H3(self.title), 
+                ]), hide=self.hide_title), 
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -163,13 +163,13 @@ class ImportancesComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, className="card-title"),
                         html.H6(self.subtitle, className="card-subtitle"),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]),
+            ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -317,14 +317,14 @@ class PdpComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-                dbc.CardHeader([
-                    make_hideable(
-                        html.Div([
-                            html.H3(self.title, id='pdp-title-'+self.name),
-                            html.H6(self.subtitle, className="card-subtitle"),
-                            dbc.Tooltip(self.description, target='pdp-title-'+self.name),
-                        ]), hide=self.hide_title),
-                ]),
+                make_hideable(
+                    dbc.CardHeader([
+                            html.Div([
+                                html.H3(self.title, id='pdp-title-'+self.name),
+                                html.H6(self.subtitle, className="card-subtitle"),
+                                dbc.Tooltip(self.description, target='pdp-title-'+self.name),
+                            ]), 
+                    ]), hide=self.hide_title),
                 dbc.CardBody([
                     dbc.Row([
                         make_hideable(
@@ -525,14 +525,14 @@ class FeatureInputComponent(ExplainerComponent):
         
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                    html.Div([
-                        html.H3(self.title, id='feature-input-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
-                        dbc.Tooltip(self.description, target='feature-input-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                        html.Div([
+                            html.H3(self.title, id='feature-input-title-'+self.name),
+                            html.H6(self.subtitle, className="card-subtitle"),
+                            dbc.Tooltip(self.description, target='feature-input-title-'+self.name),
+                        ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -637,14 +637,15 @@ class WhatIfComponent(ExplainerComponent):
         
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            html.H1("What if...analysis")
-                        ]), hide=self.hide_title)
-                ]),
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                    dbc.Row([
+                        
+                            dbc.Col([
+                                html.H1(self.title)
+                            ]), 
+                    ]),
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(

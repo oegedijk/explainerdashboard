@@ -413,19 +413,21 @@ class ExplainerDashboard:
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
+                            **update_kwargs(kwargs, 
                             hide_title=header_hide_title, 
                             hide_selector=header_hide_selector, 
                             block_selector_callbacks=block_selector_callbacks,
                             pos_label=pos_label,
-                            fluid=fluid, **kwargs)
+                            fluid=fluid))
         else:
             tabs = self._convert_str_tabs(tabs)
             explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
+                            **update_kwargs(kwargs,
                             hide_title=header_hide_title, 
                             hide_selector=header_hide_selector, 
                             block_selector_callbacks=block_selector_callbacks,
                             pos_label=pos_label,
-                            fluid=fluid, **kwargs)
+                            fluid=fluid))
 
         self.app.layout = explainer_layout.layout()
 

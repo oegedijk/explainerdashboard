@@ -357,6 +357,21 @@ class BaseExplainer(ABC):
                 return self.idxs.get_loc(index)
         return None
 
+    def get_index(self, index):
+        """Turn int index into a str index
+
+        Args:
+          index(str or int): 
+
+        Returns:
+            str index
+        """
+        if isinstance(index, int) and index >= 0 and index < len(self):
+                return self.idxs[index]
+        elif isinstance(index, str) and index in self.idxs:
+            return index
+        return None
+
     def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, 
                         return_str=False, **kwargs):
         """random index following constraints
@@ -1074,19 +1089,19 @@ class BaseExplainer(ABC):
             features = self.cats_dict[col]
 
         if index is not None:
-            idx = self.get_int_idx(index)
+            index = self.get_index(index)
             if len(features)==1 and drop_na: # regular col, not onehotencoded
                 sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
                 sampleX = pd.concat([
-                    self.X[self.X.index==idx],
-                    self.X[(self.X.index!=idx) & (self.X[features[0]] != self.na_fill)]\
+                    self.X[self.X.index==index],
+                    self.X[(self.X.index != index) & (self.X[features[0]] != self.na_fill)]\
                             .sample(sample_size)],
                     ignore_index=True, axis=0)
             else:
                 sample_size = min(sample, len(self.X)-1)
                 sampleX = pd.concat([
-                    self.X[self.X.index==idx],
-                    self.X[(self.X.index!=idx)].sample(sample_size)],
+                    self.X[self.X.index==index],
+                    self.X[(self.X.index!=index)].sample(sample_size)],
                     ignore_index=True, axis=0)
         elif X_row is not None:
             if ((len(X_row.columns) == len(self.X_cats.columns)) and 

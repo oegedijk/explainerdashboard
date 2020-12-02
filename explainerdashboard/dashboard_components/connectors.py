@@ -57,10 +57,10 @@ class CutoffPercentileComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                    html.Div(html.H3(self.title)), hide=self.hide_title)
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                    html.Div(html.H3(self.title)), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     dbc.Col([

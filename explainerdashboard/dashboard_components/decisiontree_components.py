@@ -189,14 +189,14 @@ class DecisionPathTableComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                    html.Div([
-                        html.H3(self.title, id='decisionpath-table-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
-                        dbc.Tooltip(self.description, target='decisionpath-table-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                        html.Div([
+                            html.H3(self.title, id='decisionpath-table-title-'+self.name),
+                            html.H6(self.subtitle, className="card-subtitle"),
+                            dbc.Tooltip(self.description, target='decisionpath-table-title-'+self.name),
+                        ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -289,14 +289,14 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([          
                     html.Div([
                         html.H3(self.title, id='decisionpath-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='decisionpath-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
