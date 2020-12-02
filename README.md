@@ -141,8 +141,27 @@ db = ExplainerDashboard(explainer).run()
 (`y` is actually optional, although some parts of the dashboard will obviously 
 not work: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`)
 
+### Dealing with slow calculations
 
-### From within a notebook
+Some of the calculations for the dashboard such as calculating SHAP (interaction) values
+and permutation importances can be slow for large datasets and complicated models. 
+There are a few tricks to make this less painful:
+
+1. Switching off the interactions tab (`shap_interaction=False`) and disabling
+    permutation importances (`no_permutations=True`). Especially SHAP interaction
+    values can be very slow to calculate, and often are not needed for analysis.
+2. Storing the explainer. The calculated properties are only calculated once
+    for each instance, however each time when you instantiate a new explainer
+    instance they will have to be recalculated. You can store them with
+    `explainer.dump("explainer.joblib")` and load with e.g. 
+    `ClassifierExplainer.from_file("explainer.joblib")`. All calculated properties
+    are stored with the explainer.
+3. Using a smaller (test) dataset, or using smaller decision trees. 
+    TreeShap computational complexity from $O(TLD^2)$, where T is the 
+    number of trees, L is the maximum number of leaves in any tree and 
+    D the maximal depth of any tree.
+
+## From within a notebook
 
 When working inside jupyter or Google Colab you can use 
 `ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')` or
@@ -178,7 +197,7 @@ for details.
 The dashboard is highly modular and customizable so that you can adjust it your
 own needs and project. 
 
-### switching off tabs
+### Switching off tabs
 
 You can switch off individual tabs using boolean flags, e.g.:
 
@@ -193,12 +212,12 @@ ExplainerDashboard(explainer,
                     decision_trees=True)
 ```
 
-### passing parameters as `**kwargs`
+### Passing parameters as `**kwargs`
 
 The dashboard consists of independent `ExplainerComponents` that take their
 own parameters. For example hiding certain toggles (e.g. `hide_cats=True`) or
 setting default values (e.g. `col='Fare'`). When you start your `ExplainerDashboard` 
-all the `**kwargs` will be passed down to all each `ExplainerComponents`.
+all the `**kwargs` will be passed down to each `ExplainerComponent`.
 All the components with their parameters can be found [in the documentation](https://explainerdashboard.readthedocs.io/en/latest/components.html).
 Some examples of useful parameters to pass:
 
@@ -206,6 +225,7 @@ Some examples of useful parameters to pass:
 ExplainerDashboard(explainer, 
                     no_permutations=True, # do not show or calculate permutation importances
                     higher_is_better=False, # flip green and red in contributions graph
+                    # hiding dropdowns and toggles:
                     hide_cats=True, # hide the group cats toggles
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
@@ -222,7 +242,7 @@ ExplainerDashboard(explainer,
                     hide_ratio=True, # hide the residuals type dropdown
                     hide_points=True, # hide the show violin scatter markers toggle
                     hide_winsor=True, # hide the winsorize input
-                    # setting default values
+                    # setting default values:
                     col='Fare', # initial feature in shap graphs
                     color_col='Age', # color feature in shap dependence graph
                     interact_col='Age', # interaction feature in shap interaction
@@ -237,7 +257,7 @@ ExplainerDashboard(explainer,
                     )
 ```
 
-### designing own layout
+### Designing own layout
 
 All the components in the dashboard are modular and re-usable, which means that 
 you can build your own custom [dash](https://dash.plotly.com/) dashboards 

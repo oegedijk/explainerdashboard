@@ -61,6 +61,7 @@
 
 
 ### Components
+- add hide_subtitle parameters to all components
 - add description parameter to all components
 - hide show points when feature is not in cats
 - change single radioitems to dbc.Checklist switch=True
