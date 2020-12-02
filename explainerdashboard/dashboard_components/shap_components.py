@@ -71,14 +71,14 @@ class ShapSummaryComponent(ExplainerComponent):
              
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='shap-summary-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='shap-summary-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -249,14 +249,14 @@ class ShapDependenceComponent(ExplainerComponent):
              
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                    html.Div([
-                        html.H3(self.title, id='shap-dependence-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
-                        dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                        html.Div([
+                            html.H3(self.title, id='shap-dependence-title-'+self.name),
+                            html.H6(self.subtitle, className="card-subtitle"),
+                            dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
+                        ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -451,14 +451,14 @@ class InteractionSummaryComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='interaction-summary-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='interaction-summary-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -650,14 +650,14 @@ class InteractionDependenceComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                html.Div([
-                    html.H3(self.title, id='interaction-dependence-title-'+self.name),
-                    html.H6(self.subtitle, className="card-subtitle"),
-                    dbc.Tooltip(self.description, target='interaction-dependence-title-'+self.name),
+            make_hideable(
+                dbc.CardHeader([
+                    html.Div([
+                        html.H3(self.title, id='interaction-dependence-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
+                        dbc.Tooltip(self.description, target='interaction-dependence-title-'+self.name),
+                    ]), 
                 ]), hide=self.hide_title),
-            ]),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -891,14 +891,14 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='contributions-graph-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='contributions-graph-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -1085,14 +1085,14 @@ class ShapContributionsTableComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='contributions-table-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='contributions-table-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(

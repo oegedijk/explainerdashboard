@@ -106,14 +106,14 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(f"Select {self.explainer.index_name}", id='random-index-clas-title-'+self.name),
                         html.H6(self.subtitle, className='card-subtitle'),
                         dbc.Tooltip(self.description, target='random-index-clas-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -270,13 +270,13 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, className='card-title'),
                         #html.H6("What was the prediction?", className="card-subtitle") ,
-                    ]), hide=self.hide_title), 
-            ]),
+                    ]), 
+                ]), hide=self.hide_title), 
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
@@ -381,20 +381,19 @@ class PrecisionComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='precision-title-'+self.name, className="card-title"),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='precision-title-'+self.name),
-                    ]), hide=self.hide_title),
+                    ]), 
+                ]), hide=self.hide_title),
+            dbc.CardBody([
                 dbc.Row([
                     make_hideable(
                         dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
                 ], justify="end"),
-                
-            ]),
-            dbc.CardBody([
                 dbc.Row([
                     dbc.Col([
                         html.Div([
@@ -583,19 +582,19 @@ class ConfusionMatrixComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='confusionmatrix-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='confusionmatrix-title-'+self.name),
-                    ]), hide=self.hide_title),
+                    ]), 
+                ]), hide=self.hide_title),
+            dbc.CardBody([
                 dbc.Row([
                     make_hideable(
                         dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
                 ], justify="end"),
-            ]),
-            dbc.CardBody([
                 dcc.Graph(id='confusionmatrix-graph-'+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
@@ -707,19 +706,19 @@ class LiftCurveComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                html.Div([
-                    html.H3(self.title, id='liftcurve-title-'+self.name),
-                    html.H6(self.subtitle, className="card-subtitle"),
-                    dbc.Tooltip(self.description, target='liftcurve-title-'+self.name),
+            make_hideable(
+                dbc.CardHeader([  
+                    html.Div([
+                        html.H3(self.title, id='liftcurve-title-'+self.name),
+                        html.H6(self.subtitle, className="card-subtitle"),
+                        dbc.Tooltip(self.description, target='liftcurve-title-'+self.name),
+                    ]), 
                 ]), hide=self.hide_title),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-                ], justify="end"),
-            ]),
             dbc.CardBody([
+                dbc.Row([
+                        make_hideable(
+                            dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                    ], justify="end"),
                 html.Div([
                     dcc.Graph(id='liftcurve-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
@@ -810,14 +809,14 @@ class CumulativePrecisionComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
-                    html.Div([
-                        html.H3(self.title, id='cumulative-precision-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
-                        dbc.Tooltip(self.description, target='cumulative-precision-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+            make_hideable(
+                dbc.CardHeader([
+                        html.Div([
+                            html.H3(self.title, id='cumulative-precision-title-'+self.name),
+                            html.H6(self.subtitle, className="card-subtitle"),
+                            dbc.Tooltip(self.description, target='cumulative-precision-title-'+self.name),
+                        ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 html.Div([
                     dcc.Graph(id='cumulative-precision-graph-'+self.name,
@@ -928,19 +927,19 @@ class ClassificationComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='classification-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='classification-title-'+self.name),
-                    ]), hide=self.hide_title),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-                ], justify="end"),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
+                dbc.Row([
+                        make_hideable(
+                            dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                    ], justify="end"),
                 html.Div([
                     dcc.Graph(id='classification-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
@@ -1030,19 +1029,19 @@ class RocAucComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='rocauc-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='rocauc-title-'+self.name),
-                    ]), hide=self.hide_title),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-                ], justify="end"),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title), 
             dbc.CardBody([
+                dbc.Row([
+                        make_hideable(
+                            dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                    ], justify="end"),
                 dcc.Graph(id='rocauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
@@ -1110,19 +1109,19 @@ class PrAucComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='prauc-title-'+self.name),
                         html.H6(self.subtitle, className="card-subtitle"),
                         dbc.Tooltip(self.description, target='prauc-title-'+self.name),
-                    ]), hide=self.hide_title),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-                ], justify="end"),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
+                dbc.Row([
+                        make_hideable(
+                            dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                    ], justify="end"),
                 dcc.Graph(id='prauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
@@ -1192,18 +1191,18 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='clas-model-summary-title-'+self.name),
                         dbc.Tooltip(self.description, target='clas-model-summary-title-'+self.name),
-                    ]), hide=self.hide_title),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
-                ], justify="end"),
-            ]),
+                    ]),        
+                ]), hide=self.hide_title),
             dbc.CardBody([
+                dbc.Row([
+                        make_hideable(
+                            dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
+                    ], justify="end"),
                 html.Div(id='clas-model-summary-div-'+self.name),
             ]),
             dbc.CardFooter([
