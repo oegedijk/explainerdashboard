@@ -35,7 +35,7 @@ or conda-forge:
 
 `conda install -c conda-forge explainerdashboard`
 
-## Screenshot
+## Demonstration GIF:
 
 ![explainerdashboard.gif](explainerdashboard.gif)
 
@@ -120,6 +120,28 @@ db = ExplainerDashboard(explainer,
 db.run(port=8050)
 ```
 
+or for a regression model:
+
+```python
+X_train, y_train, X_test, y_test = titanic_fare()
+model = RandomForestRegressor().fit(X_train, y_train)
+
+explainer = RegressionExplainer(model, X_test, y_test, 
+                                cats=['Deck', 'Embarked', 'Sex'],
+                                descriptions=feature_descriptions, # defaults to None
+                                idxs = test_names, # defaults to X.index
+                                index_name = "Passenger", # defaults to X.index.name
+                                target = "Fare", # defaults to y.name
+                                units = "$", # defaults to ""
+                                )
+
+db = ExplainerDashboard(explainer).run()
+```
+
+(`y` is actually optional, although some parts of the dashboard will obviously 
+not work: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`)
+
+
 ### From within a notebook
 
 When working inside jupyter or Google Colab you can use 
@@ -151,42 +173,116 @@ $ explainerdashboard run dashboard.yaml
 See [explainerdashboard CLI documentation](https://explainerdashboard.readthedocs.io/en/latest/cli.html)
 for details. 
 
-## Custom dashboards
+## Customizing your dashboard
+
+The dashboard is highly modular and customizable so that you can adjust it your
+own needs and project. 
+
+### switching off tabs
+
+You can switch off individual tabs using boolean flags, e.g.:
+
+```python
+ExplainerDashboard(explainer,
+                    importances=False,
+                    model_summary=True,
+                    contributions=True,
+                    whatif=True,
+                    shap_dependence=True,
+                    shap_interaction=False,
+                    decision_trees=True)
+```
+
+### passing parameters as `**kwargs`
+
+The dashboard consists of independent `ExplainerComponents` that take their
+own parameters. For example hiding certain toggles (e.g. `hide_cats=True`) or
+setting default values (e.g. `col='Fare'`). When you start your `ExplainerDashboard` 
+all the `**kwargs` will be passed down to all each `ExplainerComponents`.
+All the components with their parameters can be found [in the documentation](https://explainerdashboard.readthedocs.io/en/latest/components.html).
+Some examples of useful parameters to pass:
+
+```python
+ExplainerDashboard(explainer, 
+                    no_permutations=True, # do not show or calculate permutation importances
+                    higher_is_better=False, # flip green and red in contributions graph
+                    hide_cats=True, # hide the group cats toggles
+                    hide_depth=True, # hide the depth (no of features) dropdown
+                    hide_sort=True, # hide sort type dropdown in contributions graph/table
+                    hide_orientation=True, # hide orientation dropdown in contributions graph/table
+                    hide_type=True, # hide shap/permutation toggle on ImportancesComponent 
+                    hide_dropna=True, # hide dropna toggle on pdp component
+                    hide_sample=True, # hide sample size input on pdp component
+                    hide_gridlines=True, # hide gridlines on pdp component
+                    hide_gridpoints=True, # hide gridpoints input on pdp component
+                    hide_cutoff=True, # hide cutoff selector on classification components
+                    hide_percentage=True, # hide percentage toggle on classificaiton components
+                    hide_log_x=True, # hide x-axis logs toggle on regression plots
+                    hide_log_y=True, # hide y-axis logs toggle on regression plots
+                    hide_ratio=True, # hide the residuals type dropdown
+                    hide_points=True, # hide the show violin scatter markers toggle
+                    hide_winsor=True, # hide the winsorize input
+                    # setting default values
+                    col='Fare', # initial feature in shap graphs
+                    color_col='Age', # color feature in shap dependence graph
+                    interact_col='Age', # interaction feature in shap interaction
+                    cats=False, # do not group categorical onehot features
+                    depth=5, # only show top 5 features
+                    sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
+                    orientation='horizontal', # horizontal bars in contributions graph
+                    index='Rugg, Miss. Emily', # initial index to display
+                    pdp_col='Fare', # initial pdp feature
+                    cutoff=0.8, # cutoff for classification plots
+                    round=2 # rounding to apply to floats
+                    )
+```
+
+### designing own layout
 
 All the components in the dashboard are modular and re-usable, which means that 
 you can build your own custom [dash](https://dash.plotly.com/) dashboards 
 around them.
 
 By using the built-in `ExplainerComponent` class it is easy to build your
-own layouts, with just a bare minimum of knowledge of html and bootstrap. For
-example if you only wanted to display the `ShapDependenceComponent`, but hide
+own layouts, with just a bare minimum of knowledge of HTML and [bootstrap](https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/). For
+example if you only wanted to display the `ConfusionMatrixComponent` and 
+`ShapContributionsGraphComponent`, but hide
 a few toggles:
 
 ```python
 from explainerdashboard.custom import *
 
-import dash_bootstrap_components as dbc
-import dash_html_components as html
-
-class CustomTab(ExplainerComponent):
-    def __init__(self, explainer):
-        super().__init__(explainer, title="Custom Tab")
-        self.dependence = ShapDependenceComponent(explainer, 
-            hide_selector=True, hide_cats=True, hide_title=True)
+class CustomDashboard(ExplainerComponent):
+    def __init__(self, explainer, **kwargs):
+        super().__init__(explainer, title="Custom Dashboard")
+        self.confusion = ConfusionMatrixComponent(explainer,
+                            hide_selector=True, hide_percentage=True,
+                            cutoff=0.75)
+        self.contrib = ShapContributionsGraphComponent(explainer,
+                            hide_selector=True, hide_cats=True, 
+                            hide_depth=True, hide_sort=True,
+                            index='Rugg, Miss. Emily')
         self.register_components()
         
     def layout(self):
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
-                    html.H3("Shap Dependence Plot:"),
-                    self.dependence.layout()
+                    html.H1("Custom Demonstration:"),
+                    html.H3("How to build your own layout using ExplainerComponents.")
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    self.confusion.layout(),
+                ]),
+                dbc.Col([
+                    self.contrib.layout(),
                 ])
             ])
         ])
 
-
-ExplainerDashboard(explainer, CustomTab).run()
+db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True).run()
 ```
 
 You can use this to define your own layouts, specifically tailored to your

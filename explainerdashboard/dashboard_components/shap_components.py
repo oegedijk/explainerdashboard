@@ -914,7 +914,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dcc.Dropdown(id='contributions-graph-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
-                                value=None)
+                                value=self.index)
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
                         dbc.Col([
@@ -1103,7 +1103,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dcc.Dropdown(id='contributions-table-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
-                                value=None)
+                                value=self.index)
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
                         dbc.Col([
