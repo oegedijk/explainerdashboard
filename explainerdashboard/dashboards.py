@@ -73,8 +73,8 @@ def instantiate_component(component, explainer, **kwargs):
 class ExplainerTabsLayout:
     def __init__(self, explainer, tabs,
                  title='Model Explainer',
-                 hide_title=False,
-                 hide_selector=False,
+                 header_hide_title=False,
+                 header_hide_selector=False,
                  block_selector_callbacks=False,
                  pos_label=None,
                  fluid=True,
@@ -89,8 +89,8 @@ class ExplainerTabsLayout:
             tabs (list[ExplainerComponent class or instance]): list of
                 ExplainerComponent class definitions or instances.
             title (str, optional): [description]. Defaults to 'Model Explainer'.
-            hide_title (bool, optional): Hide the title. Defaults to False.
-            hide_selector (bool, optional): Hide the positive label selector. 
+            header_hide_title (bool, optional): Hide the title. Defaults to False.
+            header_hide_selector (bool, optional): Hide the positive label selector. 
                         Defaults to False.
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
@@ -101,11 +101,11 @@ class ExplainerTabsLayout:
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
         self.title = title
-        self.hide_title = hide_title
-        self.hide_selector = hide_selector
+        self.header_hide_title = header_hide_title
+        self.header_hide_selector = header_hide_selector
         self.block_selector_callbacks = block_selector_callbacks
         if self.block_selector_callbacks:
-            self.hide_selector = True
+            self.header_hide_selector = True
         self.fluid = fluid
         
         self.selector = PosLabelSelector(explainer, pos_label=pos_label)
@@ -121,11 +121,11 @@ class ExplainerTabsLayout:
                 make_hideable(
                     dbc.Col([
                         html.H1(self.title)
-                    ], width="auto"), hide=self.hide_title),
+                    ], width="auto"), hide=self.header_hide_title),
                 make_hideable(
                     dbc.Col([
                         self.selector.layout()
-                    ], md=3), hide=self.hide_selector),
+                    ], md=3), hide=self.header_hide_selector),
             ], justify="start"),
             dcc.Tabs(id="tabs", value=self.tabs[0].name, 
                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
@@ -159,8 +159,8 @@ class ExplainerTabsLayout:
 class ExplainerPageLayout(ExplainerComponent):
     def __init__(self, explainer, component,
                  title='Model Explainer',
-                 hide_title=False,
-                 hide_selector=False,
+                 header_hide_title=False,
+                 header_hide_selector=False,
                  block_selector_callbacks=False,
                  pos_label=None,
                  fluid=False,
@@ -177,8 +177,8 @@ class ExplainerPageLayout(ExplainerComponent):
             component (ExplainerComponent class or instance): ExplainerComponent 
                         class definition or instance.
             title (str, optional): [description]. Defaults to 'Model Explainer'.
-            hide_title (bool, optional): Hide the title. Defaults to False.
-            hide_selector (bool, optional): Hide the positive label selector.
+            header_hide_title (bool, optional): Hide the title. Defaults to False.
+            header_hide_selector (bool, optional): Hide the positive label selector.
                         Defaults to False.
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
@@ -189,11 +189,11 @@ class ExplainerPageLayout(ExplainerComponent):
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
         self.title = title
-        self.hide_title = hide_title
-        self.hide_selector = hide_selector
+        self.header_hide_title = header_hide_title
+        self.header_hide_selector = header_hide_selector
         self.block_selector_callbacks = block_selector_callbacks
         if self.block_selector_callbacks:
-            self.hide_selector = True
+            self.header_hide_selector = True
         self.fluid = fluid
         
         self.selector = PosLabelSelector(explainer, pos_label=pos_label)
@@ -209,11 +209,11 @@ class ExplainerPageLayout(ExplainerComponent):
                 make_hideable(
                     dbc.Col([
                         html.H1(self.title)
-                    ], width="auto"), hide=self.hide_title),
+                    ], width="auto"), hide=self.header_hide_title),
                 make_hideable(
                     dbc.Col([
                         self.selector.layout()
-                    ], md=3), hide=self.hide_selector),
+                    ], md=3), hide=self.header_hide_selector),
             ], justify="start"),
             self.page.layout()
         ], fluid=self.fluid)
@@ -412,29 +412,29 @@ class ExplainerDashboard:
         print("Generating layout...")  
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
-            explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
+            self.explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
                             **update_kwargs(kwargs, 
-                            hide_title=header_hide_title, 
-                            hide_selector=header_hide_selector, 
-                            block_selector_callbacks=block_selector_callbacks,
-                            pos_label=pos_label,
+                            header_hide_title=self.header_hide_title, 
+                            header_hide_selector=self.header_hide_selector, 
+                            block_selector_callbacks=self.block_selector_callbacks,
+                            pos_label=self.pos_label,
                             fluid=fluid))
         else:
             tabs = self._convert_str_tabs(tabs)
-            explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
+            self.explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
                             **update_kwargs(kwargs,
-                            hide_title=header_hide_title, 
-                            hide_selector=header_hide_selector, 
-                            block_selector_callbacks=block_selector_callbacks,
-                            pos_label=pos_label,
-                            fluid=fluid))
+                            header_hide_title=self.header_hide_title, 
+                            header_hide_selector=self.header_hide_selector, 
+                            block_selector_callbacks=self.block_selector_callbacks,
+                            pos_label=self.pos_label,
+                            fluid=self.fluid))
 
-        self.app.layout = explainer_layout.layout()
+        self.app.layout = self.explainer_layout.layout()
 
         print("Calculating dependencies...", flush=True)  
-        explainer_layout.calculate_dependencies()
+        self.explainer_layout.calculate_dependencies()
         print("Registering callbacks...", flush=True)
-        explainer_layout.register_callbacks(self.app)
+        self.explainer_layout.register_callbacks(self.app)
 
     @classmethod
     def from_config(cls, arg1, arg2=None):
@@ -684,7 +684,7 @@ class ExplainerDashboard:
             self.app.run_server(port=port, mode=self.mode, **kwargs)
         elif self.mode in ['inline', 'jupyterlab']:
             print(f"Starting ExplainerDashboard inline (terminate it with "
-                    "ExplainerDashboard.terminate({port}))", flush=True)
+                  f"ExplainerDashboard.terminate({port}))", flush=True)
             self.app.run_server(port=port, mode=self.mode, 
                                 width=self.width, height=self.height, **kwargs)
         else:
