@@ -15,7 +15,7 @@
 - fixed pdp bug introduced with setting `X.index` to `self.idxs` where
     the highlighted index was not the right index
 - now hiding entire `CardHeader` when `hide_title=True`
--
+- index was not initialized in ShapContributionsGraphComponent and Shap ContributionsTableComponent
 
 ### Improvements
 -
