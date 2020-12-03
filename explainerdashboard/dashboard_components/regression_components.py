@@ -111,6 +111,11 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             assert (len(self.abs_residual_slider)==2 and self.abs_residual_slider[0]<=self.abs_residual_slider[1]), \
                 "abs_residual_slider should be a list of a [lower_bound, upper_bound]!"
 
+        self.y_slider = [float(y) for y in self.y_slider]
+        self.pred_slider = [float(p) for p in self.pred_slider]
+        self.residual_slider = [float(r) for r in self.residual_slider]
+        self.abs_residual_slider = [float(a) for a in self.abs_residual_slider]
+
         assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
 
         self.description = f"""
@@ -164,12 +169,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                                         target='random-index-reg-pred-slider-label-'+self.name),
                                             dcc.RangeSlider(
                                                 id='random-index-reg-pred-slider-'+self.name,
-                                                min=self.explainer.preds.min(),
-                                                max=self.explainer.preds.max(),
+                                                min=float(self.explainer.preds.min()),
+                                                max=float(self.explainer.preds.max()),
                                                 step=np.float_power(10, -self.round),
                                                 value=[self.pred_slider[0], self.pred_slider[1]],
-                                                marks={self.explainer.preds.min(): str(np.round(self.explainer.preds.min(), self.round)),
-                                                    self.explainer.preds.max(): str(np.round(self.explainer.preds.max(), self.round))},
+                                                marks={float(self.explainer.preds.min()): str(np.round(self.explainer.preds.min(), self.round)),
+                                                    float(self.explainer.preds.max()): str(np.round(self.explainer.preds.max(), self.round))},
                                                 allowCross=False,
                                                 tooltip = {'always_visible' : False}
                                             )
@@ -188,12 +193,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                             target='random-index-reg-y-slider-label-'+self.name),
                                             dcc.RangeSlider(
                                                 id='random-index-reg-y-slider-'+self.name,
-                                                min=self.explainer.y.min(),
-                                                max=self.explainer.y.max(),
+                                                min=float(self.explainer.y.min()),
+                                                max=float(self.explainer.y.max()),
                                                 step=np.float_power(10, -self.round),
                                                 value=[self.y_slider[0], self.y_slider[1]],
-                                                marks={self.explainer.y.min(): str(np.round(self.explainer.y.min(), self.round)),
-                                                    self.explainer.y.max(): str(np.round(self.explainer.y.max(), self.round))},
+                                                marks={float(self.explainer.y.min()): str(np.round(self.explainer.y.min(), self.round)),
+                                                    float(self.explainer.y.max()): str(np.round(self.explainer.y.max(), self.round))},
                                                 allowCross=False,
                                                 tooltip = {'always_visible' : False}
                                             )
@@ -216,12 +221,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                             target='random-index-reg-residual-slider-label-'+self.name),
                                         dcc.RangeSlider(
                                             id='random-index-reg-residual-slider-'+self.name,
-                                            min=self.explainer.residuals.min(),
-                                            max=self.explainer.residuals.max(),
+                                            min=float(self.explainer.residuals.min()),
+                                            max=float(self.explainer.residuals.max()),
                                             step=np.float_power(10, -self.round),
                                             value=[self.residual_slider[0], self.residual_slider[1]],
-                                            marks={self.explainer.residuals.min(): str(np.round(self.explainer.residuals.min(), self.round)),
-                                                self.explainer.residuals.max(): str(np.round(self.explainer.residuals.max(), self.round))},
+                                            marks={float(self.explainer.residuals.min()): str(np.round(self.explainer.residuals.min(), self.round)),
+                                                float(self.explainer.residuals.max()): str(np.round(self.explainer.residuals.max(), self.round))},
                                             allowCross=False,
                                             tooltip={'always_visible' : False}
                                         )
@@ -241,12 +246,12 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                             target='random-index-reg-abs-residual-slider-label'+self.name),
                                         dcc.RangeSlider(
                                             id='random-index-reg-abs-residual-slider-'+self.name,
-                                            min=self.explainer.abs_residuals.min(),
-                                            max=self.explainer.abs_residuals.max(),
+                                            min=float(self.explainer.abs_residuals.min()),
+                                            max=float(self.explainer.abs_residuals.max()),
                                             step=np.float_power(10, -self.round),
                                             value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
-                                            marks={self.explainer.abs_residuals.min(): str(np.round(self.explainer.abs_residuals.min(), self.round)),
-                                                self.explainer.abs_residuals.max(): str(np.round(self.explainer.abs_residuals.max(), self.round))},
+                                            marks={float(self.explainer.abs_residuals.min()): str(np.round(self.explainer.abs_residuals.min(), self.round)),
+                                                float(self.explainer.abs_residuals.max()): str(np.round(self.explainer.abs_residuals.max(), self.round))},
                                             allowCross=False,
                                             tooltip={'always_visible' : False}
                                         )
