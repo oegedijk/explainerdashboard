@@ -95,21 +95,16 @@
 - write tests for explainer_plots
 
 ## Docs:
+- Remove ExplainerTabs
+- Remove WhatIfComponent
+- Document FeatureInputComponent
 - add waitress to deployment examples
-- add customizing section in README
-- add ClassifierPredictionSummaryComponent to docs
-- move classifierindexselector and regressionindexselector in docs
-- add ExplainerDashboard **kwargs to custom documentation
-- Document ClassifierRandomIndexComponent vs RegressionRandomIndexComponent
-- add regressionVsCol screenshot
-- Add to custom a list of reasonable kwargs, e.g.: disable_permutations, etc.
-
 - Add type hints:
     - to explainers
     - to explainer class methods
     - to explainer_methods
     - to explainer_plots
-- Add pydata video: https://www.youtube.com/watch?v=1nMlfrDvwc8
+- Add pydata video when it comes online (january 4th)
 - document PosLabelSelector and PosLabelConnector, e.g.:
         self.connector = PosLabelConnector(self.roc_auc, self)
         self.register_components(self.connector)
