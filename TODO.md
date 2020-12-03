@@ -11,6 +11,7 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
+- Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
 - change lines and annotation to this:
@@ -95,8 +96,10 @@
 - write tests for explainer_plots
 
 ## Docs:
-- Remove ExplainerTabs
-- Remove WhatIfComponent
+- retake screenshots of components as cards
+- rerecord gifs
+- Remove ExplainerTabs from docs
+- Remove WhatIfComponent from docs
 - Document FeatureInputComponent
 - add waitress to deployment examples
 - Add type hints:

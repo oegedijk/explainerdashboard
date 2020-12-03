@@ -157,15 +157,16 @@ There are a few tricks to make this less painful:
     instance they will have to be recalculated. You can store them with
     `explainer.dump("explainer.joblib")` and load with e.g. 
     `ClassifierExplainer.from_file("explainer.joblib")`. All calculated properties
-    are stored with the explainer.
+    are stored along with the explainer.
 3. Using a smaller (test) dataset, or using smaller decision trees. 
-    TreeShap computational complexity from `O(TLD^2)`, where `T` is the 
+    TreeShap computational complexity is `O(TLD^2)`, where `T` is the 
     number of trees, `L` is the maximum number of leaves in any tree and 
-    `D` the maximal depth of any tree.
+    `D` the maximal depth of any tree. So reducing the number of leaves or average
+    depth in the decision tree can really speed up SHAP calculations.
 
-## From within a notebook
+## Launching from within a notebook
 
-When working inside jupyter or Google Colab you can use 
+When working inside Jupyter or Google Colab you can use 
 `ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')` or
 `ExplainerDashboard(mode='jupyterlab')`, to run the dashboard inline in the notebook,
 or in a seperate tab but keep the notebook interactive. 
@@ -260,7 +261,7 @@ ExplainerDashboard(explainer,
                     )
 ```
 
-### Designing own layout
+### Designing your own layout
 
 All the components in the dashboard are modular and re-usable, which means that 
 you can build your own custom [dash](https://dash.plotly.com/) dashboards 
