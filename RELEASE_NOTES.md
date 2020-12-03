@@ -1,15 +1,13 @@
 # Release Notes
 
+## Version 0.2.13.2
+
+### Bug Fixes
+- fixed RegressionRandomIndexComponent bug that crashed when y.astype(np.int64),
+    now casting all slider ranges to float.
+
 
 ## Version 0.2.13.1
-
-### Breaking Changes
-- 
-- 
-
-### New Features
--
--
 
 ### Bug Fixes
 - fixed pdp bug introduced with setting `X.index` to `self.idxs` where
@@ -17,13 +15,7 @@
 - now hiding entire `CardHeader` when `hide_title=True`
 - index was not initialized in ShapContributionsGraphComponent and Shap ContributionsTableComponent
 
-### Improvements
--
--
 
-### Other Changes
--
--
 
 ## Version 0.2.13:
 ### Breaking Changes
