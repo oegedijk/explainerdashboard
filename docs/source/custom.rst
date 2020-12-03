@@ -1,53 +1,155 @@
-Custom Dashboards
-*****************
+Customizing your dashboard
+**************************
 
-By re-using the modular  :ref:`ExplainerComponents and connectors<ExplainerComponents>` 
-it becomes very easy to build your own custom dashboards, without needing to know much about 
-web development or even much about `plotly dash <https://dash.plotly.com/>`_, 
+The dashboard is highly modular and customizable so that you can adjust it your
+own needs and project. You can switch off tabs, control the features of invidual
+components in the dashboard, or even build your entire custom dashboard layout
+like the example below:
+
+.. image:: screenshots/custom_dashboard.*
+
+Switching off tabs
+==================
+
+You can switch off individual tabs using boolean flags, e.g.::
+
+    ExplainerDashboard(explainer,
+                        importances=False,
+                        model_summary=True,
+                        contributions=True,
+                        whatif=True,
+                        shap_dependence=True,
+                        shap_interaction=False,
+                        decision_trees=True)
+
+
+Passing parameters as ``**kwargs``
+==================================
+
+The dashboard consists of independent `ExplainerComponents` that take their
+own parameters. For example hiding certain toggles (e.g. ``hide_cats=True``) or
+setting default values (e.g. ``col='Fare'``). When you start your ``ExplainerDashboard`` 
+all the ``**kwargs`` will be passed down to each ``ExplainerComponent``. All 
+the components with their parameters can be found in the :ref:`components documentation<ExplainerComponents>`.
+Some examples of useful parameters to pass as kwargs are::
+
+    ExplainerDashboard(explainer, 
+                        no_permutations=True, # do not show nor calculate permutation importances
+                        higher_is_better=False, # flip green and red in contributions graph
+                        # hiding dropdowns and toggles:
+                        hide_cats=True, # hide the group cats toggles
+                        hide_depth=True, # hide the depth (no of features) dropdown
+                        hide_sort=True, # hide sort type dropdown in contributions graph/table
+                        hide_orientation=True, # hide orientation dropdown in contributions graph/table
+                        hide_type=True, # hide shap/permutation toggle on ImportancesComponent 
+                        hide_dropna=True, # hide dropna toggle on pdp component
+                        hide_sample=True, # hide sample size input on pdp component
+                        hide_gridlines=True, # hide gridlines on pdp component
+                        hide_gridpoints=True, # hide gridpoints input on pdp component
+                        hide_cutoff=True, # hide cutoff selector on classification components
+                        hide_percentage=True, # hide percentage toggle on classificaiton components
+                        hide_log_x=True, # hide x-axis logs toggle on regression plots
+                        hide_log_y=True, # hide y-axis logs toggle on regression plots
+                        hide_ratio=True, # hide the residuals type dropdown
+                        hide_points=True, # hide the show violin scatter markers toggle
+                        hide_winsor=True, # hide the winsorize input
+                        # setting default values:
+                        col='Fare', # initial feature in shap graphs
+                        color_col='Age', # color feature in shap dependence graph
+                        interact_col='Age', # interaction feature in shap interaction
+                        cats=False, # do not group categorical onehot features
+                        depth=5, # only show top 5 features
+                        sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
+                        orientation='horizontal', # horizontal bars in contributions graph
+                        index='Rugg, Miss. Emily', # initial index to display
+                        pdp_col='Fare', # initial pdp feature
+                        cutoff=0.8, # cutoff for classification plots
+                        round=2 # rounding to apply to floats
+                        )
+
+
+Building custom layout
+======================
+
+You can build your own custom dashboard layout by re-using the modular  
+:ref:`ExplainerComponents and connectors<ExplainerComponents>` without needing 
+to know much about web development or even much about `plotly dash <https://dash.plotly.com/>`_, 
 which is the underlying technology that ``explainerdashboard`` is built on.
 
 You can get some inspiration from the `explainerdashboard composites <https://github.com/oegedijk/explainerdashboard/blob/master/explainerdashboard/dashboard_components/composites.py>`_
 that build the layout of the default dashboard tabs.
 
-Simplest Example
-================
+Simple Example
+--------------
 
-A very simple example of a custom dashboard would be::
+For example if you only wanted to build a custom dashboard that only contains 
+a ``ConfusionMatrixComponent`` and a ``ShapContributionsGraphComponent``, 
+but you want to hide a few toggles:::
 
-    import dash_html_components as html
     from explainerdashboard.custom import *
 
     class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer):
-            super().__init__(explainer)
-            self.dependence = ShapDependenceComponent(explainer, 
-                    hide_selector=True, hide_cats=True, hide_index=True, col="Fare")
+        def __init__(self, explainer, **kwargs):
+            super().__init__(explainer, title="Custom Dashboard")
+            self.confusion = ConfusionMatrixComponent(explainer,
+                                hide_selector=True, hide_percentage=True,
+                                cutoff=0.75)
+            self.contrib = ShapContributionsGraphComponent(explainer,
+                                hide_selector=True, hide_cats=True, 
+                                hide_depth=True, hide_sort=True,
+                                index='Rugg, Miss. Emily')
             self.register_components()
-
+            
         def layout(self):
-            return html.Div([self.dependence.layout()])
+            return dbc.Container([
+                dbc.Row([
+                    dbc.Col([
+                        html.H1("Custom Demonstration:"),
+                        html.H3("How to build your own layout using ExplainerComponents.")
+                    ])
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        self.confusion.layout(),
+                    ]),
+                    dbc.Col([
+                        self.contrib.layout(),
+                    ])
+                ])
+            ])
 
-    ExplainerDashboard(explainer, CustomDashboard).run()
+    db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True).run()
 
-So you need to import all ExplainerComponents from ``explainerdashboard.custom``.
-Then you define your custom dashboard wrapped inside a class that derives from 
-``ExplainerComponent``. You need to call the init of the parent class with
-``super().__init__(explainer)``. You instantiate the components that you wish
-to include as attributes in your init: ``self.dependence = ShapDependenceComponent(explainer, ...)``.
-You set the options of the component as you see fit (hiding toggles and dropdowns for example).
-By calling ``self.register_components()`` you automatically register all 
-ExplainerComponents that have been declared in the init, so that their 
-callbacks will also be registered by the app. Then you define the layout in the 
-``def layout(self)`` method. In this case we only include the 
-``self.dependence.layout()`` wrapped inside a ``html.Div``.
+So you need to 
 
-You then pass this ``CustomDashboard`` to ``ExplainerDashboard`` and run it as usual.
+1. Import ``ExplainerComponents`` from ``explainerdashboard.custom``. (this also
+   imports ``dash_html_components as html``, ``dash_core_components as dcc`` and
+   ``dash_bootstrap_components as dbc``.
+
+2. Derive a child class from ``ExplainerComponent``. 
+
+3. Call the init of the parent class with ``super().__init__(explainer, title)``. 
+
+4. Instantiate the components that you wish to include as attributes in your init: 
+   ``self.confusion = ConfusionMatrixComponent(explainer)`` and 
+   ``self.contrib = ShapContributionsGraphComponent(explainer)``
+
+5. Register these subcomponents by calling ``self.register_components()``
+
+6. Define a ``layout()`` method that returns a custom layout.
+
+7. Build your layout using ``html`` and bootstrap (``dbc``) elements and 
+   include your components' layout in this overall layout with ``self.confusion.layout()``
+   and ``self.contrib.layout()``.
+
+8. Pass the class to an ``ExplainerDashboard`` and ``run()` it. 
+
 
 You can find the list of all ``ExplainerComponents`` in the :ref:`documentation<ExplainerComponents>`.
 
 .. note::
     To save on boilerplate code, parameters in the init will automagically be 
-    stored to attributes by ``super().__init__()``. So in the example below 
+    stored to attributes by ``super().__init__(explainer)``. So in the example below 
     you do not have to explicitly call ``self.a = a`` in the init::
 
         class CustomDashboard(ExplainerComponent):
@@ -58,14 +160,14 @@ You can find the list of all ``ExplainerComponents`` in the :ref:`documentation<
         assert custom.a == 1
 
 
-Constructing layout
-===================
+Constructing the layout
+-------------------
 
 You construct the layout using ``dash_bootstrap_components`` and
 ``dash_html_components``:
 
 dash_bootstrap_components
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 Using the ``dash_bootstrap_components`` library it is very easy to construct
 a modern looking web, responsive interface with just a few lines of python code. 
 
@@ -78,18 +180,18 @@ elements such as cards, modals, etc that you can find more information on in
 their documentation: `https://dash-bootstrap-components.opensource.faculty.ai/ <https://dash-bootstrap-components.opensource.faculty.ai/>`_
 
 dash_html_components
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
-If you know a little bit of html then using ``dash_html_components`` you
+If you know a little bit of html then using ``import dash_html_components as html`` you
 can add further elements to your design. For example in order to insert a header
 add ``html.H1("This is my header!")``, etc.
 
 
 Elaborate Example
-=================
+-----------------
 
 CustomModelTab
---------------
+^^^^^^^^^^^^^^
 
 A more elaborate example is below where we include three components: the 
 precision graph, the shap summary and the shap dependence component, and
@@ -185,7 +287,7 @@ select a feature in the summary, it automatically gets selected in the dependenc
 
 
 CustomPredictionsTab
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 We can also add another tab to investigate individual predictions, that 
 includes an index selector, a SHAP contributions graph and a Random Forest
@@ -250,6 +352,9 @@ called FLATLY as a custom css file::
                    header_hide_selector=True, 
                    external_stylesheets=[dbc.themes.FLATLY]).run()
 
+
+Below you can see the result. (also note how the component title shows up as
+the tab title):
 
 .. image:: screenshots/custom_dashboard.*
 

@@ -175,6 +175,26 @@ WhatIfComponent
 classifier_components
 =====================
 
+ClassifierRandomIndexComponent
+------------------------------
+
+.. image:: screenshots/components/classifier_index.png
+
+.. autoclass:: explainerdashboard.dashboard_components.classifier_components.ClassifierRandomIndexComponent
+   :members:
+
+
+
+
+ClassifierPredictionSummaryComponent
+------------------------------------
+
+.. image:: screenshots/components/classifier_prediction.png
+
+.. autoclass:: explainerdashboard.dashboard_components.classifier_components.ClassifierPredictionSummaryComponent
+   :members:
+
+
 
 ConfusionMatrixComponent
 ------------------------
@@ -237,6 +257,24 @@ CumulativePrecisionComponent
 regression_components
 =====================
 
+RegressionRandomIndexComponent
+------------------------------
+
+.. image:: screenshots/components/regression_index.png
+
+.. autoclass:: explainerdashboard.dashboard_components.regression_components.RegressionRandomIndexComponent
+   :members:
+
+RegressionPredictionSummaryComponent
+------------------------------------
+
+.. image:: screenshots/components/regression_prediction.png
+
+.. autoclass:: explainerdashboard.dashboard_components.regression_components.RegressionPredictionSummaryComponent
+   :members:
+
+
+
 PredictedVsActualComponent
 --------------------------
 
@@ -256,7 +294,7 @@ ResidualsComponent
 RegressionVsColComponent
 -----------------------
 
-.. image:: screenshots/components/residuals_vs_col.png
+.. image:: screenshots/components/reg_vs_col.png
 
 .. autoclass:: explainerdashboard.dashboard_components.regression_components.RegressionVsColComponent
    :members:
@@ -307,17 +345,6 @@ DecisionPathGraphComponent
 connectors
 ==========
 
-ClassifierRandomIndexComponent
-------------------------------
-
-.. autoclass:: explainerdashboard.dashboard_components.connectors.ClassifierRandomIndexComponent
-   :members:
-
-RegressionRandomIndexComponent
-------------------------------
-
-.. autoclass:: explainerdashboard.dashboard_components.connectors.RegressionRandomIndexComponent
-   :members:
 
 CutoffPercentileComponent
 -------------------------

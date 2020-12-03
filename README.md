@@ -191,6 +191,7 @@ Or store the full configuration of a dashboard to `.yaml` with e.g.
 $ explainerdashboard run dashboard.yaml
 ```
 
+You can also build explainers from the commandline with `explainerdashboard build`.
 See [explainerdashboard CLI documentation](https://explainerdashboard.readthedocs.io/en/latest/cli.html)
 for details. 
 
