@@ -216,7 +216,7 @@ So add the following shell buildpack:
 (you can add buildpacks through the "settings" page of your heroku project)
 and then create a 
 directory ``.heroku`` with a file ``run.sh`` with the
-instructions to uninstall xgboost: ``pip install -y xgboost``. This script will
+instructions to uninstall xgboost: ``pip uninstall -y xgboost``. This script will
 then be run at the end of your build process, ensuring that xgboost will be
 uninstalled before the deployment is compressed to a slug.
 
