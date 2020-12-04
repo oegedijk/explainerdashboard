@@ -213,6 +213,7 @@ have to uninstall ``xgboost`` and then mock it. This is normally pretty easy
 in order to run shell instructions after the build phase.
 So add the following shell buildpack:
 `https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_ ,
+(you can add buildpacks through the "settings" page of your heroku project)
 and then create a 
 directory ``.heroku`` with a file ``run.sh`` with the
 instructions to uninstall xgboost: ``pip install -y xgboost``. This script will
@@ -236,6 +237,8 @@ the ``dtreeviz`` package you will
 need to make sure that ``graphviz`` is installed on your ``heroku`` dyno by
 adding the following buildstack: 
 ``https://github.com/weibeld/heroku-buildpack-graphviz.git``
+
+(you can add buildpacks through the "settings" page of your heroku project)
 
 
 Setting logins and password
