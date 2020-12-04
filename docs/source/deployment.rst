@@ -152,7 +152,7 @@ Whenever we now make a change to either one of the source files
 or ``dashboard.yaml`` gunicorns restarts and rebuild the dashboard. 
 
 So you can keep an explainerdashboard running without interuption and simply 
- an updated ``model.pkl`` or a fresh dataset ``data.csv`` into the directory and 
+an updated ``model.pkl`` or a fresh dataset ``data.csv`` into the directory and 
 the dashboard will automatically update. 
 
 
@@ -194,9 +194,9 @@ Deploying to heroku
 ===================
 
 In case you would like to deploy to `heroku <www.heroku.com>`_ (which is probably the simplest 
-`deployment <https://dash.plotly.com/deployment>`_ option for dash apps), 
+`deployment <https://dash.plotly.com/deployment>`_ option for dash apps, 
 where the demonstration dashboard is hosted
-at `titanicexplainer.herokuapp.com <titanicexplainer.herokuapp.com>`_ 
+at `titanicexplainer.herokuapp.com <titanicexplainer.herokuapp.com>`_ )
 there are a number of issues to keep in mind.
 
 Uninstalling and mocking xgboost
@@ -213,9 +213,11 @@ have to uninstall ``xgboost`` and then mock it. This is normally pretty easy
 in order to run shell instructions after the build phase.
 So add the following shell buildpack:
 `https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_ ,
-(you can add buildpacks through the "settings" page of your heroku project)
-and then create a 
-directory ``.heroku`` with a file ``run.sh`` with the
+(you can add buildpacks through the "settings" page of your heroku project on heroku.com)
+
+.. image:: screenshots/heroku_buildpack.png
+
+Then create a directory ``.heroku`` inside your repo with a file ``run.sh`` with the
 instructions to uninstall xgboost: ``pip uninstall -y xgboost``. This script will
 then be run at the end of your build process, ensuring that xgboost will be
 uninstalled before the deployment is compressed to a slug.

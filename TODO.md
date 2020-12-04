@@ -96,6 +96,8 @@
 - write tests for explainer_plots
 
 ## Docs:
+- remove ExplainerTabs, add ExplainerComposites
+- add heroku screenshot to deployment
 - retake screenshots of components as cards
 - rerecord gifs
 - Remove ExplainerTabs from docs
@@ -114,6 +116,8 @@
 
 
 ## Library level:
+- add bracket extras for [nodtreeviz] option?
+    - https://stackoverflow.com/questions/46775346/what-do-square-brackets-mean-in-pip-install
 - add waitress to CLI
 - hide (prefix '_') to non-public API class methods
 - build release for conda-forge
