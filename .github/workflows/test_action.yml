@@ -3,6 +3,10 @@
 
 name: test_action
 
+on:
+  push:
+    branches: [ master ]
+    
 jobs:
   build:
 
