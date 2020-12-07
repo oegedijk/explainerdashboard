@@ -22,7 +22,8 @@ class CutoffPercentileComponent(ExplainerComponent):
     def __init__(self, explainer, title="Global cutoff", name=None,
                         hide_title=False, hide_cutoff=False, hide_percentile=False,
                         hide_selector=False,
-                        pos_label=None, cutoff=0.5, percentile=None, **kwargs):
+                        pos_label=None, cutoff=0.5, percentile=None, 
+                        description=None, **kwargs):
         """
         Slider to set a cutoff for Classifier components, based on setting the
         cutoff at a certain percentile of predictions, e.g.:
@@ -47,19 +48,31 @@ class CutoffPercentileComponent(ExplainerComponent):
                         Defaults to explainer.pos_label
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
         self.cutoff_name = 'cutoffconnector-cutoff-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+
+        if self.description is None: self.description = """
+        Select a model cutoff such that all predicted probabilities higher than
+        the cutoff will be labeled positive, and all predicted probabilities 
+        lower than the cutoff will be labeled negative. You can also set
+        the cutoff as a percenntile of all observations. Setting the cutoff
+        here will automatically set the cutoff in multiple other connected
+        component. 
+        """
         self.register_dependencies(['preds', 'pred_percentiles'])
 
     def layout(self):
         return dbc.Card([
             make_hideable(
                 dbc.CardHeader([
-                    html.Div(html.H3(self.title)), 
+                    html.H3(self.title, className="card-title", id='cutoffconnector-title-'+self.name),
+                    dbc.Tooltip(self.description, target='cutoffconnector-title-'+self.name),
                 ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([

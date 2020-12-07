@@ -1,13 +1,14 @@
 # Release Notes
 
-## Template:
+## Version 0.2.14:
 ### Breaking Changes
 - 
 - 
 
 ### New Features
--
--
+- add `hide_subtitle=False` parameter to all components with subtitles
+- added `description` parameter to all components to adjust the hover-over-title
+    tooltip
 
 ### Bug Fixes
 -
