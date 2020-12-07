@@ -1,5 +1,25 @@
 # Release Notes
 
+## Template:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+
 ## Version 0.2.13.2
 
 ### Bug Fixes

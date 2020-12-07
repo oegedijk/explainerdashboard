@@ -194,10 +194,32 @@ Deploying to heroku
 ===================
 
 In case you would like to deploy to `heroku <www.heroku.com>`_ (which is probably the simplest 
-`deployment <https://dash.plotly.com/deployment>`_ option for dash apps, 
-where the demonstration dashboard is hosted
-at `titanicexplainer.herokuapp.com <titanicexplainer.herokuapp.com>`_ )
+ option for dash apps, see `instruction here<https://dash.plotly.com/deployment>`_) 
+where the demonstration dashboard is also hosted
+at `titanicexplainer.herokuapp.com <http://titanicexplainer.herokuapp.com>`_ )
 there are a number of issues to keep in mind.
+
+First of all you need to add ``explainerdashboard`` and ``gunicorn`` to 
+``requirements.txt`` (pinning is recommended)::
+
+    explainerdashboard==0.2.13.2
+    gunicorn
+
+Select a python runtime compatible with the version that you used to pickle
+your explainer in ``runtime.txt``:
+
+    python-3.8.6
+
+(supported versions as of this writing are ``python-3.9.0``, ``python-3.8.6``, 
+``python-3.7.9`` and ``python-3.6.12``, but check the 
+`heroku documentation<https://devcenter.heroku.com/articles/python-support#supported-runtimes>`_
+for the latest)
+
+
+And you need to tell heroku how to start your server in ``Procfile``:
+
+    web: gunicorn --preload --timeout 60 dashboard:app
+
 
 Uninstalling and mocking xgboost
 --------------------------------
@@ -213,7 +235,8 @@ have to uninstall ``xgboost`` and then mock it. This is normally pretty easy
 in order to run shell instructions after the build phase.
 So add the following shell buildpack:
 `https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_ ,
-(you can add buildpacks through the "settings" page of your heroku project on heroku.com)
+You can add buildpacks through the "settings" page of your heroku project on 
+`heroku.com<heroku.com>`_:
 
 .. image:: screenshots/heroku_buildpack.png
 
@@ -234,13 +257,13 @@ mock the ``xgboost`` library by adding the following code before you import
 Graphviz buildpack
 ------------------
 
-If you want to visualize individual trees in your ``RandomForest`` using
-the ``dtreeviz`` package you will
+If you want to visualize individual trees inside your ``RandomForest`` or ``xgboost`` 
+model using the ``dtreeviz`` package you will
 need to make sure that ``graphviz`` is installed on your ``heroku`` dyno by
 adding the following buildstack: 
 ``https://github.com/weibeld/heroku-buildpack-graphviz.git``
 
-(you can add buildpacks through the "settings" page of your heroku project)
+(again, you can add buildpacks through the "settings" page of your heroku project)
 
 
 Setting logins and password
@@ -255,3 +278,4 @@ and prevent random users from accessing the details of your model dashboard::
 
 Make sure not to check these login/password pairs into version control though, 
 but store them somewhere safe! 
+
