@@ -23,8 +23,9 @@ from ..dashboard_methods import *
 class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary", name=None,
                     hide_index=False, hide_percentile=False, 
-                    hide_title=False, hide_selector=False,
-                    pos_label=None, index=None, percentile=True, **kwargs):
+                    hide_title=False,  hide_subtitle=False, hide_selector=False,
+                    pos_label=None, index=None, percentile=True,
+                    description=None, **kwargs):
         """Shows a summary for a particular prediction
 
         Args:
@@ -38,11 +39,13 @@ class PredictionSummaryComponent(ExplainerComponent):
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_percentile (bool, optional): hide percentile toggle. Defaults to False.
             hide_title (bool, optional): hide title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
             percentile (bool, optional): Whether to add the prediction percentile. Defaults to True.
+
         """
         super().__init__(explainer, title, name)
 
@@ -108,9 +111,10 @@ class ImportancesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
                         subtitle="Which features had the biggest impact?",
                         hide_type=False, hide_depth=False, hide_cats=False,
-                        hide_title=False, hide_selector=False,
+                        hide_title=False,  hide_subtitle=False, hide_selector=False,
                         pos_label=None, importance_type="shap", depth=None, 
-                        cats=True, no_permutations=False, **kwargs):
+                        cats=True, no_permutations=False,
+                        description=None, **kwargs):
         """Display features importances component
 
         Args:
@@ -129,6 +133,7 @@ class ImportancesComponent(ExplainerComponent):
             hide_cats (bool, optional): Hide group cats toggle. 
                         Defaults to False.
             hide_title (bool, optional): hide title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                         Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
@@ -140,6 +145,8 @@ class ImportancesComponent(ExplainerComponent):
             cats (bool, optional): Group categoricals. Defaults to True.
             no_permutations (bool, optional): Do not use the permutation
                 importances for this component. Defaults to False. 
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -157,6 +164,13 @@ class ImportancesComponent(ExplainerComponent):
         if self.explainer.y_missing or self.no_permutations:
             self.hide_type = True
             self.importance_type = 'shap'
+        if self.description is None: self.description = f"""
+        Shows the features sorted from most important to least important. Can 
+        be either sorted by absolute SHAP value (average absolute impact of 
+        the feature on final prediction) or by permutation importance (how much
+        does the model get worse when you shuffle this feature, rendering it
+        useless?).
+        """
         self.register_dependencies('shap_values', 'shap_values_cats')
         if not (self.hide_type and self.importance_type == 'shap'):
             self.register_dependencies('permutation_importances', 'permutation_importances_cats')
@@ -166,8 +180,9 @@ class ImportancesComponent(ExplainerComponent):
             make_hideable(
                 dbc.CardHeader([
                     html.Div([
-                        html.H3(self.title, className="card-title"),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        html.H3(self.title, className="card-title", id='importances-title-'+self.name),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
+                        dbc.Tooltip(self.description, target='importances-title-'+self.name),
                     ]),
             ]), hide=self.hide_title),
             dbc.CardBody([
@@ -251,12 +266,13 @@ class PdpComponent(ExplainerComponent):
     def __init__(self, explainer, title="Partial Dependence Plot", name=None,
                     subtitle="How does the prediction change if you change one feature?",
                     hide_col=False, hide_index=False, hide_cats=False,
-                    hide_title=False, hide_selector=False,
+                    hide_title=False,  hide_subtitle=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False,
                     feature_input_component=None,
                     pos_label=None, col=None, index=None, cats=True,
-                    dropna=True, sample=100, gridlines=50, gridpoints=10, **kwargs):
+                    dropna=True, sample=100, gridlines=50, gridpoints=10,
+                    description=None, **kwargs):
         """Show Partial Dependence Plot component
 
         Args:
@@ -272,6 +288,7 @@ class PdpComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_title (bool, optional): Hide title, Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
@@ -289,6 +306,8 @@ class PdpComponent(ExplainerComponent):
             sample (int, optional): Sample size to calculate average partial dependence. Defaults to 100.
             gridlines (int, optional): Number of ice lines to display in plot. Defaults to 50.
             gridpoints (int, optional): Number of breakpoints on horizontal axis Defaults to 10.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -303,7 +322,7 @@ class PdpComponent(ExplainerComponent):
         if self.feature_input_component is not None:
             self.hide_index = True
             
-        self.description = f"""
+        if self.description is None: self.description = f"""
         The partial dependence plot (pdp) show how the model prediction would
         change if you change one particular feature. The plot shows you a sample
         of observations and how these observations would change with this
@@ -321,7 +340,7 @@ class PdpComponent(ExplainerComponent):
                     dbc.CardHeader([
                             html.Div([
                                 html.H3(self.title, id='pdp-title-'+self.name),
-                                html.H6(self.subtitle, className="card-subtitle"),
+                                make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                                 dbc.Tooltip(self.description, target='pdp-title-'+self.name),
                             ]), 
                     ]), hide=self.hide_title),
@@ -472,8 +491,8 @@ class PdpComponent(ExplainerComponent):
 class FeatureInputComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Input", name=None,
                     subtitle="Adjust the feature values to change the prediction",
-                    hide_title=False, hide_index=False, 
-                    index=None, **kwargs):
+                    hide_title=False,  hide_subtitle=False, hide_index=False, 
+                    index=None, description=None, **kwargs):
         """Interaction Dependence Component.
 
         Args:
@@ -486,8 +505,11 @@ class FeatureInputComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide the title
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): hide the index selector
             index (str, int, optional): default index
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
             
         """
         super().__init__(explainer, title, name)
@@ -504,7 +526,8 @@ class FeatureInputComponent(ExplainerComponent):
                                 for feature in self._input_features]
         self._feature_callback_inputs = [Input('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
         self._feature_callback_outputs = [Output('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features] 
-        self.description = """Adjust the input values to see predictions for what if scenarios."""
+        if self.description is None: self.description = """
+        Adjust the input values to see predictions for what if scenarios."""
         
     def _generate_dash_input(self, col, cats, cats_dict):
         if col in cats:
@@ -529,7 +552,7 @@ class FeatureInputComponent(ExplainerComponent):
                 dbc.CardHeader([
                         html.Div([
                             html.H3(self.title, id='feature-input-title-'+self.name),
-                            html.H6(self.subtitle, className="card-subtitle"),
+                            make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                             dbc.Tooltip(self.description, target='feature-input-title-'+self.name),
                         ]), 
                 ]), hide=self.hide_title),
@@ -571,9 +594,10 @@ class FeatureInputComponent(ExplainerComponent):
 
 class WhatIfComponent(ExplainerComponent):
     def __init__(self, explainer, title="What if...", name=None,
-                    hide_title=False, hide_index=False, hide_selector=False,
-                    hide_contributions=False, hide_pdp=False,
-                    index=None, pdp_col=None, pos_label=None, **kwargs):
+                    hide_title=False,  hide_subtitle=False, hide_index=False, 
+                    hide_selector=False, hide_contributions=False, hide_pdp=False,
+                    index=None, pdp_col=None, pos_label=None, description=None,
+                    **kwargs):
         """Interaction Dependence Component.
 
         Args:
@@ -585,6 +609,7 @@ class WhatIfComponent(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide the title
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): hide the index selector
             hide_selector (bool, optional): hide the pos_label selector
             hide_contributions (bool, optional): hide the contributions graph
@@ -593,7 +618,8 @@ class WhatIfComponent(ExplainerComponent):
             pdp_col (str, optional): default pdp feature col
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
-            
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -640,7 +666,6 @@ class WhatIfComponent(ExplainerComponent):
             make_hideable(
                 dbc.CardHeader([
                     dbc.Row([
-                        
                             dbc.Col([
                                 html.H1(self.title)
                             ]), 

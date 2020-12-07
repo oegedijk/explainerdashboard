@@ -22,10 +22,11 @@ from .connectors import IndexConnector, HighlightConnector
 class DecisionTreesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
                     subtitle="Displaying individual decision trees",
-                    hide_title=False, hide_index=False, hide_highlight=False,
+                    hide_title=False,  hide_subtitle=False,
+                    hide_index=False, hide_highlight=False,
                     hide_selector=False,
                     pos_label=None, index=None, highlight=None, 
-                    higher_is_better=True, **kwargs):
+                    higher_is_better=True, description=None, **kwargs):
         """Show prediction from individual decision trees inside RandomForest component
 
         Args:
@@ -38,6 +39,7 @@ class DecisionTreesComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide title, Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
@@ -47,6 +49,8 @@ class DecisionTreesComponent(ExplainerComponent):
             highlight (int, optional): Initial tree to highlight. Defaults to None.
             higher_is_better (bool, optional): up is green, down is red. If False
                 flip the colors. (for gbm models only)
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -56,7 +60,7 @@ class DecisionTreesComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         
         if isinstance(self.explainer, RandomForestExplainer):
-            self.description = """
+            if self.description is None: self.description = """
             Show the prediction of every individul tree in a random forest.
             This demonstrates how a random forest is simply an average of an
             ensemble of decision trees.
@@ -64,7 +68,7 @@ class DecisionTreesComponent(ExplainerComponent):
             if self.subtitle == "Displaying individual decision trees":
                 self.subtitle += " inside Random Forest"
         elif isinstance(self.explainer, XGBExplainer):
-            self.description = """
+            if self.description is None: self.description = """
             Shows the marginal contributions of each decision tree in an 
             xgboost ensemble to the final prediction. This demonstrates that
             an xgboost model is simply a sum of individual decision trees.
@@ -72,7 +76,7 @@ class DecisionTreesComponent(ExplainerComponent):
             if self.subtitle == "Displaying individual decision trees":
                 self.subtitle += " inside xgboost model"
         else:
-            self.description = ""
+            if self.description is None: self.description = ""
         self.register_dependencies("preds", "pred_probas")
 
     def layout(self):
@@ -81,7 +85,7 @@ class DecisionTreesComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         html.H3(self.title, id='decisiontrees-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='decisiontrees-title-'+self.name),
                     ]), hide=self.hide_title),
             ]),
@@ -147,9 +151,11 @@ class DecisionTreesComponent(ExplainerComponent):
 class DecisionPathTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path table", name=None,
                     subtitle="Decision path through decision tree",
-                    hide_title=False, hide_index=False, hide_highlight=False,
+                    hide_title=False,  hide_subtitle=False,
+                    hide_index=False, hide_highlight=False,
                     hide_selector=False,
-                    pos_label=None, index=None, highlight=None, **kwargs):
+                    pos_label=None, index=None, highlight=None, description=None,
+                    **kwargs):
         """Display a table of the decision path through a particular decision tree
 
         Args:
@@ -162,6 +168,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide title, Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): Hide index selector. 
                         Defaults to False.
             hide_highlight (bool, optional): Hide tree index selector. 
@@ -174,6 +181,8 @@ class DecisionPathTableComponent(ExplainerComponent):
                         path for. Defaults to None.
             highlight (int, optional): Initial tree idx to display decision 
                         path for. Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -182,7 +191,7 @@ class DecisionPathTableComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         
-        self.description = """
+        if self.description is None: self.description = """
         Shows the path that an observation took down a specific decision tree.
         """
         self.register_dependencies("decision_trees")
@@ -193,7 +202,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                 dbc.CardHeader([
                         html.Div([
                             html.H3(self.title, id='decisionpath-table-title-'+self.name),
-                            html.H6(self.subtitle, className="card-subtitle"),
+                            make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                             dbc.Tooltip(self.description, target='decisionpath-table-title-'+self.name),
                         ]), 
                 ]), hide=self.hide_title),
@@ -248,10 +257,11 @@ class DecisionPathTableComponent(ExplainerComponent):
 class DecisionPathGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Decision path graph", name=None,
                     subtitle="Visualizing entire decision tree",
-                    hide_title=False, hide_index=False, 
+                    hide_title=False,  hide_subtitle=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
                     hide_selector=False,
-                    pos_label=None, index=None, highlight=None, **kwargs):
+                    pos_label=None, index=None, highlight=None, description=None,
+                    **kwargs):
         """Display dtreeviz decision path
 
         Args:
@@ -264,6 +274,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide title
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
             hide_button (bool, optional): hide the button, Defaults to False.
@@ -272,6 +283,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
                         Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
             highlight ([type], optional): Initial tree idx to display. Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
         # if explainer.is_regression:
@@ -279,7 +292,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
         self.index_name = 'decisionpath-index-'+self.name
         self.highlight_name = 'decisionpath-highlight-'+self.name
-        self.description = """
+        if self.description is None: self.description = """
         Visualizes the path that an observation took down a specific decision tree,
         by showing the entire decision tree and the path that a specific observation
         took down this tree.
@@ -293,7 +306,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                 dbc.CardHeader([          
                     html.Div([
                         html.H3(self.title, id='decisionpath-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='decisionpath-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),

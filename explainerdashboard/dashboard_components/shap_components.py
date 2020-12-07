@@ -21,10 +21,11 @@ from ..dashboard_methods import *
 class ShapSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Summary', name=None,
                     subtitle="Ordering features by shap value",
-                    hide_title=False, hide_depth=False, 
+                    hide_title=False, hide_subtitle=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, depth=None, 
-                    summary_type="aggregate", cats=True, index=None, **kwargs):
+                    summary_type="aggregate", cats=True, index=None,
+                    description=None, **kwargs):
         """Shows shap summary component
 
         Args:
@@ -36,8 +37,8 @@ class ShapSummaryComponent(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             subtitle (str): subtitle
-            hide_title (bool, optional): hide the title above component. 
-                        Defaults to False.
+            hide_title (bool, optional): hide the title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_depth (bool, optional): hide the depth toggle. 
                         Defaults to False.
             hide_type (bool, optional): hide the summary type toggle 
@@ -50,6 +51,8 @@ class ShapSummaryComponent(ExplainerComponent):
             summary_type (str, {'aggregate', 'detailed'}. optional): type of 
                         summary graph to show. Defaults to "aggregate".
             cats (bool, optional): group cats. Defaults to True.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -61,7 +64,7 @@ class ShapSummaryComponent(ExplainerComponent):
 
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.description = """
+        if self.description is None: self.description = """
         The shap summary summarizes the shap values per feature.
         You can either select an aggregates display that shows mean absolute shap value
         per feature. Or get a more detailed look at the spread of shap values per
@@ -75,7 +78,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='shap-summary-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='shap-summary-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -196,11 +199,11 @@ class ShapSummaryComponent(ExplainerComponent):
 class ShapDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence', name=None,
                     subtitle="Relationship between feature value and SHAP value",
-                    hide_title=False, hide_cats=False, hide_col=False, 
+                    hide_title=False, hide_subtitle=False, hide_cats=False, hide_col=False, 
                     hide_color_col=False, hide_index=False,
                     hide_selector=False,
                     pos_label=None, cats=True, col=None, 
-                    color_col=None, index=None, **kwargs):
+                    color_col=None, index=None, description=None, **kwargs):
         """Show shap dependence graph
 
         Args:
@@ -213,6 +216,7 @@ class ShapDependenceComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide component title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_cats (bool, optional): hide group cats toggle. Defaults to False.
             hide_col (bool, optional): hide feature selector. Defaults to False.
             hide_color_col (bool, optional): hide color feature selector Defaults to False.
@@ -225,6 +229,8 @@ class ShapDependenceComponent(ExplainerComponent):
             color_col (str, optional): Color plot by values of this Feature. 
                         Defaults to None.
             index (int, optional): Highlight a particular index. Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -236,7 +242,7 @@ class ShapDependenceComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_name = 'shap-dependence-index-'+self.name
 
-        self.description = """
+        if self.description is None: self.description = """
         This plot shows the relation between feature values and shap values.
         This allows you to investigate the general relationship between feature
         value and impact on the prediction, i.e. "older passengers were predicted
@@ -253,7 +259,7 @@ class ShapDependenceComponent(ExplainerComponent):
                 dbc.CardHeader([
                         html.Div([
                             html.H3(self.title, id='shap-dependence-title-'+self.name),
-                            html.H6(self.subtitle, className="card-subtitle"),
+                            make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                             dbc.Tooltip(self.description, target='shap-dependence-title-'+self.name),
                         ]), 
                 ]), hide=self.hide_title),
@@ -398,10 +404,11 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary", name=None,
                     subtitle="Ordering features by shap interaction value",
-                    hide_title=False, hide_col=False, hide_depth=False, 
+                    hide_title=False, hide_subtitle=False, hide_col=False, hide_depth=False, 
                     hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
-                    summary_type="aggregate", cats=True, index=None, **kwargs):
+                    summary_type="aggregate", cats=True, index=None, description=None,
+                    **kwargs):
         """Show SHAP Interaciton values summary component
 
         Args:
@@ -414,6 +421,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide the component title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_col (bool, optional): Hide the feature selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_type (bool, optional): Hide summary type toggle. Defaults to False.
@@ -427,6 +435,8 @@ class InteractionSummaryComponent(ExplainerComponent):
             summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
             cats (bool, optional): Group categorical features. Defaults to True.
             index (str):    Default index. Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
     
@@ -438,7 +448,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             self.hide_cats = True
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.description = """
+        if self.description is None: self.description = """
         Shows shap interaction values. Each shap value can be decomposed into a direct
         effect and indirect effects. The indirect effects are due to interactions
         of the feature with other feature. For example the fact that you know
@@ -455,7 +465,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='interaction-summary-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='interaction-summary-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -593,10 +603,11 @@ class InteractionSummaryComponent(ExplainerComponent):
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence", name=None,
                     subtitle="Relation between feature value and shap interaction value",
-                    hide_title=False, hide_cats=False, hide_col=False, 
+                    hide_title=False, hide_subtitle=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
                     hide_selector=False, hide_top=False, hide_bottom=False,
-                    pos_label=None, cats=True, col=None, interact_col=None, index=None, **kwargs):
+                    pos_label=None, cats=True, col=None, interact_col=None,
+                    description=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
         Shows two graphs:
@@ -613,6 +624,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_interact_col (bool, optional): Hide interaction 
@@ -631,6 +643,8 @@ class InteractionDependenceComponent(ExplainerComponent):
             col (str, optional): Feature to find interactions for. Defaults to None.
             interact_col (str, optional): Feature to interact with. Defaults to None.
             highlight (int, optional): Index row to highlight Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -641,7 +655,7 @@ class InteractionDependenceComponent(ExplainerComponent):
         
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.description = """
+        if self.description is None: self.description = """
         This plot shows the relation between feature values and shap interaction values.
         This allows you to investigate interactions between features in determining
         the prediction of the model.
@@ -654,7 +668,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='interaction-dependence-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='interaction-dependence-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -826,11 +840,12 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Plot", name=None,
                     subtitle="How has each feature contributed to the prediction?",
-                    hide_title=False, hide_index=False, hide_depth=False, 
+                    hide_title=False, hide_subtitle=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=True, hide_cats=False, 
                     hide_selector=False, feature_input_component=None,
                     pos_label=None, index=None, depth=None, sort='high-to-low', 
-                    orientation='vertical', cats=True, higher_is_better=True, **kwargs):
+                    orientation='vertical', cats=True, higher_is_better=True,
+                    description=None, **kwargs):
         """Display Shap contributions to prediction graph component
 
         Args:
@@ -843,6 +858,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_sort (bool, optional): Hide the sorting dropdown. Defaults to False.
@@ -864,6 +880,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             cats (bool, optional): Group cats. Defaults to True.
             higher_is_better (bool, optional): Color positive shap values green and
                 negative shap values red, or the reverse. 
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -878,7 +896,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         if self.feature_input_component is not None:
             self.hide_index = True
 
-        self.description = """
+        if self.description is None: self.description = """
         This plot shows the contribution that each individual feature has had
         on the prediction for a specific observation. The contributions (starting
         from the population average) add up to the final prediction. This allows you
@@ -895,7 +913,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='contributions-graph-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='contributions-graph-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -1036,11 +1054,11 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 class ShapContributionsTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Table", name=None,
                     subtitle="How has each feature contributed to the prediction?",
-                    hide_title=False, hide_index=False, 
+                    hide_title=False, hide_subtitle=False, hide_index=False, 
                     hide_depth=False, hide_sort=False, hide_cats=False, 
                     hide_selector=False,
                     pos_label=None, index=None, depth=None, sort='abs', cats=True, 
-                    **kwargs):
+                    description=None, **kwargs):
         """Show SHAP values contributions to prediction in a table component
 
         Args:
@@ -1053,6 +1071,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth selector. Defaults to False.
             hide_sort (bool, optional): Hide sorting dropdown. Default to False.
@@ -1063,6 +1082,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
             index ([type], optional): Initial index to display. Defaults to None.
             depth ([type], optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Group categoricals. Defaults to True.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -1073,7 +1094,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         
         if not self.explainer.cats:
             self.hide_cats = True
-        self.description = """
+        if self.description is None: self.description = """
         This tables shows the contribution that each individual feature has had
         on the prediction for a specific observation. The contributions (starting
         from the population average) add up to the final prediction. This allows you
@@ -1089,7 +1110,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='contributions-table-title-'+self.name),
-                        html.H6(self.subtitle, className="card-subtitle"),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='contributions-table-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),

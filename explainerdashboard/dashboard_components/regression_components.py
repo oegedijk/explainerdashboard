@@ -24,12 +24,14 @@ from ..dashboard_methods import *
 class RegressionRandomIndexComponent(ExplainerComponent):
     def __init__(self, explainer, title="Select Random Index", name=None,
                         subtitle="Select from list or pick at random",
-                        hide_title=False, hide_index=False, hide_pred_slider=False,
+                        hide_title=False,   hide_subtitle=False,
+                        hide_index=False, hide_pred_slider=False,
                         hide_residual_slider=False, hide_pred_or_y=False,
                         hide_abs_residuals=False, hide_button=False,
                         index=None, pred_slider=None, y_slider=None,
                         residual_slider=None, abs_residual_slider=None,
-                        pred_or_y="preds", abs_residuals=True, round=2, **kwargs):
+                        pred_or_y="preds", abs_residuals=True, round=2,
+                        description=None, **kwargs):
         """Select a random index subject to constraints component
 
         Args:
@@ -42,6 +44,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide title
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): Hide index selector.
                         Defaults to False.
             hide_pred_slider (bool, optional): Hide prediction slider.
@@ -69,6 +72,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             abs_residuals (bool, optional): Initial use residuals or absolute
                         residuals. Defaults to True.
             round (int, optional): rounding used for slider spacing. Defaults to 2.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
         assert self.explainer.is_regression, \
@@ -118,7 +123,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
         assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
 
-        self.description = f"""
+        if self.description is None: self.description = f"""
         You can select a {self.explainer.index_name} directly by choosing it 
         from the dropdown (if you start typing you can search inside the list),
         or hit the Random {self.explainer.index_name} button to randomly select
@@ -136,7 +141,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(f"Select {self.explainer.index_name}", id='random-index-reg-title-'+self.name),
-                        html.H6(self.subtitle, className='card-subtitle'),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='random-index-reg-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -403,8 +408,10 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
 class RegressionPredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction", name=None,
-                    hide_index=False, hide_title=False, hide_table=False,
-                    index=None,  round=3, **kwargs):
+                    hide_index=False, hide_title=False, 
+                    hide_subtitle=False, hide_table=False,
+                    index=None,  round=3, description=None,
+                    **kwargs):
         """Shows a summary for a particular prediction
 
         Args:
@@ -417,8 +424,11 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_index (bool, optional): hide index selector. Defaults to False.
             hide_title (bool, optional): hide title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_table (bool, optional): hide the results table
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -465,8 +475,9 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 class PredictedVsActualComponent(ExplainerComponent):
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
-                    hide_title=False, hide_log_x=False, hide_log_y=False,
-                    logs=False, log_x=False, log_y=False, **kwargs):
+                    hide_title=False, hide_subtitle=False, hide_log_x=False, hide_log_y=False,
+                    logs=False, log_x=False, log_y=False, description=None,
+                    **kwargs):
         """Shows a plot of predictions vs y.
 
         Args:
@@ -479,17 +490,20 @@ class PredictedVsActualComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_log_x (bool, optional): Hide the log_x toggle. Defaults to False.
             hide_log_y (bool, optional): Hide the log_y toggle. Defaults to False.
             logs (bool, optional): Whether to use log axis. Defaults to False.
             log_x (bool, optional): log only x axis. Defaults to False.
             log_y (bool, optional): log only y axis. Defaults to False.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
 
-        self.description = f"""
+        if self.description is None: self.description = f"""
         Plot shows the observed {self.explainer.target} and the predicted 
         {self.explainer.target} in the same plot. A perfect model would have
         all the points on the diagonal (predicted matches observed). The further
@@ -504,7 +518,7 @@ class PredictedVsActualComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='pred-vs-actual-title-'+self.name),
-                        html.H6(self.subtitle, className='card-subtitle'),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='pred-vs-actual-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -565,8 +579,10 @@ class PredictedVsActualComponent(ExplainerComponent):
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
                     subtitle="How much is the model off?",
-                    hide_title=False, hide_pred_or_actual=False, hide_ratio=False,
-                    pred_or_actual="vs_pred", residuals="difference", **kwargs):
+                    hide_title=False, hide_subtitle=False, 
+                    hide_pred_or_actual=False, hide_ratio=False,
+                    pred_or_actual="vs_pred", residuals="difference",
+                    description=None, **kwargs):
         """Residuals plot component
 
         Args:
@@ -579,6 +595,7 @@ class ResidualsComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_pred_or_actual (bool, optional): hide vs predictions or vs 
                         actual for x-axis toggle. Defaults to False.
             hide_ratio (bool, optional): hide residual type dropdown. Defaults to False.
@@ -587,13 +604,15 @@ class ResidualsComponent(ExplainerComponent):
                         Defaults to "vs_pred".
             residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
                     How to calcualte residuals. Defaults to 'difference'.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
         assert residuals in ['difference', 'ratio', 'log-ratio'], \
             ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
              f" but you passed residuals={residuals}")
-        self.description = f"""
+        if self.description is None: self.description = f"""
         The residuals are the difference between the observed {self.explainer.target}
         and predicted {self.explainer.target}. In this plot you can check if 
         the residuals are higher or lower for higher/lower actual/predicted outcomes. 
@@ -608,7 +627,7 @@ class ResidualsComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='residuals-title-'+self.name),
-                        html.H6(self.subtitle, className='card-subtitle'),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='residuals-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -670,10 +689,11 @@ class ResidualsComponent(ExplainerComponent):
 class RegressionVsColComponent(ExplainerComponent):
     def __init__(self, explainer, title="Plot vs feature", name=None,
                     subtitle="Are predictions and residuals correlated with features?",
-                    hide_title=False, hide_col=False, hide_ratio=False, hide_cats=False, 
+                    hide_title=False, hide_subtitle=False, 
+                    hide_col=False, hide_ratio=False, hide_cats=False, 
                     hide_points=False, hide_winsor=False,
                     col=None, display='difference', cats=True, 
-                    points=True, winsor=0, **kwargs):
+                    points=True, winsor=0, description=None, **kwargs):
         """Show residuals, observed or preds vs a particular Feature component
 
         Args:
@@ -686,6 +706,7 @@ class RegressionVsColComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_col (bool, optional): Hide de column selector. Defaults to False.
             hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
@@ -699,6 +720,8 @@ class RegressionVsColComponent(ExplainerComponent):
                     for categorical cols. Defaults to True
             winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
@@ -709,7 +732,7 @@ class RegressionVsColComponent(ExplainerComponent):
             ("parameter display should in {'observed', 'predicted', 'difference', 'ratio', 'log-ratio'}"
              f" but you passed display={self.display}!")
 
-        self.description = f"""
+        if self.description is None: self.description = f"""
         This plot shows either residuals (difference between observed {self.explainer.target}
         and predicted {self.explainer.target}) plotted against the values of different features,
         or the observed or predicted {self.explainer.target}.
@@ -724,7 +747,7 @@ class RegressionVsColComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='reg-vs-col-title-'+self.name),
-                        html.H6(self.subtitle, className='card-subtitle'),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='reg-vs-col-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),
@@ -845,7 +868,8 @@ class RegressionVsColComponent(ExplainerComponent):
 class RegressionModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary", name=None, 
                     subtitle="Quantitative metrics for model performance",
-                    hide_title=False, round=3, **kwargs):
+                    hide_title=False, hide_subtitle=False, 
+                    round=3, description=None, **kwargs):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -858,10 +882,13 @@ class RegressionModelSummaryComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             subtitle (str): subtitle
             hide_title (bool, optional): hide title
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             round (int): rounding to perform to metric floats.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
-        self.description = f"""
+        if self.description is None: self.description = f"""
         In the table below you can find a number of regression performance 
         metrics that describe how well the model is able to predict 
         {self.explainer.target}.
@@ -882,7 +909,7 @@ class RegressionModelSummaryComponent(ExplainerComponent):
                 dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='reg-model-summary-title-'+self.name),
-                        html.H6(self.subtitle, className='card-subtitle'),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='reg-model-summary-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title),

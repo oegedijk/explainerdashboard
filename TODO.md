@@ -65,6 +65,7 @@
 
 
 ### Components
+- add description to PredictionSummaryComponent (reg+clas)
 - add hide_footer to components with a CardFooter
 - add hide_subtitle parameters to all components
 - add description parameter to all components
