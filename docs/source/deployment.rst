@@ -194,7 +194,7 @@ Deploying to heroku
 ===================
 
 In case you would like to deploy to `heroku <www.heroku.com>`_ (which is probably the simplest 
- option for dash apps, see `instruction here<https://dash.plotly.com/deployment>`_) 
+option for dash apps, see `instruction here <https://dash.plotly.com/deployment>`_) 
 where the demonstration dashboard is also hosted
 at `titanicexplainer.herokuapp.com <http://titanicexplainer.herokuapp.com>`_ )
 there are a number of issues to keep in mind.
@@ -206,17 +206,17 @@ First of all you need to add ``explainerdashboard`` and ``gunicorn`` to
     gunicorn
 
 Select a python runtime compatible with the version that you used to pickle
-your explainer in ``runtime.txt``:
+your explainer in ``runtime.txt``::
 
     python-3.8.6
 
 (supported versions as of this writing are ``python-3.9.0``, ``python-3.8.6``, 
 ``python-3.7.9`` and ``python-3.6.12``, but check the 
-`heroku documentation<https://devcenter.heroku.com/articles/python-support#supported-runtimes>`_
+`heroku documentation <https://devcenter.heroku.com/articles/python-support#supported-runtimes>`_
 for the latest)
 
 
-And you need to tell heroku how to start your server in ``Procfile``:
+And you need to tell heroku how to start your server in ``Procfile``::
 
     web: gunicorn --preload --timeout 60 dashboard:app
 
