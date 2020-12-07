@@ -323,8 +323,8 @@ class ExplainerDashboard:
                 to generate the url, e.g. bootstrap=dbc.themes.FLATLY. Defaults
                 to default bootstrap theme that is stored in the /assets folder
                 so that it works even behind a firewall. 
-            external_stylesheets(list, optional): attach dbc themes e.g. 
-                `external_stylesheets=[dbc.themes.FLATLY]`. 
+            external_stylesheets(list, optional): additional external stylesheets
+                to add. (for themes use the bootstrap parameter) 
             server (Flask instance or bool): either an instance of an existing Flask
                 server to tie the dashboard to, or True in which case a new Flask
                 server is created. 

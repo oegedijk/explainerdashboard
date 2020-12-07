@@ -47,8 +47,7 @@
 
 ## Dashboard:
 - add waitress to run options
-- add kwargs to dashboard.to_yaml()
-- add bootstrap= parameter
+- add param_override to ExplainerDashboard.from_config()
 
 - organize explainer components according to tab
 
@@ -104,6 +103,9 @@
 
 ## Docs:
 - document bootstrap argument, give link to https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
+    - adjust titanicexplainer
+    - custom documentation
+    - README
 - retake screenshots of components as cards
 - rerecord gifs
 

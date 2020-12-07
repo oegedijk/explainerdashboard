@@ -6,7 +6,9 @@
 - 
 
 ### New Features
-- add `hide_subtitle=False` parameter to all components with subtitles
+- added `bootstrap` parameter to dashboard to make theming easier:
+    e.g. `ExplainerDashboard(explainer, bootstrap=dbc.themes.FLATLY).run()`
+- added `hide_subtitle=False` parameter to all components with subtitles
 - added `description` parameter to all components to adjust the hover-over-title
     tooltip
 
@@ -15,7 +17,7 @@
 -
 
 ### Improvements
--
+- `**kwargs` are now also stored when calling ExplainerDashboard.to_yaml()
 -
 
 ### Other Changes
