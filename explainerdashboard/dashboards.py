@@ -364,6 +364,13 @@ class ExplainerDashboard:
                     "mode='external', mode='inline' or mode='jupyterlab' "
                     "to keep the notebook interactive while the dashboard "
                     "is running...", flush=True)
+        
+        if self.bootstrap is not None:
+            bootstrap_theme = self.bootstrap if isinstance(self.bootstrap, str) else dbc.themes.BOOTSTRAP
+            if self.external_stylesheets is None:
+                self.external_stylesheets = [bootstrap_theme]
+            else:
+                self.external_stylesheets.append(bootstrap_theme)
 
         self.app = self._get_dash_app()
         if logins is not None:
@@ -434,13 +441,6 @@ class ExplainerDashboard:
                             fluid=self.fluid))
 
         self.app.layout = self.explainer_layout.layout()
-
-        if self.bootstrap is not None:
-            bootstrap_theme = self.bootstrap if isinstance(self.bootstrap, str) else dbc.themes.BOOTSTRAP
-            if self.external_stylesheets is None:
-                self.external_stylesheets = [bootstrap_theme]
-            else:
-                self.external_stylesheets.append(bootstrap_theme)
 
         print("Calculating dependencies...", flush=True)  
         self.explainer_layout.calculate_dependencies()

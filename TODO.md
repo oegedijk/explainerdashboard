@@ -103,6 +103,7 @@
 - write tests for explainer_plots
 
 ## Docs:
+- document bootstrap argument, give link to https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
 - retake screenshots of components as cards
 - rerecord gifs
 
