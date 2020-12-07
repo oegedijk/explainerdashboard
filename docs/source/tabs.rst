@@ -3,13 +3,13 @@ ExplainerTabs
 
 There are seven tabs that make up the default``ExplainerDashboard``::
 
-   from explainerdashboard.dashboard_tabs import (ImportancesTab,
-                                                   ModelSummaryTab,
-                                                   ContributionsTab,
-                                                   WhatIfTab,
-                                                   ShapDependenceTab,
-                                                   ShapInteractionsTab,
-                                                   DecisionTreesTab)
+   from explainerdashboard.custom import (ImportancesComposite,
+                                          ModelSummaryComposite,
+                                          ContributionsComposite,
+                                          WhatIfComposite,
+                                          ShapDependenceComposite,
+                                          ShapInteractionsComposite,
+                                          DecisionTreesComposite)
 
 Importances Tab
 ===============
@@ -72,18 +72,5 @@ components have been defined as Composites. These then serve as the backbone
 for the various ExplainerTabs.
 
 .. automodule:: explainerdashboard.dashboard_components.composites
-   :members:
-
-
-ExplainerTabs docs
-==================
-
-These are the standard tabs that you see when you build an ``ExplainerDashboard``.
-
-Now they are mostly just a wrapper for the equivalent ExplainerComposites, but
-kept around for naming clarity and backward compatibility.
-
-
-.. automodule:: explainerdashboard.dashboard_tabs
    :members:
 

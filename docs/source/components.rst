@@ -162,12 +162,28 @@ PdpComponent
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.PdpComponent
    :members:
 
-WhatIfComponent
----------------
+FeatureInputComponent
+---------------------
 
-.. image:: screenshots/components/whatif.png
+.. image:: screenshots/components/feature_inpt.png
 
-.. autoclass:: explainerdashboard.dashboard_components.overview_components.WhatIfComponent
+Using the feature input component you can edit the features for a particular
+observation in order to check what would be the change in prediction if you
+change one or more features. 
+
+You can connect the ``FeatureInputComponent`` to the 
+``ShapContributionsGraphComponent`` and the ``PdpComponent`` using 
+the``feature_input_component`` parameter::
+
+   class WhatIfComposite(ExplainerComponent):
+      def __init__(self, explainer, title="What if..."):
+         super().__init__(explainer, title, name)
+
+         self.input = FeatureInputComponent(explainer)
+         self.contrib = ShapContributionsGraphComponent(explainer, feature_input_component=self.input)
+         self.pdp = PdpComponent(explainer, feature_input_component=self.input)
+
+.. autoclass:: explainerdashboard.dashboard_components.overview_components.FeatureInputComponent
    :members:
 
 
@@ -354,6 +370,8 @@ CutoffPercentileComponent
 
 PosLabelSelector
 ----------------
+
+.. image:: screenshots/components/poslabel_selector.png
 
 .. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.PosLabelSelector
    :members:

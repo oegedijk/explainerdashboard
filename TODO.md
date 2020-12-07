@@ -46,12 +46,12 @@
 
 
 ## Dashboard:
-- give warning to use smaller dataset or less trees
-- give warning to dump explainer
-
 - add waitress to run options
-- organize explainer components according to tab
 - add kwargs to dashboard.to_yaml()
+- add bootstrap= parameter
+
+- organize explainer components according to tab
+
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -103,27 +103,18 @@
 - write tests for explainer_plots
 
 ## Docs:
-- remove ExplainerTabs, add ExplainerComposites
 - retake screenshots of components as cards
 - rerecord gifs
-- Remove ExplainerTabs from docs
-- Remove WhatIfComponent from docs
-- Document FeatureInputComponent
 
-- add waitress to deployment examples
 - Add type hints:
     - to explainers
     - to explainer class methods
     - to explainer_methods
     - to explainer_plots
 - Add pydata video when it comes online (january 4th)
-- document PosLabelSelector and PosLabelConnector, e.g.:
-        self.connector = PosLabelConnector(self.roc_auc, self)
-        self.register_components(self.connector)
 
 
 ## Library level:
-- add tests_require  to setup.py
 - add waitress to CLI
 - hide (prefix '_') to non-public API class methods
 - submit pull request to shap with broken test for 

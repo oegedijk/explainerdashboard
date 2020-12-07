@@ -149,9 +149,11 @@ gunicorn.pid
 dashboard.yaml
 explainer.yaml
 start_responsive_server.sh
-#!tests/cli_assets/*
+tests/cli_assets/*
 
 
 db_test.py
 .DS_Store
 .DS_Store
+.DS_Store
+docs/source/.DS_Store

@@ -251,6 +251,7 @@ class ExplainerDashboard:
                  mode="dash",
                  width=1000,
                  height=800,
+                 bootstrap=None,
                  external_stylesheets=None,
                  server=True,
                  url_base_pathname=None,
@@ -403,6 +404,9 @@ class ExplainerDashboard:
             if shap_dependence:
                 tabs.append(ShapDependenceComposite)
             if shap_interaction:
+                print("Warning: calculating shap interaction values can be slow! "
+                        "Pass shap_interaction=False to remove interactions tab.", 
+                        flush=True)
                 tabs.append(ShapInteractionsComposite)
             if decision_trees:
                 tabs.append(DecisionTreesComposite)
@@ -431,8 +435,19 @@ class ExplainerDashboard:
 
         self.app.layout = self.explainer_layout.layout()
 
+        if self.bootstrap is not None:
+            bootstrap_theme = self.bootstrap if isinstance(self.bootstrap, str) else dbc.themes.BOOTSTRAP
+            if self.external_stylesheets is None:
+                self.external_stylesheets = [bootstrap_theme]
+            else:
+                self.external_stylesheets.append(bootstrap_theme)
+
         print("Calculating dependencies...", flush=True)  
         self.explainer_layout.calculate_dependencies()
+        print("Reminder: you can store the explainer (including calculated "
+                "dependencies) with explainer.dump('explainer.joblib') and "
+                "reload with e.g. ClassifierExplainer.from_file('explainer.joblib')",
+                flush=True)
         print("Registering callbacks...", flush=True)
         self.explainer_layout.register_callbacks(self.app)
 
@@ -486,10 +501,15 @@ class ExplainerDashboard:
                     "arg2 should be a .yaml file or a dict!")
 
         dashboard_params = config['dashboard']['params']
+        if 'kwargs' in dashboard_params:
+            kwargs = dashboard_params.pop('kwargs')
+        else:
+            kwargs = {}
+
         tabs = cls._yamltabs_to_tabs(dashboard_params['tabs'], explainer)
         del dashboard_params['tabs']
 
-        return cls(explainer, tabs, **dashboard_params)
+        return cls(explainer, tabs, **dashboard_params, **kwargs)
 
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
@@ -517,6 +537,9 @@ class ExplainerDashboard:
         frame = sys._getframe(1)
         args = frame.f_code.co_varnames[1:frame.f_code.co_argcount]
         args_dict = {arg: frame.f_locals[arg] for arg in args}
+
+        if 'kwargs' in frame.f_locals:
+            args_dict['kwargs'] = frame.f_locals['kwargs']
         
         if isinstance(no_store, bool) and no_store:
             return
@@ -680,7 +703,8 @@ class ExplainerDashboard:
         elif self.mode == 'external':
             if not self.is_colab:
                 print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
-                      f"You can terminate it with ExplainerDashboard.terminate({port})", flush=True)
+                      "You can terminate the dashboard with "
+                      f"ExplainerDashboard.terminate({port})", flush=True)
             self.app.run_server(port=port, mode=self.mode, **kwargs)
         elif self.mode in ['inline', 'jupyterlab']:
             print(f"Starting ExplainerDashboard inline (terminate it with "
@@ -701,8 +725,6 @@ class ExplainerDashboard:
             ExplainerDashboard(explainer, mode='external').run(port=8050)
 
             ExplainerDashboard.terminate(8050) 
-            db = ExplainerDashboard(explainer)
-            db.terminate(8050)
 
         Args:
             port (int): port on which the dashboard is running. 

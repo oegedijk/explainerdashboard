@@ -2,8 +2,13 @@ Deployment
 **********
 
 When deploying your dashboard it is better not to use the built-in flask
-server but use more robust and scalable options like ``gunicorn`` and ``nginx``.
-Install gunicorn through pip with ``pip install gunicorn``.
+development server but use a more robust production server like ``gunicorn`` or ``waitress``.
+Probably `gunicorn <https://gunicorn.org/>`_ is a bit more fully featured but only works
+on unix/linux/osx, whereas
+`waitress <https://docs.pylonsproject.org/projects/waitress/en/stable/>`_ also works 
+on Windows and has very minimal dependencies. 
+
+Install either ``pip install gunicorn`` or ``pip install waitress``. 
 
 Storing explainer and running default dashboard with gunicorn
 =============================================================
@@ -50,6 +55,10 @@ If you now point your browser to ``http://localhost:8050`` you should see your d
 Next step is finding a nice url in your organization's domain, and forwarding it 
 to your dashboard server.
 
+With waitress you would call::
+
+    $ waitress-serve --port=8050 dashboard:app
+
 .. highlight:: python
 
 Storing custom dashboard config and running with gunicorn
@@ -74,7 +83,7 @@ And then start the ExpalinerDashboard directly from the config file in ``dashboa
     from explainerdashboard import ExplainerDashboard
 
     db = ExplainerDashboard.from_config("dashboard.yaml")
-    app = db.flask_server()
+    app = db.app.server
 
 
 .. highlight:: bash
@@ -118,7 +127,7 @@ directly from the config file::
     from explainerdashboard import ExplainerDashboard
 
     db = ExplainerDashboard.from_config("dashboard.yaml")
-    app = db.flask_server()  
+    app = db.app.server
 
 .. highlight:: bash
 
@@ -234,7 +243,7 @@ have to uninstall ``xgboost`` and then mock it. This is normally pretty easy
 (``pip uninstall xgboost``), but on heroku you first need to add a buildpack
 in order to run shell instructions after the build phase.
 So add the following shell buildpack:
-`https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_ ,
+`https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_
 You can add buildpacks through the "settings" page of your heroku project on 
 `heroku.com<heroku.com>`_:
 
