@@ -12,6 +12,7 @@
 
 ## Plots:
 - Only use ScatterGl above a certain cutoff
+
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
 - change lines and annotation to this:
@@ -30,6 +31,8 @@
 
 
 ## Explainers:
+- make topx break ties to only return true topx
+    - add parameter `break_ties=True`?
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
         case instead of a plot the function returns a verbal description of the 
@@ -62,10 +65,12 @@
 
 
 ### Components
+- add hide_footer to components with a CardFooter
 - add hide_subtitle parameters to all components
 - add description parameter to all components
 - hide show points when feature is not in cats
 - change single radioitems to dbc.Checklist switch=True
+
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
@@ -91,18 +96,19 @@
 ## Tests:
 - add test for get_row_from_inputs test
 - add prediction_summary_df test
+
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
 
 ## Docs:
 - remove ExplainerTabs, add ExplainerComposites
-- add heroku screenshot to deployment
 - retake screenshots of components as cards
 - rerecord gifs
 - Remove ExplainerTabs from docs
 - Remove WhatIfComponent from docs
 - Document FeatureInputComponent
+
 - add waitress to deployment examples
 - Add type hints:
     - to explainers
@@ -116,17 +122,11 @@
 
 
 ## Library level:
-- add bracket extras for [nodtreeviz] option?
-    - https://stackoverflow.com/questions/46775346/what-do-square-brackets-mean-in-pip-install
+- add tests_require  to setup.py
 - add waitress to CLI
 - hide (prefix '_') to non-public API class methods
-- build release for conda-forge
-    - get dash-auth on plotly anaconda channel
-    - get dtreeviz on anaconda
-- launch gunicorn server from python:
-    https://damianzaremba.co.uk/2012/08/running-a-wsgi-app-via-gunicorn-from-python/
-- Add Altair (vega) plots for easy inclusion in websites or fastpages blogs
 - submit pull request to shap with broken test for 
     https://github.com/slundberg/shap/issues/723
 - build explainerhub for hosting multiple explainerdashboard models
-    - using django?
+    - use waitress as wsgi
+    - use watchdog to rebuild and reload. 
