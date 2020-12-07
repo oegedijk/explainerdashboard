@@ -5,7 +5,7 @@ numpy
 pandas
 PDPbox
 scikit-learn
-#shap
+shap
 catboost
 lightgbm
 xgboost
