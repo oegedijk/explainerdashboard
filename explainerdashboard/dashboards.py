@@ -319,6 +319,10 @@ class ExplainerDashboard:
                     Defaults to True.
             width(int, optional): width of notebook output cell in pixels, defaults to 1000.
             height(int, optional): height of notebookn output cell in pixels, defaults to 800.
+            bootstrap (str, optional): link to bootstrap url. Can use dbc.themese
+                to generate the url, e.g. bootstrap=dbc.themes.FLATLY. Defaults
+                to default bootstrap theme that is stored in the /assets folder
+                so that it works even behind a firewall. 
             external_stylesheets(list, optional): attach dbc themes e.g. 
                 `external_stylesheets=[dbc.themes.FLATLY]`. 
             server (Flask instance or bool): either an instance of an existing Flask
