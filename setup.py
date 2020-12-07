@@ -71,6 +71,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
     install_requires=['dash', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
                     'dtreeviz>=1.0', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
                     'shap>=0.36', 'shortuuid', 'joblib', 'oyaml', 'click'],
+    tests_require=['dash[testing]', 'pytest', 'pytest-console-scripts', 'xgboost'],
     entry_points={
         'console_scripts': [
             'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',
