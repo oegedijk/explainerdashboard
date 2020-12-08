@@ -443,7 +443,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
         return dbc.Card([
             make_hideable(
                 dbc.CardHeader([
-                    html.H3(self.title, id='reg-prediction-title-'+self.name, classname='card-title'),
+                    html.H3(self.title, id='reg-prediction-title-'+self.name, className='card-title'),
                     dbc.Tooltip(self.description, target='reg-prediction-title-'+self.name),
                 ]), hide=self.hide_title), 
             dbc.CardBody([
