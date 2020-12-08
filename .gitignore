@@ -150,7 +150,6 @@ dashboard.yaml
 explainer.yaml
 start_responsive_server.sh
 tests/cli_assets/*
-tests/cli_assets/dashboard.yaml
 
 
 db_test.py
@@ -158,5 +157,5 @@ db_test.py
 .DS_Store
 .DS_Store
 docs/source/.DS_Store
-tests/cli_assets/dashboard.yaml
-tests/cli_assets/explainer.joblib
+!tests/cli_assets/data.csv
+

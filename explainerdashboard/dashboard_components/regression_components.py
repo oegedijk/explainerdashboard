@@ -434,11 +434,17 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 
         self.index_name = 'reg-prediction-index-'+self.name
 
+        if self.description is None: self.description = f"""
+        Shows the predicted {self.explainer.target} and the observed {self.explainer.target},
+        as well as the difference between the two (residual)
+        """
+
     def layout(self):
         return dbc.Card([
             make_hideable(
                 dbc.CardHeader([
-                    html.H3(self.title), 
+                    html.H3(self.title, id='reg-prediction-title-'+self.name, classname='card-title'),
+                    dbc.Tooltip(self.description, target='reg-prediction-title-'+self.name),
                 ]), hide=self.hide_title), 
             dbc.CardBody([
                 dbc.Row([
