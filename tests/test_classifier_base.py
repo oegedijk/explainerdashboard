@@ -42,6 +42,11 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 
+    def test_row_from_input(self):
+        input_row = self.explainer.get_row_from_input(
+                123, 13, 2, 12, 12, 'Sex_male', 'A', 'Southampton')
+        self.assertIsInstance(input_row, pd.DataFrame)
+
     def test_pred_percentiles(self):
         self.assertIsInstance(self.explainer.pred_percentiles, np.ndarray)
 
@@ -104,8 +109,6 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X_cats.iloc[[0]]), pd.DataFrame)
 
-
-
     def test_contrib_summary_df(self):
         self.assertIsInstance(self.explainer.contrib_summary_df(0), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, cats=False), pd.DataFrame)
@@ -144,6 +147,10 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
                         self.explainer.shap_values.shape)
         self.assertEqual(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape, 
                         self.explainer.shap_values_cats.shape)
+
+    def test_prediction_result_df(self):
+        df = self.explainer.prediction_result_df(0)
+        self.assertIsInstance(df, pd.DataFrame)
 
     def test_pdp_result(self):
         self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)

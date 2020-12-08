@@ -88,7 +88,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add test for get_row_from_inputs test
 - add prediction_summary_df test
 
 - test model_output='probability' and 'raw' or 'logodds' seperately
