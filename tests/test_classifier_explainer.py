@@ -150,6 +150,12 @@ class ClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_pr_auc(1.0)
         self.assertIsInstance(fig, go.Figure)
 
+    def test_plot_prediction_result(self):
+        fig = self.explainer.plot_prediction_result(0)
+        self.assertIsInstance(fig, go.Figure)
+
+
+
 if __name__ == '__main__':
     unittest.main()
 

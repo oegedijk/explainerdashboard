@@ -40,6 +40,15 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(), int)
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
+    def test_row_from_input(self):
+        input_row = self.explainer.get_row_from_input(
+                1, 13, 2, 12, 12, 'Sex_male', 'A', 'Southampton')
+        self.assertIsInstance(input_row, pd.DataFrame)
+
+    def test_prediction_result_df(self):
+        df = self.explainer.prediction_result_df(0)
+        self.assertIsInstance(df, pd.DataFrame)
+
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 
