@@ -270,19 +270,25 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 for. Defaults to None.
             round (int, optional): rounding to apply to pred_proba float. 
                 Defaults to 3.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
         self.index_name = 'clas-prediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
+        if self.description is None: self.description = f"""
+        Shows the predicted probability for each {self.explainer.target} label.
+        """
+
     def layout(self):
         return dbc.Card([
             make_hideable(
                 dbc.CardHeader([
                     html.Div([
-                        html.H3(self.title, className='card-title'),
-                        #html.H6("What was the prediction?", className="card-subtitle") ,
+                        html.H3(self.title, id='clas-prediction-index-title-'+self.name, className='card-title'),
+                        dbc.Tooltip(self.description, target='clas-prediction-index-title-'+self.name),
                     ]), 
                 ]), hide=self.hide_title), 
             dbc.CardBody([
