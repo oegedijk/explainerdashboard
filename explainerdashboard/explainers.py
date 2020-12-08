@@ -2746,7 +2746,7 @@ class RandomForestExplainer(BaseExplainer):
     def decision_trees(self):
         """a list of ShadowDecTree objects"""
         if not hasattr(self, '_decision_trees'):
-            print("Generating ShadowDecTree for each individual decision tree...", flush=True)
+            print("Calculating ShadowDecTree for each individual decision tree...", flush=True)
             assert hasattr(self.model, 'estimators_'), \
                 """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
@@ -2971,7 +2971,7 @@ class XGBExplainer(BaseExplainer):
     def decision_trees(self):
         """a list of ShadowDecTree objects"""
         if not hasattr(self, '_decision_trees'):
-            print("Generating ShadowDecTree for each individual decision tree...", flush=True)
+            print("Calculating ShadowDecTree for each individual decision tree...", flush=True)
                 
             self._decision_trees = [
                 ShadowDecTree.get_shadow_tree(self.model.get_booster(),

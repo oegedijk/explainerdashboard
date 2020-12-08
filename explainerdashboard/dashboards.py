@@ -456,19 +456,29 @@ class ExplainerDashboard:
         self.explainer_layout.register_callbacks(self.app)
 
     @classmethod
-    def from_config(cls, arg1, arg2=None):
-        """ Four different ways of loading an ExplainerDashboard from config:
+    def from_config(cls, arg1, arg2=None, **update_params):
+        """Loading a dashboard from a configuration .yaml file. You can either
+        pass both an explainer and a yaml file generated with 
+        ExplainerDashboard.to_yaml("dashboard.yaml"):
+        
+          db = ExplainerDashboard.from_config(explainer, "dashboard.yaml")
+        
+        When you specify an explainerfile in to_yaml with 
+        ExplainerDashboard.to_yaml("dashboard.yaml", explainerfile="explainer.joblib"),
+        you can also pass just the .yaml:
 
           db = ExplainerDashboard.from_config("dashboard.yaml")
-          db = ExplainerDashboard.from_config(config_dict)
-          db = ExplainerDashboard.from_config(explainer, "dashboard.yaml")
+
+        You can also load the explainerfile seperately:
+
           db = ExplainerDashboard.from_config("explainer.joblib", "dashboard.yaml")
 
         Args:
             arg1 (explainer or config): arg1 should either be a config (yaml or dict),
                 or an explainer (instance or str/Path).
             arg2 ([type], optional): If arg1 is an explainer, arg2 should be config.
-
+            update_params (dict): You can override parameters in the the yaml 
+                config by passing additional kwargs to .from_config()
 
         Returns:
             ExplainerDashboard
@@ -505,6 +515,15 @@ class ExplainerDashboard:
                     "arg2 should be a .yaml file or a dict!")
 
         dashboard_params = config['dashboard']['params']
+
+        for k, v in update_params.items():
+            if k in dashboard_params:
+                dashboard_params[k] = v
+            elif 'kwargs' in dashboard_params:
+                dashboard_params['kwargs'][k] = v
+            else:
+                dashboard_params['kwargs'] = dict(k=v)
+
         if 'kwargs' in dashboard_params:
             kwargs = dashboard_params.pop('kwargs')
         else:

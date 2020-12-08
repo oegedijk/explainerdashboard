@@ -486,24 +486,23 @@ class PrecisionComponent(ExplainerComponent):
                             dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bin size),"
                                         " or bins with the same number of observations (counts) in each bin: quantiles",
                                         target='precision-binsize-or-quantiles-'+self.name),     
-                        ], width=3), hide=self.hide_binmethod),
+                        ], width=4), hide=self.hide_binmethod),
                     make_hideable(
                         dbc.Col([
                             dbc.FormGroup([
-                                    dbc.RadioButton(
-                                        id="precision-multiclass-"+self.name, 
-                                        className="form-check-input",
-                                        checked=self.multiclass
-                                    ),
-                                    dbc.Label(
-                                        "Display all classes",
-                                        html_for="precision-multiclass-"+self.name,
-                                        className="form-check-label",
-                                    ),
-                                    dbc.Tooltip("Display the percentage of all labels or only of the positive label",
-                                        target="precision-multiclass-"+self.name),                              
-                            ], check=True),
-                        ], width=3), hide=self.hide_multiclass), 
+                                dbc.Label("Multi class:", id="precision-multiclass-label-"+self.name),
+                                dbc.Tooltip("Display the observed proportion for all class"
+                                            " labels, not just positive label.", 
+                                            target="precision-multiclass-"+self.name),
+                                dbc.Checklist(
+                                    options=[{"label":  "Display all classes", "value": True}],
+                                    value=[True] if self.multiclass else [],
+                                    id='precision-multiclass-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
+                        ], width=4), hide=self.hide_multiclass), 
                 ]),
             ])    
         ])
@@ -529,17 +528,19 @@ class PrecisionComponent(ExplainerComponent):
              Input('precision-quantiles-'+self.name, 'value'),
              Input('precision-binsize-or-quantiles-'+self.name, 'value'),
              Input('precision-cutoff-'+self.name, 'value'),
-             Input('precision-multiclass-'+self.name, 'checked'),
+             Input('precision-multiclass-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
             #[State('tabs', 'value')],
         )
         def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label):
             if bins == 'bin_size':
                 return self.explainer.plot_precision(
-                    bin_size=bin_size, cutoff=cutoff, multiclass=multiclass, pos_label=pos_label)
+                    bin_size=bin_size, cutoff=cutoff, 
+                    multiclass=bool(multiclass), pos_label=pos_label)
             elif bins == 'quantiles':
                 return self.explainer.plot_precision(
-                    quantiles=quantiles, cutoff=cutoff, multiclass=multiclass, pos_label=pos_label)
+                    quantiles=quantiles, cutoff=cutoff, 
+                    multiclass=bool(multiclass), pos_label=pos_label)
             raise PreventUpdate
 
 
@@ -635,38 +636,34 @@ class ConfusionMatrixComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         dbc.FormGroup([
-                                dbc.RadioButton(
-                                    id='confusionmatrix-percentage-'+self.name, 
-                                    className="form-check-input", 
-                                    checked=self.percentage
-                                ),
-                                dbc.Label(
-                                    "Display percentages",
-                                    html_for="confusionmatrix-percentage-"+self.name,
-                                    className="form-check-label",
-                                ),
-                                dbc.Tooltip("Highlight the percentage in each cell instead of the absolute numbers",
-                                        target='confusionmatrix-percentage-'+self.name),  
-                        ], check=True),
+                            #dbc.Label("Percentage:", id='confusionmatrix-percentage-label-'+self.name),
+                            dbc.Tooltip("Highlight the percentage in each cell instead of the absolute numbers",
+                                    target='confusionmatrix-percentage-'+self.name),
+                            dbc.Checklist(
+                                options=[{"label":  "Highlight percentage", "value": True}],
+                                value=[True] if self.percentage else [],
+                                id='confusionmatrix-percentage-'+self.name,
+                                inline=True,
+                                switch=True,
+                            ),
+                        ]),
                     ]), hide=self.hide_percentage),
                 make_hideable(
                     html.Div([
                         dbc.FormGroup([
-                                dbc.RadioButton(
-                                    id="confusionmatrix-binary-"+self.name, 
-                                    className="form-check-input", 
-                                    checked=self.binary
-                                ),
-                                dbc.Label(
-                                    "Binary",
-                                    html_for="confusionmatrix-binary-"+self.name,
-                                    className="form-check-label",
-                                ),
-                                dbc.Tooltip("display a binary confusion matrix of positive "
+                            dbc.Label("Binary:", id='confusionmatrix-binary-label-'+self.name),
+                            dbc.Tooltip("display a binary confusion matrix of positive "
                                             "class vs all other classes instead of a multi"
                                             " class confusion matrix.",
-                                        target="confusionmatrix-binary-"+self.name)
-                        ], check=True),
+                                        target="confusionmatrix-binary-label-"+self.name),
+                            dbc.Checklist(
+                                options=[{"label":  "Display one-vs-rest matrix", "value": True}],
+                                value=[True] if self.binary else [],
+                                id='confusionmatrix-binary-'+self.name,
+                                inline=True,
+                                switch=True,
+                            ),
+                        ]),
                     ]), hide=self.hide_binary),
             ])
         ])
@@ -675,13 +672,14 @@ class ConfusionMatrixComponent(ExplainerComponent):
         @app.callback(
              Output('confusionmatrix-graph-'+self.name, 'figure'),
             [Input('confusionmatrix-cutoff-'+self.name, 'value'),
-             Input('confusionmatrix-percentage-'+self.name, 'checked'),
-             Input('confusionmatrix-binary-'+self.name, 'checked'),
+             Input('confusionmatrix-percentage-'+self.name, 'value'),
+             Input('confusionmatrix-binary-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
         def update_confusionmatrix_graph(cutoff, normalized, binary, pos_label):
             return self.explainer.plot_confusion_matrix(
-                        cutoff=cutoff, normalized=normalized, binary=binary, pos_label=pos_label)
+                        cutoff=cutoff, normalized=bool(normalized), 
+                        binary=bool(binary), pos_label=pos_label)
 
 
 class LiftCurveComponent(ExplainerComponent):
@@ -766,20 +764,17 @@ class LiftCurveComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         dbc.FormGroup([
-                            dbc.RadioButton(
-                                id="liftcurve-percentage-"+self.name, 
-                                className="form-check-input", 
-                                checked=True
-                            ),
-                            dbc.Label(
-                                "Display percentages",
-                                html_for="liftcurve-percentage-"+self.name,
-                                className="form-check-label",
-                            ),
                             dbc.Tooltip("Display percentages positive and sampled"
                                     " instead of absolute numbers",
-                                    target="liftcurve-percentage-"+self.name)
-                        ], check=True), 
+                                    target='liftcurve-percentage-'+self.name),
+                            dbc.Checklist(
+                                options=[{"label":  "Display percentage", "value": True}],
+                                value=[True] if self.percentage else [],
+                                id='liftcurve-percentage-'+self.name,
+                                inline=True,
+                                switch=True,
+                            ),
+                        ]),
                     ]), hide=self.hide_percentage),  
             ])
         ])
@@ -788,11 +783,12 @@ class LiftCurveComponent(ExplainerComponent):
         @app.callback(
             Output('liftcurve-graph-'+self.name, 'figure'),
             [Input('liftcurve-cutoff-'+self.name, 'value'),
-             Input('liftcurve-percentage-'+self.name, 'checked'),
+             Input('liftcurve-percentage-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
         def update_precision_graph(cutoff, percentage, pos_label):
-            return self.explainer.plot_lift_curve(cutoff=cutoff, percentage=percentage, pos_label=pos_label)
+            return self.explainer.plot_lift_curve(cutoff=cutoff, 
+                percentage=bool(percentage), pos_label=pos_label)
 
 
 class CumulativePrecisionComponent(ExplainerComponent):
@@ -994,19 +990,16 @@ class ClassificationComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         dbc.FormGroup([
-                            dbc.RadioButton(
-                                id="classification-percentage-"+self.name, 
-                                className="form-check-input", 
-                                checked=True
-                            ),
-                            dbc.Label(
-                                "Display percentages",
-                                html_for="classification-percentage-"+self.name,
-                                className="form-check-label",
-                            ),
                             dbc.Tooltip("Do not resize the bar chart by absolute number of observations",
-                                target="classification-percentage-"+self.name,)
-                        ], check=True),
+                                    target='classification-percentage-'+self.name),
+                            dbc.Checklist(
+                                options=[{"label":  "Display percentage", "value": True}],
+                                value=[True] if self.percentage else [],
+                                id='classification-percentage-'+self.name,
+                                inline=True,
+                                switch=True,
+                            ),
+                        ]),
                     ]), hide=self.hide_percentage),
             ]) 
         ])
@@ -1015,12 +1008,12 @@ class ClassificationComponent(ExplainerComponent):
         @app.callback(
             Output('classification-graph-'+self.name, 'figure'),
             [Input('classification-cutoff-'+self.name, 'value'),
-             Input('classification-percentage-'+self.name, 'checked'),
+             Input('classification-percentage-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
         def update_precision_graph(cutoff, percentage, pos_label):
             return self.explainer.plot_classification(
-                    cutoff=cutoff, percentage=percentage, pos_label=pos_label)
+                    cutoff=cutoff, percentage=bool(percentage), pos_label=pos_label)
 
 
 class RocAucComponent(ExplainerComponent):

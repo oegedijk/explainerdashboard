@@ -23,6 +23,7 @@
 
 ### Classifier plots:
 - add label percentage at cutoff to cumulative precision plot
+
 - add wizard to lift curve
 - pdp: add multiclass option
     - no icelines to keep it from getting too busy?
@@ -31,8 +32,10 @@
 
 
 ## Explainers:
+- check pdp dropna still works
 - make topx break ties to only return true topx
     - add parameter `break_ties=True`?
+
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
         case instead of a plot the function returns a verbal description of the 
@@ -47,10 +50,8 @@
 
 ## Dashboard:
 - add waitress to run options
-- add param_override to ExplainerDashboard.from_config()
 
 - organize explainer components according to tab
-
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -59,17 +60,10 @@
     - https://cran.r-project.org/web/packages/fairmodels/vignettes/Basic_tutorial.html
     - http://manifold.mlvis.io/
         - generate groups programmatically!
-- add description param to all components
-
-
 
 ### Components
 - add description to PredictionSummaryComponent (reg+clas)
 - add hide_footer to components with a CardFooter
-- add hide_subtitle parameters to all components
-- add description parameter to all components
-- hide show points when feature is not in cats
-- change single radioitems to dbc.Checklist switch=True
 
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
@@ -102,13 +96,14 @@
 - write tests for explainer_plots
 
 ## Docs:
+- document overriding kwargs in ExplainerDashboard.from_config()
 - document bootstrap argument, give link to https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
     - adjust titanicexplainer
     - custom documentation
     - README
+
 - retake screenshots of components as cards
 - rerecord gifs
-
 - Add type hints:
     - to explainers
     - to explainer class methods
@@ -119,6 +114,7 @@
 
 ## Library level:
 - add waitress to CLI
+
 - hide (prefix '_') to non-public API class methods
 - submit pull request to shap with broken test for 
     https://github.com/slundberg/shap/issues/723

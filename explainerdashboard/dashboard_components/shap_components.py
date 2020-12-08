@@ -116,19 +116,18 @@ class ShapSummaryComponent(ExplainerComponent):
                         ]), self.hide_type),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:", id='shap-summary-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='shap-summary-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='shap-summary-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='shap-summary-group-cats-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True),
+                            dbc.FormGroup([
+                                    dbc.Label("Grouping:", id='shap-summary-group-cats-label-'+self.name),
+                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                                target='shap-summary-group-cats-label-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Group cats", "value": True}],
+                                        value=[True] if self.cats else [],
+                                        id='shap-summary-group-cats-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
                         ], md=3), self.hide_cats),
                     make_hideable(
                         dbc.Col([
@@ -170,11 +169,12 @@ class ShapSummaryComponent(ExplainerComponent):
              Output('shap-summary-depth-'+self.name, 'options'),
              Output('shap-summary-index-col-'+self.name, 'style')],
             [Input('shap-summary-type-'+self.name, 'value'),
-             Input('shap-summary-group-cats-'+self.name, 'checked'),
+             Input('shap-summary-group-cats-'+self.name, 'value'),
              Input('shap-summary-depth-'+self.name, 'value'),
              Input('shap-summary-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_shap_summary_graph(summary_type, cats, depth, index, pos_label):
+            cats = bool(cats)
             if summary_type == 'aggregate':
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, cats=cats, pos_label=pos_label)
@@ -272,19 +272,18 @@ class ShapDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:", id='shap-dependence-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='shap-dependence-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='shap-dependence-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='shap-dependence-group-cats-'+self.name,
-                                        className="form-check-label"),
-                            ], check=True),
+                            dbc.FormGroup([
+                                    dbc.Label("Grouping:", id='shap-dependence-group-cats-label-'+self.name),
+                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                                target='shap-dependence-group-cats-label-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Group cats", "value": True}],
+                                        value=[True] if self.cats else [],
+                                        id='shap-dependence-group-cats-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
                             
                         ],  md=2), self.hide_cats),
                     make_hideable(
@@ -332,10 +331,11 @@ class ShapDependenceComponent(ExplainerComponent):
             [Output('shap-dependence-color-col-'+self.name, 'options'),
              Output('shap-dependence-color-col-'+self.name, 'value')],
             [Input('shap-dependence-col-'+self.name, 'value')],
-            [State('shap-dependence-group-cats-'+self.name, 'checked'),
+            [State('shap-dependence-group-cats-'+self.name, 'value'),
              State('pos-label-'+self.name, 'value')])
         def set_color_col_dropdown(col, cats, pos_label):
-            sorted_interact_cols = self.explainer.shap_top_interactions(col, cats=cats, pos_label=pos_label)
+            sorted_interact_cols = self.explainer.shap_top_interactions(
+                                    col, cats=bool(cats), pos_label=pos_label)
             options = [{'label': col, 'value':col} 
                                         for col in sorted_interact_cols]
             value = sorted_interact_cols[1]                                
@@ -355,11 +355,11 @@ class ShapDependenceComponent(ExplainerComponent):
 
         @app.callback(
             Output('shap-dependence-col-'+self.name, 'options'),
-            [Input('shap-dependence-group-cats-'+self.name, 'checked')],
+            [Input('shap-dependence-group-cats-'+self.name, 'value')],
             [State('shap-dependence-col-'+self.name, 'value')])
         def update_dependence_shap_scatter_graph(cats, old_col):
             options = [{'label': col, 'value': col} 
-                                    for col in self.explainer.columns_ranked_by_shap(cats)]
+                                    for col in self.explainer.columns_ranked_by_shap(bool(cats))]
             return options
             
 
@@ -379,8 +379,8 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 
     def component_callbacks(self, app):
         @app.callback(
-            Output('shap-dependence-group-cats-'+self.dep_name, 'checked'),
-            [Input('shap-summary-group-cats-'+self.sum_name, 'checked')])
+            Output('shap-dependence-group-cats-'+self.dep_name, 'value'),
+            [Input('shap-summary-group-cats-'+self.sum_name, 'value')])
         def update_dependence_shap_scatter_graph(cats):
             return cats
 
@@ -514,19 +514,18 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], md=3), self.hide_type),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:", id='interaction-summary-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                        target='interaction-summary-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='interaction-summary-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='interaction-summary-group-cats-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True),
+                            dbc.FormGroup([
+                                    dbc.Label("Grouping:", id='interaction-summary-group-cats-label-'+self.name),
+                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                                target='interaction-summary-group-cats-label-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Group cats", "value": True}],
+                                        value=[True] if self.cats else [],
+                                        id='interaction-summary-group-cats-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
                         ],md=2), self.hide_cats),
                     make_hideable(
                         dbc.Col([
@@ -569,12 +568,12 @@ class InteractionSummaryComponent(ExplainerComponent):
         @app.callback(
             [Output('interaction-summary-depth-'+self.name, 'options'),
              Output('interaction-summary-col-'+self.name, 'options')],
-            [Input('interaction-summary-group-cats-'+self.name, 'checked'),
+            [Input('interaction-summary-group-cats-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_interaction_scatter_graph(cats, pos_label):
             depth_options = [{'label': str(i+1), 'value': i+1} 
-                                    for i in range(self.explainer.n_features(cats))]
-            new_cols = self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)
+                                    for i in range(self.explainer.n_features(bool(cats)))]
+            new_cols = self.explainer.columns_ranked_by_shap(bool(cats), pos_label=pos_label)
             new_col_options = [{'label': col, 'value':col} for col in new_cols]
             return depth_options, new_col_options
 
@@ -586,16 +585,16 @@ class InteractionSummaryComponent(ExplainerComponent):
              Input('interaction-summary-type-'+self.name, 'value'),
              Input('interaction-summary-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
-             Input('interaction-summary-group-cats-'+self.name, 'checked')])
+             Input('interaction-summary-group-cats-'+self.name, 'value')])
         def update_interaction_scatter_graph(col, depth, summary_type, index, pos_label, cats):
             if col is not None:
                 if summary_type=='aggregate':
                     plot = self.explainer.plot_interactions(
-                        col, topx=depth, cats=cats, pos_label=pos_label)
+                        col, topx=depth, cats=bool(cats), pos_label=pos_label)
                     return plot, dict(display="none")
                 elif summary_type=='detailed':
                     plot = self.explainer.plot_shap_interaction_summary(
-                        col, topx=depth, cats=cats, pos_label=pos_label, index=index)
+                        col, topx=depth, cats=bool(cats), pos_label=pos_label, index=index)
                 return plot, {}
             raise PreventUpdate
 
@@ -681,21 +680,18 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:", id='interaction-dependence-group-cats-label-'+self.name),
+                            dbc.FormGroup([
+                                dbc.Label("Grouping:", id='interaction-dependence-group-cats-label-'+self.name),
                                 dbc.Tooltip("Group onehot encoded categorical variables together", 
                                             target='interaction-dependence-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='interaction-dependence-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='interaction-dependence-group-cats-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True, id='interaction-dependence-group-cats-form-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                            target='interaction-dependence-group-cats-form-'+self.name),
+                                dbc.Checklist(
+                                    options=[{"label": "Group cats", "value": True}],
+                                    value=[True] if self.cats else [],
+                                    id='interaction-dependence-group-cats-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
                         ], md=2), hide=self.hide_cats),
                     make_hideable(
                         dbc.Col([
@@ -757,10 +753,10 @@ class InteractionDependenceComponent(ExplainerComponent):
     def component_callbacks(self, app):
         @app.callback(
             Output('interaction-dependence-col-'+self.name, 'options'), 
-            [Input('interaction-dependence-group-cats-'+self.name, 'checked'),
+            [Input('interaction-dependence-group-cats-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_interaction_dependence_interact_col(cats, pos_label):
-            new_cols = self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)
+            new_cols = self.explainer.columns_ranked_by_shap(bool(cats), pos_label=pos_label)
             new_col_options = [{'label': col, 'value':col} for col in new_cols]
             return new_col_options
 
@@ -768,11 +764,12 @@ class InteractionDependenceComponent(ExplainerComponent):
             Output('interaction-dependence-interact-col-'+self.name, 'options'),
             [Input('interaction-dependence-col-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
-            [State('interaction-dependence-group-cats-'+self.name, 'checked'),
+            [State('interaction-dependence-group-cats-'+self.name, 'value'),
              State('interaction-dependence-interact-col-'+self.name, 'value')])
         def update_interaction_dependence_interact_col(col, pos_label, cats, old_interact_col):
             if col is not None:
-                new_interact_cols = self.explainer.shap_top_interactions(col, cats=cats, pos_label=pos_label)
+                new_interact_cols = self.explainer.shap_top_interactions(
+                    col, cats=bool(cats), pos_label=pos_label)
                 new_interact_options = [{'label': col, 'value':col} for col in new_interact_cols]
                 return new_interact_options
             raise PreventUpdate
@@ -811,8 +808,8 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
     def component_callbacks(self, app):
         @app.callback(
-            Output('interaction-dependence-group-cats-'+self.dep_name, 'checked'),
-            [Input('interaction-summary-group-cats-'+self.sum_name, 'checked')])
+            Output('interaction-dependence-group-cats-'+self.dep_name, 'value'),
+            [Input('interaction-summary-group-cats-'+self.sum_name, 'value')])
         def update_dependence_shap_scatter_graph(cats):
             return cats
 
@@ -971,19 +968,18 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         ], md=2), hide=self.hide_orientation),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:", id='contributions-graph-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                            dbc.FormGroup([
+                                dbc.Label("Grouping:", id='contributions-graph-group-cats-label-'+self.name),
+                                dbc.Tooltip("Group onehot encoded categorical variables together", 
                                             target='contributions-graph-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='contributions-graph-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='contributions-graph-group-cats-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True),
+                                dbc.Checklist(
+                                    options=[{"label": "Group cats", "value": True}],
+                                    value=[True] if self.cats else [],
+                                    id='contributions-graph-group-cats-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
                         ], md=2), hide=self.hide_cats),
                     ], form=True),
                     
@@ -1007,21 +1003,21 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                  Input('contributions-graph-depth-'+self.name, 'value'),
                  Input('contributions-graph-sorting-'+self.name, 'value'),
                  Input('contributions-graph-orientation-'+self.name, 'value'),
-                 Input('contributions-graph-group-cats-'+self.name, 'checked'),
+                 Input('contributions-graph-group-cats-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value')])
             def update_output_div(index, depth, sort, orientation, cats, pos_label):
                 if index is None:
                     raise PreventUpdate
 
                 plot = self.explainer.plot_shap_contributions(index, topx=depth, 
-                            cats=cats, sort=sort, orientation=orientation, 
+                            cats=bool(cats), sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
 
                 ctx = dash.callback_context
                 trigger = ctx.triggered[0]['prop_id'].split('.')[0]
                 if trigger == 'contributions-graph-group-cats-'+self.name:
                     depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(cats))]
+                                            for i in range(self.explainer.n_features(bool(cats)))]
                     return (plot, depth_options)
                 else:
                     return (plot, dash.no_update)
@@ -1032,20 +1028,20 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 [Input('contributions-graph-depth-'+self.name, 'value'),
                  Input('contributions-graph-sorting-'+self.name, 'value'),
                  Input('contributions-graph-orientation-'+self.name, 'value'),
-                 Input('contributions-graph-group-cats-'+self.name, 'checked'),
+                 Input('contributions-graph-group-cats-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs])
             def update_output_div(depth, sort, orientation, cats, pos_label, *inputs):
                 X_row = self.explainer.get_row_from_input(inputs)
                 plot = self.explainer.plot_shap_contributions(X_row=X_row, 
-                            topx=depth, cats=cats, sort=sort, orientation=orientation, 
+                            topx=depth, cats=bool(cats), sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
 
                 ctx = dash.callback_context
                 trigger = ctx.triggered[0]['prop_id'].split('.')[0]
                 if trigger == 'contributions-graph-group-cats-'+self.name:
                     depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(cats))]
+                                            for i in range(self.explainer.n_features(bool(cats)))]
                     return (plot, depth_options)
                 else:
                     return (plot, dash.no_update)
@@ -1155,19 +1151,18 @@ class ShapContributionsTableComponent(ExplainerComponent):
                         ], width=2), hide=self.hide_selector),
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Grouping:", id='contributions-table-group-cats-label-'+self.name),
-                            dbc.Tooltip("Group onehot encoded categorical variables together", 
+                            dbc.FormGroup([
+                                dbc.Label("Grouping:", id='contributions-table-group-cats-label-'+self.name),
+                                dbc.Tooltip("Group onehot encoded categorical variables together", 
                                             target='contributions-table-group-cats-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='contributions-table-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='contributions-table-group-cats-'+self.name, 
-                                        className="form-check-label"),
-                            ], check=True),
+                                dbc.Checklist(
+                                    options=[{"label": "Group cats", "value": True}],
+                                    value=[True] if self.cats else [],
+                                    id='contributions-table-group-cats-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
                         ], md=3), hide=self.hide_cats),
                 ], form=True),
                 dbc.Row([
@@ -1185,14 +1180,14 @@ class ShapContributionsTableComponent(ExplainerComponent):
             [Input('contributions-table-index-'+self.name, 'value'),
              Input('contributions-table-depth-'+self.name, 'value'),
              Input('contributions-table-sorting-'+self.name, 'value'),
-             Input('contributions-table-group-cats-'+self.name, 'checked'),
+             Input('contributions-table-group-cats-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_output_div(index, depth, sort, cats, pos_label):
             if index is None:
                 raise PreventUpdate
 
             contributions_table = dbc.Table.from_dataframe(
-                self.explainer.contrib_summary_df(index, cats=cats, topx=depth, 
+                self.explainer.contrib_summary_df(index, cats=bool(cats), topx=depth, 
                                 sort=sort, pos_label=pos_label))
 
             tooltip_cols = {}
@@ -1214,7 +1209,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'contributions-table-group-cats-'+self.name:
                 depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(self.explainer.n_features(cats))]
+                                        for i in range(self.explainer.n_features(bool(cats)))]
                 return (output_div, depth_options)
             else:
                 return (output_div, dash.no_update) 
