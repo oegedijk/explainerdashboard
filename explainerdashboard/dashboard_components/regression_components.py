@@ -782,19 +782,18 @@ class RegressionVsColComponent(ExplainerComponent):
                             ], md=4), hide=self.hide_ratio),
                     make_hideable(
                             dbc.Col([
-                                dbc.Label("Grouping:", id='reg-vs-col-group-cats-label-'+self.name),
-                                dbc.Tooltip("group onehot encoded features together.",
-                                            target='reg-vs-col-group-cats-label-'+self.name),
-                                dbc.FormGroup(
-                                [
-                                    dbc.RadioButton(
-                                        id='reg-vs-col-group-cats-'+self.name, 
-                                        className="form-check-input",
-                                        checked=self.cats),
-                                    dbc.Label("Group Cats",
-                                            html_for='reg-vs-col-group-cats-'+self.name,
-                                            className="form-check-label"),
-                                ], check=True),
+                                dbc.FormGroup([
+                                    dbc.Label("Grouping:", id='reg-vs-col-group-cats-label-'+self.name),
+                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                                target='reg-vs-col-group-cats-label-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Group cats", "value": True}],
+                                        value=[True] if self.cats else [],
+                                        id='reg-vs-col-group-cats-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
                             ], md=2), self.hide_cats),
                 ]),
                 dbc.Row([
@@ -816,53 +815,57 @@ class RegressionVsColComponent(ExplainerComponent):
                             dbc.Input(id='reg-vs-col-winsor-'+self.name, 
                                     value=self.winsor,
                                 type="number", min=0, max=49, step=1),
-                        ], md=2), hide=self.hide_winsor),  
+                        ], md=4), hide=self.hide_winsor),  
                     make_hideable(
                         dbc.Col([
-                            dbc.Label("Points:", id='reg-vs-col-show-points-label-'+self.name),
-                            dbc.Tooltip("For categorical features, display a point cloud next to the violin plot.", 
-                                    target='reg-vs-col-show-points-label-'+self.name),
-                            dbc.FormGroup(
-                            [
-                                dbc.RadioButton(
-                                    id='reg-vs-col-show-points-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.points),
-                                dbc.Label("Show points",
-                                        html_for='reg-vs-col-show-points-'+self.name,
-                                        className="form-check-label"),
-                            ], check=True),
-                        ],  md=3), self.hide_points),
+                            html.Div([
+                                dbc.FormGroup([
+                                        dbc.Label("Scatter:"),
+                                        dbc.Tooltip("For categorical features, display "
+                                                "a point cloud next to the violin plots.", 
+                                                    target='reg-vs-col-show-points-'+self.name),
+                                        dbc.Checklist(
+                                            options=[{"label": "Show point cloud", "value": True}],
+                                            value=[True] if self.points else [],
+                                            id='reg-vs-col-show-points-'+self.name,
+                                            inline=True,
+                                            switch=True,
+                                        ),
+                                    ]),
+                            ], id='reg-vs-col-show-points-div-'+self.name)
+                        ],  md=4), self.hide_points),
                 ])
             ])
         ])
 
     def register_callbacks(self, app):
         @app.callback(
-            Output('reg-vs-col-graph-'+self.name, 'figure'),
+            [Output('reg-vs-col-graph-'+self.name, 'figure'),
+             Output('reg-vs-col-show-points-div-'+self.name, 'style')],
             [Input('reg-vs-col-col-'+self.name, 'value'),
              Input('reg-vs-col-display-type-'+self.name, 'value'),
-             Input('reg-vs-col-show-points-'+self.name, 'checked'),
+             Input('reg-vs-col-show-points-'+self.name, 'value'),
              Input('reg-vs-col-winsor-'+self.name, 'value')],
         )
         def update_residuals_graph(col, display, points, winsor):
+            style = {} if col in self.explainer.cats else dict(display="none")
             if display == 'observed':
                 return self.explainer.plot_y_vs_feature(
-                        col, points=points, winsor=winsor, dropna=True)
+                        col, points=bool(points), winsor=winsor, dropna=True), style
             elif display == 'predicted':
                 return self.explainer.plot_preds_vs_feature(
-                        col, points=points, winsor=winsor, dropna=True)
+                        col, points=bool(points), winsor=winsor, dropna=True), style
             else:
                 return self.explainer.plot_residuals_vs_feature(
-                            col, residuals=display, points=points, 
-                            winsor=winsor, dropna=True)
+                            col, residuals=display, points=bool(points), 
+                            winsor=winsor, dropna=True), style
 
         @app.callback(
             Output('reg-vs-col-col-'+self.name, 'options'),
-            [Input('reg-vs-col-group-cats-'+self.name, 'checked')])
+            [Input('reg-vs-col-group-cats-'+self.name, 'value')])
         def update_dependence_shap_scatter_graph(cats):
             return [{'label': col, 'value': col} 
-                for col in self.explainer.columns_ranked_by_shap(cats)]
+                for col in self.explainer.columns_ranked_by_shap(bool(cats))]
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):

@@ -11,6 +11,8 @@
 - added `hide_subtitle=False` parameter to all components with subtitles
 - added `description` parameter to all components to adjust the hover-over-title
     tooltip
+- can pass additional *kwargs to ExplainerDashboard.from_config() to override
+    stored parameters, e.g. `db = ExplainerDashboard.from_config("dashboard.yaml", higher_is_better=False)`
 
 ### Bug Fixes
 -
@@ -18,7 +20,9 @@
 
 ### Improvements
 - `**kwargs` are now also stored when calling ExplainerDashboard.to_yaml()
--
+- turned single radioitems into switches
+- RegressionVsColComponent: hide "show point cloud next to violin" switch 
+    when col is not in cats
 
 ### Other Changes
 -

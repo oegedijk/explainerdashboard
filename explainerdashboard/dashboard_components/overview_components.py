@@ -220,19 +220,20 @@ class ImportancesComponent(ExplainerComponent):
                         ], md=3), self.hide_depth),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
-                            [
+                            dbc.FormGroup([
                                 dbc.Label("Grouping:", id='importances-group-cats-label-'+self.name),
                                 dbc.Tooltip("Group onehot encoded categorical variables together", 
                                             target='importances-group-cats-label-'+self.name),
-                                dbc.RadioButton(
-                                    id='importances-group-cats-'+self.name, 
-                                    className="form-check-input",
-                                    checked=self.cats),
-                                dbc.Label("Group Cats",
-                                        html_for='importances-group-cats-'+self.name,
-                                        className="form-check-label"),
-                            ], check=True, id='importances-group-cats-form-'+self.name), 
+                                dbc.Checklist(
+                                    options=[
+                                        {"label": "Group cats", "value": True},
+                                    ],
+                                    value=[True] if self.cats else [],
+                                    id='importances-group-cats-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
                         ]),  self.hide_cats),    
                     make_hideable(
                             dbc.Col([self.selector.layout()
@@ -252,14 +253,14 @@ class ImportancesComponent(ExplainerComponent):
         @app.callback(  
             Output('importances-graph-'+self.name, 'figure'),
             [Input('importances-depth-'+self.name, 'value'),
-             Input('importances-group-cats-'+self.name, 'checked'),
+             Input('importances-group-cats-'+self.name, 'value'),
              Input('importances-permutation-or-shap-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
         def update_importances(depth, cats, permutation_shap, pos_label):
             return self.explainer.plot_importances(
                         kind=permutation_shap, topx=depth, 
-                        cats=cats, pos_label=pos_label)
+                        cats=bool(cats), pos_label=pos_label)
 
 
 class PdpComponent(ExplainerComponent):
@@ -372,19 +373,20 @@ class PdpComponent(ExplainerComponent):
                         ], width=2), hide=self.hide_selector),
                         make_hideable(
                             dbc.Col([
-                                dbc.Label("Grouping:", id='pdp-group-cats-label-'+self.name),
-                                dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                            target='pdp-group-cats-label-'+self.name),
-                                dbc.FormGroup(
-                                [
-                                    dbc.RadioButton(
-                                        id='pdp-group-cats-'+self.name, 
-                                        className="form-check-input",
-                                        checked=self.cats),
-                                    dbc.Label("Group Cats",
-                                            html_for='pdp-group-cats-'+self.name, 
-                                            className="form-check-label"),
-                                ], check=True),
+                                dbc.FormGroup([
+                                    dbc.Label("Grouping:", id='pdp-group-cats-label-'+self.name),
+                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
+                                                target='pdp-group-cats-label-'+self.name),
+                                    dbc.Checklist(
+                                        options=[
+                                            {"label": "Group cats", "value": True},
+                                        ],
+                                        value=[True] if self.cats else [],
+                                        id='pdp-group-cats-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
                             ], md=2), hide=self.hide_cats),
                     ], form=True),
                     dbc.Row([
@@ -398,21 +400,20 @@ class PdpComponent(ExplainerComponent):
                 dbc.CardFooter([
                     dbc.Row([
                         make_hideable(
-                            dbc.Col([ #
-                                dbc.Label("Drop na:",id='pdp-dropna-label-'+self.name ),
-                                dbc.Tooltip(f"drop all observations with feature values equal to {self.explainer.na_fill}"
-                                            " from the plot. This prevents the filler values from "
-                                            "ruining the x-axis.", target='pdp-dropna-label-'+self.name ),
-                                dbc.FormGroup(
-                                [
-                                    dbc.RadioButton(
-                                        id='pdp-dropna-'+self.name, 
-                                        className="form-check-input",
-                                        checked=self.dropna),
-                                    dbc.Label("Drop na's",
-                                            html_for='pdp-dropna-'+self.name, 
-                                            className="form-check-label"),
-                                ], check=True),
+                            dbc.Col([
+                                dbc.FormGroup([
+                                    dbc.Tooltip("Drop all observations with feature values "
+                                            f"equal to {self.explainer.na_fill} from the plot. "
+                                            "This prevents the filler values from ruining the x-axis.", 
+                                                target='pdp-dropna-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Drop na_fill", "value": True}],
+                                        value=[True] if self.dropna else [],
+                                        id='pdp-dropna-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
                             ]), hide=self.hide_dropna),
                         make_hideable(
                             dbc.Col([ 
@@ -447,12 +448,12 @@ class PdpComponent(ExplainerComponent):
         
         @app.callback(
             Output('pdp-col-'+self.name, 'options'),
-            [Input('pdp-group-cats-'+self.name, 'checked')],
+            [Input('pdp-group-cats-'+self.name, 'value')],
             [State('pos-label-'+self.name, 'value')]
         )
         def update_pdp_graph(cats, pos_label):
             col_options = [{'label': col, 'value':col} 
-                                for col in self.explainer.columns_ranked_by_shap(cats, pos_label=pos_label)]
+                                for col in self.explainer.columns_ranked_by_shap(bool(cats), pos_label=pos_label)]
             return col_options
         
         if self.feature_input_component is None:
@@ -460,7 +461,7 @@ class PdpComponent(ExplainerComponent):
                 Output('pdp-graph-'+self.name, 'figure'),
                 [Input('pdp-index-'+self.name, 'value'),
                  Input('pdp-col-'+self.name, 'value'),
-                 Input('pdp-dropna-'+self.name, 'checked'),
+                 Input('pdp-dropna-'+self.name, 'value'),
                  Input('pdp-sample-'+self.name, 'value'),
                  Input('pdp-gridlines-'+self.name, 'value'),
                  Input('pdp-gridpoints-'+self.name, 'value'),
@@ -468,13 +469,13 @@ class PdpComponent(ExplainerComponent):
             )
             def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, pos_label):
                 return self.explainer.plot_pdp(col, index, 
-                    drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
+                    drop_na=bool(drop_na), sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
                     pos_label=pos_label)
         else:
             @app.callback(
                 Output('pdp-graph-'+self.name, 'figure'),
                 [Input('pdp-col-'+self.name, 'value'),
-                 Input('pdp-dropna-'+self.name, 'checked'),
+                 Input('pdp-dropna-'+self.name, 'value'),
                  Input('pdp-sample-'+self.name, 'value'),
                  Input('pdp-gridlines-'+self.name, 'value'),
                  Input('pdp-gridpoints-'+self.name, 'value'),
@@ -484,7 +485,7 @@ class PdpComponent(ExplainerComponent):
             def update_pdp_graph(col, drop_na, sample, gridlines, gridpoints, pos_label, *inputs):
                 X_row = self.explainer.get_row_from_input(inputs)
                 return self.explainer.plot_pdp(col, X_row=X_row,
-                    drop_na=drop_na, sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
+                    drop_na=bool(drop_na), sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
                     pos_label=pos_label)
 
 
