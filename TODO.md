@@ -22,8 +22,6 @@
 
 
 ### Classifier plots:
-- add label percentage at cutoff to cumulative precision plot
-
 - add wizard to lift curve
 - pdp: add multiclass option
     - no icelines to keep it from getting too busy?
@@ -62,7 +60,6 @@
         - generate groups programmatically!
 
 ### Components
-- add description to PredictionSummaryComponent (reg+clas)
 - add hide_footer to components with a CardFooter
 
 - add querystring method to ExplainerComponents
@@ -88,8 +85,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add prediction_summary_df test
-
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots

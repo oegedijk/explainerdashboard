@@ -15,7 +15,7 @@
     stored parameters, e.g. `db = ExplainerDashboard.from_config("dashboard.yaml", higher_is_better=False)`
 
 ### Bug Fixes
--
+-   fixed bug where `drop_na=True` for `explainer.plot_pdp()` was not working.
 -
 
 ### Improvements

@@ -1525,7 +1525,7 @@ class BaseExplainer(ABC):
 
         """
         pdp_result = self.get_pdp_result(col, index, X_row,
-                        num_grid_points=gridpoints, pos_label=pos_label)
+                        drop_na=drop_na, sample=sample, num_grid_points=gridpoints, pos_label=pos_label)
         units = "Predicted %" if self.model_output=='probability' else self.units
         if index is not None:
             col_value, pred = self.get_col_value_plus_prediction(col, index=index, pos_label=pos_label)
