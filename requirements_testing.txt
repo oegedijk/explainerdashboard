@@ -1,4 +1,4 @@
-#dash[testing]
+dash[testing]
 #dash-bootstrap-components
 #dtreeviz
 #numpy
