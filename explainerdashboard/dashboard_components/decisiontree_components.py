@@ -100,7 +100,7 @@ class DecisionTreesComponent(ExplainerComponent):
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
-                        ], md=4), hide=self.hide_index),
+                        ], md=6), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
                             dbc.Label("Highlight tree:", id='decisiontrees-tree-label-'+self.name),
@@ -111,7 +111,7 @@ class DecisionTreesComponent(ExplainerComponent):
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
                                 value=self.highlight)
-                        ], md=2), hide=self.hide_highlight), 
+                        ], md=4), hide=self.hide_highlight), 
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector)

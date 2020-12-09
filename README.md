@@ -138,8 +138,8 @@ explainer = RegressionExplainer(model, X_test, y_test,
 db = ExplainerDashboard(explainer).run()
 ```
 
-(`y` is actually optional, although some parts of the dashboard will obviously 
-not work: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`)
+(`y` is actually optional, although some parts of the dashboard like performance
+metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`)
 
 ### Dealing with slow calculations
 
@@ -215,7 +215,7 @@ ExplainerDashboard(explainer, bootstrap=dbc.themes.FLATLY).run()
 ```
 
 See the [dbc themes documentation](https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/)
-for the different themes that are supported.
+and [bootwatch website](https://bootswatch.com/) for the different themes that are supported.
 
 ### Switching off tabs
 

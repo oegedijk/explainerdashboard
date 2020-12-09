@@ -2,6 +2,8 @@
 # TODO:
 
 ## Bugs:
+- ContributionTable with logodds multiplies by 100!
+- dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -11,6 +13,7 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
+- make plot background transparent
 - Only use ScatterGl above a certain cutoff
 
 - seperate standard shap plots for shap_interaction plots 
@@ -43,7 +46,7 @@
 
 
 ## Dashboard:
-- add flavicon even when bootstrap is not None
+- use bootstrap tabs for better theming
 - add waitress to run options
 
 - organize explainer components according to tab
