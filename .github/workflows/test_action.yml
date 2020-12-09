@@ -28,7 +28,7 @@ jobs:
         pip install flake8 pytest
         pip install dash[testing]
         if [ -f requirements_testing.txt ]; then pip install -r requirements_testing.txt; fi
-        pip install -e .
+        # pip install -e .
         flake8 . --count --exit-zero
     - name: Test with pytest
       run: |
