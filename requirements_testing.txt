@@ -6,10 +6,10 @@ dash[testing]
 #PDPbox
 #scikit-learn
 #shap
-catboost
-lightgbm
-xgboost
-selenium
+#catboost
+#lightgbm
+#xgboost
+#selenium
 #shortuuid
 #dash-auth
 #jupyter_dash
