@@ -206,6 +206,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
              State('random-index-clas-pred-or-perc-'+self.name, 'value'),
              State('pos-label-'+self.name, 'value')])
         def update_index(n_clicks, slider_range, labels, pred_or_perc, pos_label):
+            if n_clicks is None and self.index is not None:
+                raise PreventUpdate
             if pred_or_perc == 'predictions':
                 return self.explainer.random_index(y_values=labels,
                     pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
@@ -346,7 +348,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
 class PrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Precision Plot", name=None,
                     subtitle="Does fraction positive increase with predicted probability?",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
                     hide_multiclass=False, hide_selector=False, pos_label=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5,
@@ -365,6 +367,7 @@ class PrecisionComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide title
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_binsize (bool, optional): hide binsize/quantiles slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -421,6 +424,7 @@ class PrecisionComponent(ExplainerComponent):
                     ])
                 ]),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 dbc.Row([
                     dbc.Col([
@@ -510,7 +514,7 @@ class PrecisionComponent(ExplainerComponent):
                             ]),
                         ], width=4), hide=self.hide_multiclass), 
                 ]),
-            ])    
+            ]), hide=self.hide_footer)   
         ])
 
     def component_callbacks(self, app):
@@ -553,7 +557,7 @@ class PrecisionComponent(ExplainerComponent):
 class ConfusionMatrixComponent(ExplainerComponent):
     def __init__(self, explainer, title="Confusion Matrix", name=None,
                     subtitle="How many false positives and false negatives?",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
                     hide_selector=False, pos_label=None,
                     cutoff=0.5, percentage=True, binary=True, description=None,
@@ -571,7 +575,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
-            hide_subtitle (bool, optional): hide subtitle
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_binary (bool, optional): Hide binary toggle. Defaults to False.
@@ -622,6 +626,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                 dcc.Graph(id='confusionmatrix-graph-'+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 make_hideable(
                     html.Div([
@@ -671,7 +676,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                             ),
                         ]),
                     ]), hide=self.hide_binary),
-            ])
+            ]), hide=self.hide_footer)
         ])
 
     def component_callbacks(self, app):
@@ -691,7 +696,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
 class LiftCurveComponent(ExplainerComponent):
     def __init__(self, explainer, title="Lift Curve", name=None,
                     subtitle="Performance how much better than random?",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, percentage=True, description=None,
                     **kwargs):
@@ -708,6 +713,7 @@ class LiftCurveComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -749,6 +755,7 @@ class LiftCurveComponent(ExplainerComponent):
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], style={'margin': 0}),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 make_hideable(
                     html.Div([
@@ -782,7 +789,7 @@ class LiftCurveComponent(ExplainerComponent):
                             ),
                         ]),
                     ]), hide=self.hide_percentage),  
-            ])
+            ]), hide=self.hide_footer)
         ])
 
     def component_callbacks(self, app):
@@ -800,7 +807,7 @@ class LiftCurveComponent(ExplainerComponent):
 class CumulativePrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Cumulative Precision", name=None,
                     subtitle="Expected distribution for highest scores",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_selector=False, pos_label=None,
                     hide_cutoff=False, cutoff=None,
                     hide_percentile=False, percentile=None, description=None,
@@ -818,6 +825,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide the title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             
@@ -849,6 +857,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], style={'margin': 0}),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 dbc.Row([
                     dbc.Col([
@@ -894,7 +903,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
                         ], width=2), hide=self.hide_selector),
 
                 ])
-            ])     
+            ]), hide=self.hide_footer)   
         ])
 
     def component_callbacks(self, app):
@@ -918,7 +927,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
 class ClassificationComponent(ExplainerComponent):
     def __init__(self, explainer, title="Classification Plot", name=None,
                     subtitle="Distribution of labels above and below cutoff",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, percentage=True, description=None,
                     **kwargs):
@@ -936,6 +945,7 @@ class ClassificationComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide the title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
@@ -975,6 +985,7 @@ class ClassificationComponent(ExplainerComponent):
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], style={'margin': 0}),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 make_hideable(
                     html.Div([
@@ -1007,7 +1018,7 @@ class ClassificationComponent(ExplainerComponent):
                             ),
                         ]),
                     ]), hide=self.hide_percentage),
-            ]) 
+            ]), hide=self.hide_footer)
         ])
 
     def component_callbacks(self, app):
@@ -1025,7 +1036,7 @@ class ClassificationComponent(ExplainerComponent):
 class RocAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
                     subtitle="Trade-off between False positives and false negatives",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, description=None,
                     **kwargs):
@@ -1042,6 +1053,7 @@ class RocAucComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -1075,6 +1087,7 @@ class RocAucComponent(ExplainerComponent):
                 dcc.Graph(id='rocauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 make_hideable(
                     html.Div([
@@ -1092,7 +1105,7 @@ class RocAucComponent(ExplainerComponent):
                                     target='rocauc-cutoff-div-'+self.name,
                                     placement='bottom'),
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-            ])
+            ]), hide=self.hide_footer)
         ])
 
     def component_callbacks(self, app):
@@ -1108,7 +1121,7 @@ class RocAucComponent(ExplainerComponent):
 class PrAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="PR AUC Plot", name=None,
                     subtitle="Trade-off between Precision and Recall",
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, description=None,
                     **kwargs):
@@ -1125,6 +1138,7 @@ class PrAucComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -1160,6 +1174,7 @@ class PrAucComponent(ExplainerComponent):
                 dcc.Graph(id='prauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 make_hideable(
                     html.Div([
@@ -1178,7 +1193,7 @@ class PrAucComponent(ExplainerComponent):
                                     target='prauc-cutoff-div-'+self.name,
                                     placement='bottom'),
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
-            ])
+            ]), hide=self.hide_footer)
         ])
 
     def component_callbacks(self, app):
@@ -1192,7 +1207,7 @@ class PrAucComponent(ExplainerComponent):
 
 class ClassifierModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model performance metrics", name=None,
-                    hide_title=False, hide_subtitle=False,
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_selector=False,
                     pos_label=None, cutoff=0.5, round=3, description=None,
                     **kwargs):
@@ -1209,6 +1224,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
@@ -1244,6 +1260,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                     ], justify="end"),
                 html.Div(id='clas-model-summary-div-'+self.name),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 make_hideable(
                     html.Div([
@@ -1261,7 +1278,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                                     target='clas-model-summary-cutoff-div-'+self.name,
                                     placement='bottom'),
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff), 
-            ])
+            ]), hide=self.hide_footer)
         ])
     
     def component_callbacks(self, app):

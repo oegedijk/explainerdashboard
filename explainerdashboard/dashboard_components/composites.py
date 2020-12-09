@@ -24,6 +24,7 @@ from .decisiontree_components import *
 
 class ImportancesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
+                    hide_importances=False,
                     hide_selector=True, **kwargs):
         """Overview tab of feature importances
 
@@ -37,6 +38,7 @@ class ImportancesComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_importances (bool, optional): hide the ImportancesComponent
             hide_selector (bool, optional): hide the post label selector. 
                 Defaults to True.
         """
@@ -49,16 +51,23 @@ class ImportancesComposite(ExplainerComponent):
     def layout(self):
         return html.Div([
             dbc.Row([
-                dbc.Col([
-                    self.importances.layout(),
-                ]),
+                make_hideable(
+                    dbc.Col([
+                        self.importances.layout(),
+                    ]), hide=self.hide_importances),
             ], style=dict(margin=25))
         ])
 
 
 class ClassifierModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Classification Stats", name=None,
-                    hide_title=False, hide_selector=True, pos_label=None,
+                    hide_title=False, hide_selector=True, 
+                    hide_globalcutoff=False,
+                    hide_modelsummary=False, hide_confusionmatrix=False,
+                    hide_precision=False, hide_classification=False,
+                    hide_rocauc=False, hide_prauc=False,
+                    hide_liftcurve=False, hide_cumprecision=False,
+                    pos_label=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5, **kwargs):
         """Composite of multiple classifier related components: 
             - precision graph
@@ -78,6 +87,15 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title. Defaults to False.          
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
+            hide_globalcutoff (bool, optional): hide CutoffPercentileComponent
+            hide_modelsummary (bool, optional): hide ClassifierModelSummaryComponent
+            hide_confusionmatrix (bool, optional): hide ConfusionMatrixComponent
+            hide_precision (bool, optional): hide PrecisionComponent
+            hide_classification (bool, optional): hide ClassificationComponent
+            hide_rocauc (bool, optional): hide RocAucComponent
+            hide_prauc (bool, optional): hide PrAucComponent
+            hide_liftcurve (bool, optional): hide LiftCurveComponent
+            hide_cumprecision (bool, optional): hide CumulativePrecisionComponent
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             bin_size (float, optional): bin_size for precision plot. Defaults to 0.1.
             quantiles (int, optional): number of quantiles for precision plot. Defaults to 10.
@@ -118,32 +136,35 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                      html.H2('Model Performance:')]), hide=self.hide_title),
             ]),
             dbc.Row([
-                dbc.Col([
-                    self.cutoffpercentile.layout(),
-                ])
+                make_hideable(
+                    dbc.Col([
+                        self.cutoffpercentile.layout(),
+                    ]), hide=self.hide_globalcutoff),
             ], style=dict(marginBottom=25)),
             dbc.CardDeck([
-                self.summary.layout(),
-                self.confusionmatrix.layout(),
+                make_hideable(self.summary.layout(), hide=self.hide_modelsummary),
+                make_hideable(self.confusionmatrix.layout(), hide=self.hide_confusionmatrix),
             ], style=dict(marginBottom=25)),
             dbc.CardDeck([
-                self.precision.layout(),
-                self.classification.layout()
+                make_hideable(self.precision.layout(), hide=self.hide_precision),
+                make_hideable(self.classification.layout(), hide=self.hide_classification)
             ], style=dict(marginBottom=25)),
             dbc.CardDeck([
-                self.rocauc.layout(),
-                self.prauc.layout()
+                make_hideable(self.rocauc.layout(), hide=self.hide_rocauc),
+                make_hideable(self.prauc.layout(), hide=self.hide_prauc),
             ], style=dict(marginBottom=25)),
             dbc.CardDeck([
-                self.liftcurve.layout(),
-                self.cumulative_precision.layout()
+                make_hideable(self.liftcurve.layout(), self.hide_liftcurve),
+                make_hideable(self.cumulative_precision.layout(), self.hide_cumprecision),
             ], style=dict(marginBottom=25)),
         ])
 
 
 class RegressionModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Regression Stats", name=None,
-                    hide_title=False,
+                    hide_title=False, hide_modelsummary=False,
+                    hide_predsvsactual=False, hide_residuals=False, 
+                    hide_regvscol=False,
                     logs=False, pred_or_actual="vs_pred", residuals='difference',
                     col=None, **kwargs):
         """Composite for displaying multiple regression related graphs:
@@ -161,6 +182,10 @@ class RegressionModelStatsComposite(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title. Defaults to False.
+            hide_modelsummary (bool, optional): hide RegressionModelSummaryComponent
+            hide_predsvsactual (bool, optional): hide PredictedVsActualComponent
+            hide_residuals (bool, optional): hide ResidualsComponent
+            hide_regvscol (bool, optional): hide RegressionVsColComponent
             logs (bool, optional): Use log axis. Defaults to False.
             pred_or_actual (str, optional): plot residuals vs predictions 
                         or vs y (actual). Defaults to "vs_pred".
@@ -191,18 +216,21 @@ class RegressionModelStatsComposite(ExplainerComponent):
                         html.H2('Model Performance:')]), hide=self.hide_title)
             ]),
             dbc.CardDeck([
-                self.modelsummary.layout(),
-                self.preds_vs_actual.layout(),
+                make_hideable(self.modelsummary.layout(), hide=self.hide_modelsummary),
+                make_hideable(self.preds_vs_actual.layout(), hide=self.hide_predsvsactual),
             ], style=dict(marginBottom=25)),
             dbc.CardDeck([
-                self.residuals.layout(),
-                self.reg_vs_col.layout(),
+                make_hideable(self.residuals.layout(), hide=self.hide_residuals),
+                make_hideable(self.reg_vs_col.layout(), hide=self.hide_regvscol),
             ], style=dict(marginBottom=25))
         ])
 
 
 class IndividualPredictionsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Individual Predictions", name=None,
+                        hide_indexselector=False, hide_predictionsummary=False,
+                        hide_contributiongraph=False, hide_pdp=False,
+                        hide_contributiontable=False,
                         hide_title=False, hide_selector=True, **kwargs):
         """Composite for a number of component that deal with individual predictions:
 
@@ -220,6 +248,13 @@ class IndividualPredictionsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_indexselector (bool, optional): hide ClassifierRandomIndexComponent 
+                or RegressionRandomIndexComponent
+            hide_predictionsummary (bool, optional): hide ClassifierPredictionSummaryComponent
+                or RegressionPredictionSummaryComponent
+            hide_contributiongraph (bool, optional): hide ShapContributionsGraphComponent
+            hide_pdp (bool, optional): hide PdpComponent
+            hide_contributiontable (bool, optional): hide ShapContributionsTableComponent
             hide_title (bool, optional): hide title. Defaults to False.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
         """
@@ -251,16 +286,16 @@ class IndividualPredictionsComposite(ExplainerComponent):
     def layout(self):
         return dbc.Container([
                 dbc.CardDeck([
-                    self.index.layout(),
-                    self.summary.layout()
+                    make_hideable(self.index.layout(), hide=self.hide_indexselector),
+                    make_hideable(self.summary.layout(), hide=self.hide_predictionsummary),
                 ], style=dict(marginBottom=25, marginTop=25)),
                 dbc.CardDeck([
-                    self.contributions.layout(),
-                    self.pdp.layout(),
+                    make_hideable(self.contributions.layout(), hide=self.hide_contributiongraph),
+                    make_hideable(self.pdp.layout(), hide=self.hide_pdp),
                 ], style=dict(marginBottom=25, marginTop=25)),
                 dbc.Row([
                     dbc.Col([
-                        self.contributions_list.layout()
+                        make_hideable(self.contributions_list.layout(), hide=self.hide_contributiontable),
                     ], md=6),
                     dbc.Col([
                         html.Div([]),
@@ -271,6 +306,8 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
 class WhatIfComposite(ExplainerComponent):
     def __init__(self, explainer, title="What if...", name=None,
+                        hide_indexselector=False, hide_inputeditor=False,
+                        hide_whatifcontribution=False, hide_whatifpdp=False,
                         hide_title=False, hide_selector=True, **kwargs):
         """Composite for the whatif component:
 
@@ -284,6 +321,11 @@ class WhatIfComposite(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title. Defaults to False.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
+            hide_indexselector (bool, optional): hide ClassifierRandomIndexComponent
+                or RegressionRandomIndexComponent
+            hide_inputeditor (bool, optional): hide FeatureInputComponent
+            hide_whatifcontribution (bool, optional): hide ShapContributionsGraphComponent
+            hide_whatifpdp (bool, optional): hide PdpComponent
         """
         super().__init__(explainer, title, name)
 
@@ -317,21 +359,25 @@ class WhatIfComposite(ExplainerComponent):
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        self.index.layout()
+                        make_hideable(self.index.layout(), hide=self.hide_indexselector),
                     ]),
                 ], style=dict(marginBottom=15, marginTop=15)),
                 dbc.Row([
                     dbc.Col([
-                        self.input.layout()
+                        make_hideable(self.input.layout(), hide=self.hide_inputeditor),
                     ]),
                 ], style=dict(marginBottom=15, marginTop=15)),
-                dbc.CardDeck([self.contrib.layout(), self.pdp.layout()])
+                dbc.CardDeck([
+                    make_hideable(self.contrib.layout(), hide=self.hide_whatifcontribution),
+                    make_hideable(self.pdp.layout(), hide=self.hide_whatifpdp),
+                ]),
         ], fluid=True)
 
 
 class ShapDependenceComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Dependence', name=None,
-                    hide_selector=True,
+                    hide_selector=True, 
+                    hide_shapsummary=False, hide_shapdependence=False,
                     depth=None, cats=True, **kwargs):
         """Composite of ShapSummary and ShapDependence component
 
@@ -344,6 +390,8 @@ class ShapDependenceComposite(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
+            hide_shapsummary (bool, optional): hide ShapSummaryComponent
+            hide_shapdependence (bool, optional): ShapDependenceComponent
             depth (int, optional): Number of features to display. Defaults to None.
             cats (bool, optional): Group categorical features. Defaults to True.
         """
@@ -365,14 +413,15 @@ class ShapDependenceComposite(ExplainerComponent):
     def layout(self):
         return dbc.Container([
             dbc.CardDeck([
-                self.shap_summary.layout(),
-                self.shap_dependence.layout()
+                make_hideable(self.shap_summary.layout(), hide=self.hide_shapsummary),
+                make_hideable(self.shap_dependence.layout(), hide=self.hide_shapdependence),
             ], style=dict(marginTop=25)),
         ], fluid=True)
 
 class ShapInteractionsComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Interactions', name=None,
                     hide_selector=True,
+                    hide_interactionsummary=False, hide_interactiondependence=False,
                     depth=None, cats=True, **kwargs):
         """Composite of InteractionSummaryComponent and InteractionDependenceComponent
 
@@ -385,6 +434,8 @@ class ShapInteractionsComposite(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
+            hide_interactionsummary (bool, optional): hide InteractionSummaryComponent
+            hide_interactiondependence (bool, optional): hide InteractionDependenceComponent
             depth (int, optional): Initial number of features to display. Defaults to None.
             cats (bool, optional): Initally group cats. Defaults to True.
         """
@@ -401,14 +452,16 @@ class ShapInteractionsComposite(ExplainerComponent):
     def layout(self):
         return dbc.Container([
                 dbc.CardDeck([
-                    self.interaction_summary.layout(),
-                    self.interaction_dependence.layout()
+                    make_hideable(self.interaction_summary.layout(), hide=self.hide_interactionsummary),
+                    make_hideable(self.interaction_dependence.layout(), hide=self.hide_interactiondependence),
                 ], style=dict(marginTop=25))
         ], fluid=True)
 
 
 class DecisionTreesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
+                    hide_indexselector=False, hide_treesgraph=False,
+                    hide_treepathtable=False, hide_treepathgraph=False,
                     hide_selector=True, **kwargs):
         """Composite of decision tree related components:
         
@@ -425,6 +478,11 @@ class DecisionTreesComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_indexselector (bool, optional): hide ClassifierRandomIndexComponent
+                or RegressionRandomIndexComponent
+            hide_treesgraph (bool, optional): hide DecisionTreesComponent
+            hide_treepathtable (bool, optional): hide DecisionPathTableComponent
+            hide_treepathgraph (bool, optional): DecisionPathGraphComponent
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
         """
         super().__init__(explainer, title, name)
@@ -455,46 +513,55 @@ class DecisionTreesComposite(ExplainerComponent):
         if isinstance(self.explainer, XGBExplainer):
             return html.Div([
                 dbc.Row([
-                    dbc.Col([
-                        self.index.layout(),
-                    ])
+                    make_hideable(
+                        dbc.Col([
+                            self.index.layout(), 
+                        ]), hide=self.hide_indexselector),
                 ], style=dict(margin=25)),
                 dbc.Row([
-                    dbc.Col([
-                        self.trees.layout(),
-                    ], md=8),
-                    dbc.Col([
-                        self.decisionpath_table.layout()
-                    ], md=4)
+                    make_hideable(
+                        dbc.Col([
+                            self.trees.layout(), 
+                        ], md=8), hide=self.hide_treesgraph),
+                    make_hideable(
+                        dbc.Col([
+                            self.decisionpath_table.layout(), 
+                        ], md=4), hide=self.hide_treepathtable),
                 ], style=dict(margin=25)),
                 dbc.Row([
-                    dbc.Col([
-                        self.decisionpath_graph.layout()
-                    ])
+                    make_hideable(
+                        dbc.Col([
+                            self.decisionpath_graph.layout()
+                        ]), hide=self.hide_treepathgraph),
                 ], style=dict(margin=25)),
             ])
         elif isinstance(self.explainer, RandomForestExplainer):
             return html.Div([
                 dbc.Row([
-                    dbc.Col([
-                        self.index.layout(),
-                    ])
+                    make_hideable(
+                        dbc.Col([
+                            self.index.layout(), 
+                        ]), hide=self.hide_indexselector),
                 ], style=dict(margin=25)),
                 dbc.Row([
-                    dbc.Col([
-                        self.trees.layout(),
-                    ]),
+                    make_hideable(
+                        dbc.Col([
+                            self.trees.layout(), 
+                        ]), hide=self.hide_treesgraph),
                 ], style=dict(margin=25)),
                 dbc.Row([
-                    dbc.Col([
-                        self.decisionpath_table.layout() 
-                    ]),
+                    make_hideable(
+                        dbc.Col([
+                            self.decisionpath_table.layout(), 
+                        ]), hide=self.hide_treepathtable),
                 ], style=dict(margin=25)),
                 dbc.Row([
-                    dbc.Col([
-                        self.decisionpath_graph.layout()
-                    ])
+                    make_hideable(
+                        dbc.Col([
+                            self.decisionpath_graph.layout()
+                        ]), hide=self.hide_treepathgraph),
                 ], style=dict(margin=25)),
             ])
         else:
-            raise ValueError("explainer is neither a RandomForestExplainer nor an XGBExplainer!")
+            raise ValueError("explainer is neither a RandomForestExplainer nor an XGBExplainer! "
+                            "Pass decision_trees=False to disable the decision tree tab.")

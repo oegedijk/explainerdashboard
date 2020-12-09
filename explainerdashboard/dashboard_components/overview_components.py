@@ -267,7 +267,8 @@ class PdpComponent(ExplainerComponent):
     def __init__(self, explainer, title="Partial Dependence Plot", name=None,
                     subtitle="How does the prediction change if you change one feature?",
                     hide_col=False, hide_index=False, hide_cats=False,
-                    hide_title=False,  hide_subtitle=False, hide_selector=False,
+                    hide_title=False,  hide_subtitle=False, 
+                    hide_footer=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False,
                     feature_input_component=None,
@@ -290,6 +291,7 @@ class PdpComponent(ExplainerComponent):
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_title (bool, optional): Hide title, Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
@@ -366,7 +368,7 @@ class PdpComponent(ExplainerComponent):
                                 dcc.Dropdown(id='pdp-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
                                                     for idx in self.explainer.idxs],
-                                    value=None)
+                                    value=self.index)
                             ], md=4), hide=self.hide_index), 
                         make_hideable(
                             dbc.Col([self.selector.layout()
@@ -397,6 +399,7 @@ class PdpComponent(ExplainerComponent):
                         ])
                     ]),
                 ]),
+                make_hideable(
                 dbc.CardFooter([
                     dbc.Row([
                         make_hideable(
@@ -441,7 +444,7 @@ class PdpComponent(ExplainerComponent):
                                     type="number", min=0, max=100, step=1),
                             ]), hide=self.hide_gridpoints),
                     ], form=True),
-                ]),
+                ]), hide=self.hide_footer)
         ])
                 
     def component_callbacks(self, app):
