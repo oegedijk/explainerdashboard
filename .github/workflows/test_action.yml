@@ -27,4 +27,6 @@ jobs:
         python -m pip install --upgrade pip wheel
         pip install flake8 pytest
         flake8 . --count --exit-zero
+    - name: Test with pytest
+      run: |
         pytest
