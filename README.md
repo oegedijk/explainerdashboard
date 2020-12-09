@@ -201,6 +201,22 @@ for details.
 The dashboard is highly modular and customizable so that you can adjust it your
 own needs and project. 
 
+### Changing bootstrap theme
+
+You can change the bootstrap theme by passing a link to the appropriate css
+file. You can use the convenient [themes](https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/) module of 
+[dash_bootstrap_components](https://dash-bootstrap-components.opensource.faculty.ai/docs/) to generate
+the css url for you:
+
+```python
+import dash_bootstrap_components as dbc
+
+ExplainerDashboard(explainer, bootstrap=dbc.themes.FLATLY).run()
+```
+
+See the [dbc themes documentation](https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/)
+for the different themes that are supported.
+
 ### Switching off tabs
 
 You can switch off individual tabs using boolean flags, e.g.:
@@ -216,7 +232,7 @@ ExplainerDashboard(explainer,
                     decision_trees=True)
 ```
 
-### Passing parameters as `**kwargs`
+### Passing parameters to components as `**kwargs`
 
 The dashboard consists of independent `ExplainerComponents` that take their
 own parameters. For example hiding certain toggles (e.g. `hide_cats=True`) or
@@ -310,12 +326,15 @@ db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True).run()
 ```
 
 You can use this to define your own layouts, specifically tailored to your
-own model, project and needs. See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
+own model, project and needs. You can use the [ExplainerComposites](https://github.com/oegedijk/explainerdashboard/blob/master/explainerdashboard/dashboard_components/composites.py) that
+are used for the tabs of the default dashboard as a starting point, and edit
+them to reorganize components, add text, etc. 
+See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
 for more details. 
 
 ## Deployment
 
-If you wish to use e.g. `gunicorn` to deploy the dashboard you should add 
+If you wish to use e.g. `gunicorn` or `waitress` to deploy the dashboard you should add 
 `server = db.flask_server()` to your code to expose the Flask server. You can then 
 start the server with e.g. `gunicorn dashboard:server` 
 (assuming the file you defined the dashboard in was called `dashboard.py`). 

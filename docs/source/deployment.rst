@@ -86,6 +86,11 @@ And then start the ExpalinerDashboard directly from the config file in ``dashboa
     app = db.app.server
 
 
+You can also pass additional config ``**kwargs`` when you load from config::
+
+    db = ExplainerDashboard.from_config("dashboard.yaml", higher_is_better=False)
+
+
 .. highlight:: bash
 
 And start the server the same as before::

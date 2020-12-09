@@ -1,5 +1,57 @@
 # Release Notes
 
+## Version 0.2.15:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- can now hide entire components on tabs/composites:
+
+    ```
+    db = ExplainerDashboard(explainer, 
+                        # importances:
+                        hide_importances=True,
+                        # classification statsL
+                        hide_globalcutoff=True, hide_modelsummary=True, hide_confusionmatrix=True,
+                        hide_precision=True, hide_classification=True, hide_rocauc=True, hide_prauc=True,
+                        hide_liftcurve=True, hide_cumprecision=True,
+                        # regression stats:
+                        # hide_modelsummary=True, 
+                        # hide_predsvsactual=True, hide_residuals=True, 
+                        # individual predictions:
+                        hide_indexselector=True, hide_predictionsummary=True,
+                        hide_contributiongraph=True, hide_pdp=True, hide_contributiontable=True,
+                        # whatif:
+                        # hide_indexselector=True,
+                        hide_inputeditor=True, hide_whatifcontribution=True, hide_whatifpdp=True,
+                        # shap dependence:
+                        hide_shapsummary=True, hide_shapdependence=True,
+                        # shap interactions:
+                        hide_interactionsummary=True, hide_interactiondependence=True,
+                        # decisiontrees:
+                        # hide_indexselector=True,
+                        hide_treesgraph=True, hide_treepathtable=True, hide_treepathgraph=True,
+                       ).run()
+    ```
+-
+
+### Bug Fixes
+- Fixed bug where if you passed a default index as **kwarg, the random index selector
+    would still fire at startup, overriding the passed index
+- Fixed bug where in case of ties in shap values the contributions graph/table would show
+    more than depth/topx feature
+
+
+### Improvements
+- added checks on `logins` parameter to give more helpful error messages
+    - also now accepts a single pair of logins: `logins=['user1', 'password1']`
+- added a `hide_footer` parameter to components with a CardFooter
+
+### Other Changes
+-
+-
+
 ## Version 0.2.14:
 ### Breaking Changes
 - 
@@ -22,7 +74,7 @@
 - `**kwargs` are now also stored when calling ExplainerDashboard.to_yaml()
 - turned single radioitems into switches
 - RegressionVsColComponent: hide "show point cloud next to violin" switch 
-    when col is not in cats
+    when feature is not in `cats`
 
 ### Other Changes
 -

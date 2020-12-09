@@ -776,10 +776,15 @@ def get_contrib_df(shap_base_value, shap_values, X_row, topx=None, cutoff=None, 
             cutoff = 0
 
         display_df = contrib_df[contrib_df.contribution.abs() >= cutoff]
+        if topx is not None and len(display_df) > topx:
+            # in case of ties around cutoff
+            display_df = display_df.reindex(
+                display_df.contribution.abs().sort_values(ascending=False).index).head(topx)
+
         display_df_neg = display_df[display_df.contribution < 0]
         display_df_pos = display_df[display_df.contribution >= 0]
 
-        rest_df = (contrib_df[contrib_df.contribution.abs() < cutoff]
+        rest_df = (contrib_df[~contrib_df.col.isin(display_df.col.tolist())]
                        .sum().to_frame().T
                        .assign(col="_REST", value=""))
 

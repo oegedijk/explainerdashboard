@@ -378,6 +378,18 @@ class ExplainerDashboard:
 
         self.app = self._get_dash_app()
         if logins is not None:
+            if len(logins)==2 and isinstance(logins[0], str) and isinstance(logins[1], str):
+                logins = [logins]
+            assert isinstance(logins, list), \
+                ("Parameter logins should be a list of lists of str pairs, e.g."
+                 " logins=[['user1', 'password1'], ['user2', 'password2']]!")
+            for login in logins:
+                assert isinstance(login, list), \
+                    ("Parameter logins should be a list of lists of str pairs, "
+                     "e.g. logins=[['user1', 'password1'], ['user2', 'password2']]!")
+                assert isinstance(login[0], str) and isinstance(login[1], str), \
+                    ("For logins such as [['user1', 'password1']] user1 and "
+                     "password1 should be type(str)!")
             self.auth = dash_auth.BasicAuth(self.app, logins)
         self.app.title = title
 

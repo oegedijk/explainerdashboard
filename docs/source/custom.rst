@@ -8,6 +8,23 @@ like the example below:
 
 .. image:: screenshots/custom_dashboard.*
 
+Changing bootstrap theme
+========================
+
+
+You can change the bootstrap theme by passing a link to the appropriate css
+file. You can use the convenient `themes <https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/>`_ module of 
+`dash_bootstrap_components <https://dash-bootstrap-components.opensource.faculty.ai/docs/`_ to generate
+the css url for you::
+
+    import dash_bootstrap_components as dbc
+
+    ExplainerDashboard(explainer, bootstrap=dbc.themes.FLATLY).run()
+
+
+See the `dbc themes documentation <https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/>`_
+for the different themes that are supported.
+
 Switching off tabs
 ==================
 

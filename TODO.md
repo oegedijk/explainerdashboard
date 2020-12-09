@@ -30,10 +30,6 @@
 
 
 ## Explainers:
-- check pdp dropna still works
-- make topx break ties to only return true topx
-    - add parameter `break_ties=True`?
-
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
         case instead of a plot the function returns a verbal description of the 
@@ -47,6 +43,7 @@
 
 
 ## Dashboard:
+- add flavicon even when bootstrap is not None
 - add waitress to run options
 
 - organize explainer components according to tab
@@ -60,8 +57,6 @@
         - generate groups programmatically!
 
 ### Components
-- add hide_footer to components with a CardFooter
-
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
@@ -90,12 +85,8 @@
 - write tests for explainer_plots
 
 ## Docs:
-- document overriding kwargs in ExplainerDashboard.from_config()
-- document bootstrap argument, give link to https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
-    - adjust titanicexplainer
-    - custom documentation
-    - README
-
+- add section to README on storing and loading explainer/dashboard from file/config
+- document hiding components in composites
 - retake screenshots of components as cards
 - rerecord gifs
 - Add type hints:

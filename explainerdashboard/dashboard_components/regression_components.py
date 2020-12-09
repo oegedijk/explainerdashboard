@@ -378,6 +378,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
              State('random-index-reg-preds-or-y-'+self.name, 'value'),
              State('random-index-reg-abs-residual-'+self.name, 'value')])
         def update_index(n_clicks, pred_range, y_range, residual_range, abs_residuals_range, preds_or_y, abs_residuals):
+            if n_clicks is None and self.index is not None:
+                raise PreventUpdate
             if preds_or_y == 'preds':
                 if abs_residuals=='absolute':
                     return self.explainer.random_index(
@@ -481,7 +483,8 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 class PredictedVsActualComponent(ExplainerComponent):
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
-                    hide_title=False, hide_subtitle=False, hide_log_x=False, hide_log_y=False,
+                    hide_title=False, hide_subtitle=False, 
+                    hide_log_x=False, hide_log_y=False,
                     logs=False, log_x=False, log_y=False, description=None,
                     **kwargs):
         """Shows a plot of predictions vs y.
@@ -585,7 +588,7 @@ class PredictedVsActualComponent(ExplainerComponent):
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
                     subtitle="How much is the model off?",
-                    hide_title=False, hide_subtitle=False, 
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_pred_or_actual=False, hide_ratio=False,
                     pred_or_actual="vs_pred", residuals="difference",
                     description=None, **kwargs):
@@ -602,6 +605,7 @@ class ResidualsComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_pred_or_actual (bool, optional): hide vs predictions or vs 
                         actual for x-axis toggle. Defaults to False.
             hide_ratio (bool, optional): hide residual type dropdown. Defaults to False.
@@ -645,6 +649,7 @@ class ResidualsComponent(ExplainerComponent):
                     ])
                 ])
             ]),
+            make_hideable(
             dbc.CardFooter([
                 dbc.Row([
                     make_hideable(
@@ -678,7 +683,7 @@ class ResidualsComponent(ExplainerComponent):
                                     value=self.residuals),
                         ], md=3), hide=self.hide_ratio),
                 ], justify="center")
-            ])
+            ]), hide=self.hide_footer)
         ])
 
     def register_callbacks(self, app):
@@ -695,7 +700,7 @@ class ResidualsComponent(ExplainerComponent):
 class RegressionVsColComponent(ExplainerComponent):
     def __init__(self, explainer, title="Plot vs feature", name=None,
                     subtitle="Are predictions and residuals correlated with features?",
-                    hide_title=False, hide_subtitle=False, 
+                    hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_col=False, hide_ratio=False, hide_cats=False, 
                     hide_points=False, hide_winsor=False,
                     col=None, display='difference', cats=True, 
@@ -713,6 +718,7 @@ class RegressionVsColComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional) Hide the title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_col (bool, optional): Hide de column selector. Defaults to False.
             hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
@@ -809,6 +815,7 @@ class RegressionVsColComponent(ExplainerComponent):
                     ]) 
                 ]),
             ]),
+            make_hideable(
             dbc.CardFooter([
                 dbc.Row([
                     make_hideable(
@@ -841,7 +848,7 @@ class RegressionVsColComponent(ExplainerComponent):
                             ], id='reg-vs-col-show-points-div-'+self.name)
                         ],  md=4), self.hide_points),
                 ])
-            ])
+            ]), hide=self.hide_footer)
         ])
 
     def register_callbacks(self, app):
