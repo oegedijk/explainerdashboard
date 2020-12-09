@@ -31,4 +31,5 @@ jobs:
         flake8 . --count --exit-zero
     - name: Test with pytest
       run: |
-        pytest
+        python -m pip install pytest
+        python -m pytest
