@@ -15,4 +15,4 @@ selenium
 #jupyter_dash
 #oyaml
 #click
-pytest-console-scripts
+#pytest-console-scripts
