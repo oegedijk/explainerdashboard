@@ -684,7 +684,7 @@ class ExplainerDashboard:
         else:
             meta_tags = None
         
-        if self.external_stylesheets is not None:
+        if self.bootstrap is not None:
             assets_ignore = '^bootstrap.min.css$' 
         else:
             assets_ignore = ""
