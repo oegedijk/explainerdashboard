@@ -677,38 +677,36 @@ class ExplainerDashboard:
 
     def _get_dash_app(self):
         if self.responsive:
-            meta_tags = [{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}]
+            meta_tags = [
+                {'name': 'viewport', 
+                'content': 'width=device-width, initial-scale=1.0, maximum-scale=1.2, minimum-scale=0.5,'}
+                ]
         else:
             meta_tags = None
+        
+        if self.external_stylesheets is not None:
+            assets_ignore = '^bootstrap.min.css$' 
+        else:
+            assets_ignore = ""
         if self.mode=="dash":
-            if self.external_stylesheets is not None:
-                app = dash.Dash(server=self.server, 
-                                external_stylesheets=self.external_stylesheets, 
-                                assets_url_path="", 
-                                url_base_pathname=self.url_base_pathname,
-                                meta_tags=meta_tags)
-                app.config['suppress_callback_exceptions'] = True
-            else:
-                app = dash.Dash(__name__, 
-                                server=self.server, 
-                                url_base_pathname=self.url_base_pathname,
-                                meta_tags=meta_tags)
-                app.config['suppress_callback_exceptions'] = True
-                app.css.config.serve_locally = True
-                app.scripts.config.serve_locally = True
-            return app
-        elif self.mode in ['inline', 'jupyterlab', 'external']:
-            if self.external_stylesheets is not None:
-                app = JupyterDash(
+            app = dash.Dash(__name__,
+                            server=self.server, 
                             external_stylesheets=self.external_stylesheets, 
-                            assets_url_path="",
+                            assets_ignore=assets_ignore,
+                            url_base_pathname=self.url_base_pathname,
                             meta_tags=meta_tags)
-            else:
-                app = JupyterDash(__name__)
-            return app
+        elif self.mode in ['inline', 'jupyterlab', 'external']:
+            app = JupyterDash(__name__,
+                            external_stylesheets=self.external_stylesheets, 
+                            assets_ignore=assets_ignore,
+                            meta_tags=meta_tags)
         else:
             raise ValueError(f"mode=={self.mode} but should be in "
-                 "['dash', 'inline', 'juypyterlab', 'external']")
+                 "{'dash', 'inline', 'juypyterlab', 'external'}")
+        app.config['suppress_callback_exceptions'] = True
+        app.scripts.config.serve_locally = True
+        app.css.config.serve_locally = True
+        return app
 
     def flask_server(self):
         """returns self.app.server so that it can be exposed to e.g. gunicorn"""
