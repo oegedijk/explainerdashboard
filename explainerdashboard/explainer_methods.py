@@ -863,7 +863,7 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units="", na
         if model_output == "probability":
             effect += str(np.round(100*row['contribution'], round))+'%'
         elif model_output == 'logodds':
-            effect += str(np.round(100*row['contribution'], round))    
+            effect += str(np.round(row['contribution'], round))    
         else:
             effect +=  str(np.round(row['contribution'], round)) + f" {units}"
 
