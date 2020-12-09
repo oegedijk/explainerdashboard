@@ -42,6 +42,7 @@
 - Fixed bug where in case of ties in shap values the contributions graph/table would show
     more than depth/topx feature
 - Fixed bug where favicon was not showing when using custom bootstrap theme
+- Fixed bug where logodds where multiplied by 100 in ShapContributionTableComponent
 
 
 ### Improvements

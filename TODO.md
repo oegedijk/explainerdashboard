@@ -13,9 +13,8 @@
 - wrap predictions in pd.Series?
 
 ## Plots:
-- make plot background transparent
+- make plot background transparent?
 - Only use ScatterGl above a certain cutoff
-
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
 - change lines and annotation to this:
@@ -46,9 +45,9 @@
 
 
 ## Dashboard:
-- use bootstrap tabs for better theming
-- add waitress to run options
 
+- add waitress to run options
+- use bootstrap tabs for better theming (especially with dark themes)?
 - organize explainer components according to tab
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
