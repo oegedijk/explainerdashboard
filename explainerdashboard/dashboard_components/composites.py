@@ -228,7 +228,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
 
 class IndividualPredictionsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Individual Predictions", name=None,
-                        hide_indexselector=False, hide_predictionsummary=False,
+                        hide_predindexselector=False, hide_predictionsummary=False,
                         hide_contributiongraph=False, hide_pdp=False,
                         hide_contributiontable=False,
                         hide_title=False, hide_selector=True, **kwargs):
@@ -248,7 +248,7 @@ class IndividualPredictionsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_indexselector (bool, optional): hide ClassifierRandomIndexComponent 
+            hide_predindexselector (bool, optional): hide ClassifierRandomIndexComponent 
                 or RegressionRandomIndexComponent
             hide_predictionsummary (bool, optional): hide ClassifierPredictionSummaryComponent
                 or RegressionPredictionSummaryComponent
@@ -286,7 +286,7 @@ class IndividualPredictionsComposite(ExplainerComponent):
     def layout(self):
         return dbc.Container([
                 dbc.CardDeck([
-                    make_hideable(self.index.layout(), hide=self.hide_indexselector),
+                    make_hideable(self.index.layout(), hide=self.hide_predindexselector),
                     make_hideable(self.summary.layout(), hide=self.hide_predictionsummary),
                 ], style=dict(marginBottom=25, marginTop=25)),
                 dbc.CardDeck([
@@ -306,7 +306,7 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
 class WhatIfComposite(ExplainerComponent):
     def __init__(self, explainer, title="What if...", name=None,
-                        hide_indexselector=False, hide_inputeditor=False,
+                        hide_whatifindexselector=False, hide_inputeditor=False,
                         hide_whatifcontribution=False, hide_whatifpdp=False,
                         hide_title=False, hide_selector=True, **kwargs):
         """Composite for the whatif component:
@@ -321,7 +321,7 @@ class WhatIfComposite(ExplainerComponent):
                         it's unique. Defaults to None.
             hide_title (bool, optional): hide title. Defaults to False.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
-            hide_indexselector (bool, optional): hide ClassifierRandomIndexComponent
+            hide_whatifindexselector (bool, optional): hide ClassifierRandomIndexComponent
                 or RegressionRandomIndexComponent
             hide_inputeditor (bool, optional): hide FeatureInputComponent
             hide_whatifcontribution (bool, optional): hide ShapContributionsGraphComponent
@@ -359,7 +359,7 @@ class WhatIfComposite(ExplainerComponent):
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        make_hideable(self.index.layout(), hide=self.hide_indexselector),
+                        make_hideable(self.index.layout(), hide=self.hide_whatifindexselector),
                     ]),
                 ], style=dict(marginBottom=15, marginTop=15)),
                 dbc.Row([
@@ -460,7 +460,7 @@ class ShapInteractionsComposite(ExplainerComponent):
 
 class DecisionTreesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
-                    hide_indexselector=False, hide_treesgraph=False,
+                    hide_treeindexselector=False, hide_treesgraph=False,
                     hide_treepathtable=False, hide_treepathgraph=False,
                     hide_selector=True, **kwargs):
         """Composite of decision tree related components:
@@ -478,7 +478,7 @@ class DecisionTreesComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_indexselector (bool, optional): hide ClassifierRandomIndexComponent
+            hide_treeindexselector (bool, optional): hide ClassifierRandomIndexComponent
                 or RegressionRandomIndexComponent
             hide_treesgraph (bool, optional): hide DecisionTreesComponent
             hide_treepathtable (bool, optional): hide DecisionPathTableComponent
@@ -516,7 +516,7 @@ class DecisionTreesComposite(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             self.index.layout(), 
-                        ]), hide=self.hide_indexselector),
+                        ]), hide=self.hide_treeindexselector),
                 ], style=dict(margin=25)),
                 dbc.Row([
                     make_hideable(
@@ -541,7 +541,7 @@ class DecisionTreesComposite(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             self.index.layout(), 
-                        ]), hide=self.hide_indexselector),
+                        ]), hide=self.hide_treeindexselector),
                 ], style=dict(margin=25)),
                 dbc.Row([
                     make_hideable(

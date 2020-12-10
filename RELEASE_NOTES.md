@@ -9,30 +9,33 @@
 - can now hide entire components on tabs/composites:
 
     ```
-    db = ExplainerDashboard(explainer, 
-                        # importances:
-                        hide_importances=True,
-                        # classification statsL
-                        hide_globalcutoff=True, hide_modelsummary=True, hide_confusionmatrix=True,
-                        hide_precision=True, hide_classification=True, hide_rocauc=True, hide_prauc=True,
-                        hide_liftcurve=True, hide_cumprecision=True,
-                        # regression stats:
-                        # hide_modelsummary=True, 
-                        # hide_predsvsactual=True, hide_residuals=True, 
-                        # individual predictions:
-                        hide_indexselector=True, hide_predictionsummary=True,
-                        hide_contributiongraph=True, hide_pdp=True, hide_contributiontable=True,
-                        # whatif:
-                        # hide_indexselector=True,
-                        hide_inputeditor=True, hide_whatifcontribution=True, hide_whatifpdp=True,
-                        # shap dependence:
-                        hide_shapsummary=True, hide_shapdependence=True,
-                        # shap interactions:
-                        hide_interactionsummary=True, hide_interactiondependence=True,
-                        # decisiontrees:
-                        # hide_indexselector=True,
-                        hide_treesgraph=True, hide_treepathtable=True, hide_treepathgraph=True,
-                       ).run()
+    ExplainerDashboard(explainer, 
+        # importances tab:
+        hide_importances=True,
+        # classification stats tab:
+        hide_globalcutoff=True, hide_modelsummary=True, 
+        hide_confusionmatrix=True, hide_precision=True, 
+        hide_classification=True, hide_rocauc=True, 
+        hide_prauc=True, hide_liftcurve=True, hide_cumprecision=True,
+        # regression stats tab:
+        # hide_modelsummary=True, 
+        hide_predsvsactual=True, hide_residuals=True, 
+        hide_regvscol=True,
+        # individual predictions:
+        hide_predindexselector=True, hide_predictionsummary=True,
+        hide_contributiongraph=True, hide_pdp=True, 
+        hide_contributiontable=True,
+        # whatif:
+        hide_whatifindexselector=True, hide_inputeditor=True, 
+        hide_whatifcontribution=True, hide_whatifpdp=True,
+        # shap dependence:
+        hide_shapsummary=True, hide_shapdependence=True,
+        # shap interactions:
+        hide_interactionsummary=True, hide_interactiondependence=True,
+        # decisiontrees:
+        hide_treeindexselector=True, hide_treesgraph=True, 
+        hide_treepathtable=True, hide_treepathgraph=True,
+        ).run()
     ```
 -
 

@@ -695,11 +695,12 @@ class BaseExplainer(ABC):
             "shap interaction values! So no interactions tab!"
         if not hasattr(self, '_shap_interaction_values'):
             print("Calculating shap interaction values...", flush=True)
-            print("Reminder: TreeShap computational complexity is O(TLD^2), "
-                "where T is the number of trees, L is the maximum number of"
-                " leaves in any tree and D the maximal depth of any tree. So "
-                "reducing these will speed up the calculation.", 
-                flush=True)
+            if self.shap == 'tree':
+                print("Reminder: TreeShap computational complexity is O(TLD^2), "
+                    "where T is the number of trees, L is the maximum number of"
+                    " leaves in any tree and D the maximal depth of any tree. So "
+                    "reducing these will speed up the calculation.", 
+                    flush=True)
             self._shap_interaction_values = \
                 self.shap_explainer.shap_interaction_values(self.X)
         return make_callable(self._shap_interaction_values)
@@ -1871,11 +1872,12 @@ class ClassifierExplainer(BaseExplainer):
         if not hasattr(self, '_shap_interaction_values'):
             _ = self.shap_values #make sure shap values have been calculated
             print("Calculating shap interaction values...", flush=True)
-            print("Reminder: TreeShap computational complexity is O(TLD^2), "
-                "where T is the number of trees, L is the maximum number of"
-                " leaves in any tree and D the maximal depth of any tree. So "
-                "reducing these will speed up the calculation.", 
-                flush=True)
+            if self.shap == 'tree':
+                print("Reminder: TreeShap computational complexity is O(TLD^2), "
+                    "where T is the number of trees, L is the maximum number of"
+                    " leaves in any tree and D the maximal depth of any tree. So "
+                    "reducing these will speed up the calculation.", 
+                    flush=True)
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(self.X)
             
             if not isinstance(self._shap_interaction_values, list) and len(self.labels)==2:
