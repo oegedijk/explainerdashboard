@@ -219,7 +219,8 @@ and [bootwatch website](https://bootswatch.com/) for the different themes that a
 
 ### Switching off tabs
 
-You can switch off individual tabs using boolean flags, e.g.:
+You can switch off individual tabs using boolean flags. This also makes sure
+that expensive calculations for that tab don't get executed:
 
 ```python
 ExplainerDashboard(explainer,
@@ -232,20 +233,49 @@ ExplainerDashboard(explainer,
                     decision_trees=True)
 ```
 
-### Passing parameters to components as `**kwargs`
+### Hiding components
 
-The dashboard consists of independent `ExplainerComponents` that take their
-own parameters. For example hiding certain toggles (e.g. `hide_cats=True`) or
-setting default values (e.g. `col='Fare'`). When you start your `ExplainerDashboard` 
-all the `**kwargs` will be passed down to each `ExplainerComponent`.
-All the components with their parameters can be found [in the documentation](https://explainerdashboard.readthedocs.io/en/latest/components.html).
-Some examples of useful parameters to pass:
+You can also hide individual components on the various tabs:
+
+```python
+    ExplainerDashboard(explainer, 
+        # importances tab:
+        hide_importances=True,
+        # classification stats tab:
+        hide_globalcutoff=True, hide_modelsummary=True, 
+        hide_confusionmatrix=True, hide_precision=True, 
+        hide_classification=True, hide_rocauc=True, 
+        hide_prauc=True, hide_liftcurve=True, hide_cumprecision=True,
+        # regression stats tab:
+        # hide_modelsummary=True, 
+        hide_predsvsactual=True, hide_residuals=True, 
+        hide_regvscol=True,
+        # individual predictions tab:
+        hide_predindexselector=True, hide_predictionsummary=True,
+        hide_contributiongraph=True, hide_pdp=True, 
+        hide_contributiontable=True,
+        # whatif tab:
+        hide_whatifindexselector=True, hide_inputeditor=True, 
+        hide_whatifcontribution=True, hide_whatifpdp=True,
+        # shap dependence tab:
+        hide_shapsummary=True, hide_shapdependence=True,
+        # shap interactions tab:
+        hide_interactionsummary=True, hide_interactiondependence=True,
+        # decisiontrees tab:
+        hide_treeindexselector=True, hide_treesgraph=True, 
+        hide_treepathtable=True, hide_treepathgraph=True,
+        ).run()
+```
+
+### Hiding toggles and dropdowns inside components
+
+You can also hide individual toggles and dropdowns using `**kwargs`. However they
+are not individually targeted, so if you pass `hide_cats=True` then the group
+cats toggle will be hidden on every component that has one:
 
 ```python
 ExplainerDashboard(explainer, 
                     no_permutations=True, # do not show or calculate permutation importances
-                    higher_is_better=False, # flip green and red in contributions graph
-                    # hiding dropdowns and toggles:
                     hide_cats=True, # hide the group cats toggles
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
@@ -262,7 +292,18 @@ ExplainerDashboard(explainer,
                     hide_ratio=True, # hide the residuals type dropdown
                     hide_points=True, # hide the show violin scatter markers toggle
                     hide_winsor=True, # hide the winsorize input
-                    # setting default values:
+)
+```
+
+### Setting default values
+
+You can also set default values for the various dropdowns and toggles. 
+All the components with their parameters can be found [in the documentation](https://explainerdashboard.readthedocs.io/en/latest/components.html).
+Some examples of useful parameters to pass:
+
+```python
+ExplainerDashboard(explainer, 
+                    higher_is_better=False, # flip green and red in contributions graph
                     col='Fare', # initial feature in shap graphs
                     color_col='Age', # color feature in shap dependence graph
                     interact_col='Age', # interaction feature in shap interaction
