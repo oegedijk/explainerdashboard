@@ -32,6 +32,7 @@
 
 
 ## Explainers:
+- warn about shap interaction values only with shap='tree'
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
         case instead of a plot the function returns a verbal description of the 
