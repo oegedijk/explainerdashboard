@@ -81,14 +81,14 @@ class DecisionTreesComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-            dbc.CardHeader([
-                make_hideable(
+            make_hideable(
+                dbc.CardHeader([
                     html.Div([
                         html.H3(self.title, id='decisiontrees-title-'+self.name),
                         make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='decisiontrees-title-'+self.name),
-                    ]), hide=self.hide_title),
-            ]),
+                    ]), 
+                ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
                     make_hideable(
