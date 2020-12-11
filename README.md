@@ -35,7 +35,7 @@ or conda-forge:
 
 `conda install -c conda-forge explainerdashboard`
 
-## Demonstration GIF:
+## Demonstration:
 
 ![explainerdashboard.gif](explainerdashboard.gif)
 
