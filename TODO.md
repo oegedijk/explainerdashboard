@@ -59,6 +59,7 @@
         - generate groups programmatically!
 
 ### Components
+- Make prediction summary work with FeatureInputComponent
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
