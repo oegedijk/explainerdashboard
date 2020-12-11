@@ -49,9 +49,9 @@ ExplainerDashboard will display that component as a standalone page.
 The following three lines will all have the effect of launching an ImportancesTab 
 as a single page::
 
-   from explainerdashboard.dashboard_tabs import *
+   from explainerdashboard.custom import ImportancesComposite
 
-   ExplainerDashboard(explainer, ImportancesTab).run()
+   ExplainerDashboard(explainer, ImportancesComposite).run()
 
    imp_tab = ImportancesTab(explainer)
    ExplainerDashboard(explainer, imp_tab).run()
@@ -66,14 +66,15 @@ Besided the single page dashboard above you can also pass a list of
 ``ExplainerComponents`` to construct multiple tabs. These can be a mix of 
 the different types discussed above. E.g.::
 
-   ExplainerDashboard(explainer, [ImportancesTab, imp_tab, "importances"]).run()
+   ExplainerDashboard(explainer, [ImportancesCompoiste, imp_tab, "importances"]).run()
 
 This would start a dashboard with three importances tabs.
 (not sure why you would do that, but hopefully you get the point :)
 
-The tabs can be imported from ``explainerdashboard.dashboard_tabs``, they include
-``ImportancesTab``, ``ModelSummaryTab``, ``ContributionsTab``, ``WhatIfTab``,
-``ShapDependenceTab``, ``ShapInteractionsTab`` and ``DecisionTreesTab``.
+The tabs can be imported from ``explainerdashboard.custom``, they include
+``ImportancesComposite``, ``ModelSummaryComposite``, ``IndividualPredictionsComposite``, 
+``WhatIfComposite``, ``ShapDependenceComposite``, ``ShapInteractionsComposite`` 
+and ``DecisionTreesComposite``.
 
 You can also build your own custom tabs, see the :ref:`Custom Dashboards<Custom Dashboards>` section.
 
@@ -84,11 +85,11 @@ Using explainerdashboard inside Jupyter notebook or google colab
 You can start the dashboard with the standard ``dash.Dash()`` server or with the 
 new notebook friendly ``JupyterDash`` server. The latter will allow you
 to keep working interactively in your notebook while the dashboard is running.
-Also, this allows you to run an explainerdashboard from within google colab!
+Also, this allows you to run an explainerdashboard from within Google Colab!
 
 The default dash server is started with ``mode='dash'``. (except in Google
-Colab, where the default is ``mode='external'``) There are three different 
-options for ``jupyter_dash``: ``mode='inline'`` for running the dashboard in an 
+Colab, where the default is ``mode='external'``) There are three notebook compatible 
+options: ``mode='inline'`` for running the dashboard in an 
 output cell in your notebook, ``mode='jupyterlab'`` for runnning the dashboard in 
 jupyterlab pane, or ``mode='external'`` which runs the dashboard in a seperate tab::
 
@@ -107,18 +108,17 @@ The parameters ``width`` and ``height`` determine the size of the output area in
 Adding a theme
 --------------
 
-``explainerdashboard`` comes with a default blue css theme, but you can override 
-it with the ``external_stylesheets`` parameter. Additional info on styling bootstrap
+``explainerdashboard`` comes with the default bootstrap theme, but you can override 
+it with the ``bootstrap`` parameter. Additional info on styling bootstrap
 layout can be found at:  https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
 
-You can add a theme by putting it in an ``/assets/`` subfolder, or by linking to it directly.
-``dash_bootstrap_components`` offer a convenient way of inserting these::
+You can add a theme passing a url of the ``.css`` stylesheet. ``dash_bootstrap_components`` provide
+a convenient ``themes`` module with urls to the most popular themes, e.g.::
 
    from dash_bootstrap_components.themes import FLATLY 
 
    ExplainerDashboard(explainer, ["contributions", "model_summary"], 
-                   external_stylesheets=[FLATLY], 
-                   mode='external').run()
+                   boostrap=FLATLY, mode='external').run()
 
 Example of a nice flat black and white theme called "FLATLY":
 

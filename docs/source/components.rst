@@ -17,36 +17,27 @@ in the layout, which toggles and sliders to display, and what the initial values
 for component should be. This way you can also control which interactive 
 aspects your end users can and cannot control.  
 
-You import the components with ``from explainerdashboard.dashboard_components import *``
+You import the components with ``from explainerdashboard.custom import *``
 
-A simple example, where you build a page with only a Shap Dependence component,
+A simple example, where you build a page with only a ``ShapDependenceComponent``,
 but with no group cats or highlight toggle, and initial feature set to 'Fare'::
 
-    from jupyter_dash import JupyterDash
-    import dash_bootstrap_components as dbc
-    import dash_html_components as html
+   from explainerdashboard.custom import *
 
-    from explainerdashboard.dashboard_components import *
-
-    shap_dependence = ShapDependenceComponent(explainer, 
+   class CustomDashboard(ExplainerComponent):
+      def __init__(self, explainer, title="Custom Dashboard):
+         super().__init__(explainer, title)
+         self.shap_dependence = ShapDependenceComponent(explainer, 
                             hide_title=True, hide_cats=True, hide_highlight=True,
                             cats=True, col='Fare')
-            
-    layout = html.Div([
+
+      def layout(self):
+         return html.Div([
             shap_dependence.layout()
         ])  
     
-    app = JupyterDash()
-    app.title = "Titanic Explainer"
-    app.layout = layout
-    shap_dependence.register_callbacks(app)
-    app.run_server() 
+    ExplainerDashboard(explainer, CustomDashboard).run()
 
-
-Using the awesome ``dash_bootstrap_components`` library it is very easy to quickly
-design a modern looking web layout. Then you can simply add ``component.layout()`` 
-to the layout and call ``component.register_callbacks(app)`` to register the 
-callbacks to the app, and start the server. 
 
 ExplainerComponent
 ==================
@@ -54,7 +45,7 @@ ExplainerComponent
 Each component subclasses ``ExplainerComponent`` which provides the basic
 functionality of registering subcomponents, dependencies, registering callbacks 
 of subcomponents, calculating dependencies, and providing a list of pos label 
-selector of all subcomponents.
+selectors of all subcomponents.
 
 ExplainerComponent
 ------------------

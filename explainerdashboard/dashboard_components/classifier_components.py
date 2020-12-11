@@ -164,9 +164,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                     id='random-index-clas-slider-'+self.name,
                                     min=0.0, max=1.0, step=0.01,
                                     value=self.slider,  allowCross=False,
-                                    marks={0.0:'0.0', 0.1:'0.1', 0.2:'0.2', 0.3:'0.3',
-                                            0.4:'0.4', 0.5:'0.5', 0.6:'0.6', 0.7:'0.7',
-                                            0.8:'0.8', 0.9:'0.9', 1.0:'1.0'},
+                                    marks={0.0:'0.0', 0.2:'0.2', 0.4:'0.4', 0.6:'0.6', 
+                                            0.8:'0.8', 1.0:'1.0'},
                                     tooltip = {'always_visible' : False})
                             ], style={'margin-bottom':25})
                         ], md=5), hide=self.hide_slider),
@@ -184,7 +183,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                             ], id='random-index-clas-pred-or-perc-div-'+self.name),
                             dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
                                         "you can also select from a range of predicted percentiles. "
-                                        "For example if you set the slider to (0.9-1.0) you would"
+                                        "For example if you set the slider to percentile (0.9-1.0) you would"
                                         f" only sample random {self.explainer.index_name} from the top "
                                         "10% highest predicted probabilities.",
                                     target='random-index-clas-pred-or-perc-div-'+self.name),
@@ -315,7 +314,8 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                         ]), hide=self.hide_table),
                     make_hideable(
                         dbc.Col([
-                            dcc.Graph(id='clas-prediction-graph-'+self.name)
+                            dcc.Graph(id='clas-prediction-graph-'+self.name,
+                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False))
                         ]), hide=self.hide_piechart),
                 ]),
             ])
@@ -419,7 +419,7 @@ class PrecisionComponent(ExplainerComponent):
                     dbc.Col([
                         html.Div([
                             dcc.Graph(id='precision-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                         ], style={'margin': 0}),
                     ])
                 ]),

@@ -1,12 +1,12 @@
 InlineExplainer
 ***************
 
-As datascientists you often work inside a notebook environment where you 
+As a data scientist you often work inside a notebook environment where you 
 quickly interactively like to explore your data. The ``InlineExplainer`` allows
 you to do this by running ``ExplainerComponents`` (or whole tabs) inline 
-inside your Jupyter notebook (also works in google colab!).
+inside your Jupyter notebook (also works in Google Colab!).
 
-.. image:: screenshots/inline_screenshot.png
+.. image:: screenshots/inline_screenshot.*
 
 This allows you to quickly check model performance, look for shap importances,
 etc. The components are sorted into subcategories and work with tab-completion.
@@ -65,10 +65,10 @@ Note:
         ?ie.importances
 
 
-(or alternatively hit shift-tab in jupyter ofcourse)
+(or alternatively hit shift-tab in jupyter of course)
 
 You can kill an ``InlineExplainer`` running on a particular port with 
-``InlineExplainer().terminate(port)``.
+``ExplainerDashboard.terminate(port=8050)``.
 
 InlineExplainer documentation
 =============================

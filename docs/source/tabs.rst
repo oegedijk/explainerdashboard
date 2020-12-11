@@ -5,48 +5,77 @@ There are seven tabs that make up the default``ExplainerDashboard``::
 
    from explainerdashboard.custom import (ImportancesComposite,
                                           ModelSummaryComposite,
-                                          ContributionsComposite,
+                                          IndividualPredictionsComposite,
                                           WhatIfComposite,
                                           ShapDependenceComposite,
                                           ShapInteractionsComposite,
                                           DecisionTreesComposite)
 
-Importances Tab
-===============
+The definitions can be found `in the github repo <DecisionTreesComposite>`_ 
+and can serve as a nice starting point for designing your own custom tabs. 
+
+ImportancesComposite
+====================
 
 .. image:: screenshots/tab_importances.png
 
-Model Performance Tab
-=====================
+.. autoclass:: explainerdashboard.dashboard_components.composites.ImportancesComposite
+   :members:
+
+ClassifierModelStatsComposite
+=============================
 
 .. image:: screenshots/tab_model_performance.png
 
-Individual Prediction Tab
-=========================
+.. autoclass:: explainerdashboard.dashboard_components.composites.ClassifierModelStatsComposite
+   :members:
+
+
+RegressionModelStatsComposite
+=============================
+
+.. autoclass:: explainerdashboard.dashboard_components.composites.RegressionModelStatsComposite
+   :members:
+
+IndividualPredictionsComposite
+==============================
 
 .. image:: screenshots/tab_individual_predictions.png
 
-What if... Tab
-==============
+.. autoclass:: explainerdashboard.dashboard_components.composites.IndividualPredictionsComposite
+   :members:
+
+WhatIfComposite
+===============
 
 .. image:: screenshots/tab_whatif.png
 
+.. autoclass:: explainerdashboard.dashboard_components.composites.WhatIfComposite
+   :members:
 
-
-Feature Dependence Tab
-======================
+ShapDependenceComposite
+=======================
 
 .. image:: screenshots/tab_feature_dependence.png
 
-Feature Interactions Tab
-========================
+.. autoclass:: explainerdashboard.dashboard_components.composites.ShapDependenceComposite
+   :members:
+
+ShapInteractionsComposite
+=========================
 
 .. image:: screenshots/tab_interactions.png
 
-Decisiontrees Tab
-=================
+.. autoclass:: explainerdashboard.dashboard_components.composites.ShapInteractionsComposite
+   :members:
+
+DecisionTreesComposite
+======================
 
 .. image:: screenshots/tab_decision_trees.png
+
+.. autoclass:: explainerdashboard.dashboard_components.composites.DecisionTreesComposite
+   :members:
 
 ExplainerTabsLayout
 ===================
@@ -59,18 +88,5 @@ ExplainerPageLayout
 ===================
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerPageLayout
-   :members:
-
-
-
-ExplainerComposites
-===================
-
-Using the ExplainerComponent primitives and connectors it becomes easy to glue
-together different components into a layout. A number of standard combinations of 
-components have been defined as Composites. These then serve as the backbone 
-for the various ExplainerTabs.
-
-.. automodule:: explainerdashboard.dashboard_components.composites
    :members:
 
