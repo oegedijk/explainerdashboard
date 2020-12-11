@@ -4,7 +4,7 @@
 The library comes with a ``explainerdashboard`` command line tool (CLI) that
 you can use to build and run explainerdashboards from your terminal. 
 This makes it easy to start a dashboard without having to run python code
-or start a notebook first. You can use it to build explainer objects 
+or start a notebook first. You can also use it to build explainer objects 
 as part of a CI/CD flow.
 
 Run dashboard from stored explainer

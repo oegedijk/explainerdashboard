@@ -151,17 +151,17 @@ Can be overriden::
 
 labels
 ------
-labels: The outcome variables for a classification  ``y`` are assumed to 
-be encoded ``0, 1 (, 2, 3, ...)`` This is not very human readable, so you can pass a 
-list of human readable labels such as ``labels=['Not survived', 'Survived']``::
+For ``ClassifierExplainer``: The outcome variables for a classification  ``y`` are assumed to 
+be encoded ``0, 1 (, 2, 3, ...)`` You can assign string labels by passing e.g.
+ ``labels=['Not survived', 'Survived']``::
 
     ClassifierExplainer(model, X, y, labels=['Not survived', 'Survived'])
 
 units
 -----
 
-For regression models the units of the ``y`` variable. E.g. if the model is predicting
-house prices in dollar you can set ``units='$'``. This will be displayed along
+For ``RegressionExplainer``: the units of the ``y`` variable. E.g. if the model is predicting
+house prices in dollars you can set ``units='$'``. This will be displayed along
 the axis of various plots::
 
     RegressionExplainer(model, X, y, units="$")
@@ -171,7 +171,7 @@ X_background
 ------------
 
 Some models like sklearn ``LogisticRegression`` (as well as certain gradienst boosting 
-algorithms in probability space) need a background dataset to calculate shap values. 
+algorithms such as `xgboost` in probability space) need a background dataset to calculate shap values. 
 These can be passed as ``X_background``. If you don't pass an X_background, Explainer 
 uses X instead but gives off a warning. (you want to limit the size of X_background
 in order to keep the SHAP calculations from getting too slow). Usually a representative 
@@ -182,7 +182,7 @@ model_output
 
 By default ``model_output`` for classifiers is set to ``"probability"``, as this 
 is more intuitively explainable to non data scientist stakeholders.
-However for certain models (e.g. ``XGBClassifier``, ``LGBMCLassifier``, ``CatBoostClassifier``), 
+However certain models (e.g. ``XGBClassifier``, ``LGBMCLassifier``, ``CatBoostClassifier``), 
 need a background dataset X_background to calculate shap values in probability 
 space, and are not able to calculate shap interaction values in probability space.
 Therefore you can also pass model_output='logodds', in which case shap values 
@@ -203,7 +203,7 @@ model_output, X_background example
 ----------------------------------
 
 An example of using setting ``X_background`` and ``model_output`` with a 
-LogisticRegression::
+``LogisticRegression``::
 
     from sklearn.linear_model import LogisticRegression
 
@@ -681,13 +681,12 @@ BaseExplainer
 ClassifierExplainer
 ===================
 
-For classification models where we try to predict the probability of each class
-we have a derived class called ClassifierExplainer.
+For classification (e.g. ``RandomForestClassifier``) models you use ``ClassifierExplainer``.
 
 You can pass an additional parameter to ``__init__()`` with a list of label names. For
 multilabel classifier you can set the positive class with e.g. ``explainer.pos_label=1``.
 This will make sure that for example ``explainer.pred_probas`` will return the probability
-of that label.You an also pass a string label if you passed ``labels`` to the constructor.
+of that label. 
 
 More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
 
@@ -703,9 +702,9 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
 RegressionExplainer
 ===================
 
-For regression models where we try to predict a certain quantity.
+For regression models (e.g. ``RandomForestRegressor``) models you use ``RegressionExplainer``.
 
-You can pass an additional parameter to ``__init__()`` with the units of the predicted quantity.
+You can pass ``units`` as an additional parameter for the units of the target variable (e.g. ``units="$"``). 
 
 More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
 

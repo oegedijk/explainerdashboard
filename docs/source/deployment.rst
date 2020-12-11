@@ -3,12 +3,12 @@ Deployment
 
 When deploying your dashboard it is better not to use the built-in flask
 development server but use a more robust production server like ``gunicorn`` or ``waitress``.
-Probably `gunicorn <https://gunicorn.org/>`_ is a bit more fully featured but only works
-on unix/linux/osx, whereas
+Probably `gunicorn <https://gunicorn.org/>`_ is a bit more fully featured and 
+faster but only works on unix/linux/osx, whereas
 `waitress <https://docs.pylonsproject.org/projects/waitress/en/stable/>`_ also works 
 on Windows and has very minimal dependencies. 
 
-Install either ``pip install gunicorn`` or ``pip install waitress``. 
+Install with either ``pip install gunicorn`` or ``pip install waitress``. 
 
 Storing explainer and running default dashboard with gunicorn
 =============================================================
@@ -78,7 +78,7 @@ explainer and dashboard settings like this::
     db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
     db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
 
-And then start the ExpalinerDashboard directly from the config file in ``dashboard.py``::
+And then start the ``ExplainerDashboard`` directly from the config file in ``dashboard.py``::
 
     from explainerdashboard import ExplainerDashboard
 
@@ -89,6 +89,12 @@ And then start the ExpalinerDashboard directly from the config file in ``dashboa
 You can also pass additional config ``**kwargs`` when you load from config::
 
     db = ExplainerDashboard.from_config("dashboard.yaml", higher_is_better=False)
+
+
+Or first load the explainer and then the dashboard config::
+
+    explainer = ClassifierExplainer.from_file("explainer.joblib")
+    db = ExplainerDashboard.from_config(explainer, "dashboard.yaml")
 
 
 .. highlight:: bash
@@ -207,8 +213,9 @@ And you can visit the dashboard on ``http://localhost:8050/dashboard``.
 Deploying to heroku
 ===================
 
-In case you would like to deploy to `heroku <www.heroku.com>`_ (which is probably the simplest 
-option for dash apps, see `instruction here <https://dash.plotly.com/deployment>`_) 
+In case you would like to deploy to `heroku <www.heroku.com>`_ (which is normally
+the simplest option for dash apps, see 
+`instruction here <https://dash.plotly.com/deployment>`_,
 where the demonstration dashboard is also hosted
 at `titanicexplainer.herokuapp.com <http://titanicexplainer.herokuapp.com>`_ )
 there are a number of issues to keep in mind.
@@ -216,7 +223,7 @@ there are a number of issues to keep in mind.
 First of all you need to add ``explainerdashboard`` and ``gunicorn`` to 
 ``requirements.txt`` (pinning is recommended)::
 
-    explainerdashboard==0.2.13.2
+    explainerdashboard==0.2.15
     gunicorn
 
 Select a python runtime compatible with the version that you used to pickle
@@ -232,7 +239,7 @@ for the latest)
 
 And you need to tell heroku how to start your server in ``Procfile``::
 
-    web: gunicorn --preload --timeout 60 dashboard:app
+    web: gunicorn --preload dashboard:app
 
 
 Uninstalling and mocking xgboost
@@ -242,21 +249,21 @@ A heroku deployment ("slug size") should not exeed 500MB after compression. Unfo
 the ``xgboost`` library is >350MB, so this means it will be hard to deploy any
 ``xgboost`` models to heroku. Unfortunately however  ``xgboost`` gets automatically installed 
 as a dependency of ``dtreeviz`` which is a dependency of ``explainerdashboard``. 
+(currently have submitted a PR to make this optional)
 
 So in order to get even non-xgboost models to work you will
 have to uninstall ``xgboost`` and then mock it. This is normally pretty easy 
-(``pip uninstall xgboost``), but on heroku you first need to add a buildpack
-in order to run shell instructions after the build phase.
-So add the following shell buildpack:
+(``pip uninstall xgboost``), but on heroku you first need to add the following buildpack
+in order to run shell instructions after the build phase:
 `https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_
 You can add buildpacks through the "settings" page of your heroku project on 
-`heroku.com<heroku.com>`_:
+`heroku.com <heroku.com>`_:
 
 .. image:: screenshots/heroku_buildpack.png
 
 Then create a directory ``.heroku`` inside your repo with a file ``run.sh`` with the
 instructions to uninstall xgboost: ``pip uninstall -y xgboost``. This script will
-then be run at the end of your build process, ensuring that xgboost will be
+then be run at the end of your build process, ensuring that ``xgboost`` will be
 uninstalled before the deployment is compressed to a slug.
 
 However ``dtreeviz`` will still try to import ``xgboost`` so you need to 

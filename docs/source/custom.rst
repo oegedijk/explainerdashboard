@@ -14,7 +14,7 @@ Changing bootstrap theme
 
 You can change the bootstrap theme by passing a link to the appropriate css
 file. You can use the convenient `themes <https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/>`_ module of 
-`dash_bootstrap_components <https://dash-bootstrap-components.opensource.faculty.ai/docs/`_ to generate
+`dash_bootstrap_components <https://dash-bootstrap-components.opensource.faculty.ai/docs/>`_ to generate
 the css url for you::
 
     import dash_bootstrap_components as dbc
@@ -31,58 +31,99 @@ Switching off tabs
 You can switch off individual tabs using boolean flags, e.g.::
 
     ExplainerDashboard(explainer,
-                        importances=False,
-                        model_summary=True,
-                        contributions=True,
-                        whatif=True,
-                        shap_dependence=True,
-                        shap_interaction=False,
-                        decision_trees=True)
+        importances=False,
+        model_summary=True,
+        contributions=True,
+        whatif=True,
+        shap_dependence=True,
+        shap_interaction=False,
+        decision_trees=True)
 
+Hiding components
+=================
 
-Passing parameters as ``**kwargs``
-==================================
-
-The dashboard consists of independent `ExplainerComponents` that take their
-own parameters. For example hiding certain toggles (e.g. ``hide_cats=True``) or
-setting default values (e.g. ``col='Fare'``). When you start your ``ExplainerDashboard`` 
-all the ``**kwargs`` will be passed down to each ``ExplainerComponent``. All 
-the components with their parameters can be found in the :ref:`components documentation<ExplainerComponents>`.
-Some examples of useful parameters to pass as kwargs are::
+You can also hide individual components on the various tabs::
 
     ExplainerDashboard(explainer, 
-                        no_permutations=True, # do not show nor calculate permutation importances
-                        higher_is_better=False, # flip green and red in contributions graph
-                        # hiding dropdowns and toggles:
-                        hide_cats=True, # hide the group cats toggles
-                        hide_depth=True, # hide the depth (no of features) dropdown
-                        hide_sort=True, # hide sort type dropdown in contributions graph/table
-                        hide_orientation=True, # hide orientation dropdown in contributions graph/table
-                        hide_type=True, # hide shap/permutation toggle on ImportancesComponent 
-                        hide_dropna=True, # hide dropna toggle on pdp component
-                        hide_sample=True, # hide sample size input on pdp component
-                        hide_gridlines=True, # hide gridlines on pdp component
-                        hide_gridpoints=True, # hide gridpoints input on pdp component
-                        hide_cutoff=True, # hide cutoff selector on classification components
-                        hide_percentage=True, # hide percentage toggle on classificaiton components
-                        hide_log_x=True, # hide x-axis logs toggle on regression plots
-                        hide_log_y=True, # hide y-axis logs toggle on regression plots
-                        hide_ratio=True, # hide the residuals type dropdown
-                        hide_points=True, # hide the show violin scatter markers toggle
-                        hide_winsor=True, # hide the winsorize input
-                        # setting default values:
-                        col='Fare', # initial feature in shap graphs
-                        color_col='Age', # color feature in shap dependence graph
-                        interact_col='Age', # interaction feature in shap interaction
-                        cats=False, # do not group categorical onehot features
-                        depth=5, # only show top 5 features
-                        sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
-                        orientation='horizontal', # horizontal bars in contributions graph
-                        index='Rugg, Miss. Emily', # initial index to display
-                        pdp_col='Fare', # initial pdp feature
-                        cutoff=0.8, # cutoff for classification plots
-                        round=2 # rounding to apply to floats
-                        )
+        # importances tab:
+        hide_importances=True,
+        # classification stats tab:
+        hide_globalcutoff=True, hide_modelsummary=True, 
+        hide_confusionmatrix=True, hide_precision=True, 
+        hide_classification=True, hide_rocauc=True, 
+        hide_prauc=True, hide_liftcurve=True, hide_cumprecision=True,
+        # regression stats tab:
+        # hide_modelsummary=True, 
+        hide_predsvsactual=True, hide_residuals=True, 
+        hide_regvscol=True,
+        # individual predictions tab:
+        hide_predindexselector=True, hide_predictionsummary=True,
+        hide_contributiongraph=True, hide_pdp=True, 
+        hide_contributiontable=True,
+        # whatif tab:
+        hide_whatifindexselector=True, hide_inputeditor=True, 
+        hide_whatifcontribution=True, hide_whatifpdp=True,
+        # shap dependence tab:
+        hide_shapsummary=True, hide_shapdependence=True,
+        # shap interactions tab:
+        hide_interactionsummary=True, hide_interactiondependence=True,
+        # decisiontrees tab:
+        hide_treeindexselector=True, hide_treesgraph=True, 
+        hide_treepathtable=True, hide_treepathgraph=True,
+        ).run()
+
+
+Hiding toggles and dropdowns inside components
+==============================================
+
+
+You can also hide individual toggles and dropdowns using `**kwargs`. However they
+are not individually targeted, so if you pass `hide_cats=True` then the group
+cats toggle will be hidden on every component that has one::
+
+
+    ExplainerDashboard(explainer, 
+        no_permutations=True, # do not show or calculate permutation importances
+        hide_cats=True, # hide the group cats toggles
+        hide_depth=True, # hide the depth (no of features) dropdown
+        hide_sort=True, # hide sort type dropdown in contributions graph/table
+        hide_orientation=True, # hide orientation dropdown in contributions graph/table
+        hide_type=True, # hide shap/permutation toggle on ImportancesComponent 
+        hide_dropna=True, # hide dropna toggle on pdp component
+        hide_sample=True, # hide sample size input on pdp component
+        hide_gridlines=True, # hide gridlines on pdp component
+        hide_gridpoints=True, # hide gridpoints input on pdp component
+        hide_cutoff=True, # hide cutoff selector on classification components
+        hide_percentage=True, # hide percentage toggle on classificaiton components
+        hide_log_x=True, # hide x-axis logs toggle on regression plots
+        hide_log_y=True, # hide y-axis logs toggle on regression plots
+        hide_ratio=True, # hide the residuals type dropdown
+        hide_points=True, # hide the show violin scatter markers toggle
+        hide_winsor=True, # hide the winsorize input
+    )
+
+Setting default values
+======================
+
+You can also set default values for the various dropdowns and toggles. 
+All the components with their parameters can be found :ref:`in the componentsdocumentation <ExplainerComponents>`.
+Some examples of useful parameters to pass::
+
+
+    ExplainerDashboard(explainer, 
+        higher_is_better=False, # flip green and red in contributions graph
+        col='Fare', # initial feature in shap graphs
+        color_col='Age', # color feature in shap dependence graph
+        interact_col='Age', # interaction feature in shap interaction
+        cats=False, # do not group categorical onehot features
+        depth=5, # only show top 5 features
+        sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
+        orientation='horizontal', # horizontal bars in contributions graph
+        index='Rugg, Miss. Emily', # initial index to display
+        pdp_col='Fare', # initial pdp feature
+        cutoff=0.8, # cutoff for classification plots
+        round=2 # rounding to apply to floats
+        )
 
 
 Building custom layout
@@ -94,14 +135,16 @@ to know much about web development or even much about `plotly dash <https://dash
 which is the underlying technology that ``explainerdashboard`` is built on.
 
 You can get some inspiration from the `explainerdashboard composites <https://github.com/oegedijk/explainerdashboard/blob/master/explainerdashboard/dashboard_components/composites.py>`_
-that build the layout of the default dashboard tabs.
+that build the layout of the default dashboard tabs. You can copy that code
+move some of the components around and add some text to make it specific to 
+your own project. 
 
 Simple Example
 --------------
 
 For example if you only wanted to build a custom dashboard that only contains 
 a ``ConfusionMatrixComponent`` and a ``ShapContributionsGraphComponent``, 
-but you want to hide a few toggles:::
+but you want to hide a few toggles::
 
     from explainerdashboard.custom import *
 
@@ -139,15 +182,15 @@ but you want to hide a few toggles:::
 
 So you need to 
 
-1. Import ``ExplainerComponents`` from ``explainerdashboard.custom``. (this also
+1. Import ``ExplainerComponents`` with ``from explainerdashboard.custom import *``. (this also
    imports ``dash_html_components as html``, ``dash_core_components as dcc`` and
-   ``dash_bootstrap_components as dbc``.
+   ``dash_bootstrap_components as dbc`` for you.
 
 2. Derive a child class from ``ExplainerComponent``. 
 
 3. Call the init of the parent class with ``super().__init__(explainer, title)``. 
 
-4. Instantiate the components that you wish to include as attributes in your init: 
+4. Instantiate the components that you wish to include as attributes in your ``__init__``: 
    ``self.confusion = ConfusionMatrixComponent(explainer)`` and 
    ``self.contrib = ShapContributionsGraphComponent(explainer)``
 
@@ -176,6 +219,23 @@ You can find the list of all ``ExplainerComponents`` in the :ref:`documentation<
         custom = CustomDashboard(explainer)
         assert custom.a == 1
 
+Including ExplainerComponents in regular ``dash`` app
+-----------------------------------------------------
+
+An ``ExplainerComponent`` can easily be included in regular `dash <https://dash.plotly.com/>`_ code::
+
+    import dash 
+
+    custom = CustomDashboard(explainer)
+
+    app = dash.Dash(__name__)
+    app.title = "Dash demo"
+    app.layout = html.Div([
+        custom.layout()
+        ])
+    custom.register_callbacks(app)
+    app.run_server()
+
 
 Constructing the layout
 -------------------
@@ -186,7 +246,7 @@ You construct the layout using ``dash_bootstrap_components`` and
 dash_bootstrap_components
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Using the ``dash_bootstrap_components`` library it is very easy to construct
-a modern looking web, responsive interface with just a few lines of python code. 
+a modern looking responsive web interface with just a few lines of python code. 
 
 The basis of any layout is that you divide your layout
 into ``dbc.Rows`` and then divide each row into a number of ``dbc.Cols`` where the total 
@@ -371,7 +431,8 @@ called FLATLY as a custom css file::
 
 
 Below you can see the result. (also note how the component title shows up as
-the tab title):
+the tab title). This dashboard has also been deployed at 
+`http://titanicexplainer.herokuapp.com/custom <http://titanicexplainer.herokuapp.com/custom>`_:
 
 .. image:: screenshots/custom_dashboard.*
 

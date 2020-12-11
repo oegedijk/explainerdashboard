@@ -23,7 +23,7 @@ to the modular design of the library).
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
  example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
 
- Works with scikit-learn, xgboost, catboost, lightgbm and others.
+ Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm` and others.
 
  ## Installation
 
@@ -376,8 +376,8 @@ for more details. A deployed custom dashboard can be found [here](http://titanic
 ## Deployment
 
 If you wish to use e.g. `gunicorn` or `waitress` to deploy the dashboard you should add 
-`server = db.flask_server()` to your code to expose the Flask server. You can then 
-start the server with e.g. `gunicorn dashboard:server` 
+`app = db.flask_server()` to your code to expose the Flask server. You can then 
+start the server with e.g. `gunicorn dashboard:app` 
 (assuming the file you defined the dashboard in was called `dashboard.py`). 
 See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
 and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
@@ -391,9 +391,13 @@ from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.custom import *
 
 explainer = ClassifierExplainer(model, X_test, y_test)
+
+# building an ExplainerDashboard ensures that all necessary properties 
+# get calculated:
 db = ExplainerDashboard(explainer, [ShapDependenceComposite, WhatIfComposite],
                         title='Awesome Dashboard', hide_whatifpdp=True)
 
+# store both the explainer and the dashboard configuration:
 explainer.dump("explainer.joblib")
 db.to_yaml("dashboard.yaml")
 ```
