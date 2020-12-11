@@ -40,7 +40,7 @@ or conda-forge:
 ![explainerdashboard.gif](explainerdashboard.gif)
 
 <!-- [![Dashboard Screenshot](https://i.postimg.cc/Gm8RnKVb/Screenshot-2020-07-01-at-13-25-19.png)](https://postimg.cc/PCj9mWd7) -->
-
+(for live demonstration see [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com))
 ## Background
 
 In a lot of organizations, especially governmental, but with the GDPR also increasingly in private sector, it is becoming more and more important to be able to explain the inner workings of your machine learning algorithms. Customers have to some extent a right to an explanation why they received a certain prediction, and more and more internal and external regulators require it. With recent innovations in explainable AI (e.g. SHAP values) the old black box trope is no longer valid, but it can still take quite a bit of data wrangling and plot manipulation to get the explanations out of a model. This library aims to make this easy.
