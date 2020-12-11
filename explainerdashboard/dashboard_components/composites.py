@@ -61,7 +61,7 @@ class ImportancesComposite(ExplainerComponent):
 
 class ClassifierModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Classification Stats", name=None,
-                    hide_title=False, hide_selector=True, 
+                    hide_title=True, hide_selector=True, 
                     hide_globalcutoff=False,
                     hide_modelsummary=False, hide_confusionmatrix=False,
                     hide_precision=False, hide_classification=False,
@@ -85,7 +85,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_title (bool, optional): hide title. Defaults to False.          
+            hide_title (bool, optional): hide title. Defaults to True.          
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
             hide_globalcutoff (bool, optional): hide CutoffPercentileComponent
             hide_modelsummary (bool, optional): hide ClassifierModelSummaryComponent
@@ -162,7 +162,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
 
 class RegressionModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Regression Stats", name=None,
-                    hide_title=False, hide_modelsummary=False,
+                    hide_title=True, hide_modelsummary=False,
                     hide_predsvsactual=False, hide_residuals=False, 
                     hide_regvscol=False,
                     logs=False, pred_or_actual="vs_pred", residuals='difference',
@@ -181,7 +181,7 @@ class RegressionModelStatsComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_title (bool, optional): hide title. Defaults to False.
+            hide_title (bool, optional): hide title. Defaults to True.
             hide_modelsummary (bool, optional): hide RegressionModelSummaryComponent
             hide_predsvsactual (bool, optional): hide PredictedVsActualComponent
             hide_residuals (bool, optional): hide ResidualsComponent
@@ -308,7 +308,7 @@ class WhatIfComposite(ExplainerComponent):
     def __init__(self, explainer, title="What if...", name=None,
                         hide_whatifindexselector=False, hide_inputeditor=False,
                         hide_whatifcontribution=False, hide_whatifpdp=False,
-                        hide_title=False, hide_selector=True, **kwargs):
+                        hide_title=True, hide_selector=True, **kwargs):
         """Composite for the whatif component:
 
         Args:
@@ -319,7 +319,7 @@ class WhatIfComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            hide_title (bool, optional): hide title. Defaults to False.
+            hide_title (bool, optional): hide title. Defaults to True.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
             hide_whatifindexselector (bool, optional): hide ClassifierRandomIndexComponent
                 or RegressionRandomIndexComponent
