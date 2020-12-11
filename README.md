@@ -371,7 +371,7 @@ own model, project and needs. You can use the [ExplainerComposites](https://gith
 are used for the tabs of the default dashboard as a starting point, and edit
 them to reorganize components, add text, etc. 
 See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
-for more details. 
+for more details. A deployed custom dashboard can be found [here](http://titanicexplainer.herokuapp.com/custom/)([source code](https://github.com/oegedijk/explainingtitanic/blob/master/custom.py)).
 
 ## Deployment
 
@@ -381,6 +381,39 @@ start the server with e.g. `gunicorn dashboard:server`
 (assuming the file you defined the dashboard in was called `dashboard.py`). 
 See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
 and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
+
+It can be helpful to store your `explainer` and dashboard layout to disk, and 
+then reload, e.g.:
+
+**generate_dashboard.py**:
+```python
+from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+from explainerdashboard.custom import *
+
+explainer = ClassifierExplainer(model, X_test, y_test)
+db = ExplainerDashboard(explainer, [ShapDependenceComposite, WhatIfComposite],
+                        title='Awesome Dashboard', hide_whatifpdp=True)
+
+explainer.dump("explainer.joblib")
+db.to_yaml("dashboard.yaml")
+```
+
+You can then reload it in **dashboard.py**:
+```python
+from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+
+explainer = ClassifierExplainer.from_file("explainer.joblib")
+# you can override params during load from_config:
+db = ExplainerDashboard.from_config(explainer, "dashboard.yaml", title="Awesomer Title")
+
+app = db.flask_server()
+```
+
+And then run it with:
+
+```sh
+    $ gunicorn dashboard:app
+```
 
 
 ## Documentation
