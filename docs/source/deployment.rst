@@ -43,7 +43,7 @@ server as ``app``::
 
 If you named the file above ``dashboard.py``, you can now start the gunicorn server with::
 
-    $ gunicorn dashboard:app
+    $ gunicorn --preload dashboard:app
 
 If you want to run the server server with for example three workers, binding to port 8050,
 and making sure all the workers are preloaded before starting the dashboard your 
@@ -60,6 +60,13 @@ With waitress you would call::
     $ waitress-serve --port=8050 dashboard:app
 
 .. highlight:: python
+
+.. warning::
+    If you use multiple workers you must pass the ``--preload`` flag to gunicorn!
+    (this is also the case for Heroku deployments for example). Otherwise each
+    worker builds its own dashboard app, with its own random ``uuid`` strings
+    at the end of component ``id``s, and then the various workers will not agree
+    on the name of the callback elements. 
 
 Storing custom dashboard config and running with gunicorn
 =========================================================
@@ -241,15 +248,19 @@ And you need to tell heroku how to start your server in ``Procfile``::
 
     web: gunicorn --preload dashboard:app
 
+.. note::
+    The ``--preload`` flag is actually important and necessary here. Otherwise
+    the callbacks in your app will not work and so no graphs will display
+    nor any other interactive feature will work. 
 
 Uninstalling and mocking xgboost
 --------------------------------
 
 A heroku deployment ("slug size") should not exeed 500MB after compression. Unfortunately
 the ``xgboost`` library is >350MB, so this means it will be hard to deploy any
-``xgboost`` models to heroku. Unfortunately however  ``xgboost`` gets automatically installed 
-as a dependency of ``dtreeviz`` which is a dependency of ``explainerdashboard``. 
-(currently have submitted a PR to make this optional)
+``xgboost`` models to heroku. Unfortunately however  ``xgboost`` and ``pyspark`` 
+get automatically installed as a dependency of ``dtreeviz`` which is a dependency of 
+``explainerdashboard``. (currently have submitted a PR to make this optional)
 
 So in order to get even non-xgboost models to work you will
 have to uninstall ``xgboost`` and then mock it. This is normally pretty easy 
@@ -257,14 +268,15 @@ have to uninstall ``xgboost`` and then mock it. This is normally pretty easy
 in order to run shell instructions after the build phase:
 `https://github.com/niteoweb/heroku-buildpack-shell.git <https://github.com/niteoweb/heroku-buildpack-shell.git>`_
 You can add buildpacks through the "settings" page of your heroku project on 
-`heroku.com <heroku.com>`_:
+`heroku.com <heroku.com>`_ (also make sure you have the python buildpack installed as well 
+if it has not been automatically added by heroku):
 
 .. image:: screenshots/heroku_buildpack.png
 
 Then create a directory ``.heroku`` inside your repo with a file ``run.sh`` with the
-instructions to uninstall xgboost: ``pip uninstall -y xgboost``. This script will
-then be run at the end of your build process, ensuring that ``xgboost`` will be
-uninstalled before the deployment is compressed to a slug.
+instructions to uninstall xgboost: ``pip uninstall -y xgboost pyspark``. This script will
+then be run at the end of your build process, ensuring that ``xgboost`` and ``pyspark`` 
+will be uninstalled before the deployment is compressed to a slug.
 
 However ``dtreeviz`` will still try to import ``xgboost`` so you need to 
 mock the ``xgboost`` library by adding the following code before you import 
