@@ -331,7 +331,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             if index is not None:
                 fig = self.explainer.plot_prediction_result(index, showlegend=False)
 
-                preds_df = self.explainer.prediction_result_df(index, self.round, logodds=True)                
+                preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
                 preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
                 preds_df.probability = preds_df.probability + ' %'
                 preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)

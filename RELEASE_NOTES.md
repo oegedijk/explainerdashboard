@@ -1,4 +1,24 @@
 # Release Notes
+## Version 0.2.16:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- added parameter `n_input_cols` to FeatureInputComponent to select in how many columns to split the inputs
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- features of FeatureInputComponent are now order by mean shap importance
+- Added range indicator for numerical features in FeatureInputComponent
+
+### Other Changes
+-
+-
 
 ## Version 0.2.15:
 ### Breaking Changes
