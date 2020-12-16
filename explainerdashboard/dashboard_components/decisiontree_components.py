@@ -100,18 +100,18 @@ class DecisionTreesComponent(ExplainerComponent):
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
-                        ], md=6), hide=self.hide_index),
+                        ], md=4), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
                             dbc.Label("Highlight tree:", id='decisiontrees-tree-label-'+self.name),
                                 dbc.Tooltip(f"Select a specific tree to highlight. You can also "
                                             "highlight by clicking on a specifc bar in the bar chart.", 
                                             target='decisiontrees-tree-label-'+self.name),
-                            dcc.Dropdown(id='decisiontrees-highlight-'+self.name, 
+                            dbc.Select(id='decisiontrees-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
                                 value=self.highlight)
-                        ], md=4), hide=self.hide_highlight), 
+                        ], md=2), hide=self.hide_highlight), 
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector)
@@ -134,6 +134,7 @@ class DecisionTreesComponent(ExplainerComponent):
         )
         def update_tree_graph(index, highlight, pos_label):
             if index is not None:
+                highlight = None if highlight is None else int(highlight)
                 return self.explainer.plot_trees(index, 
                         highlight_tree=highlight, pos_label=pos_label,
                         higher_is_better=self.higher_is_better)
@@ -217,20 +218,20 @@ class DecisionPathTableComponent(ExplainerComponent):
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
-                        ], md=6), hide=self.hide_index),
+                        ], md=4), hide=self.hide_index),
                         make_hideable(
                         dbc.Col([
                             dbc.Label("Show tree:", id='decisionpath-table-tree-label-'+self.name),
                             dbc.Tooltip(f"Select decision tree to display decision tree path for", 
                                             target='decisionpath-table-tree-label-'+self.name),
-                            dcc.Dropdown(id='decisionpath-table-highlight-'+self.name, 
+                            dbc.Select(id='decisionpath-table-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
                                 value=self.highlight)
-                        ], md=4), hide=self.hide_highlight),
+                        ], md=2), hide=self.hide_highlight),
                         make_hideable(
                             dbc.Col([self.selector.layout()
-                        ], width=2), hide=self.hide_selector)
+                        ], md=2), hide=self.hide_selector)
                 ]),
                 dbc.Row([
                     dbc.Col([
@@ -249,7 +250,8 @@ class DecisionPathTableComponent(ExplainerComponent):
         )
         def update_decisiontree_table(index, highlight, pos_label):
             if index is not None and highlight is not None:
-                decisionpath_df = self.explainer.decisiontree_summary_df(highlight, index, pos_label=pos_label)
+                decisionpath_df = self.explainer.decisiontree_summary_df(
+                    int(highlight), index, pos_label=pos_label)
                 return dbc.Table.from_dataframe(decisionpath_df)
             raise PreventUpdate
 
@@ -327,7 +329,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                             dbc.Label("Show tree:", id='decisionpath-tree-label-'+self.name),
                             dbc.Tooltip(f"Select decision tree to display decision tree for", 
                                             target='decisionpath-tree-label-'+self.name),
-                            dcc.Dropdown(id='decisionpath-highlight-'+self.name, 
+                            dbc.Select(id='decisionpath-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
                                 value=self.highlight)
@@ -364,5 +366,5 @@ class DecisionPathGraphComponent(ExplainerComponent):
         )
         def update_tree_graph(n_clicks, index, highlight, pos_label):
             if n_clicks is not None and index is not None and highlight is not None:
-                return self.explainer.decision_path_encoded(highlight, index)
+                return self.explainer.decision_path_encoded(int(highlight), index)
             raise PreventUpdate

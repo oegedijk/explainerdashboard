@@ -2119,7 +2119,7 @@ class ClassifierExplainer(BaseExplainer):
             return idx
         return self.idxs.get_loc(idx)
 
-    def prediction_result_df(self, index, add_star=True, logodds=False, round=3):
+    def prediction_result_df(self, index=None, X_row=None, add_star=True, logodds=False, round=3):
         """returns a table with the predicted probability for each label for index
 
         Args:
@@ -2130,14 +2130,23 @@ class ClassifierExplainer(BaseExplainer):
         Returns:
             pd.DataFrame
         """
-        int_idx = self.get_int_idx(index)
+        if index is None and X_row is None:
+            raise ValueError("You need to either pass an index or X_row!")
+        if index is not None:
+            int_idx = self.get_int_idx(index)
+            pred_probas = self.pred_probas_raw[int_idx, :]
+        elif X_row is not None:
+            if X_row.columns.tolist()==self.X_cats.columns.tolist():
+                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)  
+            pred_probas = self.model.predict_proba(X_row)[0, :]
+
         preds_df =  pd.DataFrame(dict(
             label=self.labels, 
-            probability=self.pred_probas_raw[int_idx, :]))
+            probability=pred_probas))
         if logodds:
             preds_df.loc[:, "logodds"] = \
                 preds_df.probability.apply(lambda p: np.log(p / (1-p)))
-        if not self.y_missing and not np.isnan(self.y[int_idx]):
+        if index is not None and not self.y_missing and not np.isnan(self.y[int_idx]):
             preds_df.iloc[self.y[int_idx], 0] = f"{preds_df.iloc[self.y[int_idx], 0]}*"
         return preds_df.round(round)
 
@@ -2378,17 +2387,19 @@ class ClassifierExplainer(BaseExplainer):
             raise ValueError("No y was passed to explainer, so cannot plot PR AUC!")
         return plotly_pr_auc_curve(self.y_binary(pos_label), self.pred_probas(pos_label), cutoff=cutoff)
 
-    def plot_prediction_result(self, index, showlegend=True):
+    def plot_prediction_result(self, index=None, X_row=None, showlegend=True):
         """Returns a piechart with the predicted probabilities distribution
 
         Args:
             index ({int, str}): Index for which to display prediction
+            X_row (pd.DataFrame): single row of an input dataframe, e.g.
+                explainer.X.iloc[[0]]
             showlegend (bool, optional): Display legend. Defaults to False.
 
         Returns:
             plotly.fig
         """
-        preds_df = self.prediction_result_df(index)
+        preds_df = self.prediction_result_df(index, X_row)
         return plotly_prediction_piechart(preds_df, showlegend=showlegend)
 
     def calculate_properties(self, include_interactions=True):
@@ -2542,7 +2553,7 @@ class RegressionExplainer(BaseExplainer):
             model_prediction += f"\nIn top {percentile}% percentile predicted {self.target}"
         return model_prediction
 
-    def prediction_result_df(self, index, round=3):
+    def prediction_result_df(self, index=None, X_row=None, round=3):
         """prediction result in dataframe format
 
         Args:
@@ -2553,18 +2564,33 @@ class RegressionExplainer(BaseExplainer):
             pd.DataFrame
 
         """
-        int_idx = self.get_int_idx(index)
-        preds_df = pd.DataFrame(columns = ["", self.target])
-        preds_df = preds_df.append(
-            pd.Series(("Predicted", str(np.round(self.preds[int_idx], round)) + f" {self.units}"), 
-                    index=preds_df.columns), ignore_index=True)
-        if not self.y_missing:
+        if index is None and X_row is None:
+            raise ValueError("You need to either pass an index or X_row!")
+        if index is not None:
+            int_idx = self.get_int_idx(index)
+            preds_df = pd.DataFrame(columns = ["", self.target])
             preds_df = preds_df.append(
-                pd.Series(("Observed", str(np.round(self.y[int_idx], round)) + f" {self.units}"), 
-                    index=preds_df.columns), ignore_index=True)
+                pd.Series(("Predicted", str(np.round(self.preds[int_idx], round)) + f" {self.units}"), 
+                        index=preds_df.columns), ignore_index=True)
+            if not self.y_missing:
+                preds_df = preds_df.append(
+                    pd.Series(("Observed", str(np.round(self.y[int_idx], round)) + f" {self.units}"), 
+                        index=preds_df.columns), ignore_index=True)
+                preds_df = preds_df.append(
+                    pd.Series(("Residual", str(np.round(self.residuals[int_idx], round)) + f" {self.units}"), 
+                        index=preds_df.columns), ignore_index=True)
+
+        elif X_row is not None:
+            if X_row.columns.tolist()==self.X_cats.columns.tolist():
+                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns) 
+            assert np.all(X_row.columns==self.X.columns), \
+                ("The column names of X_row should match X! Instead X_row.columns"
+                 f"={X_row.columns.tolist()}...")
+            prediction = self.model.predict(X_row)[0]
+            preds_df = pd.DataFrame(columns = ["", self.target])
             preds_df = preds_df.append(
-                pd.Series(("Residual", str(np.round(self.residuals[int_idx], round)) + f" {self.units}"), 
-                    index=preds_df.columns), ignore_index=True)
+                pd.Series(("Predicted", str(np.round(prediction, round)) + f" {self.units}"), 
+                        index=preds_df.columns), ignore_index=True)
         return preds_df
 
     def metrics(self):

@@ -89,7 +89,7 @@ class ShapSummaryComponent(ExplainerComponent):
                             dbc.Label("Depth:", id='shap-summary-depth-label-'+self.name),
                             dbc.Tooltip("Number of features to display", 
                                         target='shap-summary-depth-label-'+self.name),
-                            dcc.Dropdown(id='shap-summary-depth-'+self.name,
+                            dbc.Select(id='shap-summary-depth-'+self.name,
                                 options=[{'label': str(i+1), 'value': i+1} for i in 
                                             range(self.explainer.n_features(self.cats))],
                                 value=self.depth)
@@ -102,14 +102,13 @@ class ShapSummaryComponent(ExplainerComponent):
                                     dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
                                                 " or display every single shap value per feature (detailed)", 
                                                 target='shap-summary-type-label-'+self.name),
-                                    dbc.RadioItems(
+                                    dbc.Select(
                                         options=[
                                             {"label": "Aggregate", "value": "aggregate"},
                                             {"label": "Detailed", "value": "detailed"},
                                         ],
                                         value=self.summary_type,
                                         id="shap-summary-type-"+self.name,
-                                        inline=True,
                                     ),
                                 ]
                             )
@@ -175,6 +174,7 @@ class ShapSummaryComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')])
         def update_shap_summary_graph(summary_type, cats, depth, index, pos_label):
             cats = bool(cats)
+            depth = None if depth is None else int(depth)
             if summary_type == 'aggregate':
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, cats=cats, pos_label=pos_label)
@@ -291,7 +291,7 @@ class ShapDependenceComponent(ExplainerComponent):
                             dbc.Label('Feature:', id='shap-dependence-col-label-'+self.name),
                             dbc.Tooltip("Select feature to display shap dependence for", 
                                         target='shap-dependence-col-label-'+self.name),
-                            dcc.Dropdown(id='shap-dependence-col-'+self.name, 
+                            dbc.Select(id='shap-dependence-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                 value=self.col)
@@ -301,7 +301,7 @@ class ShapDependenceComponent(ExplainerComponent):
                             dbc.Tooltip("Select feature to color the scatter markers by. This "
                                         "allows you to see interactions between various features in the graph.", 
                                         target='shap-dependence-color-col-label-'+self.name),
-                            dcc.Dropdown(id='shap-dependence-color-col-'+self.name, 
+                            dbc.Select(id='shap-dependence-color-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                 value=self.color_col),   
@@ -476,22 +476,22 @@ class InteractionSummaryComponent(ExplainerComponent):
                             dbc.Label("Feature", id='interaction-summary-col-label-'+self.name),
                             dbc.Tooltip("Feature to select interactions effects for",
                                     target='interaction-summary-col-label-'+self.name),
-                            dcc.Dropdown(id='interaction-summary-col-'+self.name, 
+                            dbc.Select(id='interaction-summary-col-'+self.name, 
                                 options=[{'label': col, 'value': col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                 value=self.col),
-                        ], md=3), self.hide_col),
+                        ], md=2), self.hide_col),
                     make_hideable(
                         dbc.Col([
         
                             dbc.Label("Depth:", id='interaction-summary-depth-label-'+self.name),
                             dbc.Tooltip("Number of interaction features to display",
                                     target='interaction-summary-depth-label-'+self.name),
-                            dcc.Dropdown(id='interaction-summary-depth-'+self.name, 
+                            dbc.Select(id='interaction-summary-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features(self.cats)-1)],
                                 value=self.depth)
-                        ], md=1), self.hide_depth),
+                        ], md=2), self.hide_depth),
                     make_hideable(
                         dbc.Col([
                             dbc.FormGroup(
@@ -500,14 +500,13 @@ class InteractionSummaryComponent(ExplainerComponent):
                                     dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
                                                 " or display every single shap value per feature (detailed)", 
                                                 target='interaction-summary-type-label-'+self.name),
-                                    dbc.RadioItems(
+                                    dbc.Select(
                                         options=[
                                             {"label": "Aggregate", "value": "aggregate"},
                                             {"label": "Detailed", "value": "detailed"},
                                         ],
                                         value=self.summary_type,
                                         id='interaction-summary-type-'+self.name, 
-                                        inline=True,
                                     ),
                                 ]
                             )
@@ -588,6 +587,7 @@ class InteractionSummaryComponent(ExplainerComponent):
              Input('interaction-summary-group-cats-'+self.name, 'value')])
         def update_interaction_scatter_graph(col, depth, summary_type, index, pos_label, cats):
             if col is not None:
+                depth = None if depth is None else int(depth)
                 if summary_type=='aggregate':
                     plot = self.explainer.plot_interactions(
                         col, topx=depth, cats=bool(cats), pos_label=pos_label)
@@ -698,7 +698,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                             dbc.Label('Feature:', id='interaction-dependence-col-label-'+self.name),
                                 dbc.Tooltip("Select feature to display shap interactions for", 
                                             target='interaction-dependence-col-label-'+self.name),
-                            dcc.Dropdown(id='interaction-dependence-col-'+self.name,
+                            dbc.Select(id='interaction-dependence-col-'+self.name,
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                 value=self.col
@@ -710,7 +710,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                                 dbc.Tooltip("Select feature to show interaction values for.  Two plots will be shown: "
                                             "both Feature vs Interaction Feature and Interaction Feature vs Feature.", 
                                             target='interaction-dependence-interact-col-label-'+self.name),
-                            dcc.Dropdown(id='interaction-dependence-interact-col-'+self.name, 
+                            dbc.Select(id='interaction-dependence-interact-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
                                 value=self.interact_col
@@ -936,10 +936,10 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Label("Depth:", id='contributions-graph-depth-label-'+self.name),
                             dbc.Tooltip("Number of features to display",
                                     target='contributions-graph-depth-label-'+self.name),
-                            dcc.Dropdown(id='contributions-graph-depth-'+self.name, 
+                            dbc.Select(id='contributions-graph-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features(self.cats))],
-                                value=self.depth)
+                                value=None if self.depth is None else str(self.depth))
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
                         dbc.Col([
@@ -949,7 +949,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                         "from most negative to most positive (low-to-high or "
                                         "according the global feature importance ordering (importance).",
                                     target='contributions-graph-sorting-label-'+self.name),
-                            dcc.Dropdown(id='contributions-graph-sorting-'+self.name, 
+                            dbc.Select(id='contributions-graph-sorting-'+self.name, 
                                 options = [{'label': 'Absolute', 'value': 'abs'},
                                             {'label': 'High to Low', 'value': 'high-to-low'},
                                             {'label': 'Low to High', 'value': 'low-to-high'},
@@ -961,7 +961,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Label("Orientation:", id='contributions-graph-orientation-label-'+self.name),
                             dbc.Tooltip("Show vertical bars left to right or horizontal bars from top to bottom",
                                     target='contributions-graph-orientation-label-'+self.name),
-                            dcc.Dropdown(id='contributions-graph-orientation-'+self.name, 
+                            dbc.Select(id='contributions-graph-orientation-'+self.name, 
                                 options = [{'label': 'Vertical', 'value': 'vertical'},
                                             {'label': 'Horizontal', 'value': 'horizontal'}],
                                 value=self.orientation)
@@ -1008,7 +1008,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             def update_output_div(index, depth, sort, orientation, cats, pos_label):
                 if index is None:
                     raise PreventUpdate
-
+                depth = None if depth is None else int(depth)
                 plot = self.explainer.plot_shap_contributions(index, topx=depth, 
                             cats=bool(cats), sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
@@ -1032,6 +1032,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs])
             def update_output_div(depth, sort, orientation, cats, pos_label, *inputs):
+                depth = None if depth is None else int(depth)
                 X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
                 plot = self.explainer.plot_shap_contributions(X_row=X_row, 
                             topx=depth, cats=bool(cats), sort=sort, orientation=orientation, 
@@ -1052,7 +1053,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_subtitle=False, hide_index=False, 
                     hide_depth=False, hide_sort=False, hide_cats=False, 
-                    hide_selector=False,
+                    hide_selector=False, feature_input_component=None,
                     pos_label=None, index=None, depth=None, sort='abs', cats=True, 
                     description=None, **kwargs):
         """Show SHAP values contributions to prediction in a table component
@@ -1073,6 +1074,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
             hide_sort (bool, optional): Hide sorting dropdown. Default to False.
             hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            feature_input_component (FeatureInputComponent): A FeatureInputComponent
+                that will give the input to the graph instead of the index selector.
+                If not None, hide_index=True. Defaults to None.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ([type], optional): Initial index to display. Defaults to None.
@@ -1090,6 +1094,10 @@ class ShapContributionsTableComponent(ExplainerComponent):
         
         if not self.explainer.cats:
             self.hide_cats = True
+
+        if self.feature_input_component is not None:
+            self.hide_index = True
+
         if self.description is None: self.description = """
         This tables shows the contribution that each individual feature has had
         on the prediction for a specific observation. The contributions (starting
@@ -1127,7 +1135,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Label("Depth:", id='contributions-table-depth-label-'+self.name),
                             dbc.Tooltip("Number of features to display",
                                     target='contributions-table-depth-label-'+self.name),
-                            dcc.Dropdown(id='contributions-table-depth-'+self.name, 
+                            dbc.Select(id='contributions-table-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features(self.cats))],
                                 value=self.depth)
@@ -1140,7 +1148,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                                         "from most negative to most positive (low-to-high or "
                                         "according the global feature importance ordering (importance).",
                                     target='contributions-table-sorting-label-'+self.name),
-                            dcc.Dropdown(id='contributions-table-sorting-'+self.name, 
+                            dbc.Select(id='contributions-table-sorting-'+self.name, 
                                 options = [{'label': 'Absolute', 'value': 'abs'},
                                             {'label': 'High to Low', 'value': 'high-to-low'},
                                             {'label': 'Low to High', 'value': 'low-to-high'}],
@@ -1174,43 +1182,84 @@ class ShapContributionsTableComponent(ExplainerComponent):
         ])
         
     def component_callbacks(self, app):
-        @app.callback(
-            [Output('contributions-table-'+self.name, 'children'),
-             Output('contributions-table-depth-'+self.name, 'options')],
-            [Input('contributions-table-index-'+self.name, 'value'),
-             Input('contributions-table-depth-'+self.name, 'value'),
-             Input('contributions-table-sorting-'+self.name, 'value'),
-             Input('contributions-table-group-cats-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')])
-        def update_output_div(index, depth, sort, cats, pos_label):
-            if index is None:
-                raise PreventUpdate
+        if self.feature_input_component is None:
+            @app.callback(
+                [Output('contributions-table-'+self.name, 'children'),
+                Output('contributions-table-depth-'+self.name, 'options')],
+                [Input('contributions-table-index-'+self.name, 'value'),
+                Input('contributions-table-depth-'+self.name, 'value'),
+                Input('contributions-table-sorting-'+self.name, 'value'),
+                Input('contributions-table-group-cats-'+self.name, 'value'),
+                Input('pos-label-'+self.name, 'value')])
+            def update_output_div(index, depth, sort, cats, pos_label):
+                if index is None:
+                    raise PreventUpdate
+                depth = None if depth is None else int(depth)
+                contributions_table = dbc.Table.from_dataframe(
+                    self.explainer.contrib_summary_df(index, cats=bool(cats), topx=depth, 
+                                    sort=sort, pos_label=pos_label))
 
-            contributions_table = dbc.Table.from_dataframe(
-                self.explainer.contrib_summary_df(index, cats=bool(cats), topx=depth, 
-                                sort=sort, pos_label=pos_label))
+                tooltip_cols = {}
+                for tr in contributions_table.children[1].children:
+                    # insert tooltip target id's into the table html.Tr() elements:
+                    tds = tr.children
+                    col = tds[0].children.split(" = ")[0]
+                    if self.explainer.description(col) != "":
+                        tr.id = f"contributions-table-hover-{col}-"+self.name
+                        tooltip_cols[col] = self.explainer.description(col)
+                
+                tooltips = [dbc.Tooltip(desc,
+                            target=f"contributions-table-hover-{col}-"+self.name, 
+                            placement="top") for col, desc in tooltip_cols.items()]
 
-            tooltip_cols = {}
-            for tr in contributions_table.children[1].children:
-                # insert tooltip target id's into the table html.Tr() elements:
-                tds = tr.children
-                col = tds[0].children.split(" = ")[0]
-                if self.explainer.description(col) != "":
-                    tr.id = f"contributions-table-hover-{col}-"+self.name
-                    tooltip_cols[col] = self.explainer.description(col)
-            
-            tooltips = [dbc.Tooltip(desc,
-                        target=f"contributions-table-hover-{col}-"+self.name, 
-                        placement="top") for col, desc in tooltip_cols.items()]
+                output_div = html.Div([contributions_table, *tooltips])
 
-            output_div = html.Div([contributions_table, *tooltips])
+                ctx = dash.callback_context
+                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+                if trigger == 'contributions-table-group-cats-'+self.name:
+                    depth_options = [{'label': str(i+1), 'value': i+1} 
+                                            for i in range(self.explainer.n_features(bool(cats)))]
+                    return (output_div, depth_options)
+                else:
+                    return (output_div, dash.no_update) 
+        else:
+            @app.callback(
+                [Output('contributions-table-'+self.name, 'children'),
+                 Output('contributions-table-depth-'+self.name, 'options')],
+                [Input('contributions-table-depth-'+self.name, 'value'),
+                 Input('contributions-table-sorting-'+self.name, 'value'),
+                 Input('contributions-table-group-cats-'+self.name, 'value'),
+                 Input('pos-label-'+self.name, 'value'),
+                 *self.feature_input_component._feature_callback_inputs])
+            def update_output_div(depth, sort, cats, pos_label, *inputs):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                depth = None if depth is None else int(depth)
+                contributions_table = dbc.Table.from_dataframe(
+                    self.explainer.contrib_summary_df(X_row=X_row, cats=bool(cats), topx=depth, 
+                                    sort=sort, pos_label=pos_label))
 
-            ctx = dash.callback_context
-            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-            if trigger == 'contributions-table-group-cats-'+self.name:
-                depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(self.explainer.n_features(bool(cats)))]
-                return (output_div, depth_options)
-            else:
-                return (output_div, dash.no_update) 
+                tooltip_cols = {}
+                for tr in contributions_table.children[1].children:
+                    # insert tooltip target id's into the table html.Tr() elements:
+                    tds = tr.children
+                    col = tds[0].children.split(" = ")[0]
+                    if self.explainer.description(col) != "":
+                        tr.id = f"contributions-table-hover-{col}-"+self.name
+                        tooltip_cols[col] = self.explainer.description(col)
+                
+                tooltips = [dbc.Tooltip(desc,
+                            target=f"contributions-table-hover-{col}-"+self.name, 
+                            placement="top") for col, desc in tooltip_cols.items()]
+
+                output_div = html.Div([contributions_table, *tooltips])
+
+                ctx = dash.callback_context
+                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+                if trigger == 'contributions-table-group-cats-'+self.name:
+                    depth_options = [{'label': str(i+1), 'value': i+1} 
+                                            for i in range(self.explainer.n_features(bool(cats)))]
+                    return (output_div, depth_options)
+                else:
+                    return (output_div, dash.no_update) 
+
 

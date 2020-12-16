@@ -87,9 +87,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             self.hide_pred_or_y = True
             self.hide_abs_residuals = True
             self.pred_or_y = "preds"
-            self.y_slider = [0, 1]
-            self.residual_slider = [0, 1]
-            self.abs_residual_slider = [0, 1]
+            self.y_slider = [0.0, 1.0]
+            self.residual_slider = [0.0, 1.0]
+            self.abs_residual_slider = [0.0, 1.0]
 
         if self.pred_slider is None:
             self.pred_slider = [self.explainer.preds.min(), self.explainer.preds.max()]
@@ -161,154 +161,225 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                             target='random-index-reg-button-'+self.name),
                         ], md=4), hide=self.hide_button),
                     ], form=True),
-                    make_hideable(
-                        html.Div([
-                        html.Div([
-                            dbc.Row([
-                                    dbc.Col([
-                                        html.Div([
-                                            dbc.Label("Predicted range:", id='random-index-reg-pred-slider-label-'+self.name,
-                                                html_for='random-index-reg-pred-slider-'+self.name),
-                                            dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
-                                                        f"predicted {self.explainer.target} was within the following range:", 
-                                                        target='random-index-reg-pred-slider-label-'+self.name),
-                                            dcc.RangeSlider(
-                                                id='random-index-reg-pred-slider-'+self.name,
-                                                min=float(self.explainer.preds.min()),
-                                                max=float(self.explainer.preds.max()),
-                                                step=np.float_power(10, -self.round),
-                                                value=[self.pred_slider[0], self.pred_slider[1]],
-                                                marks={float(self.explainer.preds.min()): str(np.round(self.explainer.preds.min(), self.round)),
-                                                    float(self.explainer.preds.max()): str(np.round(self.explainer.preds.max(), self.round))},
-                                                allowCross=False,
-                                                tooltip = {'always_visible' : False}
-                                            )
-                                        ], style={'margin-bottom':0})
-                                    ], md=8)
-                            ]),
-                        ], id='random-index-reg-pred-slider-div-'+self.name),
-                        html.Div([
-                            dbc.Row([
-                                    dbc.Col([
-                                        html.Div([
-                                            dbc.Label("Observed range:", id='random-index-reg-y-slider-label-'+self.name,
-                                                html_for='random-index-reg-y-slider-'+self.name),
-                                            dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
-                                                        f"observed {self.explainer.target} was within the following range:", 
+                    dbc.Row([
+                        make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label("Predicted range:", id='random-index-reg-pred-slider-label-'+self.name,
+                                    html_for='random-index-reg-pred-slider-'+self.name),
+                                dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                                            f"predicted {self.explainer.target} was within the following range:", 
+                                            target='random-index-reg-pred-slider-label-'+self.name),
+                                dcc.RangeSlider(
+                                    id='random-index-reg-pred-slider-'+self.name,
+                                    min=float(self.explainer.preds.min()),
+                                    max=float(self.explainer.preds.max()),
+                                    step=np.float_power(10, -self.round),
+                                    value=[self.pred_slider[0], self.pred_slider[1]],
+                                    marks={float(self.explainer.preds.min()): str(np.round(self.explainer.preds.min(), self.round)),
+                                          float(self.explainer.preds.max()): str(np.round(self.explainer.preds.max(), self.round))},
+                                    allowCross=False,
+                                    tooltip = {'always_visible' : False}
+                                )
+                            ], id='random-index-reg-pred-slider-div-'+self.name),
+                            html.Div([
+                                dbc.Label("Observed range:", id='random-index-reg-y-slider-label-'+self.name,
+                                    html_for='random-index-reg-y-slider-'+self.name),
+                                dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                                            f"observed {self.explainer.target} was within the following range:", 
                                             target='random-index-reg-y-slider-label-'+self.name),
-                                            dcc.RangeSlider(
-                                                id='random-index-reg-y-slider-'+self.name,
-                                                min=float(self.explainer.y.min()),
-                                                max=float(self.explainer.y.max()),
-                                                step=np.float_power(10, -self.round),
-                                                value=[self.y_slider[0], self.y_slider[1]],
-                                                marks={float(self.explainer.y.min()): str(np.round(self.explainer.y.min(), self.round)),
-                                                    float(self.explainer.y.max()): str(np.round(self.explainer.y.max(), self.round))},
-                                                allowCross=False,
-                                                tooltip = {'always_visible' : False}
-                                            )
-                                        ], style={'margin-bottom':0})
-                                    ], md=8),
-                            ]),
-                        ], id='random-index-reg-y-slider-div-'+self.name),
-                        ]), hide=self.hide_pred_slider),
-                    make_hideable(
-                        html.Div([
-                        html.Div([
-                            dbc.Row([
-                                dbc.Col([
-                                    html.Div([
-                                        dbc.Label("Residuals range:", id='random-index-reg-residual-slider-label-'+self.name,
-                                            html_for='random-index-reg-residual-slider-'+self.name),
-                                        dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
-                                                    f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
-                                                    " was within the following range:", 
-                                            target='random-index-reg-residual-slider-label-'+self.name),
-                                        dcc.RangeSlider(
-                                            id='random-index-reg-residual-slider-'+self.name,
-                                            min=float(self.explainer.residuals.min()),
-                                            max=float(self.explainer.residuals.max()),
-                                            step=np.float_power(10, -self.round),
-                                            value=[self.residual_slider[0], self.residual_slider[1]],
-                                            marks={float(self.explainer.residuals.min()): str(np.round(self.explainer.residuals.min(), self.round)),
-                                                float(self.explainer.residuals.max()): str(np.round(self.explainer.residuals.max(), self.round))},
-                                            allowCross=False,
-                                            tooltip={'always_visible' : False}
-                                        )
-                                    ], style={'margin-bottom':0})
-                                ], md=8)
-                            ]),
-                        ], id='random-index-reg-residual-slider-div-'+self.name),
-                        html.Div([
-                            dbc.Row([
-                                dbc.Col([
-                                    html.Div([
-                                        dbc.Label("Absolute residuals", id='random-index-reg-abs-residual-slider-label'+self.name,
-                                            html_for='random-index-reg-abs-residual-slider-'+self.name),
-                                        dbc.Tooltip(f"Only select {self.explainer.index_name} where the absolute "
-                                                    f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
-                                                    " was within the following range:", 
-                                            target='random-index-reg-abs-residual-slider-label'+self.name),
-                                        dcc.RangeSlider(
-                                            id='random-index-reg-abs-residual-slider-'+self.name,
-                                            min=float(self.explainer.abs_residuals.min()),
-                                            max=float(self.explainer.abs_residuals.max()),
-                                            step=np.float_power(10, -self.round),
-                                            value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
-                                            marks={float(self.explainer.abs_residuals.min()): str(np.round(self.explainer.abs_residuals.min(), self.round)),
-                                                float(self.explainer.abs_residuals.max()): str(np.round(self.explainer.abs_residuals.max(), self.round))},
-                                            allowCross=False,
-                                            tooltip={'always_visible' : False}
-                                        )
-                                    ], style={'margin-bottom':0})
-                                ], md=8)
-                            ])
-                        ], id='random-index-reg-abs-residual-slider-div-'+self.name),
-                    ]), hide=self.hide_residual_slider),
+                                dcc.RangeSlider(
+                                    id='random-index-reg-y-slider-'+self.name,
+                                    min=float(self.explainer.y.min()),
+                                    max=float(self.explainer.y.max()),
+                                    step=np.float_power(10, -self.round),
+                                    value=[self.y_slider[0], self.y_slider[1]],
+                                    marks={float(self.explainer.y.min()): str(np.round(self.explainer.y.min(), self.round)),
+                                           float(self.explainer.y.max()): str(np.round(self.explainer.y.max(), self.round))},
+                                    allowCross=False,
+                                    tooltip = {'always_visible' : False}
+                                )
+                            ], id='random-index-reg-y-slider-div-'+self.name),
+                        ], md=8), hide=self.hide_pred_slider),
+                        make_hideable(
+                            dbc.Col([
+                                dbc.Label("Range:", id='random-index-reg-preds-or-y-label-'+self.name, html_for='random-index-reg-preds-or-y-'+self.name),
+                                dbc.Select(
+                                    id='random-index-reg-preds-or-y-'+self.name,
+                                    options=[
+                                        {'label': 'Predicted', 'value': 'preds'},
+                                        {'label': 'Observed', 'value': 'y'},
+                                    ],
+                                    value=self.pred_or_y),
+                                dbc.Tooltip(f"You can either only select a random {self.explainer.index_name}"
+                                            f"from within a certain range of observed {self.explainer.target} or"
+                                            f"from within a certain range of predicted {self.explainer.target}.", 
+                                    target='random-index-reg-preds-or-y-label-'+self.name)
+                            ], md=4), hide=self.hide_pred_or_y),
+                    ]),
                     dbc.Row([
                         make_hideable(
                             dbc.Col([
                                 html.Div([
-                                dbc.RadioItems(
-                                    id='random-index-reg-preds-or-y-'+self.name,
-                                    options=[
-                                        {'label': 'Use Predicted Range', 'value': 'preds'},
-                                        {'label': 'Use Observed Range', 'value': 'y'},
-                                    ],
-                                    value=self.pred_or_y,
-                                    inline=True)
-                                ], id='random-index-reg-preds-or-y-div-'+self.name),
-                                dbc.Tooltip(f"You can either only select a random {self.explainer.index_name}"
-                                            f"from within a certain range of observed {self.explainer.target} or"
-                                            f"from within a certain range of predicted {self.explainer.target}.", 
-                                    target='random-index-reg-preds-or-y-div-'+self.name)
-                            ], md=4), hide=self.hide_pred_or_y),
-                        make_hideable(
-                            dbc.Col([
+                                    dbc.Label("Residuals range:", id='random-index-reg-residual-slider-label-'+self.name,
+                                        html_for='random-index-reg-residual-slider-'+self.name),
+                                    dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                                                f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
+                                                " was within the following range:", 
+                                        target='random-index-reg-residual-slider-label-'+self.name),
+                                    dcc.RangeSlider(
+                                        id='random-index-reg-residual-slider-'+self.name,
+                                        min=float(self.explainer.residuals.min()),
+                                        max=float(self.explainer.residuals.max()),
+                                        step=np.float_power(10, -self.round),
+                                        value=[self.residual_slider[0], self.residual_slider[1]],
+                                        marks={float(self.explainer.residuals.min()): str(np.round(self.explainer.residuals.min(), self.round)),
+                                            float(self.explainer.residuals.max()): str(np.round(self.explainer.residuals.max(), self.round))},
+                                        allowCross=False,
+                                        tooltip={'always_visible' : False}
+                                    )
+                                ], id='random-index-reg-residual-slider-div-'+self.name),
                                 html.Div([
-                                    dbc.RadioItems(
+                                    dbc.Label("Absolute residuals", id='random-index-reg-abs-residual-slider-label'+self.name,
+                                        html_for='random-index-reg-abs-residual-slider-'+self.name),
+                                    dbc.Tooltip(f"Only select {self.explainer.index_name} where the absolute "
+                                                f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
+                                                " was within the following range:", 
+                                        target='random-index-reg-abs-residual-slider-label'+self.name),
+                                    dcc.RangeSlider(
+                                        id='random-index-reg-abs-residual-slider-'+self.name,
+                                        min=float(self.explainer.abs_residuals.min()),
+                                        max=float(self.explainer.abs_residuals.max()),
+                                        step=np.float_power(10, -self.round),
+                                        value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
+                                        marks={float(self.explainer.abs_residuals.min()): str(np.round(self.explainer.abs_residuals.min(), self.round)),
+                                            float(self.explainer.abs_residuals.max()): str(np.round(self.explainer.abs_residuals.max(), self.round))},
+                                        allowCross=False,
+                                        tooltip={'always_visible' : False}
+                                    )
+                                ], id='random-index-reg-abs-residual-slider-div-'+self.name),
+                            ], md=8), hide=self.hide_residual_slider),
+                            make_hideable(
+                                dbc.Col([
+                                    dbc.Label("Residuals:", id='random-index-reg-abs-residual-label-'+self.name,
+                                                html_for='random-index-reg-abs-residual-'+self.name),
+                                    dbc.Select(
                                         id='random-index-reg-abs-residual-'+self.name,
                                         options=[
-                                            {'label': 'Use Residuals', 'value': 'relative'},
-                                            {'label': 'Use Absolute Residuals', 'value': 'absolute'},
+                                            {'label': 'Residuals', 'value': 'relative'},
+                                            {'label': 'Absolute Residuals', 'value': 'absolute'},
                                         ],
-                                        value='absolute' if self.abs_residuals else 'relative',
-                                        inline=True),
-                                ], id='random-index-reg-abs-residual-div-'+self.name),
-                                dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
-                                            f"from within a certain range of residuals "
-                                            f"(difference between observed and predicted {self.explainer.target}), "
-                                            f"so for example only {self.explainer.index_name} for whom the prediction "
-                                            f"was too high or too low."
-                                            f"Or you can select only from a certain absolute residual range. So for "
-                                            f"example only select {self.explainer.index_name} for which the prediction was at "
-                                            f"least a certain amount of {self.explainer.units} off.",
-                                target='random-index-reg-abs-residual-div-'+self.name),
-
-                            ], md=4), hide=self.hide_abs_residuals),
+                                        value='absolute' if self.abs_residuals else 'relative'),
+                                    dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
+                                                f"from within a certain range of residuals "
+                                                f"(difference between observed and predicted {self.explainer.target}), "
+                                                f"so for example only {self.explainer.index_name} for whom the prediction "
+                                                f"was too high or too low."
+                                                f"Or you can select only from a certain absolute residual range. So for "
+                                                f"example only select {self.explainer.index_name} for which the prediction was at "
+                                                f"least a certain amount of {self.explainer.units} off.",
+                                                target='random-index-reg-abs-residual-label-'+self.name),
+                                ], md=4), hide=self.hide_abs_residuals),
                     ]),
-            ]),  
-        ])
+                    # make_hideable(
+                    #     html.Div([
+                    #     html.Div([
+                    #         dbc.Row([
+                    #             dbc.Col([
+                    #                 html.Div([
+                    #                     dbc.Label("Residuals range:", id='random-index-reg-residual-slider-label-'+self.name,
+                    #                         html_for='random-index-reg-residual-slider-'+self.name),
+                    #                     dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
+                    #                                 f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
+                    #                                 " was within the following range:", 
+                    #                         target='random-index-reg-residual-slider-label-'+self.name),
+                    #                     dcc.RangeSlider(
+                    #                         id='random-index-reg-residual-slider-'+self.name,
+                    #                         min=float(self.explainer.residuals.min()),
+                    #                         max=float(self.explainer.residuals.max()),
+                    #                         step=np.float_power(10, -self.round),
+                    #                         value=[self.residual_slider[0], self.residual_slider[1]],
+                    #                         marks={float(self.explainer.residuals.min()): str(np.round(self.explainer.residuals.min(), self.round)),
+                    #                             float(self.explainer.residuals.max()): str(np.round(self.explainer.residuals.max(), self.round))},
+                    #                         allowCross=False,
+                    #                         tooltip={'always_visible' : False}
+                    #                     )
+                    #                 ], style={'margin-bottom':0})
+                    #             ], md=8)
+                    #         ]),
+                    #     ], id='random-index-reg-residual-slider-div-'+self.name),
+                    #     html.Div([
+                    #         dbc.Row([
+                    #             dbc.Col([
+                    #                 html.Div([
+                    #                     dbc.Label("Absolute residuals", id='random-index-reg-abs-residual-slider-label'+self.name,
+                    #                         html_for='random-index-reg-abs-residual-slider-'+self.name),
+                    #                     dbc.Tooltip(f"Only select {self.explainer.index_name} where the absolute "
+                    #                                 f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
+                    #                                 " was within the following range:", 
+                    #                         target='random-index-reg-abs-residual-slider-label'+self.name),
+                    #                     dcc.RangeSlider(
+                    #                         id='random-index-reg-abs-residual-slider-'+self.name,
+                    #                         min=float(self.explainer.abs_residuals.min()),
+                    #                         max=float(self.explainer.abs_residuals.max()),
+                    #                         step=np.float_power(10, -self.round),
+                    #                         value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
+                    #                         marks={float(self.explainer.abs_residuals.min()): str(np.round(self.explainer.abs_residuals.min(), self.round)),
+                    #                             float(self.explainer.abs_residuals.max()): str(np.round(self.explainer.abs_residuals.max(), self.round))},
+                    #                         allowCross=False,
+                    #                         tooltip={'always_visible' : False}
+                    #                     )
+                    #                 ], style={'margin-bottom':0})
+                    #             ], md=8)
+                    #         ])
+                    #     ], id='random-index-reg-abs-residual-slider-div-'+self.name),
+                    # ]), hide=self.hide_residual_slider),
+                    # dbc.Row([
+                    #     make_hideable(
+                    #         dbc.Col([
+                    #             dbc.Label("Residuals:", id='random-index-reg-abs-residual-label-'+self.name,
+                    #                         html_for='random-index-reg-abs-residual-'+self.name),
+                    #             dbc.Select(
+                    #                 id='random-index-reg-abs-residual-'+self.name,
+                    #                 options=[
+                    #                     {'label': 'Residuals', 'value': 'relative'},
+                    #                     {'label': 'Absolute Residuals', 'value': 'absolute'},
+                    #                 ],
+                    #                 value='absolute' if self.abs_residuals else 'relative'),
+                    #             dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
+                    #                         f"from within a certain range of residuals "
+                    #                         f"(difference between observed and predicted {self.explainer.target}), "
+                    #                         f"so for example only {self.explainer.index_name} for whom the prediction "
+                    #                         f"was too high or too low."
+                    #                         f"Or you can select only from a certain absolute residual range. So for "
+                    #                         f"example only select {self.explainer.index_name} for which the prediction was at "
+                    #                         f"least a certain amount of {self.explainer.units} off.",
+                    #             target='random-index-reg-abs-residual-label-'+self.name),
+                    #         ], md=4), hide=self.hide_pred_or_y),
+                    #     make_hideable(
+                    #         dbc.Col([
+                    #             html.Div([
+                    #                 dbc.Select(
+                    #                     id='random-index-reg-abs-residual-'+self.name,
+                    #                     options=[
+                    #                         {'label': 'Use Residuals', 'value': 'relative'},
+                    #                         {'label': 'Use Absolute Residuals', 'value': 'absolute'},
+                    #                     ],
+                    #                     value='absolute' if self.abs_residuals else 'relative'),
+                    #             ], id='random-index-reg-abs-residual-div-'+self.name),
+                    #             dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
+                    #                         f"from within a certain range of residuals "
+                    #                         f"(difference between observed and predicted {self.explainer.target}), "
+                    #                         f"so for example only {self.explainer.index_name} for whom the prediction "
+                    #                         f"was too high or too low."
+                    #                         f"Or you can select only from a certain absolute residual range. So for "
+                    #                         f"example only select {self.explainer.index_name} for which the prediction was at "
+                    #                         f"least a certain amount of {self.explainer.units} off.",
+                    #             target='random-index-reg-abs-residual-div-'+self.name),
+
+                    #         ], md=4), hide=self.hide_abs_residuals),
+                    ]),
+            ])
 
     def component_callbacks(self, app):
         @app.callback(
@@ -412,6 +483,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False, 
                     hide_subtitle=False, hide_table=False,
+                    feature_input_component=None,
                     index=None,  round=3, description=None,
                     **kwargs):
         """Shows a summary for a particular prediction
@@ -428,6 +500,9 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
             hide_title (bool, optional): hide title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_table (bool, optional): hide the results table
+            feature_input_component (FeatureInputComponent): A FeatureInputComponent
+                that will give the input to the graph instead of the index selector.
+                If not None, hide_index=True. Defaults to None.
             index ({int, str}, optional): Index to display prediction summary for. Defaults to None.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
@@ -435,6 +510,9 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         self.index_name = 'reg-prediction-index-'+self.name
+
+        if self.feature_input_component is not None:
+            self.hide_index = True
 
         if self.description is None: self.description = f"""
         Shows the predicted {self.explainer.target} and the observed {self.explainer.target},
@@ -468,16 +546,27 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
         ])
 
     def component_callbacks(self, app):
-        @app.callback(
-            Output('reg-prediction-div-'+self.name, 'children'),
-            [Input('reg-prediction-index-'+self.name, 'value')])
-        def update_output_div(index):
-            if index is not None:
-                preds_df = self.explainer.prediction_result_df(index, round=self.round)
+        if self.feature_input_component is None:
+            @app.callback(
+                Output('reg-prediction-div-'+self.name, 'children'),
+                [Input('reg-prediction-index-'+self.name, 'value')])
+            def update_output_div(index):
+                if index is not None:
+                    preds_df = self.explainer.prediction_result_df(index, round=self.round)
+                    return make_hideable(
+                        dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False),
+                        hide=self.hide_table)  
+                raise PreventUpdate
+        else:
+            @app.callback(
+                Output('reg-prediction-div-'+self.name, 'children'),
+                [*self.feature_input_component._feature_callback_inputs])
+            def update_output_div(*inputs):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)   
+                preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round)
                 return make_hideable(
                     dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False),
                     hide=self.hide_table)  
-            raise PreventUpdate
 
 
 class PredictedVsActualComponent(ExplainerComponent):
@@ -656,14 +745,14 @@ class ResidualsComponent(ExplainerComponent):
                         dbc.Col([
                             dbc.FormGroup(
                             [
-                                dbc.RadioItems(
+                                dbc.Label("Horizontal axis:", html_for='residuals-pred-or-actual-'+self.name),
+                                dbc.Select(
                                     options=[
-                                        {"label": "vs Prediction", "value": "vs_pred"},
-                                        {"label": "vs Observed", "value": "vs_actual"},
+                                        {"label": "Predicted", "value": "vs_pred"},
+                                        {"label": "Observed", "value": "vs_actual"},
                                     ],
                                     value=self.pred_or_actual,
                                     id='residuals-pred-or-actual-'+self.name,
-                                    inline=True,
                                 ),
                             ], id='residuals-pred-or-actual-form-'+self.name),
                             dbc.Tooltip("Select what you would like to put on the x-axis:"
@@ -676,13 +765,13 @@ class ResidualsComponent(ExplainerComponent):
                             dbc.Tooltip("Type of residuals to display: y-preds (difference), "
                                         "y/preds (ratio) or log(y/preds) (logratio).", 
                                         target='residuals-type-label-'+self.name),
-                            dcc.Dropdown(id='residuals-type-'+self.name,
+                            dbc.Select(id='residuals-type-'+self.name,
                                     options = [{'label': 'Difference', 'value': 'difference'},
                                                 {'label': 'Ratio', 'value': 'ratio'},
                                                 {'label': 'Log ratio', 'value': 'log-ratio'}],
                                     value=self.residuals),
                         ], md=3), hide=self.hide_ratio),
-                ], justify="center")
+                ]),
             ]), hide=self.hide_footer)
         ])
 
@@ -770,7 +859,7 @@ class RegressionVsColComponent(ExplainerComponent):
                             dbc.Label("Feature:", id='reg-vs-col-col-label-'+self.name),
                             dbc.Tooltip("Select the feature to display on the x-axis.", 
                                         target='reg-vs-col-col-label-'+self.name),
-                            dcc.Dropdown(id='reg-vs-col-col-'+self.name,
+                            dbc.Select(id='reg-vs-col-col-'+self.name,
                                 options=[{'label': col, 'value':col} 
                                                 for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                 value=self.col),
@@ -784,7 +873,7 @@ class RegressionVsColComponent(ExplainerComponent):
                                             "ratio (y/preds) or log ratio log(y/preds). The latter makes it easier to "
                                             "see relative differences.", 
                                             target='reg-vs-col-display-type-label-'+self.name),
-                                dcc.Dropdown(id='reg-vs-col-display-type-'+self.name,
+                                dbc.Select(id='reg-vs-col-display-type-'+self.name,
                                         options = [{'label': 'Observed', 'value': 'observed'},
                                                     {'label': 'Predicted', 'value': 'predicted'},
                                                     {'label': 'Residuals: Difference', 'value': 'difference'},
