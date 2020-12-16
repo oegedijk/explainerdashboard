@@ -42,7 +42,23 @@ class RegressionBaseExplainerTests(unittest.TestCase):
 
     def test_row_from_input(self):
         input_row = self.explainer.get_row_from_input(
-                1, 13, 2, 12, 12, 'Sex_male', 'A', 'Southampton')
+            self.explainer.X.iloc[[0]].values.tolist())
+        self.assertIsInstance(input_row, pd.DataFrame)
+
+        input_row = self.explainer.get_row_from_input(
+            self.explainer.X_cats.iloc[[0]].values.tolist())
+        self.assertIsInstance(input_row, pd.DataFrame)
+
+        input_row = self.explainer.get_row_from_input(
+            self.explainer.X_cats
+            [self.explainer.columns_ranked_by_shap(cats=True)]
+            .iloc[[0]].values.tolist(), ranked_by_shap=True)
+        self.assertIsInstance(input_row, pd.DataFrame)
+        
+        input_row = self.explainer.get_row_from_input(
+            self.explainer.X
+            [self.explainer.columns_ranked_by_shap(cats=False)]
+            .iloc[[0]].values.tolist(), ranked_by_shap=True)
         self.assertIsInstance(input_row, pd.DataFrame)
 
     def test_prediction_result_df(self):
