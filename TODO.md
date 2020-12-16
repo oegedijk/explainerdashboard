@@ -59,6 +59,7 @@
         - generate groups programmatically!
 
 ### Components
+- add feature_input_component option the ShapContributionsTable and PredictionSummaryComponent
 - Make prediction summary work with FeatureInputComponent
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
@@ -101,6 +102,7 @@
 
 
 ## Library level:
+- Make example heroku deployment repo
 - add waitress to CLI
 
 - hide (prefix '_') to non-public API class methods

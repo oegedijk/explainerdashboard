@@ -1032,7 +1032,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs])
             def update_output_div(depth, sort, orientation, cats, pos_label, *inputs):
-                X_row = self.explainer.get_row_from_input(inputs)
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
                 plot = self.explainer.plot_shap_contributions(X_row=X_row, 
                             topx=depth, cats=bool(cats), sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)

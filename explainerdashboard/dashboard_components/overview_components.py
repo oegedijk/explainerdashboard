@@ -5,7 +5,9 @@ __all__ = [
     'PdpComponent',
     'WhatIfComponent',
 ]
+from math import ceil
 
+import numpy as np
 import pandas as pd
 
 import dash
@@ -16,7 +18,6 @@ import dash_table
 
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-
 
 from ..dashboard_methods import *
 
@@ -486,7 +487,7 @@ class PdpComponent(ExplainerComponent):
                  *self.feature_input_component._feature_callback_inputs]
             )
             def update_pdp_graph(col, drop_na, sample, gridlines, gridpoints, pos_label, *inputs):
-                X_row = self.explainer.get_row_from_input(inputs)
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
                 return self.explainer.plot_pdp(col, X_row=X_row,
                     drop_na=bool(drop_na), sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
                     pos_label=pos_label)
@@ -496,7 +497,8 @@ class FeatureInputComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Input", name=None,
                     subtitle="Adjust the feature values to change the prediction",
                     hide_title=False,  hide_subtitle=False, hide_index=False, 
-                    index=None, description=None, **kwargs):
+                    hide_range=False,
+                    index=None, n_input_cols=2, description=None,  **kwargs):
         """Interaction Dependence Component.
 
         Args:
@@ -511,9 +513,13 @@ class FeatureInputComponent(ExplainerComponent):
             hide_title (bool, optional): hide the title
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_index (bool, optional): hide the index selector
+            hide_range (bool, optional): hide the range label under the inputs
             index (str, int, optional): default index
+            n_input_cols (int): number of columns to split features inputs in. 
+                Defaults to 2. 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
+            
             
         """
         super().__init__(explainer, title, name)
@@ -523,7 +529,7 @@ class FeatureInputComponent(ExplainerComponent):
             
         self.index_name = 'feature-input-index-'+self.name
         
-        self._input_features = self.explainer.columns_cats
+        self._input_features = self.explainer.columns_ranked_by_shap(cats=True)
         self._feature_inputs = [
             self._generate_dash_input(
                 feature, self.explainer.cats, self.explainer.cats_dict) 
@@ -532,24 +538,39 @@ class FeatureInputComponent(ExplainerComponent):
         self._feature_callback_outputs = [Output('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features] 
         if self.description is None: self.description = """
         Adjust the input values to see predictions for what if scenarios."""
-        
+
     def _generate_dash_input(self, col, cats, cats_dict):
         if col in cats:
             col_values = [
                 col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
                     for col_val in cats_dict[col]]
-            return html.Div([
-                html.P(col),
-                dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
+            return dbc.FormGroup([
+                    dbc.Label(col),
+                    dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
                              options=[dict(label=col_val, value=col_val) for col_val in col_values],
-                             clearable=False)
-            ])
+                             clearable=False),
+                    dbc.FormText(f"Select any {col}") if not self.hide_range else None,
+                ])   
         else:
-            return  html.Div([
-                        html.P(col),
-                        dbc.Input(id='feature-input-'+col+'-input-'+self.name, type="number"),
-                    ])
+            min_range = np.round(self.explainer.X[col][lambda x: x != self.explainer.na_fill].min(), 2)
+            max_range = np.round(self.explainer.X[col][lambda x: x != self.explainer.na_fill].max(), 2)
+            return dbc.FormGroup([
+                    dbc.Label(col),
+                    dbc.Input(id='feature-input-'+col+'-input-'+self.name, type="number"),
+                    dbc.FormText(f"Range: {min_range}-{max_range}") if not self.hide_range else None
+                ])
         
+    def get_slices(self, n_inputs, n_cols=2):
+        """returns a list of slices to divide n inputs into n_cols columns"""
+        rows_per_col = ceil(n_inputs / n_cols)
+        slices = []
+        for col in range(n_cols):
+            if col == n_cols-1 and n_inputs % rows_per_col > 0:
+                slices.append(slice(col*rows_per_col, col*rows_per_col+(n_inputs % rows_per_col)))
+            else:
+                slices.append(slice(col*rows_per_col, col*rows_per_col+rows_per_col))
+        return slices
+
     def layout(self):
         return dbc.Card([
             make_hideable(
@@ -571,14 +592,8 @@ class FeatureInputComponent(ExplainerComponent):
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
                     ], form=True),
-                dbc.Row([
-                    dbc.Col([
-                        *self._feature_inputs[:int((len(self._feature_inputs) + 1)/2)]
-                    ]),
-                    dbc.Col([
-                        *self._feature_inputs[int((len(self._feature_inputs) + 1)/2):]
-                    ]),
-                ]),
+                dbc.Row([dbc.Col(self._feature_inputs[slicer]) 
+                            for slicer in self.get_slices(len(self._feature_inputs), self.n_input_cols)]),
             ])
         ])
 
@@ -592,7 +607,9 @@ class FeatureInputComponent(ExplainerComponent):
             idx = self.explainer.get_int_idx(index)
             if idx is None:
                 raise PreventUpdate
-            feature_values = self.explainer.X_cats.iloc[[idx]].values[0].tolist()
+            feature_values = (self.explainer.X_cats
+                                [self.explainer.columns_ranked_by_shap(cats=True)]
+                                .iloc[[idx]].values[0].tolist())
             return feature_values
 
 

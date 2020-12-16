@@ -14,6 +14,7 @@ __all__ = ['BaseExplainer',
 from abc import ABC
 import base64
 from pathlib import Path
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -490,8 +491,8 @@ class BaseExplainer(ABC):
             return [k for k, v in self.cats_dict.items() if col in v][0]
         return None
 
-    def get_row_from_input(self, *inputs):
-        """returns a single row pd.DataFrame from a given list of inputs"""
+    def get_row_from_input(self, inputs:List, ranked_by_shap=False):
+        """returns a single row pd.DataFrame from a given list of *inputs"""
         if len(inputs)==1 and isinstance(inputs[0], list):
             inputs = inputs[0]
         elif len(inputs)==1 and isinstance(inputs[0], tuple):
@@ -499,9 +500,13 @@ class BaseExplainer(ABC):
         else:
             inputs = list(inputs)
         if len(inputs) == len(self.columns_cats):
-            return pd.DataFrame(dict(zip(self.columns_cats, inputs)), index=[0]).fillna(self.na_fill)
+            cols = self.columns_ranked_by_shap(cats=True) if ranked_by_shap else self.columns_cats
+            df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
+            return df[self.columns_cats]
         elif len(inputs) == len(self.columns):
-            return pd.DataFrame(dict(zip(self.columns, inputs)), index=[0]).fillna(self.na_fill)
+            cols = self.columns_ranked_by_shap() if ranked_by_shap else self.columns
+            df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
+            return df[self.columns]
         else:
             raise ValueError(f"len inputs {len(inputs)} should be the same length as either "
                 f"explainer.columns_cats ({len(self.columns_cats)}) or "
@@ -2115,7 +2120,7 @@ class ClassifierExplainer(BaseExplainer):
         return self.idxs.get_loc(idx)
 
     def prediction_result_df(self, index, add_star=True, logodds=False, round=3):
-        """returns a tab le with the predicted probability for each label for index
+        """returns a table with the predicted probability for each label for index
 
         Args:
             index ({int, str}): index
