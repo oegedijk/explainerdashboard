@@ -121,6 +121,14 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                 ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
+                    dbc.Col([
+                        make_hideable(
+                            dbc.Col([
+                                self.selector.layout()
+                            ], md=2), hide=self.hide_selector),
+                    ])
+                ]),
+                dbc.Row([
                     make_hideable(
                         dbc.Col([
                             dcc.Dropdown(id='random-index-clas-index-'+self.name,
@@ -148,6 +156,25 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                 multi=True,
                                 value=self.labels),
                         ], md=8), hide=self.hide_labels),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                            dbc.Label("Range:", html_for='random-index-clas-pred-or-perc-'+self.name),
+                            dbc.Select(
+                                id='random-index-clas-pred-or-perc-'+self.name,
+                                options=[
+                                    {'label': 'probability', 'value': 'predictions'},
+                                    {'label': 'percentile', 'value': 'percentiles'},
+                                ],
+                                value=self.pred_or_perc)
+                            ], id='random-index-clas-pred-or-perc-div-'+self.name),
+                            dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
+                                        "you can also select from a range of predicted percentiles. "
+                                        "For example if you set the slider to percentile (0.9-1.0) you would"
+                                        f" only sample random {self.explainer.index_name} from the top "
+                                        "10% highest predicted probabilities.",
+                                    target='random-index-clas-pred-or-perc-div-'+self.name),
+                        ], md=4), hide=self.hide_pred_or_perc),
                 ]),
                 dbc.Row([
                     make_hideable(
@@ -155,7 +182,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                             html.Div([
                                 dbc.Label(id='random-index-clas-slider-label-'+self.name,
                                     children="Predicted probability range:",
-                                    html_for='prediction-range-slider-'+self.name,),
+                                    html_for='prediction-range-slider-'+self.name),
                                 dbc.Tooltip(f"Only select a random {self.explainer.index_name} where the "
                                             "predicted probability of positive label is in the following range:",
                                             id='random-index-clas-slider-label-tooltip-'+self.name,
@@ -168,30 +195,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                             0.8:'0.8', 1.0:'1.0'},
                                     tooltip = {'always_visible' : False})
                             ], style={'margin-bottom':25})
-                        ], md=5), hide=self.hide_slider),
-                    make_hideable(
-                        dbc.Col([
-                            html.Div([
-                            dbc.RadioItems(
-                                id='random-index-clas-pred-or-perc-'+self.name,
-                                options=[
-                                    {'label': 'Use predicted probability', 'value': 'predictions'},
-                                    {'label': 'Use predicted percentile', 'value': 'percentiles'},
-                                ],
-                                value=self.pred_or_perc,
-                                inline=True)
-                            ], id='random-index-clas-pred-or-perc-div-'+self.name),
-                            dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
-                                        "you can also select from a range of predicted percentiles. "
-                                        "For example if you set the slider to percentile (0.9-1.0) you would"
-                                        f" only sample random {self.explainer.index_name} from the top "
-                                        "10% highest predicted probabilities.",
-                                    target='random-index-clas-pred-or-perc-div-'+self.name),
-                        ], md=4, align="center"), hide=self.hide_pred_or_perc),
-                    make_hideable(
-                        dbc.Col([
-                            self.selector.layout()
-                        ], md=3), hide=self.hide_selector),
+                        ]), hide=self.hide_slider),
                 ], justify="start"),
             ]),
         ])
@@ -244,8 +248,9 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 class ClassifierPredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False,  hide_subtitle=False,
-                    hide_table=False, 
-                    hide_piechart=False, hide_selector=False,
+                    hide_table=False, hide_piechart=False, 
+                    hide_star_explanation=False, hide_selector=False,
+                    feature_input_component=None,
                     pos_label=None, index=None,  round=3, description=None, 
                     **kwargs):
         """Shows a summary for a particular prediction
@@ -263,8 +268,13 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_table (bool, optional): hide the results table
             hide_piechart (bool, optional): hide the results piechart
+            hide_star_explanation (bool, optional): hide the `* indicates..`
+                Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                 Defaults to False.
+            feature_input_component (FeatureInputComponent): A FeatureInputComponent
+                that will give the input to the graph instead of the index selector.
+                If not None, hide_index=True. Defaults to None.
             pos_label ({int, str}, optional): initial pos label. 
                 Defaults to explainer.pos_label
             index ({int, str}, optional): Index to display prediction summary 
@@ -278,6 +288,9 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
 
         self.index_name = 'clas-prediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+
+        if self.feature_input_component is not None:
+            self.hide_index = True
 
         if self.description is None: self.description = f"""
         Shows the predicted probability for each {self.explainer.target} label.
@@ -310,7 +323,9 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             html.Div(id='clas-prediction-div-'+self.name), 
-                            html.Div("* indicates observed label") if not self.explainer.y_missing else None
+                            make_hideable(
+                                html.Div("* indicates observed label") if not self.explainer.y_missing else None,
+                                hide=self.hide_star_explanation),
                         ]), hide=self.hide_table),
                     make_hideable(
                         dbc.Col([
@@ -322,16 +337,39 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
         ])
 
     def component_callbacks(self, app):
-        @app.callback(
-            [Output('clas-prediction-div-'+self.name, 'children'),
-             Output('clas-prediction-graph-'+self.name, 'figure')],
-            [Input('clas-prediction-index-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')])
-        def update_output_div(index, pos_label):
-            if index is not None:
-                fig = self.explainer.plot_prediction_result(index, showlegend=False)
+        if self.feature_input_component is None:
+            @app.callback(
+                [Output('clas-prediction-div-'+self.name, 'children'),
+                Output('clas-prediction-graph-'+self.name, 'figure')],
+                [Input('clas-prediction-index-'+self.name, 'value'),
+                Input('pos-label-'+self.name, 'value')])
+            def update_output_div(index, pos_label):
+                if index is not None:
+                    fig = self.explainer.plot_prediction_result(index, showlegend=False)
 
-                preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
+                    preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
+                    preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
+                    preds_df.probability = preds_df.probability + ' %'
+                    preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+                    
+                    if self.explainer.model_output!='logodds':
+                        preds_df = preds_df[['label', 'probability']]
+                        
+                    preds_table = dbc.Table.from_dataframe(preds_df, 
+                                        striped=False, bordered=False, hover=False)  
+                    return preds_table, fig
+                raise PreventUpdate
+        else:
+            @app.callback(
+                [Output('clas-prediction-div-'+self.name, 'children'),
+                Output('clas-prediction-graph-'+self.name, 'figure')],
+                [Input('pos-label-'+self.name, 'value'),
+                 *self.feature_input_component._feature_callback_inputs])
+            def update_output_div(pos_label, *inputs):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                fig = self.explainer.plot_prediction_result(X_row=X_row, showlegend=False)
+
+                preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round, logodds=True)                
                 preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
                 preds_df.probability = preds_df.probability + ' %'
                 preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
@@ -342,7 +380,6 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 preds_table = dbc.Table.from_dataframe(preds_df, 
                                     striped=False, bordered=False, hover=False)  
                 return preds_table, fig
-            raise PreventUpdate
 
 
 class PrecisionComponent(ExplainerComponent):
@@ -483,17 +520,17 @@ class PrecisionComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             dbc.Label('Binning Method:', html_for='precision-binsize-or-quantiles-'+self.name),
-                            dbc.RadioItems(
+                            dbc.Select(
                                 id='precision-binsize-or-quantiles-'+self.name,
                                 options=[
-                                    {'label': 'Bin Size', 
+                                    {'label': 'Bins', 
                                     'value': 'bin_size'},
                                     {'label': 'Quantiles', 
                                     'value': 'quantiles'}
                                 ],
                                 value=self.quantiles_or_binsize,
-                                inline=True),
-                            dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bin size),"
+                                ),
+                            dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bins),"
                                         " or bins with the same number of observations (counts) in each bin: quantiles",
                                         target='precision-binsize-or-quantiles-'+self.name),     
                         ], width=4), hide=self.hide_binmethod),

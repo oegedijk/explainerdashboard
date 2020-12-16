@@ -192,7 +192,7 @@ class ImportancesComponent(ExplainerComponent):
                         dbc.Col([
                             dbc.FormGroup([
                                 dbc.Label("Importances type:"),
-                                dbc.RadioItems(
+                                dbc.Select(
                                     options=[
                                         {'label': 'Permutation Importances', 
                                         'value': 'permutation'},
@@ -201,7 +201,7 @@ class ImportancesComponent(ExplainerComponent):
                                     ],
                                     value=self.importance_type,
                                     id='importances-permutation-or-shap-'+self.name,
-                                    inline=True,
+                                    #inline=True,
                                 ),
                                 
                             ], id='importances-permutation-or-shap-form-'+self.name),
@@ -209,16 +209,16 @@ class ImportancesComponent(ExplainerComponent):
                                     "Permutation Importance: How much does performance metric decrease when shuffling this feature?\n"
                                     "SHAP values: What is the average SHAP contribution (positive or negative) of this feature?",
                                     target='importances-permutation-or-shap-form-'+self.name),
-                        ]), self.hide_type),
+                        ], md=3), self.hide_type),
                     make_hideable(
                         dbc.Col([
                             html.Label('Depth:', id='importances-depth-label-'+self.name),
-                            dcc.Dropdown(id='importances-depth-'+self.name,
-                                                options = [{'label': str(i+1), 'value':i+1} 
-                                                            for i in range(self.explainer.n_features(self.cats))],
-                                                value=self.depth),
+                            dbc.Select(id='importances-depth-'+self.name,
+                                        options = [{'label': str(i+1), 'value':i+1} 
+                                                    for i in range(self.explainer.n_features(self.cats))],
+                                        value=self.depth),
                             dbc.Tooltip("Select how many features to display", target='importances-depth-label-'+self.name)
-                        ], md=3), self.hide_depth),
+                        ], md=2), self.hide_depth),
                     make_hideable(
                         dbc.Col([
                             dbc.FormGroup([
@@ -252,16 +252,25 @@ class ImportancesComponent(ExplainerComponent):
         
     def component_callbacks(self, app, **kwargs):
         @app.callback(  
-            Output('importances-graph-'+self.name, 'figure'),
+            [Output('importances-graph-'+self.name, 'figure'),
+             Output('importances-depth-'+self.name, 'options')],
             [Input('importances-depth-'+self.name, 'value'),
              Input('importances-group-cats-'+self.name, 'value'),
              Input('importances-permutation-or-shap-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
         def update_importances(depth, cats, permutation_shap, pos_label):
-            return self.explainer.plot_importances(
+            depth = None if depth is None else int(depth)
+            plot =  self.explainer.plot_importances(
                         kind=permutation_shap, topx=depth, 
                         cats=bool(cats), pos_label=pos_label)
+            trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+            if trigger == 'importances-group-cats-'+self.name:
+                depth_options = [{'label': str(i+1), 'value': i+1} 
+                                        for i in range(self.explainer.n_features(bool(cats)))]
+                return (plot, depth_options)
+            else:
+                return (plot, dash.no_update)
 
 
 class PdpComponent(ExplainerComponent):
@@ -356,7 +365,7 @@ class PdpComponent(ExplainerComponent):
                                         html_for='pdp-col'+self.name, id='pdp-col-label-'+self.name),
                                 dbc.Tooltip("Select the feature for which you want to see the partial dependence plot", 
                                             target='pdp-col-label-'+self.name),
-                                dcc.Dropdown(id='pdp-col-'+self.name,       
+                                dbc.Select(id='pdp-col-'+self.name,       
                                     options=[{'label': col, 'value':col} 
                                                 for col in self.explainer.columns_ranked_by_shap(self.cats)],
                                     value=self.col),
@@ -562,6 +571,8 @@ class FeatureInputComponent(ExplainerComponent):
         
     def get_slices(self, n_inputs, n_cols=2):
         """returns a list of slices to divide n inputs into n_cols columns"""
+        if n_inputs < n_cols:
+            n_cols = n_inputs
         rows_per_col = ceil(n_inputs / n_cols)
         slices = []
         for col in range(n_cols):

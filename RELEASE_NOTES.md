@@ -1,20 +1,25 @@
 # Release Notes
 ## Version 0.2.16:
 ### Breaking Changes
-- 
+- `hide_whatifcontribution` parameter now called `hide_whatifcontributiongraph`
 - 
 
 ### New Features
 - added parameter `n_input_cols` to FeatureInputComponent to select in how many columns to split the inputs
--
+- Made PredictionSummaryComponent and ShapContributionTableComponent also work
+    with InputFeatureComponent
+- added a PredictionSummaryuComponent and ShapContributionTableComponent
+    to the "what if" tab
 
 ### Bug Fixes
 -
 -
 
 ### Improvements
-- features of FeatureInputComponent are now order by mean shap importance
+- features of `FeatureInputComponent` are now ordered by mean shap importance
 - Added range indicator for numerical features in FeatureInputComponent
+    - hide them `hide_range=True`
+- changed a number of dropdowns from `dcc.Dropdown` to `dbc.Select`
 
 ### Other Changes
 -

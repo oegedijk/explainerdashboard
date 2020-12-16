@@ -59,6 +59,7 @@
         - generate groups programmatically!
 
 ### Components
+- change depth option on ImportanceComponent when toggling cats
 - add feature_input_component option the ShapContributionsTable and PredictionSummaryComponent
 - Make prediction summary work with FeatureInputComponent
 - add querystring method to ExplainerComponents
@@ -89,10 +90,9 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add new whatif parameters to README and docs
 - add section to README on storing and loading explainer/dashboard from file/config
-- document hiding components in composites
 - retake screenshots of components as cards
-- rerecord gifs
 - Add type hints:
     - to explainers
     - to explainer class methods

@@ -218,11 +218,11 @@ class RegressionModelStatsComposite(ExplainerComponent):
             dbc.CardDeck([
                 make_hideable(self.modelsummary.layout(), hide=self.hide_modelsummary),
                 make_hideable(self.preds_vs_actual.layout(), hide=self.hide_predsvsactual),
-            ], style=dict(marginBottom=25)),
+            ], style=dict(margin=25)),
             dbc.CardDeck([
                 make_hideable(self.residuals.layout(), hide=self.hide_residuals),
                 make_hideable(self.reg_vs_col.layout(), hide=self.hide_regvscol),
-            ], style=dict(marginBottom=25))
+            ], style=dict(margin=25))
         ])
 
 
@@ -307,8 +307,10 @@ class IndividualPredictionsComposite(ExplainerComponent):
 class WhatIfComposite(ExplainerComponent):
     def __init__(self, explainer, title="What if...", name=None,
                         hide_whatifindexselector=False, hide_inputeditor=False,
-                        hide_whatifcontribution=False, hide_whatifpdp=False,
-                        hide_title=True, hide_selector=True, **kwargs):
+                        hide_whatifprediction=False, hide_whatifcontributiongraph=False, 
+                        hide_whatifpdp=False, hide_whatifcontributiontable=False,
+                        hide_title=True, hide_selector=True, 
+                        n_input_cols=4, **kwargs):
         """Composite for the whatif component:
 
         Args:
@@ -324,24 +326,43 @@ class WhatIfComposite(ExplainerComponent):
             hide_whatifindexselector (bool, optional): hide ClassifierRandomIndexComponent
                 or RegressionRandomIndexComponent
             hide_inputeditor (bool, optional): hide FeatureInputComponent
-            hide_whatifcontribution (bool, optional): hide ShapContributionsGraphComponent
+            hide_whatifprediction (bool, optional): hide PredictionSummaryComponent
+            hide_whatifcontributiongraph (bool, optional): hide ShapContributionsGraphComponent
+            hide_whatifcontributiontable (bool, optional): hide ShapContributionsTableComponent
             hide_whatifpdp (bool, optional): hide PdpComponent
+            n_input_cols (int, optional): number of columns to divide the feature inputs into.
+                Defaults to 4. 
         """
         super().__init__(explainer, title, name)
+        
+        if 'hide_whatifcontribution' in kwargs:
+            print("Warning: hide_whatifcontribution will be deprecated, use hide_whatifcontributiongraph instead!")
+            self.hide_whatifcontributiongraph = kwargs['hide_whatifcontribution']
 
+        self.input = FeatureInputComponent(explainer, 
+                        hide_selector=hide_selector, n_input_cols=self.n_input_cols,
+                        **update_params(kwargs, hide_index=True))
+        
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(explainer, 
                         hide_selector=hide_selector, **kwargs)
+            self.prediction = ClassifierPredictionSummaryComponent(explainer, 
+                        feature_input_component=self.input,
+                        hide_star_explanation=True,
+                        hide_selector=hide_selector, **kwargs)
         elif self.explainer.is_regression:
             self.index = RegressionRandomIndexComponent(explainer, **kwargs)
-
-        self.input = FeatureInputComponent(explainer, 
-                        hide_selector=hide_selector, 
-                        **update_params(kwargs, hide_index=True))
+            self.prediction = RegressionPredictionSummaryComponent(explainer, 
+                        feature_input_component=self.input, **kwargs)
         
-        self.contrib = ShapContributionsGraphComponent(explainer, 
+        
+        self.contribgraph = ShapContributionsGraphComponent(explainer, 
                         feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)
+        self.contribtable = ShapContributionsTableComponent(explainer, 
+                        feature_input_component=self.input,
+                        hide_selector=hide_selector, **kwargs)
+        
         self.pdp = PdpComponent(explainer, feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)
 
@@ -358,19 +379,29 @@ class WhatIfComposite(ExplainerComponent):
                         ]), hide=self.hide_title),
                 ]),
                 dbc.Row([
-                    dbc.Col([
-                        make_hideable(self.index.layout(), hide=self.hide_whatifindexselector),
-                    ]),
-                ], style=dict(marginBottom=15, marginTop=15)),
-                dbc.Row([
-                    dbc.Col([
-                        make_hideable(self.input.layout(), hide=self.hide_inputeditor),
-                    ]),
+                    make_hideable(
+                        dbc.Col([
+                            self.index.layout(), 
+                        ], md=7), hide=self.hide_whatifindexselector),
+                    make_hideable(
+                        dbc.Col([
+                            self.prediction.layout(),
+                        ], md=5), hide=self.hide_whatifprediction),
                 ], style=dict(marginBottom=15, marginTop=15)),
                 dbc.CardDeck([
-                    make_hideable(self.contrib.layout(), hide=self.hide_whatifcontribution),
+                    make_hideable(self.input.layout(), hide=self.hide_inputeditor),
+                ], style=dict(marginBottom=15, marginTop=15)),
+                dbc.CardDeck([
+                    make_hideable(self.contribgraph.layout(), hide=self.hide_whatifcontributiongraph),
                     make_hideable(self.pdp.layout(), hide=self.hide_whatifpdp),
-                ]),
+                ], style=dict(marginBottom=15, marginTop=15)),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.contribtable.layout()
+                        ], md=6), hide=self.hide_whatifcontributiontable),
+                    dbc.Col([], md=6),
+                ])
         ], fluid=True)
 
 
