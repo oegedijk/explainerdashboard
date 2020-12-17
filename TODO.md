@@ -2,7 +2,6 @@
 # TODO:
 
 ## Bugs:
-- ContributionTable with logodds multiplies by 100!
 - dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
 
 ## Layout:
@@ -25,6 +24,7 @@
 
 ### Classifier plots:
 - add wizard to lift curve
+
 - pdp: add multiclass option
     - no icelines to keep it from getting too busy?
 
@@ -45,10 +45,11 @@
 
 
 ## Dashboard:
-
 - add waitress to run options
+- add SimpleClassifierDashboard
+- add SimpleRegressionDashboard
+
 - use bootstrap tabs for better theming (especially with dark themes)?
-- organize explainer components according to tab
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -60,17 +61,16 @@
 
 ### Components
 - add show points to categorical shap dependence
-- change depth option on ImportanceComponent when toggling cats
-- add feature_input_component option the ShapContributionsTable and PredictionSummaryComponent
-- Make prediction summary work with FeatureInputComponent
+- Add side-by-side option to cutoff selector component
+
+
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - set equivalent_col when toggling cats in dependence/interactions
-- Add side-by-side option to cutoff selector component
+
 - add width/height to components
 - whatif:
-    - add n_columns option to FeatureInputComponent
     - Add a constraints function to whatif component:
         - tests if current feature input is allowed
         - gives specific feedback when constraint broken
@@ -93,6 +93,7 @@
 ## Docs:
 - add new whatif parameters to README and docs
 - add section to README on storing and loading explainer/dashboard from file/config
+
 - retake screenshots of components as cards
 - Add type hints:
     - to explainers

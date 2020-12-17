@@ -31,7 +31,7 @@ from .dashboard_tabs import *
 from .explainers import BaseExplainer
 
 
-def instantiate_component(component, explainer, **kwargs):
+def instantiate_component(component, explainer, name=None, **kwargs):
     """Returns an instantiated ExplainerComponent.
     If the component input is just a class definition, instantiate it with
     explainer and k**wargs.
@@ -53,17 +53,25 @@ def instantiate_component(component, explainer, **kwargs):
     """
 
     if inspect.isclass(component) and issubclass(component, ExplainerComponent):
-        return component(explainer,  **kwargs)
+        
+        if name is not None:
+            component = component(explainer, name=name, **kwargs)
+        else:
+            component = component(explainer, **kwargs)
+        return component
     elif isinstance(component, ExplainerComponent):
+        if name is not None:
+            component.name = name
         return component
     elif (not inspect.isclass(component)
           and hasattr(component, "layout")):
         if not (hasattr(component, "name") and isinstance(component.name, str)):
-            component_name = shortuuid.ShortUUID().random(length=10)
-            print(f"Warning: setting {component}.name to {component_name}")
-            component.name = component_name
+            if name is None:
+                name = shortuuid.ShortUUID().random(length=5)
+            print(f"Warning: setting {component}.name to {name}")
+            component.name = name
         if not hasattr(component, "title"):
-            print(f"Warning: setting {component}.title to 'CustomTab'")
+            print(f"Warning: setting {component}.title to 'Custom'")
             component.title = "Custom"
         return component
     else:
@@ -108,8 +116,8 @@ class ExplainerTabsLayout:
             self.header_hide_selector = True
         self.fluid = fluid
         
-        self.selector = PosLabelSelector(explainer, pos_label=pos_label)
-        self.tabs  = [instantiate_component(tab, explainer, **kwargs) for tab in tabs]
+        self.selector = PosLabelSelector(explainer, name="0", pos_label=pos_label)
+        self.tabs  = [instantiate_component(tab, explainer, name=str(i+1), **kwargs) for i, tab in enumerate(tabs)]
         assert len(self.tabs) > 0, 'When passing a list to tabs, need to pass at least one valid tab!'
 
         self.connector = PosLabelConnector(self.selector, self.tabs)
@@ -196,8 +204,9 @@ class ExplainerPageLayout(ExplainerComponent):
             self.header_hide_selector = True
         self.fluid = fluid
         
-        self.selector = PosLabelSelector(explainer, pos_label=pos_label)
-        self.page  = instantiate_component(component, explainer, **kwargs) 
+        self.selector = PosLabelSelector(explainer, name="0", pos_label=pos_label)
+        self.page  = instantiate_component(component, explainer, name="1", **kwargs) 
+        print(self.page.name, flush=True)
         self.connector = PosLabelConnector(self.selector, self.page)
         
         self.fluid = fluid
@@ -236,7 +245,7 @@ class ExplainerPageLayout(ExplainerComponent):
         try:
             self.page.calculate_dependencies()
         except AttributeError:
-            print(f"Warning: {self.page} does not have a calculate_dependencies method!")
+            print(f"Warning: {self.page} does not have a calculate_dependencies method!", flush=True)
 
 
 class ExplainerDashboard:
