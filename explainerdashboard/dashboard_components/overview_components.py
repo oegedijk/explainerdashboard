@@ -415,6 +415,7 @@ class PdpComponent(ExplainerComponent):
                         make_hideable(
                             dbc.Col([
                                 dbc.FormGroup([
+                                    dbc.Label("Drop fill:"),
                                     dbc.Tooltip("Drop all observations with feature values "
                                             f"equal to {self.explainer.na_fill} from the plot. "
                                             "This prevents the filler values from ruining the x-axis.", 
@@ -430,7 +431,7 @@ class PdpComponent(ExplainerComponent):
                             ]), hide=self.hide_dropna),
                         make_hideable(
                             dbc.Col([ 
-                                dbc.Label("pdp sample size", id='pdp-sample-label-'+self.name ),
+                                dbc.Label("Pdp sample size:", id='pdp-sample-label-'+self.name ),
                                 dbc.Tooltip("Number of observations to use to calculate average partial dependence", 
                                             target='pdp-sample-label-'+self.name ),
                                 dbc.Input(id='pdp-sample-'+self.name, value=self.sample,
@@ -438,7 +439,7 @@ class PdpComponent(ExplainerComponent):
                             ]), hide=self.hide_sample),  
                         make_hideable(   
                             dbc.Col([ #gridlines
-                                dbc.Label("gridlines", id='pdp-gridlines-label-'+self.name ),
+                                dbc.Label("Gridlines:", id='pdp-gridlines-label-'+self.name ),
                                 dbc.Tooltip("Number of individual observations' partial dependences to show in plot", 
                                             target='pdp-gridlines-label-'+self.name),
                                 dbc.Input(id='pdp-gridlines-'+self.name, value=self.gridlines,
@@ -446,7 +447,7 @@ class PdpComponent(ExplainerComponent):
                             ]), hide=self.hide_gridlines),
                         make_hideable(
                             dbc.Col([ #gridpoints
-                                dbc.Label("gridpoints", id='pdp-gridpoints-label-'+self.name ),
+                                dbc.Label("Gridpoints:", id='pdp-gridpoints-label-'+self.name ),
                                 dbc.Tooltip("Number of points to sample the feature axis for predictions."
                                             " The higher, the smoother the curve, but takes longer to calculate", 
                                             target='pdp-gridpoints-label-'+self.name ),

@@ -1081,6 +1081,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
                         Defaults to explainer.pos_label
             index ([type], optional): Initial index to display. Defaults to None.
             depth ([type], optional): Initial number of features to display. Defaults to None.
+            sort ({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sorting of shap values. 
+                        Defaults to 'high-to-low'.
             cats (bool, optional): Group categoricals. Defaults to True.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
@@ -1151,7 +1153,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Select(id='contributions-table-sorting-'+self.name, 
                                 options = [{'label': 'Absolute', 'value': 'abs'},
                                             {'label': 'High to Low', 'value': 'high-to-low'},
-                                            {'label': 'Low to High', 'value': 'low-to-high'}],
+                                            {'label': 'Low to High', 'value': 'low-to-high'},
+                                            {'label': 'Importance', 'value': 'importance'}],
                                 value=self.sort)
                         ], md=2), hide=self.hide_sort),
                     make_hideable(
