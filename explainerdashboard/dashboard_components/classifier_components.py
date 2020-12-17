@@ -290,6 +290,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
         if self.feature_input_component is not None:
+            self.exclude_callbacks(self.feature_input_component)
             self.hide_index = True
 
         if self.description is None: self.description = f"""

@@ -60,6 +60,7 @@
         - generate groups programmatically!
 
 ### Components
+- automatically call register_components()
 - add show points to categorical shap dependence
 - Add side-by-side option to cutoff selector component
 
@@ -91,6 +92,7 @@
 - write tests for explainer_plots
 
 ## Docs:
+- document register_components no longer necessary
 - add new whatif parameters to README and docs
 - add section to README on storing and loading explainer/dashboard from file/config
 

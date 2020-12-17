@@ -53,15 +53,9 @@ def instantiate_component(component, explainer, name=None, **kwargs):
     """
 
     if inspect.isclass(component) and issubclass(component, ExplainerComponent):
-        
-        if name is not None:
-            component = component(explainer, name=name, **kwargs)
-        else:
-            component = component(explainer, **kwargs)
+        component = component(explainer, name=name, **kwargs)
         return component
     elif isinstance(component, ExplainerComponent):
-        if name is not None:
-            component.name = name
         return component
     elif (not inspect.isclass(component)
           and hasattr(component, "layout")):
@@ -134,7 +128,7 @@ class ExplainerTabsLayout:
                     dbc.Col([
                         self.selector.layout()
                     ], md=3), hide=self.header_hide_selector),
-            ], justify="start"),
+            ], justify="start", style=dict(marginBottom=10)),
             dcc.Tabs(id="tabs", value=self.tabs[0].name, 
                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
                                         children=tab.layout()) for tab in self.tabs]),
@@ -662,26 +656,32 @@ class ExplainerDashboard:
         if yamltabs is None:
             return None
 
-        def instantiate_tab(tab, explainer):
+        def instantiate_tab(tab, explainer, name=None):
             if isinstance(tab, str):
                 return tab
             elif isinstance(tab, dict):
+                print(tab)
                 if 'component_imports' in tab and tab['component_imports'] is not None:
-                    for name, module in tab['component_imports'].items():
-                        if name not in globals():
-                            import_module(module, name)
+                    for class_name, module_name in tab['component_imports'].items():
+                        if class_name not in globals():
+                            import_module(class_module, class_name)
                 tab_class = getattr(import_module(tab['module']), tab['name'])
-                if not tab['params']: tab['params'] = {}
-                tab_instance = tab_class(explainer, **tab['params'] )
-                return tab_instance
+                if tab['params'] is None:
+                    return tab_class
+                else:
+                    if not 'name' in tab['params'] or tab['params']['name'] is None:
+                        tab['params']['name'] = name
+                    tab_instance = tab_class(explainer, **tab['params'])
+                    return tab_instance
             else:
                 raise ValueError("yaml tab should be either string, e.g. 'importances', "
                         "or a dict(name=..,module=..,params=...)")
         
         if not hasattr(yamltabs, "__iter__"):
-            return instantiate_tab(yamltabs, explainer) 
-        
-        return [instantiate_tab(tab, explainer)  for tab in yamltabs]
+            return instantiate_tab(yamltabs, explainer, name="1") 
+        tabs = [instantiate_tab(tab, explainer, name=str(i+1))  for i, tab in enumerate(yamltabs)]
+        print(tabs)
+        return tabs
 
 
     def _get_dash_app(self):

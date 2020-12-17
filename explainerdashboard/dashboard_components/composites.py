@@ -46,7 +46,6 @@ class ImportancesComposite(ExplainerComponent):
 
         self.importances = ImportancesComponent(
                 explainer, name=self.name+"0", hide_selector=hide_selector, **kwargs)
-        self.register_components()
 
     def layout(self):
         return html.Div([
@@ -126,8 +125,6 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                 [self.summary, self.precision, self.confusionmatrix, self.liftcurve, 
                  self.cumulative_precision, self.classification, self.rocauc, self.prauc])
 
-        self.register_components()
-
     def layout(self):
         return html.Div([
             dbc.Row([
@@ -140,7 +137,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                     dbc.Col([
                         self.cutoffpercentile.layout(),
                     ]), hide=self.hide_globalcutoff),
-            ], style=dict(marginBottom=25)),
+            ], style=dict(marginTop=25, marginBottom=25)),
             dbc.CardDeck([
                 make_hideable(self.summary.layout(), hide=self.hide_modelsummary),
                 make_hideable(self.confusionmatrix.layout(), hide=self.hide_confusionmatrix),
@@ -206,8 +203,6 @@ class RegressionModelStatsComposite(ExplainerComponent):
                     pred_or_actual=pred_or_actual, residuals=residuals, **kwargs)
         self.reg_vs_col = RegressionVsColComponent(explainer, name=self.name+"2",
                     logs=logs, **kwargs)
-
-        self.register_components()
 
     def layout(self):
         return html.Div([
@@ -281,8 +276,6 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
         self.index_connector = IndexConnector(self.index, 
                 [self.summary, self.contributions, self.pdp, self.contributions_list])
-
-        self.register_components()
 
     def layout(self):
         return dbc.Container([
@@ -372,8 +365,6 @@ class WhatIfComposite(ExplainerComponent):
 
         self.index_connector = IndexConnector(self.index, [self.input])
 
-        self.register_components()
-
     def layout(self):
         return dbc.Container([
                 dbc.Row([
@@ -442,7 +433,6 @@ class ShapDependenceComposite(ExplainerComponent):
                     )
         self.connector = ShapSummaryDependenceConnector(
                     self.shap_summary, self.shap_dependence)
-        self.register_components()
 
     def layout(self):
         return dbc.Container([
@@ -481,7 +471,6 @@ class ShapInteractionsComposite(ExplainerComponent):
                 hide_selector=hide_selector, cats=cats, **update_params(kwargs, hide_cats=True))
         self.connector = InteractionSummaryDependenceConnector(
             self.interaction_summary, self.interaction_dependence)
-        self.register_components()
         
     def layout(self):
         return dbc.Container([
@@ -540,8 +529,6 @@ class DecisionTreesComposite(ExplainerComponent):
             [self.trees, self.decisionpath_table, self.decisionpath_graph])
         self.highlight_connector = HighlightConnector(self.trees, 
             [self.decisionpath_table, self.decisionpath_graph])
-
-        self.register_components()
         
     def layout(self):
         if isinstance(self.explainer, XGBExplainer):

@@ -2,11 +2,12 @@
 
 ## Version 0.2.16.1:
 
-
-### Improvements
-- Makes component `name` property deterministic instead of random uuid. 
-    This should remedy deployment issues with e.g. docker swarm.
--
+### Bug fix/Improvement
+- Makes component `name` property for the default composites deterministic instead of random uuid. 
+    This should help remedy bugs with deployment using e.g. docker swarm.
+    - When you pass a list of `ExplainerComponents` to ExplainerDashboard the tabs will get names `'1'`, `'2'`, `'3'`, etc.
+    - If you then make sure that subcomponents get passed a name like `name=self.name+"1"`, then subcomponents will have deterministic names as well.
+    - this has been implemented for the default `Composites` that make up the default `explainerdashboard`   
 
 ## Version 0.2.16:
 ### Breaking Changes
