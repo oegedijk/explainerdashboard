@@ -59,6 +59,7 @@
         - generate groups programmatically!
 
 ### Components
+- add show points to categorical shap dependence
 - change depth option on ImportanceComponent when toggling cats
 - add feature_input_component option the ShapContributionsTable and PredictionSummaryComponent
 - Make prediction summary work with FeatureInputComponent

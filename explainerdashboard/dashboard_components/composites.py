@@ -310,7 +310,7 @@ class WhatIfComposite(ExplainerComponent):
                         hide_whatifprediction=False, hide_whatifcontributiongraph=False, 
                         hide_whatifpdp=False, hide_whatifcontributiontable=False,
                         hide_title=True, hide_selector=True, 
-                        n_input_cols=4, **kwargs):
+                        n_input_cols=4, sort='importance', **kwargs):
         """Composite for the whatif component:
 
         Args:
@@ -332,6 +332,8 @@ class WhatIfComposite(ExplainerComponent):
             hide_whatifpdp (bool, optional): hide PdpComponent
             n_input_cols (int, optional): number of columns to divide the feature inputs into.
                 Defaults to 4. 
+            sort ({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sorting of shap values. 
+                        Defaults to 'importance'.
         """
         super().__init__(explainer, title, name)
         
@@ -358,10 +360,10 @@ class WhatIfComposite(ExplainerComponent):
         
         self.contribgraph = ShapContributionsGraphComponent(explainer, 
                         feature_input_component=self.input,
-                        hide_selector=hide_selector, **kwargs)
+                        hide_selector=hide_selector, sort=sort, **kwargs)
         self.contribtable = ShapContributionsTableComponent(explainer, 
                         feature_input_component=self.input,
-                        hide_selector=hide_selector, **kwargs)
+                        hide_selector=hide_selector, sort=sort, **kwargs)
         
         self.pdp = PdpComponent(explainer, feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)

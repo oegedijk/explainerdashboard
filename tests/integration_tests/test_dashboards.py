@@ -12,7 +12,6 @@ from explainerdashboard.dashboards import ExplainerDashboard
 
 def get_classification_explainer(xgboost=False, include_y=True):
     X_train, y_train, X_test, y_test = titanic_survive()
-    train_names, test_names = titanic_names()
     if xgboost:
         model = XGBClassifier().fit(X_train, y_train)
     else:
@@ -20,12 +19,12 @@ def get_classification_explainer(xgboost=False, include_y=True):
     if include_y:
         explainer = ClassifierExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=['Sex', 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'])
     else:
         explainer = ClassifierExplainer(
                             model, X_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=['Sex', 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'])
 
     explainer.calculate_properties()

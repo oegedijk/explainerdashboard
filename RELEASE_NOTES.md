@@ -20,6 +20,8 @@
 - Added range indicator for numerical features in FeatureInputComponent
     - hide them `hide_range=True`
 - changed a number of dropdowns from `dcc.Dropdown` to `dbc.Select`
+- reordered the regression random index selector
+    component a bit
 
 ### Other Changes
 -
