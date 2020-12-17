@@ -176,7 +176,7 @@ class ExplainerComponent(ABC):
         self.title = title
         self.name = name
         if self.name is None:
-            self.name = shortuuid.ShortUUID().random(length=10)
+            self.name = shortuuid.ShortUUID().random(length=5)
 
         self._store_child_params(
                         no_attr=['explainer', 'title', 'name'], 
