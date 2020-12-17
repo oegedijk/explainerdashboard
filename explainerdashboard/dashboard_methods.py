@@ -172,15 +172,11 @@ class ExplainerComponent(ABC):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
-        self.explainer = explainer
-        self.title = title
-        self.name = name
+        self._store_child_params(no_param=['explainer'])
+
         if self.name is None:
             self.name = shortuuid.ShortUUID().random(length=5)
 
-        self._store_child_params(
-                        no_attr=['explainer', 'title', 'name'], 
-                        no_param=['explainer'])
         self._components = []
         self._dependencies = []
 
@@ -213,6 +209,15 @@ class ExplainerComponent(ABC):
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
 
+    def exclude_callbacks(self, *components):
+        """exclude certain subcomponents from the register_components scan
+        """
+        if not hasattr(self, '_exclude_components'):
+            self._exclude_components = []
+        for comp in components:
+            if isinstance(comp, ExplainerComponent) and comp not in self._exclude_components:
+                self._exclude_components.append(comp)
+
     def register_components(self, *components):
         """register subcomponents so that their callbacks will be registered
         and dependencies can be tracked
@@ -223,12 +228,18 @@ class ExplainerComponent(ABC):
         """
         if not hasattr(self, '_components'):
             self._components = []
+        if not hasattr(self, '_exclude_components'):
+            self._exclude_components = []
         for comp in components:
-            if isinstance(comp, ExplainerComponent):
+            if (isinstance(comp, ExplainerComponent) 
+                and comp not in self._components
+                and comp not in self._exclude_components):
                 self._components.append(comp)
             elif hasattr(comp, '__iter__'):
                 for subcomp in comp:
-                    if isinstance(subcomp, ExplainerComponent):
+                    if (isinstance(subcomp, ExplainerComponent) 
+                        and subcomp not in self._components
+                        and subcomp not in self._exclude_components):
                         self._components.append(subcomp)
                     else:
                         print(f"{subcomp.__name__} is not an ExplainerComponent so not adding to self.components")
@@ -236,7 +247,10 @@ class ExplainerComponent(ABC):
                 print(f"{comp.__name__} is not an ExplainerComponent so not adding to self.components")
         
         for k, v in self.__dict__.items():
-            if k != '_components' and isinstance(v, ExplainerComponent) and v not in self._components:
+            if (k != '_components' 
+                and isinstance(v, ExplainerComponent) 
+                and v not in self._components
+                and v not in self._exclude_components):
                 self._components.append(v)
 
     def has_pos_label_connector(self):
@@ -270,8 +284,7 @@ class ExplainerComponent(ABC):
         and all subcomponents"""
         if not hasattr(self, '_dependencies'):
             self._dependencies = []
-        if not hasattr(self, '_components'):
-            self._components = []
+        self.register_components()
         deps = self._dependencies
         for comp in self._components:
             deps.extend(comp.dependencies)
@@ -282,8 +295,7 @@ class ExplainerComponent(ABC):
     def component_imports(self):
         """returns a list of ComponentImport namedtuples("component", "module")
          all components and and subcomponents"""
-        if not hasattr(self, '_components'):
-            self._components = []
+        self.register_components()
         _component_imports = [(self.__class__.__name__, self.__class__.__module__)]
         for comp in self._components:
             _component_imports.extend(comp.component_imports)
@@ -295,11 +307,13 @@ class ExplainerComponent(ABC):
         """returns a list of unique pos label selector elements 
         of the component and all subcomponents"""
         
-        if not hasattr(self, '_components'):
-            self._components = []
+        self.register_components()
         pos_labels = []
-        if hasattr(self, 'selector') and isinstance(self.selector, PosLabelSelector):
-            pos_labels.append('pos-label-'+self.selector.name)
+        for k, v in self.__dict__.items():
+            if isinstance(v, PosLabelSelector) and v.name not in pos_labels:
+                pos_labels.append('pos-label-'+v.name)
+        # if hasattr(self, 'selector') and isinstance(self.selector, PosLabelSelector):
+        #     pos_labels.append('pos-label-'+self.selector.name)
         for comp in self._components:
             pos_labels.extend(comp.pos_labels)
         pos_labels = list(set(pos_labels))
@@ -332,8 +346,7 @@ class ExplainerComponent(ABC):
         """First register callbacks of all subcomponents, then call
         component_callbacks(app)
         """
-        if not hasattr(self, '_components'):
-            self._components = []
+        self.register_components()
         for comp in self._components:
             comp.register_callbacks(app)
         self.component_callbacks(app)
@@ -375,7 +388,9 @@ class PosLabelSelector(ExplainerComponent):
                         id='pos-label-'+self.name,
                         options = [{'label': label, 'value': i}
                                 for i, label in enumerate(self.explainer.labels)],
-                        value = self.pos_label)
+                        value = self.pos_label,
+                        clearable=False,
+                        )
             ])
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))

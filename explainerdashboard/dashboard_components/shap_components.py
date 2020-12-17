@@ -891,6 +891,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             self.hide_cats = True
         
         if self.feature_input_component is not None:
+            self.exclude_callbacks(self.feature_input_component)
             self.hide_index = True
 
         if self.description is None: self.description = """
@@ -1098,6 +1099,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
             self.hide_cats = True
 
         if self.feature_input_component is not None:
+            self.exclude_callbacks(self.feature_input_component)
             self.hide_index = True
 
         if self.description is None: self.description = """
