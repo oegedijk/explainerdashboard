@@ -142,7 +142,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                             dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
                                             target='random-index-clas-button-'+self.name),
                         ], md=4), hide=self.hide_button),
-                ], form=True),
+                ], form=True, style=dict(marginBottom=10)),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -175,7 +175,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                         "10% highest predicted probabilities.",
                                     target='random-index-clas-pred-or-perc-div-'+self.name),
                         ], md=4), hide=self.hide_pred_or_perc),
-                ]),
+                ], style=dict(marginBottom=10)),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -194,7 +194,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                     marks={0.0:'0.0', 0.2:'0.2', 0.4:'0.4', 0.6:'0.6', 
                                             0.8:'0.8', 1.0:'1.0'},
                                     tooltip = {'always_visible' : False})
-                            ], style={'margin-bottom':25})
+                            ])
                         ]), hide=self.hide_slider),
                 ], justify="start"),
             ]),
