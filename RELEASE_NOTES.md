@@ -1,4 +1,13 @@
 # Release Notes
+
+## Version 0.2.16.1:
+
+
+### Improvements
+- Makes component `name` property deterministic instead of random uuid. 
+    This should remedy deployment issues with e.g. docker swarm.
+-
+
 ## Version 0.2.16:
 ### Breaking Changes
 - `hide_whatifcontribution` parameter now called `hide_whatifcontributiongraph`
