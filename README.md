@@ -255,8 +255,9 @@ You can also hide individual components on the various tabs:
         hide_contributiongraph=True, hide_pdp=True, 
         hide_contributiontable=True,
         # whatif tab:
-        hide_whatifindexselector=True, hide_inputeditor=True, 
-        hide_whatifcontribution=True, hide_whatifpdp=True,
+        hide_whatifindexselector=True, hide_whatifprediction=True,
+        hide_inputeditor=True, hide_whatifcontributiongraph=True, 
+        hide_whatifcontributiontable=True, hide_whatifpdp=True,
         # shap dependence tab:
         hide_shapsummary=True, hide_shapdependence=True,
         # shap interactions tab:
@@ -292,6 +293,8 @@ ExplainerDashboard(explainer,
                     hide_ratio=True, # hide the residuals type dropdown
                     hide_points=True, # hide the show violin scatter markers toggle
                     hide_winsor=True, # hide the winsorize input
+                    hide_range=True, # hide the range subscript on feature input
+                    hide_star_explanation=True, # hide the '* indicates observed label` text
 )
 ```
 
@@ -304,6 +307,7 @@ Some examples of useful parameters to pass:
 ```python
 ExplainerDashboard(explainer, 
                     higher_is_better=False, # flip green and red in contributions graph
+                    n_input_cols=3, # divide feature inputs into 3 columns on what if tab
                     col='Fare', # initial feature in shap graphs
                     color_col='Age', # color feature in shap dependence graph
                     interact_col='Age', # interaction feature in shap interaction
