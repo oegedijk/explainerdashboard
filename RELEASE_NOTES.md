@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.2.16.2:
+
+### Bug fix/Improvement
+- Makes component `name` property for the default composites deterministic instead 
+    of random uuid, now also working when loading a dashboard .from_config()
+    - note however that for custom `ExplainerComponents` the user is still responsible
+        for making sure that all subcomponents get assigned a deterministic
+        `name` (otherwise random uuid names get assigned at dashboard start, 
+        which might differ across nodes in e.g. docker swarm deployments)
+- Calling `self.register_components()` no longer necessary. 
+
 ## Version 0.2.16.1:
 
 ### Bug fix/Improvement
