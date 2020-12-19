@@ -159,4 +159,8 @@ db_test.py
 docs/source/.DS_Store
 !tests/cli_assets/data.csv
 !tests/cli_assets/pipeline_data.csv
+hub.yaml
+hub.ipynb
+dashboard1.yaml
+dashboard2.yaml
 

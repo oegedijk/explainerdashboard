@@ -60,6 +60,7 @@
         - generate groups programmatically!
 
 ### Components
+- autodetect when uuid name get rendered and issue warning
 - automatically call register_components()
 - add show points to categorical shap dependence
 - Add side-by-side option to cutoff selector component
