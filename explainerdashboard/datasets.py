@@ -2,14 +2,18 @@ __all__ = ['titanic_survive',
             'titanic_fare', 
             'titanic_embarked', 
             'titanic_names',
-            'feature_descriptions']
+            'feature_descriptions',
+            'train_csv',
+            'test_csv']
 
 import numpy as np
 import pandas as pd
 from pathlib import Path
 
-d_train = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/ 'titanic_train.csv')
-d_test = pd.read_csv(Path(__file__).resolve().parent / 'datasets'/'titanic_test.csv')
+train_csv = Path(__file__).resolve().parent / 'datasets'/ 'titanic_train.csv'
+test_csv = Path(__file__).resolve().parent / 'datasets'/'titanic_test.csv'
+d_train = pd.read_csv(train_csv)
+d_test = pd.read_csv(test_csv)
 
 feature_descriptions = {
     "Sex": "Gender of passenger",

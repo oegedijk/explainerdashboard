@@ -3,6 +3,7 @@
 __all__ = ['ExplainerTabsLayout',
             'ExplainerPageLayout',
             'ExplainerDashboard', 
+            'ExplainerHub',
             'JupyterExplainerDashboard',
             'ExplainerTab',
             'JupyterExplainerTab',
@@ -11,20 +12,23 @@ __all__ = ['ExplainerTabsLayout',
 import sys
 import inspect 
 import requests
+from typing import List, Union
 from pathlib import Path
+from copy import copy, deepcopy
 
 import oyaml as yaml
 import shortuuid
+
 import dash
 import dash_auth
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 
+from flask import Flask
 from jupyter_dash import JupyterDash
 
 import plotly.io as pio
-
 
 from .dashboard_components import *
 from .dashboard_tabs import *
@@ -75,6 +79,7 @@ def instantiate_component(component, explainer, name=None, **kwargs):
 class ExplainerTabsLayout:
     def __init__(self, explainer, tabs,
                  title='Model Explainer',
+                 description=None,
                  header_hide_title=False,
                  header_hide_selector=False,
                  block_selector_callbacks=False,
@@ -91,6 +96,7 @@ class ExplainerTabsLayout:
             tabs (list[ExplainerComponent class or instance]): list of
                 ExplainerComponent class definitions or instances.
             title (str, optional): [description]. Defaults to 'Model Explainer'.
+            description (str, optional): description tooltip to add to the title.
             header_hide_title (bool, optional): Hide the title. Defaults to False.
             header_hide_selector (bool, optional): Hide the positive label selector. 
                         Defaults to False.
@@ -103,6 +109,7 @@ class ExplainerTabsLayout:
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
         self.title = title
+        self.description = description
         self.header_hide_title = header_hide_title
         self.header_hide_selector = header_hide_selector
         self.block_selector_callbacks = block_selector_callbacks
@@ -122,7 +129,8 @@ class ExplainerTabsLayout:
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        html.H1(self.title)
+                        html.H1(self.title, id='dashboard-title'),
+                        dbc.Tooltip(self.description, target='dashboard-title')
                     ], width="auto"), hide=self.header_hide_title),
                 make_hideable(
                     dbc.Col([
@@ -161,6 +169,7 @@ class ExplainerTabsLayout:
 class ExplainerPageLayout(ExplainerComponent):
     def __init__(self, explainer, component,
                  title='Model Explainer',
+                 description=None,
                  header_hide_title=False,
                  header_hide_selector=False,
                  block_selector_callbacks=False,
@@ -178,7 +187,8 @@ class ExplainerPageLayout(ExplainerComponent):
             explainer ([type]): explainer
             component (ExplainerComponent class or instance): ExplainerComponent 
                         class definition or instance.
-            title (str, optional): [description]. Defaults to 'Model Explainer'.
+            title (str, optional):  Defaults to 'Model Explainer'.
+            description (str, optional): Will be displayed as title tooltip.
             header_hide_title (bool, optional): Hide the title. Defaults to False.
             header_hide_selector (bool, optional): Hide the positive label selector.
                         Defaults to False.
@@ -191,6 +201,7 @@ class ExplainerPageLayout(ExplainerComponent):
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
         self.title = title
+        self.description = description
         self.header_hide_title = header_hide_title
         self.header_hide_selector = header_hide_selector
         self.block_selector_callbacks = block_selector_callbacks
@@ -211,7 +222,8 @@ class ExplainerPageLayout(ExplainerComponent):
             dbc.Row([
                 make_hideable(
                     dbc.Col([
-                        html.H1(self.title)
+                        html.H1(self.title, id='dashboard-title'),
+                        dbc.Tooltip(self.description, target='dashboard-title')
                     ], width="auto"), hide=self.header_hide_title),
                 make_hideable(
                     dbc.Col([
@@ -245,6 +257,8 @@ class ExplainerPageLayout(ExplainerComponent):
 class ExplainerDashboard:
     def __init__(self, explainer=None, tabs=None,
                  title='Model Explainer',
+                 name=None,
+                 description=None,
                  hide_header=False,
                  header_hide_title=False,
                  header_hide_selector=False,
@@ -305,6 +319,9 @@ class ExplainerDashboard:
             explainer(): explainer object
             tabs(): single component or list of components
             title(str, optional): title of dashboard, defaults to 'Model Explainer'
+            name (str): name of the dashboard. Used for assigning url in ExplainerHub.
+            description (str): summary for dashboard. Gets used for title tooltip and 
+                in description for ExplainerHub.
             hide_header (bool, optional) hide the header (title+selector), defaults to False.
             header_hide_title(bool, optional): hide the title, defaults to False
             header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
@@ -349,8 +366,12 @@ class ExplainerDashboard:
         """
         print("Building ExplainerDashboard..", flush=True)  
 
-        self._store_params(no_param=['explainer', 'tabs'])
+        self._store_params(no_param=['explainer', 'tabs', 'server'])
         self._stored_params['tabs'] = self._tabs_to_yaml(tabs)
+
+        if self.description is None:
+            self.description = """This dashboard shows the workings of a fitted
+            machine learning model, and explains its predictions"""
 
         if self.hide_header:
             self.header_hide_title = True
@@ -380,6 +401,7 @@ class ExplainerDashboard:
                 self.external_stylesheets.append(bootstrap_theme)
 
         self.app = self._get_dash_app()
+
         if logins is not None:
             if len(logins)==2 and isinstance(logins[0], str) and isinstance(logins[1], str):
                 logins = [logins]
@@ -443,6 +465,7 @@ class ExplainerDashboard:
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             self.explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
+                            description=self.description,
                             **update_kwargs(kwargs, 
                             header_hide_title=self.header_hide_title, 
                             header_hide_selector=self.header_hide_selector, 
@@ -451,7 +474,8 @@ class ExplainerDashboard:
                             fluid=fluid))
         else:
             tabs = self._convert_str_tabs(tabs)
-            self.explainer_layout = ExplainerPageLayout(explainer, tabs, title, 
+            self.explainer_layout = ExplainerPageLayout(explainer, tabs, title,
+                            description=self.description, 
                             **update_kwargs(kwargs,
                             header_hide_title=self.header_hide_title, 
                             header_hide_selector=self.header_hide_selector, 
@@ -544,11 +568,41 @@ class ExplainerDashboard:
         else:
             kwargs = {}
 
-        tabs = cls._yamltabs_to_tabs(dashboard_params['tabs'], explainer)
-        del dashboard_params['tabs']
+        if 'tabs' in dashboard_params:
+            tabs = cls._yamltabs_to_tabs(dashboard_params['tabs'], explainer)
+            del dashboard_params['tabs']
+            return cls(explainer, tabs, **dashboard_params, **kwargs)
+        else:
+            return cls(explainer, **dashboard_params, **kwargs)
 
-        return cls(explainer, tabs, **dashboard_params, **kwargs)
+    def to_yaml(self, filepath=None, return_dict=False,
+                explainerfile="explainer.joblib"):
+        """Returns a yaml configuration of the current ExplainerDashboard
+        that can be used by the explainerdashboard CLI. Recommended filename
+        is `dashboard.yaml`.
 
+        Args:
+            filepath ({str, Path}, optional): Filepath to dump yaml. If None
+                returns the yaml as a string. Defaults to None.
+            return_dict (bool, optional): instead of yaml return dict with 
+                config.
+            explainerfile (str, optional): filename of explainer dump. Defaults
+                to `explainer.joblib`.
+        """
+        import oyaml as yaml
+
+        dashboard_config = dict(
+            dashboard=dict(
+                explainerfile=explainerfile,
+                params=self._stored_params))
+
+        if return_dict:
+            return dashboard_config
+        
+        if filepath is not None:
+            yaml.dump(dashboard_config, open(filepath, "w"))
+            return
+        return yaml.dump(dashboard_config)
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
         """Stores the parameter of the class to instance attributes and
@@ -683,7 +737,6 @@ class ExplainerDashboard:
         print(tabs)
         return tabs
 
-
     def _get_dash_app(self):
         if self.responsive:
             meta_tags = [
@@ -786,34 +839,304 @@ class ExplainerDashboard:
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 
-    def to_yaml(self, filepath=None, return_dict=False,
-                explainerfile="explainer.joblib"):
-        """Returns a yaml configuration of the current ExplainerDashboard
-        that can be used by the explainerdashboard CLI. Recommended filename
-        is `dashboard.yaml`.
+    
+class ExplainerHub:
+    """ExplainerHub is an access point to multiple ExplainerDashboards. 
+    Each ExplainerDashboard is hosted on its own url path, 
+        e.g. 127.0.0.1/dashboard1 and 127.0.0.1/dashboard2.
+        
+    The ExplainerHub then provides a nice frontend to reach these dashboards. 
+    
+    """
+    def __init__(self, dashboards:List[ExplainerDashboard], title:str="ExplainerHub", 
+                    description:str=None, masonry:bool=False, n_dashboard_cols:int=3, 
+                    port:int=8050, **kwargs):
+        """initialize ExplainerHub
 
         Args:
-            filepath ({str, Path}, optional): Filepath to dump yaml. If None
-                returns the yaml as a string. Defaults to None.
-            return_dict (bool, optional): instead of yaml return dict with 
-                config.
-            explainerfile (str, optional): filename of explainer dump. Defaults
-                to `explainer.joblib`.
+            dashboards (List[ExplainerDashboard]): list of ExplainerDashboard to include in ExplainerHub
+            title (str, optional): title to display. Defaults to "ExplainerHub".
+            description (str, optional): Short description of ExplainerHub. Defaults to default text.
+            masonry (bool, optional): Lay out dashboard cards in bootstrap masonry 
+                responsive style. Defaults to False.
+            n_dashboard_cols (int, optional): If masonry is False, organize cards
+                in rows and columns. Defaults to 3.
+            port (int, optional): Port to run hub on. Defaults to 8050.
         """
-        import oyaml as yaml
+        self._store_params(no_store=['dashboards'])
+        
+        if self.description is None:
+            self.description = """This ExplainerHub shows an overview of different 
+            explainerdashboards generated for a number of different machine learning models.
+            
+            These dashboards make the inner workings and predictions of the trained models 
+            transparent and explainable."""
+            
+        self.app = Flask(__name__)
+         
+        self.dashboards = []
+        for i, dashboard in enumerate(dashboards):
+            if dashboard.name is None:
+                self.dashboards.append(
+                    ExplainerDashboard.from_config(
+                        dashboard.explainer, deepcopy(dashboard.to_yaml(return_dict=True)), 
+                        **update_kwargs(kwargs, server=self.app, name=f"dashboard{i+1}", 
+                                        url_base_pathname=f"/dashboard{i+1}/")))
+                print("Reminder, you can set ExplainerDashboard .name and .description "
+                        "in order to control the url path of the dashboard. Now "
+                        f"defaulting to name=dashboard{i+1} and default description", flush=True)
+            else:
+                self.dashboards.append(
+                    ExplainerDashboard.from_config(
+                        dashboard.explainer, deepcopy(dashboard.to_yaml(return_dict=True)), 
+                        **update_kwargs(kwargs, server=self.app, name=dashboard.name, 
+                                        url_base_pathname=f"/{dashboard.name}/")))
+        dashboard_names = [db.name for db in self.dashboards]
+        assert len(set(dashboard_names)) == len(self.dashboards), \
+            f"All dashboard .name properties should be unique, but received the folowing: {dashboard_names}"
+        
+        self.index_page = self._get_index_page()
+        self._assign_routes()
+                        
+    @classmethod
+    def from_config(cls, config:Union[dict, str, Path], **update_params):
+        """Instantiate an ExplainerHub based on a config file.
 
-        dashboard_config = dict(
-            dashboard=dict(
-                explainerfile=explainerfile,
-                params=self._stored_params))
+        Args:
+            config (Union[dict, str, Path]): either a dict or a .yaml config 
+                file to load
+            update_params: additional kwargs to override stored settings.
 
+        Returns:
+            ExplainerHub: new instance of ExplainerHub according to the config.
+        """
+        if isinstance(config, (Path, str)) and str(config).endswith(".yaml"):
+            config = yaml.safe_load(open(str(config), "r"))
+        elif isinstance(config, dict):
+            config = deepcopy(config)
+            
+        assert 'explainerhub' in config, \
+            "Misformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
+        
+        config = config['explainerhub']
+        dashboards = [ExplainerDashboard.from_config(dashboard)
+                              for dashboard in config['dashboards']]
+        del config['dashboards']
+        config.update(config.pop('kwargs'))
+        return cls(dashboards, **update_kwargs(config, **update_params))
+                
+    def to_yaml(self, filepath:Path=None, dump_explainers=True, return_dict=False):
+        """Store ExplainerHub to configuration and dump the underlying explainers.
+
+        If filepath is None, does not store yaml config to file, but simply 
+        return config string. 
+
+        If filepath provided and dump_explainer, then store all underlying
+        explainers to disk. 
+
+        Args:
+            filepath (Path, optional): .yaml file filepath. Defaults to None.
+            dump_explainers (bool, optional): Store the explainers to disk 
+                along with the .yaml file. Defaults to True.
+            return_dict (bool, optional): Instead of returning or storing yaml
+                return a configuration dictionary. Defaults to False.
+
+        Returns:
+            {dict, yaml, None}
+        """
+
+        hub_config = dict(
+            explainerhub=dict(
+                **self._stored_params,
+                dashboards=[dashboard.to_yaml(
+                    return_dict=True, 
+                    explainerfile=dashboard.name+"_explainer.joblib") 
+                            for dashboard in self.dashboards]))
+        
         if return_dict:
-            return dashboard_config
+            return hub_config
+        
+        if filepath is None:
+            return yaml.dump(hub_config)
+        else:
+            filepath = Path(filepath)
+            
+            if dump_explainers:
+                for dashboard in self.dashboards:
+                    print(f"dumping explainer: {dashboard.name+'_explainer.joblib'}", flush=True)
+                    dashboard.explainer.dump(filepath.parent / (dashboard.name+"_explainer.joblib"))
         
         if filepath is not None:
-            yaml.dump(dashboard_config, open(filepath, "w"))
+            yaml.dump(hub_config, open(filepath, "w"))
             return
-        return yaml.dump(dashboard_config)
+        
+    def _store_params(self, no_store=None, no_attr=None, no_param=None):
+        """Stores the parameter of the class to instance attributes and
+        to a ._stored_params dict. You can optionall exclude all or some 
+        parameters from being stored.
+
+        Args:
+            no_store ({bool, List[str]}, optional): If True do not store any
+                parameters to either attribute or _stored_params dict. If
+                a list of str, then do not store parameters with those names. 
+                Defaults to None.
+            no_attr ({bool, List[str]},, optional): . If True do not store any
+                parameters to class attribute. If
+                a list of str, then do not store parameters with those names. 
+                Defaults to None.
+            no_param ({bool, List[str]},, optional): If True do not store any
+                parameters to _stored_params dict. If
+                a list of str, then do not store parameters with those names. 
+                Defaults to None.
+        """
+        if not hasattr(self, '_stored_params'): 
+            self._stored_params = {}
+
+        frame = sys._getframe(1)
+        args = frame.f_code.co_varnames[1:frame.f_code.co_argcount]
+        args_dict = {arg: frame.f_locals[arg] for arg in args}
+
+        if 'kwargs' in frame.f_locals:
+            args_dict['kwargs'] = frame.f_locals['kwargs']
+        
+        if isinstance(no_store, bool) and no_store:
+            return
+        else:
+            if no_store is None: no_store = tuple()
+        
+        if isinstance(no_attr, bool) and no_attr: dont_attr = True
+        else:
+            if no_attr is None: no_attr = tuple()
+            dont_attr = False 
+            
+        if isinstance(no_param, bool) and no_param: dont_param = True
+        else:
+            if no_param is None: no_param = tuple()
+            dont_param = False 
+
+        for name, value in args_dict.items():
+            if not dont_attr and name not in no_store and name not in no_attr:
+                setattr(self, name, value)
+            if not dont_param and name not in no_store and name not in no_param:
+                self._stored_params[name] = value
+                        
+    def _get_index_page(self):
+        """Returns the front end of ExplainerHub:
+
+        - title
+        - description
+        - links and description for each dashboard
+        """
+
+        def dashboard_decks(dashboards, n_cols):
+            full_rows = int(len(dashboards)/ n_cols)
+            n_last_row = len(dashboards) % n_cols
+            card_decks = []
+            for i in range(0, full_rows*n_cols, n_cols):
+                card_decks.append(
+                    [
+                        dbc.Card([
+                            dbc.CardHeader([
+                                html.H3(dashboard.title, className='card-title'),
+                            ]),
+                            dbc.CardBody([
+                                html.H6(dashboard.description),
+                            ]),
+                            dbc.CardFooter([
+                                dbc.CardLink("Go to dashboard", 
+                                            href=dashboard.url_base_pathname[:-1], 
+                                            external_link=True),   
+                            ])
+                        ]) for dashboard in dashboards[i:i+n_cols]
+                    ]
+                )
+            if n_last_row > 0:
+                last_row = [
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.H3(dashboard.title, className='card-title'),
+                        ]),
+                        dbc.CardBody([
+                            html.H6(dashboard.description),
+                        ]),
+                        dbc.CardFooter([
+                            dbc.CardLink("Go to dashboard", 
+                                        href=dashboard.url_base_pathname[:-1], 
+                                        external_link=True),   
+                        ])
+                    ]) for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
+                for i in range(len(last_row), n_cols):
+                    last_row.append(dbc.Card([], style=dict(border="none")))
+                card_decks.append(last_row)
+            return card_decks
+
+            
+        header = dbc.Jumbotron([
+                html.H1(self.title, className="display-3"),
+                html.Hr(className="my-2"),
+                html.P(self.description, className="lead"),
+        ])
+        
+        if self.masonry:
+            dashboard_rows = [
+                dbc.Row([
+                    dbc.Col([
+                        dbc.CardColumns(dashboard_cards(self.dashboards))
+                    ])
+                ])
+            ]
+        else:
+            dashboard_rows = [
+                dbc.Row([dbc.CardDeck(deck)], style=dict(marginBottom=30)) 
+                    for deck in dashboard_decks(self.dashboards, self.n_dashboard_cols)]
+
+        index_page = dash.Dash(__name__, server=self.app, url_base_pathname="/")
+        index_page.title = self.title
+
+        index_page.layout = dbc.Container([
+            dbc.Row([dbc.Col([header])]),
+            dbc.Row([dbc.Col([html.H2("Dashboards:")])]),
+            *dashboard_rows 
+        ])
+        return index_page
+    
+    def _assign_routes(self):
+        """Assign flask routes to self.app. Each ExplainerDashboard gets their 
+        own route.
+        """
+        def dashboard_index(dashboard, name):
+            def inner():
+                return dashboard.app.index()
+            inner.__name__ = "return_dashboard_"+name
+            return inner
+
+        @self.app.route("/")
+        def index():
+            return self.index_page.index()
+
+        for dashboard in self.dashboards:
+            self.app.route(dashboard.url_base_pathname[:-1])(
+                dashboard_index(dashboard, dashboard.name))
+            
+    def flask_server(self):
+        """return the Flask server"""
+        return self.app
+            
+    def run(self, port=None, use_waitress=False):
+        """start the ExplainerHub.
+
+        Args:
+            port (int, optional): Override default port. Defaults to None.
+            use_waitress (bool, optional): Use the waitress python web server 
+                instead of the Flask development server. Defaults to False.
+        """
+        if port is None:
+            port = self.port
+        if use_waitress:
+            import waitress
+            waitress.serve(self.app, host='0.0.0.0', port=port)  
+        else:
+            self.app.run(port=port)
 
 
 class InlineExplainer:
