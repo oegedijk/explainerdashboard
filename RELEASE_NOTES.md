@@ -1,5 +1,45 @@
 # Release Notes
 
+## 0.2.17:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- Introducing `ExplainerHub`: combine multiple dashboards together behind a single frontend with convenient url paths.
+    - example:
+    ```python
+    db1 = ExplainerDashboard(explainer, title="Dashboard One", name='dashboard1')
+    db2 = ExplainerDashboard(explainer, title="Dashboard Two", name='dashboard2')
+
+    hub = ExplainerHub([db1, db2])
+    hub.run()
+    
+    # store an recover from config:
+    hub.to_yaml("hub.yaml")
+    hub2 = ExplainerHub.from_config("hub.yaml")
+    ```
+- adds option `dump_explainer` to `ExplainerDashboard.to_yaml` to automatically
+    dump the explainerfile along with the yaml.
+- adds option `use_waitress` to `ExplainerDashboard.run()` and `ExplainerHub.run()`, to use the `waitress` python webserver instead of the `Flask` development server
+- adds parameters to `ExplainerDashboard`:
+    - `name`: this will be used to assign a url for `ExplainerHub`
+    - `description`: this will be used for the title tooltip in the dashboard
+        and in the `ExplainerHub` frontend. 
+
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- the `cli` now uses the `waitress` server by default.
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.2.16.2:
 
 ### Bug fix/Improvement

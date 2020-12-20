@@ -576,7 +576,7 @@ class ExplainerDashboard:
             return cls(explainer, **dashboard_params, **kwargs)
 
     def to_yaml(self, filepath=None, return_dict=False,
-                explainerfile="explainer.joblib"):
+                explainerfile=None, dump_explainer=False):
         """Returns a yaml configuration of the current ExplainerDashboard
         that can be used by the explainerdashboard CLI. Recommended filename
         is `dashboard.yaml`.
@@ -588,14 +588,23 @@ class ExplainerDashboard:
                 config.
             explainerfile (str, optional): filename of explainer dump. Defaults
                 to `explainer.joblib`.
+            dump_explainer (bool, optional): dump the explainer along with the yaml.
+                You must pass explainerfile parameter for the filename. Defaults to False.
+                
         """
         import oyaml as yaml
 
         dashboard_config = dict(
             dashboard=dict(
-                explainerfile=explainerfile,
+                explainerfile=str(explainerfile),
                 params=self._stored_params))
 
+        if dump_explainer:
+            if explainerfile is None:
+                raise ValueError("When you pass dump_explainer=True, then you "
+                    "must pass an explainerfile filename parameter!")
+            print(f"Dumping explainer to {explainerfile}...", flush=True)
+            self.explainer.dump(explainerfile)
         if return_dict:
             return dashboard_config
         
@@ -776,11 +785,14 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
         
-    def run(self, port=None, **kwargs):
+    def run(self, port=None, use_waitress=False, **kwargs):
         """Start ExplainerDashboard on port
 
         Args:
             port (int, optional): port to run on. If None, then use self.port.
+            use_waitress (bool, optional): use the waitress python web server 
+                instead of the flask development server. Only works with mode='dash'.
+                Defaults to False.
             Defaults to None.self.port defaults to 8050.
 
         Raises:
@@ -791,10 +803,16 @@ class ExplainerDashboard:
         pio.templates.default = "none"
         if port is None:
             port = self.port
-        
+        if use_waitress and self.mode != 'dash':
+            print(f"Warning: waitress does not work with mode={self.mode}, "
+                    "using JupyterDash server instead!", flush=True)
         if self.mode == 'dash':
             print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
-            self.app.run_server(port=port, **kwargs)
+            if use_waitress:
+                from waitress import serve
+                serve(self.app.server, host='0.0.0.0', port=port)
+            else:
+                self.app.run_server(port=port, **kwargs)
         elif self.mode == 'external':
             if not self.is_colab:
                 print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
@@ -843,56 +861,66 @@ class ExplainerDashboard:
 class ExplainerHub:
     """ExplainerHub is an access point to multiple ExplainerDashboards. 
     Each ExplainerDashboard is hosted on its own url path, 
-        e.g. 127.0.0.1/dashboard1 and 127.0.0.1/dashboard2.
+        e.g. 127.0.0.1:8050/dashboard1 and 127.0.0.1:8050/dashboard2.
         
     The ExplainerHub then provides a nice frontend to reach these dashboards. 
     
     """
     def __init__(self, dashboards:List[ExplainerDashboard], title:str="ExplainerHub", 
                     description:str=None, masonry:bool=False, n_dashboard_cols:int=3, 
-                    port:int=8050, **kwargs):
+                    db_logins:dict=None, port:int=8050, **kwargs):
         """initialize ExplainerHub
 
         Args:
             dashboards (List[ExplainerDashboard]): list of ExplainerDashboard to include in ExplainerHub
             title (str, optional): title to display. Defaults to "ExplainerHub".
             description (str, optional): Short description of ExplainerHub. Defaults to default text.
-            masonry (bool, optional): Lay out dashboard cards in bootstrap masonry 
-                responsive style. Defaults to False.
+            masonry (bool, optional): Lay out dashboard cards in fluid bootstrap 
+                masonry responsive style. Defaults to False.
             n_dashboard_cols (int, optional): If masonry is False, organize cards
                 in rows and columns. Defaults to 3.
+            db_logins (dict, optional): dictionary of logins for each dashboard
+                identified by name, e.g. 
+                db_logins=dict(
+                    dashboard1=['login1', 'password1'], 
+                    dashboard2=['login2', 'password2'])
+                )
+                You should avoid hardcoding these and store them somewhere safe!
             port (int, optional): Port to run hub on. Defaults to 8050.
         """
         self._store_params(no_store=['dashboards'])
         
         if self.description is None:
             self.description = """This ExplainerHub shows an overview of different 
-            explainerdashboards generated for a number of different machine learning models.
+            ExplainerDashboards generated for a number of different machine learning models.
             
             These dashboards make the inner workings and predictions of the trained models 
             transparent and explainable."""
             
         self.app = Flask(__name__)
+        if db_logins is None: db_logins = {}
          
         self.dashboards = []
         for i, dashboard in enumerate(dashboards):
             if dashboard.name is None:
-                self.dashboards.append(
-                    ExplainerDashboard.from_config(
-                        dashboard.explainer, deepcopy(dashboard.to_yaml(return_dict=True)), 
-                        **update_kwargs(kwargs, server=self.app, name=f"dashboard{i+1}", 
-                                        url_base_pathname=f"/dashboard{i+1}/")))
                 print("Reminder, you can set ExplainerDashboard .name and .description "
                         "in order to control the url path of the dashboard. Now "
                         f"defaulting to name=dashboard{i+1} and default description", flush=True)
-            else:
-                self.dashboards.append(
-                    ExplainerDashboard.from_config(
-                        dashboard.explainer, deepcopy(dashboard.to_yaml(return_dict=True)), 
-                        **update_kwargs(kwargs, server=self.app, name=dashboard.name, 
-                                        url_base_pathname=f"/{dashboard.name}/")))
+                dashboard.name = f"dashboard{i+1}"
+            update_params = dict(
+                server=self.app, 
+                name=dashboard.name, 
+                url_base_pathname = f"/{dashboard.name}/")
+            if dashboard.name in db_logins:
+                update_params['logins'] = db_logins[dashboard.name]
+
+            self.dashboards.append(
+                ExplainerDashboard.from_config(
+                    dashboard.explainer, deepcopy(dashboard.to_yaml(return_dict=True)), 
+                    **update_kwargs(kwargs, **update_params)))
+
         dashboard_names = [db.name for db in self.dashboards]
-        assert len(set(dashboard_names)) == len(self.dashboards), \
+        assert len(set(dashboard_names)) == len(dashboard_names), \
             f"All dashboard .name properties should be unique, but received the folowing: {dashboard_names}"
         
         self.index_page = self._get_index_page()
@@ -950,7 +978,8 @@ class ExplainerHub:
                 **self._stored_params,
                 dashboards=[dashboard.to_yaml(
                     return_dict=True, 
-                    explainerfile=dashboard.name+"_explainer.joblib") 
+                    explainerfile=dashboard.name+"_explainer.joblib",
+                    dump_explainer=dump_explainers) 
                             for dashboard in self.dashboards]))
         
         if return_dict:
@@ -958,17 +987,10 @@ class ExplainerHub:
         
         if filepath is None:
             return yaml.dump(hub_config)
-        else:
-            filepath = Path(filepath)
-            
-            if dump_explainers:
-                for dashboard in self.dashboards:
-                    print(f"dumping explainer: {dashboard.name+'_explainer.joblib'}", flush=True)
-                    dashboard.explainer.dump(filepath.parent / (dashboard.name+"_explainer.joblib"))
         
-        if filepath is not None:
-            yaml.dump(hub_config, open(filepath, "w"))
-            return
+        filepath = Path(filepath)  
+        yaml.dump(hub_config, open(filepath, "w"))
+        return
         
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
         """Stores the parameter of the class to instance attributes and

@@ -59,12 +59,15 @@
     - http://manifold.mlvis.io/
         - generate groups programmatically!
 
+## Hub:
+- automatic reloads with watchdog
+- add dashboard specific logins
+
 ### Components
 - autodetect when uuid name get rendered and issue warning
 - automatically call register_components()
 - add show points to categorical shap dependence
 - Add side-by-side option to cutoff selector component
-
 
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
@@ -88,6 +91,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- write tests for ExplainerHub
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
@@ -108,11 +112,8 @@
 
 ## Library level:
 - Make example heroku deployment repo
-- add waitress to CLI
 
 - hide (prefix '_') to non-public API class methods
 - submit pull request to shap with broken test for 
     https://github.com/slundberg/shap/issues/723
-- build explainerhub for hosting multiple explainerdashboard models
-    - use waitress as wsgi
-    - use watchdog to rebuild and reload. 
+

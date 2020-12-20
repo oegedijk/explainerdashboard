@@ -13,22 +13,22 @@ import pandas as pd
 import joblib
 import click
 
-from explainerdashboard import ClassifierExplainer, RegressionExplainer
+import waitress
+
+from explainerdashboard import *
 from explainerdashboard.explainers import BaseExplainer
 from explainerdashboard.dashboards import ExplainerDashboard
 
 
 explainer_ascii = """
 
-                 _       _                    _           _     _                         _ 
-                | |     (_)                  | |         | |   | |                       | |
-  _____  ___ __ | | __ _ _ _ __   ___ _ __ __| | __ _ ___| |__ | |__   ___   __ _ _ __ __| |
- / _ \ \/ | '_ \| |/ _` | | '_ \ / _ | '__/ _` |/ _` / __| '_ \| '_ \ / _ \ / _` | '__/ _` |
-|  __/>  <| |_) | | (_| | | | | |  __| | | (_| | (_| \__ | | | | |_) | (_) | (_| | | | (_| |
- \___/_/\_| .__/|_|\__,_|_|_| |_|\___|_|  \__,_|\__,_|___|_| |_|_.__/ \___/ \__,_|_|  \__,_|
-          | |                                                                               
-          |_|                                                                               
+ _____ ___ __| |__ _(_)_ _  ___ _ _ __| |__ _ __| |_ | |__  ___  __ _ _ _ __| |
+/ -_) \ / '_ \ / _` | | ' \/ -_) '_/ _` / _` (_-< ' \| '_ \/ _ \/ _` | '_/ _` |
+\___/_\_\ .__/_\__,_|_|_||_\___|_| \__,_\__,_/__/_||_|_.__/\___/\__,_|_| \__,_|
+        |_| 
+
 """
+
 
 def build_explainer(explainer_config):
     if isinstance(explainer_config, (Path, str)) and str(explainer_config).endswith(".yaml"):
@@ -109,7 +109,7 @@ def launch_dashboard_from_pkl(explainer_filepath, no_browser, port, no_dashboard
         webbrowser.open_new(f"http://127.0.0.1:{port}/")
 
     if not no_dashboard:
-        db.run(port)
+        waitress.serve(db.flask_server(), host='0.0.0.0', port=port)
     return
 
 
@@ -142,7 +142,7 @@ def launch_dashboard_from_yaml(dashboard_config, no_browser, port, no_dashboard=
     
     click.echo(f"explainerdashboard ===> Starting dashboard:")
     if not no_dashboard:
-        db.run(port)
+        waitress.serve(db.flask_server(), host='0.0.0.0', port=port)
     return
 
 
