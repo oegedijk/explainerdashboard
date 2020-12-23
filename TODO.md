@@ -45,6 +45,7 @@
 
 
 ## Dashboard:
+- add reloader=None, debug=None, host=None options
 - add waitress to run options
 - add SimpleClassifierDashboard
 - add SimpleRegressionDashboard
@@ -62,6 +63,10 @@
 ## Hub:
 - automatic reloads with watchdog
 - add dashboard specific logins
+- add reloader=None, debug=None, host=None options
+- add Flask-Login support
+- add explainerhub CLI
+- add user management
 
 ### Components
 - autodetect when uuid name get rendered and issue warning
@@ -91,6 +96,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add tests for InterpretML EBM (shap 0.37)
 - write tests for ExplainerHub
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods

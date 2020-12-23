@@ -2131,7 +2131,8 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
             f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
         colors[highlight_tree] = 'red'
         
-    if model.estimators_[0].classes_[0] is not None: #if classifier
+    if (hasattr(model.estimators_[0], "classes_") 
+        and model.estimators_[0].classes_[0] is not None): #if classifier
         preds_df = (
             pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
