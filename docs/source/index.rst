@@ -133,6 +133,7 @@ in the github repo.
 
    explainers
    dashboards
+   hub
    inline
    cli
    tabs

@@ -10,7 +10,9 @@ __all__ = ['ExplainerTabsLayout',
             'InlineExplainer']
 
 import sys
-import inspect 
+import re
+import json
+import inspect
 import requests
 from typing import List, Union
 from pathlib import Path
@@ -26,6 +28,8 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 
 from flask import Flask
+from flask_simplelogin import SimpleLogin, login_required
+from werkzeug.security import check_password_hash, generate_password_hash
 from jupyter_dash import JupyterDash
 
 import plotly.io as pio
@@ -33,6 +37,8 @@ import plotly.io as pio
 from .dashboard_components import *
 from .dashboard_tabs import *
 from .explainers import BaseExplainer
+
+
 
 
 def instantiate_component(component, explainer, name=None, **kwargs):
@@ -859,72 +865,135 @@ class ExplainerDashboard:
 
     
 class ExplainerHub:
-    """ExplainerHub is an access point to multiple ExplainerDashboards. 
-    Each ExplainerDashboard is hosted on its own url path, 
-        e.g. 127.0.0.1:8050/dashboard1 and 127.0.0.1:8050/dashboard2.
+    """ExplainerHub is a way to host multiple dashboards in a single point,
+    and manage access through adding user accounts.
+
+    Example:
+        ``hub = ExplainerHub([db1, db2], logins=[['user', 'password']], secret_key="SECRET")``
+        ``hub.run()``
         
-    The ExplainerHub then provides a nice frontend to reach these dashboards. 
+
+    A frontend is hosted at e.g. ``localhost:8050``, with summaries and links to 
+    each individual dashboard. Each ExplainerDashboard is hosted on its own url path, 
+    so that you can also find it directly, e.g.: 
+        ``localhost:8050/dashboard1`` and ``localhost:8050/dashboard2``.
+
     
+    You can store the hub configuration, dashboard configurations, explainers
+    and user database with a single command: ``hub.to_yaml('hub.yaml')``.
+
+    You can restore the hub with ``hub2 = ExplainerHub.from_config('hub.yaml')``
+
+    You can start the hub from the command line using the ``explainerhub`` CLI
+    command: ``$ explainerhub run hub.yaml``. You can also use the CLI to 
+    add and delete users.
+        
     """
     def __init__(self, dashboards:List[ExplainerDashboard], title:str="ExplainerHub", 
                     description:str=None, masonry:bool=False, n_dashboard_cols:int=3, 
-                    db_logins:dict=None, port:int=8050, **kwargs):
-        """initialize ExplainerHub
+                    user_json:str="users.json", logins:List[List]=None, db_users:dict=None,
+                    port:int=8050, secret_key:str=None, **kwargs):
+        """
+    
+        Note:
+            Logins can be defined in multiple places: users.json, ExplainerHub.logins
+            and ExplainerDashboard.logins for each dashboard in dashboards. 
+            When users with the same username are defined in multiple
+            locations then passwords are looked up in the following order:
+            hub.logins > dashboard.logins > user.json
+
+        Note:
+            **kwargs will be forwarded to each dashboard in dashboards. 
 
         Args:
-            dashboards (List[ExplainerDashboard]): list of ExplainerDashboard to include in ExplainerHub
+            dashboards (List[ExplainerDashboard]): list of ExplainerDashboard to 
+                include in ExplainerHub. 
             title (str, optional): title to display. Defaults to "ExplainerHub".
-            description (str, optional): Short description of ExplainerHub. Defaults to default text.
+            description (str, optional): Short description of ExplainerHub. 
+                Defaults to default text.
             masonry (bool, optional): Lay out dashboard cards in fluid bootstrap 
                 masonry responsive style. Defaults to False.
             n_dashboard_cols (int, optional): If masonry is False, organize cards
-                in rows and columns. Defaults to 3.
-            db_logins (dict, optional): dictionary of logins for each dashboard
-                identified by name, e.g. 
-                db_logins=dict(
-                    dashboard1=['login1', 'password1'], 
-                    dashboard2=['login2', 'password2'])
-                )
-                You should avoid hardcoding these and store them somewhere safe!
+                in rows and columns. Defaults to 3 columns.
+            user_json (Path, optional): a .json file used to store user and (hashed) 
+                password data. Defaults to 'users.json'.
+            logins (List[List[str, str]], optional): List of ['login', 'password'] pairs, 
+                e.g. logins = [['user1', 'password1'], ['user2', 'password2']]
+            db_users (dict, optional): dictionary limiting access to certain 
+                dashboards to a subset of users, e.g
+                dict(dashboard1=['user1', 'user2'], dashboard2=['user3']). 
             port (int, optional): Port to run hub on. Defaults to 8050.
+            secret_key (str): Flask secret key to pass to dashboard in order to persist
+                logins. Defaults to a new random uuid string every time you start
+                the dashboard. (i.e. no persistence) You should store the secret
+                key somewhere save, e.g. in a environmental variable. 
+            **kwargs: all kwargs will be forwarded to the constructors of
+                each dashboard in dashboards dashboards. 
         """
-        self._store_params(no_store=['dashboards'])
+        self._store_params(no_store=['dashboards', 'logins', 'secret_key'])
         
         if self.description is None:
-            self.description = """This ExplainerHub shows an overview of different 
-            ExplainerDashboards generated for a number of different machine learning models.
+            self.description = ("This ExplainerHub shows an overview of different "
+            "ExplainerDashboards generated for a number of different machine learning models."
+            "\n"
+            "These dashboards make the inner workings and predictions of the trained models "
+            "transparent and explainable.")
+            self._stored_params['description'] = self.description
             
-            These dashboards make the inner workings and predictions of the trained models 
-            transparent and explainable."""
-            
+        if len(logins)==2 and isinstance(logins[0], str) and isinstance(logins[1], str):
+                logins = [logins]
+        self.logins = self._hash_logins(logins)
+                
+        self.db_users = db_users if db_users is not None else {}                    
+        self._validate_user_json(self.user_json)
+        
         self.app = Flask(__name__)
-        if db_logins is None: db_logins = {}
-         
+        if secret_key is not None:
+            self.app.config['SECRET_KEY'] = secret_key
+        SimpleLogin(self.app, login_checker=self._validate_user)
+                 
         self.dashboards = []
         for i, dashboard in enumerate(dashboards):
             if dashboard.name is None:
                 print("Reminder, you can set ExplainerDashboard .name and .description "
                         "in order to control the url path of the dashboard. Now "
-                        f"defaulting to name=dashboard{i+1} and default description", flush=True)
-                dashboard.name = f"dashboard{i+1}"
+                        f"defaulting to name=dashboard{i+1} and default description...", flush=True)
+                dashboard_name = f"dashboard{i+1}"
+            else:
+                dashboard_name = dashboard.name
             update_params = dict(
                 server=self.app, 
-                name=dashboard.name, 
-                url_base_pathname = f"/{dashboard.name}/")
-            if dashboard.name in db_logins:
-                update_params['logins'] = db_logins[dashboard.name]
-
+                name=dashboard_name, 
+                url_base_pathname = f"/{dashboard_name}/"
+            )
+            if dashboard.logins is not None:
+                for user, password in dashboard.logins:
+                    if user not in self.logins:
+                        self.add_user(user, password)
+                    else:
+                        print(f"Warning: {user} in {dashboard.name} already in "
+                              "ExplainerHub logins! So not adding to logins...")
+                    self.add_user_to_dashboard(dashboard_name, user)
+            config = deepcopy(dashboard.to_yaml(return_dict=True))
+            config['dashboard']['params']['logins'] = None
+                               
             self.dashboards.append(
                 ExplainerDashboard.from_config(
-                    dashboard.explainer, deepcopy(dashboard.to_yaml(return_dict=True)), 
-                    **update_kwargs(kwargs, **update_params)))
+                    dashboard.explainer, config, **update_kwargs(kwargs, **update_params)))
 
         dashboard_names = [db.name for db in self.dashboards]
         assert len(set(dashboard_names)) == len(dashboard_names), \
             f"All dashboard .name properties should be unique, but received the folowing: {dashboard_names}"
+        illegal_names = list(set(dashboard_names) & {'login', 'logout', 'admin'})
+        assert not illegal_names, \
+            f"The following .name properties for dashboards are not allowed: {illegal_names}!"
+             
         
         self.index_page = self._get_index_page()
-        self._assign_routes()
+        if self.users:
+            self._protect_dashviews(self.index_page)
+            for dashboard in self.dashboards:
+                self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
                         
     @classmethod
     def from_config(cls, config:Union[dict, str, Path], **update_params):
@@ -953,13 +1022,15 @@ class ExplainerHub:
         config.update(config.pop('kwargs'))
         return cls(dashboards, **update_kwargs(config, **update_params))
                 
-    def to_yaml(self, filepath:Path=None, dump_explainers=True, return_dict=False):
-        """Store ExplainerHub to configuration and dump the underlying explainers.
+    def to_yaml(self, filepath:Path=None, dump_explainers=True, 
+                return_dict=False, integrate_dashboard_yamls=False):
+        """Store ExplainerHub to configuration .yaml, store the users to users.json 
+        and dump the underlying dashboard .yamls and explainers. 
 
         If filepath is None, does not store yaml config to file, but simply 
-        return config string. 
+        return config yaml string. 
 
-        If filepath provided and dump_explainer, then store all underlying
+        If filepath provided and dump_explainers=True, then store all underlying
         explainers to disk. 
 
         Args:
@@ -967,21 +1038,43 @@ class ExplainerHub:
             dump_explainers (bool, optional): Store the explainers to disk 
                 along with the .yaml file. Defaults to True.
             return_dict (bool, optional): Instead of returning or storing yaml
-                return a configuration dictionary. Defaults to False.
+                return a configuration dictionary. Returns a single dict as if 
+                separate_dashboard_yamls=True. Defaults to False.
+            integrate_dashboard_yamls(bool, optional): Do not generate an individual 
+                .yaml file for each dashboard, but integrate them in hub.yaml. 
 
         Returns:
             {dict, yaml, None}
         """
-
-        hub_config = dict(
-            explainerhub=dict(
-                **self._stored_params,
-                dashboards=[dashboard.to_yaml(
-                    return_dict=True, 
-                    explainerfile=dashboard.name+"_explainer.joblib",
-                    dump_explainer=dump_explainers) 
-                            for dashboard in self.dashboards]))
-        
+        for login in self.logins.values():
+            self._add_user_to_json(self.user_json, 
+                                   login['username'], login['password'], 
+                                   already_hashed=True)
+        for dashboard, users in self.db_users.items():
+            for user in users:
+                self._add_user_to_dashboard_json(self.user_json, dashboard, user)
+            
+        if filepath is None or return_dict or integrate_dashboard_yamls:
+            hub_config = dict(
+                explainerhub=dict(
+                    **self._stored_params,
+                    dashboards=[dashboard.to_yaml(
+                        return_dict=True, 
+                        explainerfile=dashboard.name+"_explainer.joblib",
+                        dump_explainer=dump_explainers) 
+                                for dashboard in self.dashboards]))
+        else:
+            for dashboard in self.dashboards:
+                print(f"Storing {dashboard.name}_dashboard.yaml...")
+                dashboard.to_yaml(dashboard.name+"_dashboard.yaml",
+                        explainerfile=dashboard.name+"_explainer.joblib",
+                        dump_explainer=dump_explainers)
+            hub_config = dict(
+                explainerhub=dict(
+                    **self._stored_params,
+                    dashboards=[dashboard.name+"_dashboard.yaml"
+                                for dashboard in self.dashboards]))
+                
         if return_dict:
             return hub_config
         
@@ -989,6 +1082,7 @@ class ExplainerHub:
             return yaml.dump(hub_config)
         
         filepath = Path(filepath)  
+        print(f"Storing {filepath}...")
         yaml.dump(hub_config, open(filepath, "w"))
         return
         
@@ -1041,6 +1135,265 @@ class ExplainerHub:
                 setattr(self, name, value)
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
+                              
+    @staticmethod
+    def _validate_user_json(user_json:Path):
+        """validat that user_json is a well formed .json file. 
+        If it does not exist, then create an empty .json file.
+        """
+        if user_json is not None:
+            if not Path(user_json).exists():
+                with open(user_json, 'w') as json_file:
+                    json.dump(dict(users={}, dashboard_users={}), json_file)
+            users_db = json.load(open(user_json))
+            assert 'users' in users_db, \
+                f"{self.user_json} should contain a 'users' dict!"
+            assert 'dashboard_users' in users_db, \
+                f"{self.user_json} should contain a 'dashboard_users' dict!"
+               
+    def _hash_logins(self, logins:List[List], add_to_user_json:bool=False):
+        """Turn a list of [user, password] pairs into a Flask-Login style user 
+        dictionary with hashed passwords. If passwords already in hash-form 
+        then simply copy them.
+
+        Args:
+            logins (List[List]): List of logins e.g. 
+                logins = [['user1', 'password1], ['user2', 'password2]]
+            add_to_user_json (bool, optional): Add the users to 
+                users.json. Defaults to False.
+
+        Returns:
+            dict
+        """
+        logins_dict = {}
+        if logins is None:
+            return logins_dict
+        
+        regex=re.compile(r'^pbkdf2:sha256:[0-9]+\$[a-zA-Z0-9]+\$[a-z0-9]{64}$', re.IGNORECASE)
+        
+        for username, password in logins:
+            if re.search(regex, password) is not None:
+                logins_dict[username] = dict(
+                    username=username, 
+                    password=password
+                )
+                if add_to_user_json and self.user_json is not None:
+                    self._add_user_to_json(self.user_json, user, password, already_hashed=True)
+            else:
+                logins_dict[username] = dict(
+                    username=username, 
+                    password=generate_password_hash(password, method='pbkdf2:sha256')
+                )
+                if add_to_user_json and self.user_json is not None:
+                    self._add_user_to_json(self.user_json, user, password)
+        return logins_dict
+    
+    @staticmethod
+    def _add_user_to_json(user_json:Path, username:str, password:str, already_hashed=False):
+        """Add a user to a user_json .json file.
+
+        Args:
+            user_json (Path): json file, e.g 'users.json'
+            username (str): username to add
+            password (str): password to add
+            already_hashed (bool, optional): If already hashed then do not hash 
+                the password again. Defaults to False.
+        """
+        users_db = json.load(open(Path(user_json)))
+        users_db['users'][username] = dict(
+            username=username, 
+            password=password if already_hashed else generate_password_hash(password, method='pbkdf2:sha256')
+        )
+        json.dump(users_db, open(Path(user_json), 'w'))
+        
+    @staticmethod
+    def _add_user_to_dashboard_json(user_json:Path, dashboard:str, user:str):
+        """Add a user to dashboard_users inside a json file
+
+        Args:
+            user_json (Path): json file e.g. 'users.json'
+            dashboard (str): name of dashboard
+            user (str): username
+        """
+        users_db = json.load(open(Path(user_json)))
+        dashboard_users = users_db['dashboard_users'].get(dashboard)
+        if dashboard_users is None:
+            dashboard_users = [user]
+        else:
+            dashboard_users = sorted(list(set(dashboard_users + [user])))
+        users_db['dashboard_users'][dashboard] = dashboard_users
+        json.dump(users_db, open(Path(user_json), 'w'))
+        
+    @staticmethod
+    def _delete_user_from_json(user_json:Path, username:str):
+        """delete user from user_json .json file.
+
+        Also removes user from all dashboard_user lists.
+
+        Args:
+            user_json (Path): json file e.g. 'users.json'
+            username (str): username to delete
+        """
+        # TODO: also remove username from dashboard_users
+        users_db = json.load(open(Path(user_json)))
+        try:
+            del users_db['users'][username]
+        except:
+            pass
+        for dashboard in users_db['dashboard_users'].keys():
+            dashboard_users = users_db['dashboard_users'].get(dashboard)
+            if dashboard_users is not None:
+                dashboard_users = sorted(list(set(dashboard_users) ^{user}))
+                users_db['dashboard_users'][dashboard] = dashboard_users
+
+        json.dump(users_db, open(Path(user_json), 'w'))
+        
+    @staticmethod
+    def _delete_user_from_dashboard_json(user_json:Path, dashboard:str, username:str):
+        """remove a user from a specific dashboard_users list inside a users.json file
+
+        Args:
+            user_json (Path): json file, e.g. 'users.json'
+            dashboard (str): name of the dashboard
+            username (str): name of the user to remove
+        """
+        users_db = json.load(open(Path(user_json)))
+        dashboard_users = users_db['dashboard_users'].get(dashboard)
+        if dashboard_users is not None:
+            dashboard_users = sorted(list(set(dashboard_users) ^{user}))
+            users_db['dashboard_users'][dashboard] = dashboard_users
+            json.dump(users_db, open(Path(user_json), 'w'))
+          
+    def add_user(self, username:str, password:str, add_to_json:bool=False):
+        """add a user with username and password. 
+
+        Args:
+            username (str): username
+            password (str): password
+            add_to_json (bool, optional): Add the user to the .json file defined
+                in self.user_json instead of to self.logins. Defaults to False.
+        """
+        if add_to_json and self.user_json is not None:
+            self._add_user_to_json(self.user_json, username, password)
+        else:
+            self.logins[username] = dict(
+                username=username, 
+                password=generate_password_hash(password, method='pbkdf2:sha256')
+            )
+        
+    def add_user_to_dashboard(self, dashboard:str, username:str, add_to_json:bool=False):
+        """add a user to a specific dashboard. If
+
+        Args:
+            dashboard (str): name of dashboard
+            username (str): user to add to dashboard    
+            add_to_json (bool, optional): add the user to the .json file defined
+                in self.user_json instead of to self.db_users. Defaults to False.
+        """
+        if add_to_json and self.user_json is not None:
+            self._add_user_to_dashboard_json(self.user_json, dashboard, user)
+        else:
+            dashboard_users = self.db_users.get(dashboard)
+            dashboard_users = dashboard_users if dashboard_users is not None else []
+            dashboard_users = sorted(list(set(dashboard_users + [username])))
+            self.db_users[dashboard] = dashboard_users
+           
+    @property
+    def users(self):
+        """returns a list of all users, both in users.json and in self.logins"""
+        users = []
+        if self.user_json is not None:
+            users = list(json.load(open(self.user_json))['users'].keys())
+        if self.logins is not None:
+            users.extend(list(self.logins.keys()))
+        return users
+    
+    @property
+    def dashboards_with_users(self):
+        """returns a list of all dashboards that have a restricted list of users
+        that can access it"""
+        dashboards = []
+        if self.user_json is not None:
+            dashboards = list(json.load(open(self.user_json))['dashboard_users'].keys())
+        if self.logins is not None:
+            dashboards.extend(list(self.db_users.keys()))
+        return dashboards
+    
+    @property
+    def dashboard_users(self):
+        """return a dict with the list of users per dashboard"""
+        dashboard_users = {}
+        if self.user_json is not None:
+            dashboard_users.update(json.load(open(self.user_json))['dashboard_users'])
+        if self.db_users is not None:
+            for dashboard, users in self.db_users.items():
+                if not dashboard in dashboard_users:
+                    dashboard_users[dashboard] = users
+                else:
+                    dashboard_users[dashboard] = sorted(list(set(dashboard_users[dashboard] + users)))
+        return dashboard_users
+        
+    def get_dashboard_users(self, dashboard:str):
+        """return all users that have been approved to use a specific dashboard
+
+        Args:
+            dashboard (str): dashboard
+
+        Returns:
+            List
+        """
+        dashboard_users = []
+        if self.user_json is not None:
+            json_users = json.load(open(self.user_json))['dashboard_users'].get(dashboard)
+            if json_users is not None:
+                dashboard_users = json_users
+        if self.db_users is not None:
+            param_users = self.db_users.get(dashboard)
+            if param_users is not None:
+                dashboard_users.extend(param_users)
+        dashboard_users = list(set(dashboard_users))
+        return dashboard_users
+        
+    def _validate_user(self, user):
+        """validation function for SimpleLogin. Returns True when user should
+        be given access (i.e. no users defined or password correct) and False
+        when user should be rejected. 
+
+        Args:
+            user (dict(username, password)): dictionary with a username and 
+                password key.
+
+        Returns:
+            bool
+        """
+        if not self.users:
+            return True
+        users_db = json.load(open(self.user_json))['users'] if self.user_json is not None else {}
+        if not self.logins.get(user['username']) and not users_db.get(user['username']):
+            return False
+        if user['username'] in users_db:
+            stored_password = users_db[user['username']]['password']
+        else:
+            stored_password = self.logins[user['username']]['password']
+        if check_password_hash(stored_password, user['password']):
+            return True
+        return False
+    
+    @staticmethod
+    def _protect_dashviews(dashapp:dash.Dash, username:List[str]=None):
+        """Wraps a dash dashboard inside a login_required decorator to make sure
+        unauthorized viewers cannot access it.
+
+        Args:
+            dashapp (dash.Dash): [
+            username (List[str], optional): list of usernames that can access 
+                this specific dashboard. Defaults to None (all registered users 
+                can access)
+        """
+        for view_func in dashapp.server.view_functions:
+            if view_func.startswith(dashapp.config.url_base_pathname):
+                dashapp.server.view_functions[view_func] = login_required(username=username)(
+                    dashapp.server.view_functions[view_func])
                         
     def _get_index_page(self):
         """Returns the front end of ExplainerHub:
@@ -1048,6 +1401,9 @@ class ExplainerHub:
         - title
         - description
         - links and description for each dashboard
+
+        Returns:
+            dbc.Container
         """
 
         def dashboard_decks(dashboards, n_cols):
@@ -1066,7 +1422,7 @@ class ExplainerHub:
                             ]),
                             dbc.CardFooter([
                                 dbc.CardLink("Go to dashboard", 
-                                            href=dashboard.url_base_pathname[:-1], 
+                                            href=f"/{dashboard.name}", 
                                             external_link=True),   
                             ])
                         ]) for dashboard in dashboards[i:i+n_cols]
@@ -1083,7 +1439,7 @@ class ExplainerHub:
                         ]),
                         dbc.CardFooter([
                             dbc.CardLink("Go to dashboard", 
-                                        href=dashboard.url_base_pathname[:-1], 
+                                        href=f"/{dashboard.name}", 
                                         external_link=True),   
                         ])
                     ]) for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
@@ -1116,49 +1472,34 @@ class ExplainerHub:
         index_page.title = self.title
 
         index_page.layout = dbc.Container([
+            dbc.Row([dbc.Col([html.A("logout", href="/logout")], md=1)], justify="end"),
             dbc.Row([dbc.Col([header])]),
             dbc.Row([dbc.Col([html.H2("Dashboards:")])]),
             *dashboard_rows 
         ])
         return index_page
-    
-    def _assign_routes(self):
-        """Assign flask routes to self.app. Each ExplainerDashboard gets their 
-        own route.
-        """
-        def dashboard_index(dashboard, name):
-            def inner():
-                return dashboard.app.index()
-            inner.__name__ = "return_dashboard_"+name
-            return inner
-
-        @self.app.route("/")
-        def index():
-            return self.index_page.index()
-
-        for dashboard in self.dashboards:
-            self.app.route(dashboard.url_base_pathname[:-1])(
-                dashboard_index(dashboard, dashboard.name))
             
     def flask_server(self):
-        """return the Flask server"""
+        """return the Flask server inside the class instance"""
         return self.app
             
-    def run(self, port=None, use_waitress=False):
+    def run(self, port=None, host='0.0.0.0', use_waitress=False, **kwargs):
         """start the ExplainerHub.
 
         Args:
             port (int, optional): Override default port. Defaults to None.
+            host (str, optional): host name to run dashboard. Defaults to '0.0.0.0'.
             use_waitress (bool, optional): Use the waitress python web server 
                 instead of the Flask development server. Defaults to False.
+            **kwargs: will be passed forward to either waitress.serve() or app.run()
         """
         if port is None:
             port = self.port
         if use_waitress:
             import waitress
-            waitress.serve(self.app, host='0.0.0.0', port=port)  
+            waitress.serve(self.app, host=host, port=port, **kwargs)  
         else:
-            self.app.run(port=port)
+            self.app.run(host=host, port=port, **kwargs)
 
 
 class InlineExplainer:
