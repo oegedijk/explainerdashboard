@@ -62,11 +62,11 @@
 
 ## Hub:
 - automatic reloads with watchdog
-- add dashboard specific logins
 - add reloader=None, debug=None, host=None options
-- add Flask-Login support
 - add explainerhub CLI
-- add user management
+- add default_no_login option to make all dashboards accessible for which
+    no dashboard_users have been defined
+
 
 ### Components
 - autodetect when uuid name get rendered and issue warning
@@ -98,11 +98,13 @@
 ## Tests:
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for ExplainerHub
+- write tests for explainerhub CLI
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
 
 ## Docs:
+- add Docker deploy example (from issue)
 - document register_components no longer necessary
 - add new whatif parameters to README and docs
 - add section to README on storing and loading explainer/dashboard from file/config
