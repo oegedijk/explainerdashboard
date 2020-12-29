@@ -108,7 +108,10 @@ You can also use the ``explainerhub`` CLI tool to start your ``ExplainerHub``
 and manage your users::
 
     $ explainerhub run hub.yaml
-    $ explainerhub adduser
+    $ explainerhub add-user
+    $ explainerhub delete-user
+    $ explainerhub add-dashboard-user
+    $ explainerhub delete-dashboard-user
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerHub
    :members: to_yaml, from_config, add_user, add_user_to_dashboard, get_dashboard_users, flask_server, run
