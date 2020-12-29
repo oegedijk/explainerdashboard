@@ -5,9 +5,11 @@ ExplainerHub (beta)
 If you are hosting multiple ``ExplainerDashboards`` it becomes convenient 
 to host them at a single place. This is made easy with ``ExplainerHub``. 
 
-Possible use cases are:
-* Showcasing multiple models to compare and decide which one to put into production
-* Keeping ExplainerDashboards up and running for all models in production. 
+Possible use cases are: 
+
+1. Showcasing multiple models to compare and decide which 
+one to put into production
+2. Keeping ExplainerDashboards up and running for all models in production. 
 
 You can initialize an ``ExplainerHub`` by passing in a list of ``ExplainerDashboards``::
 
@@ -105,13 +107,33 @@ explainerhub CLI
 .. highlight:: bash
 
 You can also use the ``explainerhub`` CLI tool to start your ``ExplainerHub`` 
-and manage your users::
+and manage your users straight from the commandline::
 
     $ explainerhub run hub.yaml
     $ explainerhub add-user
     $ explainerhub delete-user
     $ explainerhub add-dashboard-user
     $ explainerhub delete-dashboard-user
+
+SECRET_KEY
+==========
+
+In order to make the logins persist when you reboot the server, you need to
+pass a ``SECRET_KEY`` to the hub. Like with any Flask app you should be very
+careful not to store this key somewhere easily findable. Ususally people store
+it as an environmental variable. 
+
+.. highlight:: python
+
+Once you've loaded it, for example with ``dotenv``, you can simply pass it to
+the hub::
+
+    ExplainerHub([db1, db2], secret_key="booya")
+
+If you do not pass a secret key, a random uuid key is generated each time
+you initialize the hub.
+
+
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerHub
    :members: to_yaml, from_config, add_user, add_user_to_dashboard, get_dashboard_users, flask_server, run
