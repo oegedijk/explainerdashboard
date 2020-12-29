@@ -940,7 +940,8 @@ class ExplainerHub:
             "transparent and explainable.")
             self._stored_params['description'] = self.description
             
-        if len(logins)==2 and isinstance(logins[0], str) and isinstance(logins[1], str):
+        if (logins is not None and len(logins)==2 
+            and isinstance(logins[0], str) and isinstance(logins[1], str)):
                 logins = [logins]
         self.logins = self._hash_logins(logins)
                 

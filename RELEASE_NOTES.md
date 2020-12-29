@@ -1,5 +1,27 @@
 # Release Notes
 
+## 0.2.18.1:
+
+### Breaking Changes
+- 
+- 
+
+### New Features
+- `ExplainerHub` now does user managment through `Flask-Login` and a `user.json` file
+- adds an `explainerhub` cli to start explainerhubs and do user management.
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## 0.2.17:
 ### Breaking Changes
 - 
