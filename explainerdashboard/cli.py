@@ -360,14 +360,14 @@ def explainerhub_cli(ctx):
 
     \b
     Examples use:
-        explainerhub add_user
-        explainerhub add_user users.json
-        explainerhub add_user users2.json
-        explainerhub add_user hub.yaml
+        explainerhub add-user
+        explainerhub add-user users.json
+        explainerhub add-user users2.json
+        explainerhub add-user hub.yaml
 
-        explainerhub delete_user
-        explainerhub add_dashboard_user
-        explainerhub delete_dashboard_user
+        explainerhub delete-user
+        explainerhub add-dashboard-user
+        explainerhub delete-dashboard-user
 
     """
 
