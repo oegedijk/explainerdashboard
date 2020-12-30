@@ -17,7 +17,8 @@ decision trees, etc.
 You can also interactively explore components of the dashboard in a 
 notebook/colab environment (or just launch a dashboard straight from there). 
 Or design a dashboard with your own custom layout and explanations (thanks
-to the modular design of the library).
+to the modular design of the library). And you can combine multiple dashboards into
+a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
@@ -120,7 +121,8 @@ db = ExplainerDashboard(explainer,
 db.run(port=8050)
 ```
 
-or for a regression model:
+For a regression model you can also pass the units of the target variable (e.g. 
+dollars):
 
 ```python
 X_train, y_train, X_test, y_test = titanic_fare()
@@ -138,8 +140,28 @@ explainer = RegressionExplainer(model, X_test, y_test,
 db = ExplainerDashboard(explainer).run()
 ```
 
-(`y` is actually optional, although some parts of the dashboard like performance
-metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`)
+`y_test` is actually optional, although some parts of the dashboard like performance
+metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.
+
+
+### ExplainerHub
+
+You can combine multiple dashboards and host them in a single place using 
+[ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html):
+
+```python
+db1 = ExplainerDashboard(explainer1)
+db2 = ExplainerDashboard(explainer2)
+hub = ExplainerHub([db1, db2])
+hub.run()
+```
+
+![docs\screenshots\explainerhub.png](docs\screenshots\explainerhub.png)
+
+
+You can adjust titles and descriptions, manage users and logins, store and load 
+from config, manage the hub through a CLI and more. See the 
+[ExplainerHub documentation](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
 ### Dealing with slow calculations
 
@@ -347,7 +369,6 @@ class CustomDashboard(ExplainerComponent):
                             hide_selector=True, hide_cats=True, 
                             hide_depth=True, hide_sort=True,
                             index='Rugg, Miss. Emily')
-        self.register_components()
         
     def layout(self):
         return dbc.Container([
@@ -402,17 +423,15 @@ db = ExplainerDashboard(explainer, [ShapDependenceComposite, WhatIfComposite],
                         title='Awesome Dashboard', hide_whatifpdp=True)
 
 # store both the explainer and the dashboard configuration:
-explainer.dump("explainer.joblib")
-db.to_yaml("dashboard.yaml")
+db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib", dump_explainer=True)
 ```
 
 You can then reload it in **dashboard.py**:
 ```python
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 
-explainer = ClassifierExplainer.from_file("explainer.joblib")
 # you can override params during load from_config:
-db = ExplainerDashboard.from_config(explainer, "dashboard.yaml", title="Awesomer Title")
+db = ExplainerDashboard.from_config("dashboard.yaml", title="Awesomer Title")
 
 app = db.flask_server()
 ```
@@ -422,6 +441,13 @@ And then run it with:
 ```sh
     $ gunicorn dashboard:app
 ```
+
+or with waitress (also works on Windows):
+
+```sh
+    $ waitress-serve dashboard:app
+```
+
 
 
 ## Documentation
