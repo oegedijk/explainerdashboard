@@ -156,7 +156,7 @@ hub = ExplainerHub([db1, db2])
 hub.run()
 ```
 
-![docs\screenshots\explainerhub.png](docs/screenshots/explainerhub.png)
+![docs/source/screenshots/explainerhub.png](docs/source/screenshots/explainerhub.png)
 
 
 You can adjust titles and descriptions, manage users and logins, store and load 
