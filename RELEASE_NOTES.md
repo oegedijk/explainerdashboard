@@ -1,5 +1,41 @@
 # Release Notes
 
+## 0.2.19
+### Breaking Changes
+- ExplainerHub: parameter `user_json` is now called `users_file` (and default to a .yaml file)
+- Renamed a bunch of `ExplainerHub` private methods:
+    - `_validate_user_json` -> `_validate_users_file`
+    - `_add_user_to_json` -> `_add_user_to_file`
+    - `_add_user_to_dashboard_json` -> `_add_user_to_dashboard_file`
+    - `_delete_user_from_json` -> `_delete_user_from_file`
+    - `_delete_user_from_dashboard_json` -> `_delete_user_from_dashboard_file`
+
+
+### New Features
+- Added NavBar to `ExplainerHub`
+- Made `users.yaml` to default file for storing users and hashed passwords 
+    for `ExplainerHub` for easier editing.
+- Added option `min_height` to `ExplainerHub` to set the size of the iFrame
+    containing the dashboard.
+- Added option `no_index` to `ExplainerHub`: doesnt generate a flask route
+    for index `"/"`, so that you can add your own custom index. The dashboards
+    are still loaded on their respective routes, so you can link to them
+    or embed them in iframes, etc. 
+- Added option `fluid=True` to `ExplainerHub` to stretch bootstrap container
+    to width of the browser. 
+- added parameter `bootstrap` to `ExplainerHub` to override default bootstrap theme.
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+
 ## 0.2.18.1:
 
 ### Breaking Changes

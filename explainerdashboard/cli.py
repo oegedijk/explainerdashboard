@@ -174,6 +174,31 @@ def launch_hub_from_yaml(hub_config, no_browser, port, no_dashboard=False):
         waitress.serve(hub.flask_server(), host='0.0.0.0', port=port)
     return
 
+
+def get_hub_filepath(filepath):
+    if filepath is None:
+        if (Path().cwd() / "hub.yaml").exists():
+            click.echo("explainerhub ===> Detected hub.yaml...")
+            filepath = Path().cwd() / "hub.yaml"
+        elif (Path().cwd() / "users.yaml").exists():
+            click.echo("explainerhub ===> Detected users.yaml...")
+            filepath = Path().cwd() / "users.yaml"
+        elif (Path().cwd() / "users.json").exists():
+            click.echo("explainerhub ===> Detected users.json...")
+            filepath = Path().cwd() / "users.json"
+        else:
+            click.echo("No argument given and could find neither a "
+                    "hub.yaml nor users.yaml or users.json. Aborting.")
+            return
+
+    if str(filepath).endswith(".yaml"):
+        config = yaml.safe_load(open(str(filepath), "r"))
+        if 'explainerhub' in config:
+            filepath = config['explainerhub']['users_file']
+            click.echo(f"explainerhub ===> Using {filepath} to manage users...")
+    return filepath
+
+
 @click.group()
 @click.pass_context
 def explainerdashboard_cli(ctx):
@@ -361,7 +386,7 @@ def explainerhub_cli(ctx):
     \b
     Examples use:
         explainerhub add-user
-        explainerhub add-user users.json
+        explainerhub add-user users.yaml
         explainerhub add-user users2.json
         explainerhub add-user hub.yaml
 
@@ -390,110 +415,59 @@ def run(ctx, hub_filepath, no_browser, port):
     click.echo(hub_ascii)
     launch_hub_from_yaml(hub_filepath, no_browser, port)
 
-@explainerhub_cli.command(help="add a user to users.json")
+@explainerhub_cli.command(help="add a user to users.yaml")
 @click.argument("filepath", nargs=1, required=False)
 @click.option('--username', "-u", required=True, prompt=True)
 @click.option('--password', "-p", required=True, prompt=True, hide_input=True,
               confirmation_prompt=True)
 def add_user(filepath, username, password):
+    filepath = get_hub_filepath(filepath)
     if filepath is None:
-        if (Path().cwd() / "hub.yaml").exists():
-            click.echo("explainerhub ===> Detected hub.yaml...")
-            filepath = Path().cwd() / "hub.yaml"
-        elif (Path().cwd() / "users.json").exists():
-            click.echo("explainerhub ===> Detected users.json...")
-            filepath = Path().cwd() / "users.json"
-        else:
-            click.echo("No argument given and could find neither a "
-                    "hub.yaml nor users.json. Aborting.")
-            return
-
-    if str(filepath).endswith(".yaml"):
-        config = yaml.safe_load(open(str(filepath), "r"))
-        filepath = config['explainerhub']['user_json']
-        click.echo(f"explainerhub ===> Using {filepath} to add user...")
-    ExplainerHub._validate_user_json(filepath)
-    ExplainerHub._add_user_to_json(filepath, username=username, password=password)
-    click.echo(f'user added to {filepath}!')
+        return
+    ExplainerHub._validate_users_file(filepath)
+    ExplainerHub._add_user_to_file(filepath, username=username, password=password)
+    click.echo(f'explainerhub ===> user added to {filepath}!')
 
 
-@explainerhub_cli.command(help="remove a user from users.json")
+@explainerhub_cli.command(help="remove a user from users.yaml")
 @click.argument("filepath", nargs=1, required=False)
 @click.option('--username', "-u", required=True, prompt=True)
 def delete_user(filepath, username):
+    filepath = get_hub_filepath(filepath)
     if filepath is None:
-        if (Path().cwd() / "hub.yaml").exists():
-            click.echo("explainerhub ===> Detected hub.yaml...")
-            filepath = Path().cwd() / "hub.yaml"
-        elif (Path().cwd() / "users.json").exists():
-            click.echo("explainerhub ===> Detected users.json...")
-            filepath = Path().cwd() / "users.json"
-        else:
-            click.echo("No argument given and could find neither a "
-                    "hub.yaml nor users.json. Aborting.")
-            return
+        return
 
-    if str(filepath).endswith(".yaml"):
-        config = yaml.safe_load(open(str(filepath), "r"))
-        filepath = config['explainerhub']['user_json']
-        click.echo(f"explainerhub ===> Using {filepath} to add user...")
-    ExplainerHub._validate_user_json(filepath)
-    ExplainerHub._delete_user_from_json(filepath, username=username, password=password)
-    click.echo(f'user removed from {filepath}!')
+    ExplainerHub._validate_users_file(filepath)
+    ExplainerHub._delete_user_from_file(filepath, username=username)
+    click.echo(f'explainerhub ===> user removed from {filepath}!')
 
 
-@explainerhub_cli.command(help="add a username to a dashboard users.json")
+@explainerhub_cli.command(help="add a username to a dashboard users.yaml")
 @click.argument("filepath", nargs=1, required=False)
 @click.option('--dashboard', "-d", required=True, prompt=True)
 @click.option('--username', "-u", required=True, prompt=True)
 def add_dashboard_user(filepath, dashboard, username):
+    filepath = get_hub_filepath(filepath)
     if filepath is None:
-        if (Path().cwd() / "hub.yaml").exists():
-            click.echo("explainerhub ===> Detected hub.yaml...")
-            filepath = Path().cwd() / "hub.yaml"
-        elif (Path().cwd() / "users.json").exists():
-            click.echo("explainerhub ===> Detected users.json...")
-            filepath = Path().cwd() / "users.json"
-        else:
-            click.echo("No argument given and could find neither a "
-                    "hub.yaml nor users.json. Aborting.")
-            return
-
-    if str(filepath).endswith(".yaml"):
-        config = yaml.safe_load(open(str(filepath), "r"))
-        filepath = config['explainerhub']['user_json']
-        click.echo(f"explainerhub ===> Using {filepath} to add user...")
-    ExplainerHub._validate_user_json(filepath)
-    ExplainerHub._add_user_to_dashboard_json(
+        return
+    ExplainerHub._validate_users_file(filepath)
+    ExplainerHub._add_user_to_dashboard_file(
         filepath, dashboard=dashboard, username=username)
-    click.echo(f'user added to {dashboard} in {filepath}!')
+    click.echo(f'explainerhub ===> user added to {dashboard} in {filepath}!')
 
 
-@explainerhub_cli.command(help="remove a username from a dashboard in users.json")
+@explainerhub_cli.command(help="remove a username from a dashboard in users.yaml")
 @click.argument("filepath", nargs=1, required=False)
 @click.option('--dashboard', "-d", required=True, prompt=True)
 @click.option('--username', "-u", required=True, prompt=True)
 def delete_dashboard_user(filepath, dashboard, username):
+    filepath = get_hub_filepath(filepath)
     if filepath is None:
-        if (Path().cwd() / "hub.yaml").exists():
-            click.echo("explainerhub ===> Detected hub.yaml...")
-            filepath = Path().cwd() / "hub.yaml"
-        elif (Path().cwd() / "users.json").exists():
-            click.echo("explainerhub ===> Detected users.json...")
-            filepath = Path().cwd() / "users.json"
-        else:
-            click.echo("No argument given and could find neither a "
-                    "hub.yaml nor users.json. Aborting.")
-            return
-
-    if str(filepath).endswith(".yaml"):
-        config = yaml.safe_load(open(str(filepath), "r"))
-        filepath = config['explainerhub']['user_json']
-        click.echo(f"explainerhub ===> Using {filepath} to remove user...")
-    ExplainerHub._validate_user_json(filepath)
-    ExplainerHub._delete_user_from_dashboard_json(
+        return
+    ExplainerHub._validate_users_file(filepath)
+    ExplainerHub._delete_user_from_dashboard_file(
         filepath, dashboard=dashboard, username=username)
-    click.echo(f'user removed from {dashboard} in {filepath}!')
+    click.echo(f'explainerhub ===> user removed from {dashboard} in {filepath}!')
 
 
 if __name__ =="__main__":
