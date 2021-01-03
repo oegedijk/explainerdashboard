@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.2.18.2',
+    version='0.2.19',
     description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.',
     long_description="""
 
@@ -58,7 +58,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
     packages=find_packages(),
     package_dir={'explainerdashboard': 'explainerdashboard'},  # the one line where all the magic happens
     package_data={
-        'explainerdashboard': ['assets/*', 'datasets/*'],
+        'explainerdashboard': ['assets/*', 'datasets/*', 'static/*'],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

@@ -45,6 +45,7 @@
 
 
 ## Dashboard:
+- add description to _stored_params
 - to_yaml: make dump_explainer=True default
 - add reloader=None, debug=None, host=None options
 - add waitress to run options
@@ -62,6 +63,7 @@
         - generate groups programmatically!
 
 ## Hub:
+- add NavBar
 - automatic reloads with watchdog
 - add reloader=None, debug=None, host=None options
 - add default_no_login option to make all dashboards accessible for which
