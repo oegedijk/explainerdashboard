@@ -150,15 +150,16 @@ dashboard.yaml
 explainer.yaml
 start_responsive_server.sh
 tests/cli_assets/*
+!tests/cli_assets/data.csv
+!tests/cli_assets/pipeline_data.csv
 
+tests/test_assets/*
+!tests/test_assets/data.csv
+!tests/test_assets/pipeline_data.csv
 
 db_test.py
 .DS_Store
-.DS_Store
-.DS_Store
 docs/source/.DS_Store
-!tests/cli_assets/data.csv
-!tests/cli_assets/pipeline_data.csv
 hub.yaml
 hub.ipynb
 dashboard1.yaml

@@ -1001,6 +1001,7 @@ class ExplainerHub:
             ExplainerHub: new instance of ExplainerHub according to the config.
         """
         if isinstance(config, (Path, str)) and str(config).endswith(".yaml"):
+            filepath = config.parent
             config = yaml.safe_load(open(str(config), "r"))
         elif isinstance(config, dict):
             config = deepcopy(config)
@@ -1009,8 +1010,17 @@ class ExplainerHub:
             "Misformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
         
         config = config['explainerhub']
-        dashboards = [ExplainerDashboard.from_config(dashboard)
-                              for dashboard in config['dashboards']]
+
+        def convert_db(db, filepath=None):
+            if isinstance(db, dict): return db
+            elif Path(db).is_absolute:
+                return Path(db)
+            else:
+                filepath = Path(filepath or Path.cwd())
+                return filepath / db
+        
+        dashboards = [ExplainerDashboard.from_config(convert_db(db, filepath))
+                              for db in config['dashboards']]
         del config['dashboards']
         config.update(config.pop('kwargs'))
         return cls(dashboards, **update_kwargs(config, **update_params))
@@ -1039,6 +1049,7 @@ class ExplainerHub:
         Returns:
             {dict, yaml, None}
         """
+        filepath = Path(filepath)
         for login in self.logins.values():
             self._add_user_to_file(self.users_file, 
                                    login['username'], login['password'], 
@@ -1059,8 +1070,8 @@ class ExplainerHub:
         else:
             for dashboard in self.dashboards:
                 print(f"Storing {dashboard.name}_dashboard.yaml...")
-                dashboard.to_yaml(dashboard.name+"_dashboard.yaml",
-                        explainerfile=dashboard.name+"_explainer.joblib",
+                dashboard.to_yaml(filepath.parent / (dashboard.name+"_dashboard.yaml"),
+                        explainerfile=filepath.parent / (dashboard.name+"_explainer.joblib"),
                         dump_explainer=dump_explainers)
             hub_config = dict(
                 explainerhub=dict(
@@ -1347,7 +1358,7 @@ class ExplainerHub:
                 in self.users_file instead of to self.db_users. Defaults to False.
         """
         if add_to_users_file and self.users_file is not None:
-            self._add_user_to_dashboard_file(self.users_file, dashboard, user)
+            self._add_user_to_dashboard_file(self.users_file, dashboard, username)
         else:
             dashboard_users = self.db_users.get(dashboard)
             dashboard_users = dashboard_users if dashboard_users is not None else []

@@ -29,7 +29,7 @@ class DashboardTests(unittest.TestCase):
                 "importances"
             ], title="Test Title!")
 
-        self.pkl_dir = Path.cwd() / "tests" / "cli_assets" 
+        self.pkl_dir = Path.cwd() / "tests" / "test_assets" 
         self.explainer.dump(self.pkl_dir / "explainer.joblib")
         self.explainer.to_yaml(self.pkl_dir / "explainer.yaml")
         self.dashboard.to_yaml(self.pkl_dir / "dashboard.yaml", 
