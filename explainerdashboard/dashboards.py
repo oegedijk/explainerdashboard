@@ -949,7 +949,7 @@ class ExplainerHub:
         
         if user_json is not None:
             print("Warning: user_json has been deprecated, use users_file parameter instead!")
-            users_file = user_json
+            self.users_file = user_json
         if self.description is None:
             self.description = ("This ExplainerHub shows a number of ExplainerDashboards.\n"
             "Each dashboard makes the inner workings and predictions of a trained machine "
@@ -1013,7 +1013,7 @@ class ExplainerHub:
 
         def convert_db(db, filepath=None):
             if isinstance(db, dict): return db
-            elif Path(db).is_absolute:
+            elif Path(db).is_absolute():
                 return Path(db)
             else:
                 filepath = Path(filepath or Path.cwd())

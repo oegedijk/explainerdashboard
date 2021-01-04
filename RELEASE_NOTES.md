@@ -26,7 +26,7 @@
 - added parameter `bootstrap` to `ExplainerHub` to override default bootstrap theme.
 
 ### Bug Fixes
--
+- `ExplainerHub.from_config()` now works with non-cwd paths
 -
 
 ### Improvements
