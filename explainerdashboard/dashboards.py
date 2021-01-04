@@ -1507,7 +1507,7 @@ class ExplainerHub:
                 html.H1(self.title, className="display-3"),
                 html.Hr(className="my-2"),
                 html.P(self.description, className="lead"),
-        ])
+        ], style=dict(marginTop=40))
         
         if self.masonry:
             dashboard_rows = [
@@ -1532,7 +1532,7 @@ class ExplainerHub:
             dbc.Row([dbc.Col([header])]),
             dbc.Row([dbc.Col([html.H2("Dashboards:")])]),
             *dashboard_rows 
-        ])
+        ], fluid=self.fluid)
         return index_page
     
     def _hub_page(self, route):
