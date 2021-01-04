@@ -70,7 +70,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
     install_requires=['dash', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
                     'dtreeviz>=1.0', 'numpy', 'pandas', 'PDPbox', 'scikit-learn', 
-                    'shap>=0.36', 'shortuuid', 'joblib', 'oyaml', 'click', 'waitress',
+                    'shap>=0.37', 'shortuuid', 'joblib', 'oyaml', 'click', 'waitress',
                     'flask_simplelogin'],
     entry_points={
         'console_scripts': [
