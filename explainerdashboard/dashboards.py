@@ -792,11 +792,12 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
         
-    def run(self, port=None, use_waitress=False, **kwargs):
+    def run(self, port=None, host='0.0.0.0', use_waitress=False, **kwargs):
         """Start ExplainerDashboard on port
 
         Args:
             port (int, optional): port to run on. If None, then use self.port.
+            host (str, optional): host to run on. Defaults to '0.0.0.0'.
             use_waitress (bool, optional): use the waitress python web server 
                 instead of the flask development server. Only works with mode='dash'.
                 Defaults to False.
@@ -817,7 +818,7 @@ class ExplainerDashboard:
             print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
             if use_waitress:
                 from waitress import serve
-                serve(self.app.server, host='0.0.0.0', port=port)
+                serve(self.app.server, host=host, port=port)
             else:
                 self.app.run_server(port=port, **kwargs)
         elif self.mode == 'external':
