@@ -41,8 +41,28 @@ url path with ``name``::
                 description="Showing dashboards for both model one and two")
     hub.run()
 
-Managing logins
-===============
+Changing size, theme, etc
+==========================
+
+By default the hub fills the entire width of the browser, you can make it more slim
+by passing ``fluid=False``. You can also pass other bootstrap themes: 
+``bootstrap=dbc.themes.SKETCHY``. You can adjust the size of the iFrame with e.g. 
+``min_height=2000``.
+
+You can also build your own front end if you want. If you pass ``no_index=True``,
+the index page and navbars will not get loaded, while the dashboards are still
+loaded on their respective routes. E.g.::
+
+    hub = ExplainerHub([db1, db2], no_index=True)
+    app = hub.flask_server()
+
+    @app.route("/")
+    def custom_index():
+        return render_template("custom_index.html")
+
+
+Managing users
+==============
 
 You can manage logins and which usernames have access to particular dashboards
 by passing ``logins`` and ``db_users``. Here we create two users (``user1`` 
@@ -65,6 +85,7 @@ You can also add users from the hub itself::
     hub.add_user("user3", "password3")
     hub.add_user_to_dashboard("db2", "user3")
 
+Or by adding ``users.yaml`` or by using the ``explainerhub`` CLI tool (see below).
 
 
 Storing to config
@@ -82,24 +103,24 @@ classmethod::
 The `hub.yaml` file looks something like this::
 
     explainerhub:
-    title: ExplainerHub
-    description: Showing dashboards for both model one and two
-    masonry: false
-    n_dashboard_cols: 3
-    user_json: users.json
-    db_users: null
-    port: 8050
-    kwargs: {}
-    dashboards:
-    - db1_dashboard.yaml
-    - db2_dashboard.yaml
+        title: ExplainerHub
+        description: Showing dashboards for both model one and two
+        masonry: false
+        n_dashboard_cols: 3
+        users_file: users.yaml
+        db_users: null
+        port: 8050
+        kwargs: {}
+        dashboards:
+        - db1_dashboard.yaml
+        - db2_dashboard.yaml
 
 If you pass ``integrate_dashboard_yamls=True``, then the configuration of the 
-dashboard gets integrated into a single ``hub.yaml`` file instead of being
+dashboards get integrated into a single ``hub.yaml`` file instead of being
 stored in separate files. 
 
 When you store the hub, all users and (hashed) passwords get stored in a 
-``users.json`` file. 
+``users.yaml`` file. 
 
 explainerhub CLI
 ================
@@ -118,21 +139,22 @@ and manage your users straight from the commandline::
 SECRET_KEY
 ==========
 
+.. highlight:: bash
 In order to make the logins persist when you reboot the server, you need to
 pass a ``SECRET_KEY`` to the hub. Like with any Flask app you should be very
 careful not to store this key somewhere easily findable. Ususally people store
-it as an environmental variable. 
+it as an environmental variable::
+
+    $ export SECRET_KEY='5f352379324c22463451387a0aec5d2f'
 
 .. highlight:: python
 
-Once you've loaded it, for example with ``dotenv``, you can simply pass it to
-the hub::
+Then you load it with the `os` module and pass it to the hub::
 
-    ExplainerHub([db1, db2], secret_key="booya")
+    ExplainerHub([db1, db2], secret_key=os.environ.get("SECRET_KEY"))
 
 If you do not pass a secret key, a random uuid key is generated each time
-you initialize the hub.
-
+you initialize the hub (which means you'll have to log in every time).
 
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerHub

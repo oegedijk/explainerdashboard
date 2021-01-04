@@ -1369,7 +1369,7 @@ class ExplainerHub:
     def users(self):
         """returns a list of all users, both in users.json and in self.logins"""
         users = []
-        if self.users_file is not None:
+        if self.users_file is not None and Path(self.users_file).exists():
             users = list(self._load_users_db(self.users_file)['users'].keys())
         if self.logins is not None:
             users.extend(list(self.logins.keys()))
@@ -1380,7 +1380,7 @@ class ExplainerHub:
         """returns a list of all dashboards that have a restricted list of users
         that can access it"""
         dashboards = []
-        if self.users_file is not None:
+        if self.users_file is not None and Path(self.users_file).exists():
             dashboards = list(self._load_users_db(self.users_file)['dashboard_users'].keys())
         if self.logins is not None:
             dashboards.extend(list(self.db_users.keys()))
@@ -1390,7 +1390,7 @@ class ExplainerHub:
     def dashboard_users(self):
         """return a dict with the list of users per dashboard"""
         dashboard_users = {}
-        if self.users_file is not None:
+        if self.users_file is not None and Path(self.users_file).exists():
             dashboard_users.update(self._load_users_db(self.users_file)['dashboard_users'])
         if self.db_users is not None:
             for dashboard, users in self.db_users.items():
@@ -1605,20 +1605,34 @@ class ExplainerHub:
         Args:
             app (flask.Flask): flask app to add routes to.
         """
-        
-        @app.route("/")
-        @login_required
-        def index_route():
-            return self._hub_page("/index")
-        
-        def dashboard_route(dashboard):
-            def inner():
-                return self._hub_page(f"/{dashboard.name}/")
-            inner.__name__ = "return_dashboard_"+dashboard.name
-            return inner
-        
-        for dashboard in self.dashboards:
-            app.route(f"/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
+        if self.users:
+            @app.route("/")
+            @login_required
+            def index_route():
+                return self._hub_page("/index")
+            
+            def dashboard_route(dashboard):
+                def inner():
+                    return self._hub_page(f"/{dashboard.name}/")
+                inner.__name__ = "return_dashboard_"+dashboard.name
+                return inner
+            
+            for dashboard in self.dashboards:
+                app.route(f"/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
+        else:
+            @app.route("/")
+            def index_route():
+                return self._hub_page("/index")
+            
+            def dashboard_route(dashboard):
+                def inner():
+                    return self._hub_page(f"/{dashboard.name}/")
+                inner.__name__ = "return_dashboard_"+dashboard.name
+                return inner
+            
+            for dashboard in self.dashboards:
+                app.route(f"/_{dashboard.name}")(dashboard_route(dashboard))
+
         
     def flask_server(self):
         """return the Flask server inside the class instance"""
