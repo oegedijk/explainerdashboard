@@ -22,7 +22,7 @@ from explainerdashboard.datasets import titanic_survive, titanic_names
 class ClassifierBaseExplainerTestsPipeline(unittest.TestCase):
     def setUp(self):
         #X, y = fetch_openml("titanic", version=1, as_frame=True, return_X_y=True)
-        df = pd.read_csv(Path.cwd() / "tests" / "cli_assets" / "pipeline_data.csv")
+        df = pd.read_csv(Path.cwd() / "tests" / "test_assets" / "pipeline_data.csv")
         X = df[['age', 'fare', 'embarked', 'sex', 'pclass']]
         y = df['survived'].astype(int)
 
