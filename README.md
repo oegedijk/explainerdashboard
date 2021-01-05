@@ -150,8 +150,10 @@ You can combine multiple dashboards and host them in a single place using
 [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html):
 
 ```python
-db1 = ExplainerDashboard(explainer1)
-db2 = ExplainerDashboard(explainer2)
+db1 = ExplainerDashboard(explainer1, title="Classifier Explainer", 
+         description="Model predicting survival on H.M.S. Titanic")
+db2 = ExplainerDashboard(explainer2, title="Regression Explainer",
+         description="Model predicting ticket price on H.M.S. Titanic")
 hub = ExplainerHub([db1, db2])
 hub.run()
 ```
