@@ -2,7 +2,7 @@
 
 ## 0.2.19
 ### Breaking Changes
-- ExplainerHub: parameter `user_json` is now called `users_file` (and default to a .yaml file)
+- ExplainerHub: parameter `user_json` is now called `users_file` (and default to a `users.yaml` file)
 - Renamed a bunch of `ExplainerHub` private methods:
     - `_validate_user_json` -> `_validate_users_file`
     - `_add_user_to_json` -> `_add_user_to_file`
@@ -17,21 +17,29 @@
     for `ExplainerHub` for easier editing.
 - Added option `min_height` to `ExplainerHub` to set the size of the iFrame
     containing the dashboard.
+- Added option `fluid=True` to `ExplainerHub` to stretch bootstrap container
+    to width of the browser. 
+- added parameter `bootstrap` to `ExplainerHub` to override default bootstrap theme.
+- added option `dbs_open_by_default=True` to `ExplainerHub` so that no login
+    is required for dashboards for which there wasn't a specific lists 
+    of users declared through `db_users`. So only dashboards for which users
+    have been defined are password protected. 
 - Added option `no_index` to `ExplainerHub`: doesnt generate a flask route
     for index `"/"`, so that you can add your own custom index. The dashboards
     are still loaded on their respective routes, so you can link to them
     or embed them in iframes, etc. 
-- Added option `fluid=True` to `ExplainerHub` to stretch bootstrap container
-    to width of the browser. 
-- added parameter `bootstrap` to `ExplainerHub` to override default bootstrap theme.
+- Added a "wizard" perfect prediction to the lift curve.
+    - hide with `hide_wizard=True` default to not show with `wizard=False`.
 
 ### Bug Fixes
 - `ExplainerHub.from_config()` now works with non-cwd paths
 -
 
 ### Improvements
--
--
+- added a "powered by: explainerdashboard" footer. Hide it with hide_poweredby=True.
+- added option "None" to shap dependence color col. Also removes the point cloud 
+    from the violin plots for categorical features.
+- added option `mode` to `ExplainerDashboard.run()` that can override self.mode.
 
 ### Other Changes
 -

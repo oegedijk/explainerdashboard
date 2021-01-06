@@ -2322,7 +2322,8 @@ class ClassifierExplainer(BaseExplainer):
                 self.y, self.pred_probas_raw.argmax(axis=1),
                 percentage=normalized, labels=self.labels)
 
-    def plot_lift_curve(self, cutoff=None, percentage=False, round=2, pos_label=None):
+    def plot_lift_curve(self, cutoff=None, percentage=False, add_wizard=True, 
+                        round=2, pos_label=None):
         """plot of a lift curve.
 
         Args:
@@ -2330,6 +2331,8 @@ class ClassifierExplainer(BaseExplainer):
                     (Default value = None)
           percentage(bool, optional): display percentages instead of counts, 
                     defaults to False
+          add_wizard (bool, optional): Add a line indicating how a perfect model 
+                    would perform ("the wizard"). Defaults to True.
           round: number of digits to round to (Default value = 2)
           pos_label: positive label to display, defaults to self.pos_label
 
@@ -2337,7 +2340,8 @@ class ClassifierExplainer(BaseExplainer):
           plotly fig
 
         """
-        return plotly_lift_curve(self.lift_curve_df(pos_label), cutoff, percentage, round)
+        return plotly_lift_curve(self.lift_curve_df(pos_label), cutoff=cutoff, 
+                percentage=percentage, add_wizard=add_wizard, round=round)
 
     def plot_classification(self, cutoff=0.5, percentage=True, pos_label=None):
         """plot showing a barchart of the classification result for cutoff

@@ -735,8 +735,9 @@ class LiftCurveComponent(ExplainerComponent):
     def __init__(self, explainer, title="Lift Curve", name=None,
                     subtitle="Performance how much better than random?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_cutoff=False, hide_percentage=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5, percentage=True, description=None,
+                    hide_cutoff=False, hide_percentage=False, hide_wizard=False,
+                    hide_selector=False, pos_label=None, cutoff=0.5, percentage=True, 
+                    wizard=True, description=None,
                     **kwargs):
         """Show liftcurve component
 
@@ -754,10 +755,12 @@ class LiftCurveComponent(ExplainerComponent):
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
+            hide_wizard (bool, optional): hide the wizard toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Cutoff for lift curve. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
+            wizard (bool, optional): display the wizard in the graph.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -827,6 +830,21 @@ class LiftCurveComponent(ExplainerComponent):
                             ),
                         ]),
                     ]), hide=self.hide_percentage),  
+                make_hideable(
+                    html.Div([
+                        dbc.FormGroup([
+                            dbc.Tooltip("Display how a perfect model would perform"
+                                    "(the so-called 'wizard')",
+                                    target='liftcurve-wizard-'+self.name),
+                            dbc.Checklist(
+                                options=[{"label":  "Display wizard", "value": True}],
+                                value=[True] if self.wizard else [],
+                                id='liftcurve-wizard-'+self.name,
+                                inline=True,
+                                switch=True,
+                            ),
+                        ]),
+                    ]), hide=self.hide_wizard),  
             ]), hide=self.hide_footer)
         ])
 
@@ -835,11 +853,13 @@ class LiftCurveComponent(ExplainerComponent):
             Output('liftcurve-graph-'+self.name, 'figure'),
             [Input('liftcurve-cutoff-'+self.name, 'value'),
              Input('liftcurve-percentage-'+self.name, 'value'),
+             Input('liftcurve-wizard-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
-        def update_precision_graph(cutoff, percentage, pos_label):
+        def update_precision_graph(cutoff, percentage, add_wizard, pos_label):
             return self.explainer.plot_lift_curve(cutoff=cutoff, 
-                percentage=bool(percentage), pos_label=pos_label)
+                percentage=bool(percentage), pos_label=pos_label, 
+                add_wizard=bool(add_wizard))
 
 
 class CumulativePrecisionComponent(ExplainerComponent):

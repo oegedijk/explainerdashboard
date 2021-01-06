@@ -32,6 +32,7 @@
 
 
 ## Explainers:
+- add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
         case instead of a plot the function returns a verbal description of the 
@@ -45,12 +46,8 @@
 
 
 ## Dashboard:
-- add description to _stored_params
-- to_yaml: make dump_explainer=True default
 - add SimpleClassifierDashboard
 - add SimpleRegressionDashboard
-
-- use bootstrap tabs for better theming (especially with dark themes)?
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -62,17 +59,18 @@
 
 ## Hub:
 - automatic reloads with watchdog
-- add reloader=None, debug=None, host=None options
-- add default_no_login option to make all dashboards accessible for which
-    no dashboard_users have been defined
+- add reloader=None, debug=None, options
+- make example deployment on heroku
+- copy users.yaml to correct directory with to_yaml
 
 
 ### Components
+- add "no wizard" option to LiftCurveComponent
 - autodetect when uuid name get rendered and issue warning
-- automatically call register_components()
-- add show points to categorical shap dependence
 - Add side-by-side option to cutoff selector component
 
+- add filter to index selector using pattern matching callbacks:
+    - https://dash.plotly.com/pattern-matching-callbacks
 - add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
@@ -96,13 +94,14 @@
 
 ## Tests:
 - add tests for InterpretML EBM (shap 0.37)
-- write tests for ExplainerHub
-- write tests for explainerhub CLI
+- write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately
 - write tests for explainer_methods
 - write tests for explainer_plots
 
 ## Docs:
+- add hide_wizard and wizard to docs
+- add hide_poweredby to docs
 - add Docker deploy example (from issue)
 - document register_components no longer necessary
 - add new whatif parameters to README and docs
