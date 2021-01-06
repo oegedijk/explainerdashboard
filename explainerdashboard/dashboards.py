@@ -88,6 +88,7 @@ class ExplainerTabsLayout:
                  description=None,
                  header_hide_title=False,
                  header_hide_selector=False,
+                 hide_poweredby=False,
                  block_selector_callbacks=False,
                  pos_label=None,
                  fluid=True,
@@ -106,6 +107,7 @@ class ExplainerTabsLayout:
             header_hide_title (bool, optional): Hide the title. Defaults to False.
             header_hide_selector (bool, optional): Hide the positive label selector. 
                         Defaults to False.
+            hide_poweredby (bool, optional): hide the powered by footer
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
                         have your own PosLabelSelector in your layout. 
@@ -119,6 +121,7 @@ class ExplainerTabsLayout:
         self.header_hide_title = header_hide_title
         self.header_hide_selector = header_hide_selector
         self.block_selector_callbacks = block_selector_callbacks
+        self.hide_poweredby = hide_poweredby
         if self.block_selector_callbacks:
             self.header_hide_selector = True
         self.fluid = fluid
@@ -146,6 +149,17 @@ class ExplainerTabsLayout:
             dcc.Tabs(id="tabs", value=self.tabs[0].name, 
                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
                                         children=tab.layout()) for tab in self.tabs]),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        html.Div([
+                            html.Small("powered by: "),
+                            html.Small(html.A("explainerdashboard", 
+                                    className="text-muted", target='_blank',
+                                    href="https://github.com/oegedijk/explainerdashboard"))
+                        ], className="text-right"),
+                    ]), hide=self.hide_poweredby),
+            ], justify="end"),
         ], fluid=self.fluid)
 
     def register_callbacks(self, app):
@@ -178,6 +192,7 @@ class ExplainerPageLayout(ExplainerComponent):
                  description=None,
                  header_hide_title=False,
                  header_hide_selector=False,
+                 hide_poweredby=False,
                  block_selector_callbacks=False,
                  pos_label=None,
                  fluid=False,
@@ -198,6 +213,7 @@ class ExplainerPageLayout(ExplainerComponent):
             header_hide_title (bool, optional): Hide the title. Defaults to False.
             header_hide_selector (bool, optional): Hide the positive label selector.
                         Defaults to False.
+            hide_poweredby (bool, optional): hide the powered by footer
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
                         have your own PosLabelSelector in your layout. 
@@ -210,6 +226,7 @@ class ExplainerPageLayout(ExplainerComponent):
         self.description = description
         self.header_hide_title = header_hide_title
         self.header_hide_selector = header_hide_selector
+        self.hide_poweredby = hide_poweredby
         self.block_selector_callbacks = block_selector_callbacks
         if self.block_selector_callbacks:
             self.header_hide_selector = True
@@ -236,7 +253,18 @@ class ExplainerPageLayout(ExplainerComponent):
                         self.selector.layout()
                     ], md=3), hide=self.header_hide_selector),
             ], justify="start"),
-            self.page.layout()
+            self.page.layout(),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        html.Div([
+                            html.Small("powered by: "),
+                            html.Small(html.A("explainerdashboard", 
+                                    className="text-muted", target='_blank',
+                                    href="https://github.com/oegedijk/explainerdashboard"))
+                        ]),
+                    ], md="3"), hide=self.hide_poweredby),
+            ], justify="end")
         ], fluid=self.fluid)
 
     def register_callbacks(self, app):
@@ -268,6 +296,7 @@ class ExplainerDashboard:
                  hide_header=False,
                  header_hide_title=False,
                  header_hide_selector=False,
+                 hide_poweredby=False,
                  block_selector_callbacks=False,
                  pos_label=None,
                  fluid=True,
@@ -331,6 +360,7 @@ class ExplainerDashboard:
             hide_header (bool, optional) hide the header (title+selector), defaults to False.
             header_hide_title(bool, optional): hide the title, defaults to False
             header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
+            hide_poweredby (bool, optional): hide the powered by footer
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
                         have your own PosLabelSelector in your layout. 
@@ -476,6 +506,7 @@ class ExplainerDashboard:
                             **update_kwargs(kwargs, 
                             header_hide_title=self.header_hide_title, 
                             header_hide_selector=self.header_hide_selector, 
+                            hide_poweredby=self.hide_poweredby,
                             block_selector_callbacks=self.block_selector_callbacks,
                             pos_label=self.pos_label,
                             fluid=fluid))
@@ -486,6 +517,7 @@ class ExplainerDashboard:
                             **update_kwargs(kwargs,
                             header_hide_title=self.header_hide_title, 
                             header_hide_selector=self.header_hide_selector, 
+                            hide_poweredby=self.hide_poweredby,
                             block_selector_callbacks=self.block_selector_callbacks,
                             pos_label=self.pos_label,
                             fluid=self.fluid))
@@ -792,7 +824,7 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
         
-    def run(self, port=None, host='0.0.0.0', use_waitress=False, **kwargs):
+    def run(self, port=None, host='0.0.0.0', use_waitress=False, mode=None, **kwargs):
         """Start ExplainerDashboard on port
 
         Args:
@@ -801,6 +833,13 @@ class ExplainerDashboard:
             use_waitress (bool, optional): use the waitress python web server 
                 instead of the flask development server. Only works with mode='dash'.
                 Defaults to False.
+            mode(str, {'dash', 'inline' , 'jupyterlab', 'external'}, optional): 
+                Type of dash server to start. 'inline' runs in a jupyter notebook output cell. 
+                'jupyterlab' runs in a jupyterlab pane. 'external' runs in an external tab
+                while keeping the notebook interactive. 'dash' is the default server.
+                Overrides self.mode, in which case the dashboard will get 
+                rebuilt before running it with the right type of dash server. 
+                (dash.Dash or JupyterDash). Defaults to None (i.e. self.mode)
             Defaults to None.self.port defaults to 8050.
 
         Raises:
@@ -811,29 +850,48 @@ class ExplainerDashboard:
         pio.templates.default = "none"
         if port is None:
             port = self.port
-        if use_waitress and self.mode != 'dash':
+        if mode is None:
+            mode = self.mode
+
+        if use_waitress and mode != 'dash':
             print(f"Warning: waitress does not work with mode={self.mode}, "
                     "using JupyterDash server instead!", flush=True)
-        if self.mode == 'dash':
+        if mode == 'dash':
+            if self.mode != 'dash':
+                print("Warning: Original ExplainerDashboard was not initialized "
+                    "with mode='dash'. Rebuilding dashboard before launch:", flush=True)
+                app = ExplainerDashboard.from_config(
+                    self.explainer, self.to_yaml(return_dict=True), mode='dash').app
+            else:
+                app = self.app
+
             print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
             if use_waitress:
                 from waitress import serve
-                serve(self.app.server, host=host, port=port)
+                serve(app.server, host=host, port=port)
             else:
-                self.app.run_server(port=port, **kwargs)
-        elif self.mode == 'external':
-            if not self.is_colab:
-                print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
-                      "You can terminate the dashboard with "
-                      f"ExplainerDashboard.terminate({port})", flush=True)
-            self.app.run_server(port=port, mode=self.mode, **kwargs)
-        elif self.mode in ['inline', 'jupyterlab']:
-            print(f"Starting ExplainerDashboard inline (terminate it with "
-                  f"ExplainerDashboard.terminate({port}))", flush=True)
-            self.app.run_server(port=port, mode=self.mode, 
-                                width=self.width, height=self.height, **kwargs)
+                app.run_server(port=port, host=host, **kwargs)
         else:
-            raise ValueError(f"Unknown mode: {mode}...")
+            if self.mode == 'dash':
+                print("Warning: Original ExplainerDashboard was initialized "
+                    "with mode='dash'. Rebuilding dashboard before launch:", flush=True)
+                app = ExplainerDashboard.from_config(
+                    self.explainer, self.to_yaml(return_dict=True), mode=mode).app
+            else:
+                app = self.app
+            if mode == 'external':
+                if not self.is_colab:
+                    print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
+                        "You can terminate the dashboard with "
+                        f"ExplainerDashboard.terminate({port})", flush=True)
+                app.run_server(port=port, mode=mode, **kwargs)
+            elif mode in ['inline', 'jupyterlab']:
+                print(f"Starting ExplainerDashboard inline (terminate it with "
+                    f"ExplainerDashboard.terminate({port}))", flush=True)
+                app.run_server(port=port, mode=mode, 
+                                    width=self.width, height=self.height, **kwargs)
+            else:
+                raise ValueError(f"Unknown mode: mode='{mode}'!")
 
     @classmethod
     def terminate(cls, port, token=None):
@@ -895,8 +953,9 @@ class ExplainerHub:
                     description:str=None, masonry:bool=False, n_dashboard_cols:int=3, 
                     users_file:str="users.yaml", user_json=None, 
                     logins:List[List]=None, db_users:dict=None,
-                    port:int=8050, min_height:int=3000, secret_key:str=None, 
-                    no_index:bool=False, bootstrap:str=None, fluid:bool=True, **kwargs):
+                    dbs_open_by_default:bool=False, port:int=8050, 
+                    min_height:int=3000, secret_key:str=None, no_index:bool=False, 
+                    bootstrap:str=None, fluid:bool=True, **kwargs):
         """
     
         Note:
@@ -929,6 +988,9 @@ class ExplainerHub:
             db_users (dict, optional): dictionary limiting access to certain 
                 dashboards to a subset of users, e.g
                 dict(dashboard1=['user1', 'user2'], dashboard2=['user3']). 
+            dbs_open_by_default (bool, optional): Only force logins for dashboard
+                with defined db_users. All other dashboards and index no login 
+                required. Default to False,
             port (int, optional): Port to run hub on. Defaults to 8050.
             min_height (int, optional) size of the iframe the holds the dashboard.
                 Defaults to 3000 pixels.
@@ -982,10 +1044,11 @@ class ExplainerHub:
              
         if self.users:
             for dashboard in self.dashboards:
-                self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
+                if not self.dbs_open_by_default or dashboard.name in self.dashboards_with_users:
+                    self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
         if not self.no_index:    
             self.index_page = self._get_index_page()
-            if self.users:
+            if self.users and not self.dbs_open_by_default:
                 self._protect_dashviews(self.index_page)
             self._add_flask_routes(self.app)
                         
@@ -1329,7 +1392,10 @@ class ExplainerHub:
         dashboard_users = users_db['dashboard_users'].get(dashboard)
         if dashboard_users is not None:
             dashboard_users = sorted(list(set(dashboard_users)  - {username}))
-            users_db['dashboard_users'][dashboard] = dashboard_users
+            if not dashboard_users:
+                del users_db['dashboard_users'][dashboard] 
+            else:
+                users_db['dashboard_users'][dashboard] = dashboard_users
             ExplainerHub._dump_users_db(users_db, users_file)
           
     def add_user(self, username:str, password:str, add_to_users_file:bool=False):
@@ -1606,7 +1672,7 @@ class ExplainerHub:
         Args:
             app (flask.Flask): flask app to add routes to.
         """
-        if self.users:
+        if self.users and not self.dbs_open_by_default:
             @app.route("/")
             @login_required
             def index_route():
@@ -1651,6 +1717,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
+        print(f"Starting ExplainerHub on http://{host}:{port}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  

@@ -414,7 +414,7 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
     return fig
 
 
-def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
+def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=True, round=2):
     """returns a lift plot for values 
 
     Args:
@@ -423,6 +423,8 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
             positive. Defaults to None.
         percentage (bool, optional): Display percentages instead of absolute 
             numbers along axis. Defaults to False.
+        add_wizard (bool, optional): Add a line indicating how a perfect model 
+            would perform ("the wizard"). Defaults to True
         round (int, optional): Rounding to apply to floats. Defaults to 2.
 
     Returns:
@@ -477,8 +479,26 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
         text=random_text,
         hoverinfo="text",
     )
+    if add_wizard:
+        if percentage:
+            trace2 = go.Scatter(
+                x=[0.0, lift_curve_df.random_precision[0], 100],
+                y=[0.0, 100, 100],
+                text=["0%, 0%", f"{lift_curve_df.random_precision.round(2)[0]}%, 100%", "100, 100%"],
+                name='perfect',
+                hoverinfo="text",
+            )
+        else:
+            trace2 = go.Scatter(
+                x=[0.0, 0.01*lift_curve_df.random_precision[0]*len(lift_curve_df), len(lift_curve_df)],
+                y=[0.0, lift_curve_df.random_pos.values[-1], lift_curve_df.random_pos.values[-1]],
+                name='perfect',
+            )
 
-    data = [trace0, trace1]
+        data = [trace2, trace0, trace1]
+    else:
+        data = [trace0, trace1]
+        
 
     fig = go.Figure(data)
 
@@ -492,6 +512,10 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, round=2):
                         plot_bgcolor = '#fff')
 
     fig.update_layout(legend=dict(xanchor="center", y=0.9, x=0.1))
+    if percentage:
+        fig.update_layout(xaxis=dict(range=[0, 100]))
+    else:
+        fig.update_layout(xaxis=dict(range=[0, len(lift_curve_df)]))
     
     if cutoff is not None:
         #cutoff_idx = max(0, (np.abs(lift_curve_df.pred_proba - cutoff)).argmin() - 1)

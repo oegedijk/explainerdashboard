@@ -303,7 +303,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                         target='shap-dependence-color-col-label-'+self.name),
                             dbc.Select(id='shap-dependence-color-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
-                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                            for col in self.explainer.columns_ranked_by_shap(self.cats)]+[dict(label="None", value="no_color_col")],
                                 value=self.color_col),   
                     ], md=3), self.hide_color_col),
                     make_hideable(
@@ -336,8 +336,9 @@ class ShapDependenceComponent(ExplainerComponent):
         def set_color_col_dropdown(col, cats, pos_label):
             sorted_interact_cols = self.explainer.shap_top_interactions(
                                     col, cats=bool(cats), pos_label=pos_label)
-            options = [{'label': col, 'value':col} 
-                                        for col in sorted_interact_cols]
+            options = ([{'label': col, 'value':col} 
+                            for col in sorted_interact_cols] 
+                            + [dict(label="None", value="no_color_col")])
             value = sorted_interact_cols[1]                                
             return (options, value)
 
@@ -349,6 +350,8 @@ class ShapDependenceComponent(ExplainerComponent):
             [State('shap-dependence-col-'+self.name, 'value')])
         def update_dependence_graph(color_col, index, pos_label, col):
             if col is not None:
+                if color_col =="no_color_col": 
+                    color_col, index = None, None
                 return self.explainer.plot_shap_dependence(
                             col, color_col, highlight_index=index, pos_label=pos_label)
             raise PreventUpdate
