@@ -25,7 +25,7 @@ but with no group cats or highlight toggle, and initial feature set to 'Fare'::
    from explainerdashboard.custom import *
 
    class CustomDashboard(ExplainerComponent):
-      def __init__(self, explainer, title="Custom Dashboard):
+      def __init__(self, explainer, title="Custom Dashboard", name="None"):
          super().__init__(explainer, title)
          self.shap_dependence = ShapDependenceComponent(explainer, 
                             hide_title=True, hide_cats=True, hide_highlight=True,
@@ -33,7 +33,7 @@ but with no group cats or highlight toggle, and initial feature set to 'Fare'::
 
       def layout(self):
          return html.Div([
-            shap_dependence.layout()
+            self.shap_dependence.layout()
         ])  
     
     ExplainerDashboard(explainer, CustomDashboard).run()
