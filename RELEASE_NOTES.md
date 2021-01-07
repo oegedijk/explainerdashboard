@@ -14,7 +14,7 @@
 ### New Features
 - Added NavBar to `ExplainerHub`
 - Made `users.yaml` to default file for storing users and hashed passwords 
-    for `ExplainerHub` for easier editing.
+    for `ExplainerHub` for easier manual editing.
 - Added option `min_height` to `ExplainerHub` to set the size of the iFrame
     containing the dashboard.
 - Added option `fluid=True` to `ExplainerHub` to stretch bootstrap container
@@ -24,7 +24,7 @@
     is required for dashboards for which there wasn't a specific lists 
     of users declared through `db_users`. So only dashboards for which users
     have been defined are password protected. 
-- Added option `no_index` to `ExplainerHub`: doesnt generate a flask route
+- Added option `no_index` to `ExplainerHub` so that no flask route is created
     for index `"/"`, so that you can add your own custom index. The dashboards
     are still loaded on their respective routes, so you can link to them
     or embed them in iframes, etc. 
@@ -33,15 +33,15 @@
 
 ### Bug Fixes
 - `ExplainerHub.from_config()` now works with non-cwd paths
--
+- `ExplainerHub.to_yaml("subdirectory/hub.yaml")` now correctly stores
+    the users.yaml file in the correct subdirectory when specified.
 
 ### Improvements
 - added a "powered by: explainerdashboard" footer. Hide it with hide_poweredby=True.
 - added option "None" to shap dependence color col. Also removes the point cloud 
     from the violin plots for categorical features.
-- added option `mode` to `ExplainerDashboard.run()` that can override self.mode.
-- `users.yaml` now gets copied to the correct directory when you store with
-    for example `hub.to_yaml("subdirectory/hub/hub.yaml")`
+- added option `mode` to `ExplainerDashboard.run()` that can override `self.mode`.
+
 
 ### Other Changes
 -
