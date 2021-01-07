@@ -1065,8 +1065,8 @@ class ExplainerHub:
             ExplainerHub: new instance of ExplainerHub according to the config.
         """
         if isinstance(config, (Path, str)) and str(config).endswith(".yaml"):
-            filepath = config.parent
-            config = yaml.safe_load(open(str(config), "r"))
+            filepath = Path(config).parent
+            config = yaml.safe_load(open(str(Path(config)), "r"))
         elif isinstance(config, dict):
             config = deepcopy(config)
             
@@ -1114,13 +1114,15 @@ class ExplainerHub:
             {dict, yaml, None}
         """
         filepath = Path(filepath)
-        for login in self.logins.values():
-            self._add_user_to_file(self.users_file, 
-                                   login['username'], login['password'], 
-                                   already_hashed=True)
-        for dashboard, users in self.db_users.items():
-            for user in users:
-                self._add_user_to_dashboard_file(self.users_file, dashboard, user)
+        
+        self._dump_all_users_to_file(filepath.parent / str(self.users_file))
+#         for login in self.logins.values():
+#             self._add_user_to_file(self.users_file, 
+#                                    login['username'], login['password'], 
+#                                    already_hashed=True)
+#         for dashboard, users in self.db_users.items():
+#             for user in users:
+#                 self._add_user_to_dashboard_file(self.users_file, dashboard, user)
             
         if filepath is None or return_dict or integrate_dashboard_yamls:
             hub_config = dict(
@@ -1219,7 +1221,8 @@ class ExplainerHub:
             update_params = dict(
                 server=self.app, 
                 name=dashboard_name, 
-                url_base_pathname = f"/{dashboard_name}/"
+                url_base_pathname = f"/{dashboard_name}/",
+                mode='dash'
             )
             if dashboard.logins is not None:
                 for user, password in dashboard.logins:
@@ -1316,7 +1319,30 @@ class ExplainerHub:
         elif str(users_file).endswith(".yaml"):
             yaml.dump(users_db, open(Path(users_file), "w"))
         else:
-            raise ValueError("users_file should end with either .json or .yaml!")        
+            raise ValueError("users_file should end with either .json or .yaml!")     
+            
+    def _dump_all_users_to_file(self, output_users_file:Path=None):
+        """Stores all users (both on file and in the instance) to single users_file.
+        Users in the instance overwrite users in users_file.
+        
+        Args:
+            output_users_file (Path, optional): users_file to store users in. 
+                By default equal to self.users_file.
+        """
+        users_db = ExplainerHub._load_users_db(self.users_file)
+        users_db['users'].update(self.logins)
+        for db, instance_users in self.db_users.items():
+            file_users = users_db['dashboard_users'].get(dashboard)
+            if file_users is None:
+                dashboard_users = sorted(instance_users)
+            else:
+                dashboard_users = sorted(list(set(file_users + instance_users)))
+            users_db['dashboard_users'][dashboard] = dashboard_users
+            
+        if output_users_file is None:
+            output_users_file = self.users_file
+        ExplainerHub._dump_users_db(users_db, output_users_file)
+        
     
     @staticmethod
     def _add_user_to_file(users_file:Path, username:str, password:str, already_hashed=False):
