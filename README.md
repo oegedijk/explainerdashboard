@@ -75,7 +75,7 @@ Fitting a model, building the explainer object, building the dashboard, and then
 ExplainerDashboard(ClassifierExplainer(RandomForestClassifier().fit(X_train, y_train), X_test, y_test)).run()
 ```
 
-Below a multi-line example, adding a few extra paramaters. 
+Below a multi-line example, adding a few extra parameters. 
 You can group onehot encoded categorical variables together using the `cats` 
 parameter. You can either pass a dict specifying a list of onehot cols per
 categorical feature, or if you encode using e.g. 
@@ -193,7 +193,8 @@ There are a few tricks to make this less painful:
 When working inside Jupyter or Google Colab you can use 
 `ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')` or
 `ExplainerDashboard(mode='jupyterlab')`, to run the dashboard inline in the notebook,
-or in a seperate tab but keep the notebook interactive. 
+or in a seperate tab but keep the notebook interactive. (`db.run(mode='inline')` 
+now also works)
 
 There is also a specific interface for quickly displaying interactive components
 inline in your notebook: `InlineExplainer()`. For example you can use 

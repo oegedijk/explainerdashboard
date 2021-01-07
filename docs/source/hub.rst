@@ -86,19 +86,28 @@ You can also add users from the hub itself::
     hub.add_user("user3", "password3")
     hub.add_user_to_dashboard("db2", "user3")
 
-Or by adding ``users.yaml`` or by using the ``explainerhub`` CLI tool (see below).
+User/Password pairs can also be stored to file (with passwords hashed). The filename can be set
+with the ``users_file`` parameter and defaults to ``users.yaml``. When you
+store a ``hub.to_yaml("hub.yaml")`` all logins will automatically be exported
+to this file. This ``users_file`` can also be managed with ``explainerhub`` 
+CLI tool (see below). 
+
+By default, if you define any user logins, then the hub will only be accesible after
+logging in. However you can also pass the parameter ``dbs_open_by_default=True``, 
+in which case the hub index and any dashboards for which no ``db_users`` have
+been defined will not force logins. Only dashboards for which you passed a list of
+``db_users`` will be password locked. 
 
 
 Storing to config
 =================
 
 You can store an ``ExplainerHub`` to disk with ``ExplainerHub.to_yaml()``. This
-will also dump all the explainers to disk and store the configuration of dashboards
-that make up the hub to individual .yaml files. You reload a hub with the ``from_config`` 
-classmethod::
+will also dump all the explainers to disk, store the configuration of dashboards
+that make up the hub to individual .yaml files, and store logins to ``users.yaml``. 
+You reload a hub with the ``from_config`` classmethod::
 
     hub.to_yaml("hub.yaml")
-
     hub2 = ExplainerHub.from_config("hub.yaml")
 
 The `hub.yaml` file looks something like this::
@@ -120,8 +129,6 @@ If you pass ``integrate_dashboard_yamls=True``, then the configuration of the
 dashboards get integrated into a single ``hub.yaml`` file instead of being
 stored in separate files. 
 
-When you store the hub, all users and (hashed) passwords get stored in a 
-``users.yaml`` file. 
 
 explainerhub CLI
 ================
@@ -141,7 +148,7 @@ SECRET_KEY
 ==========
 
 .. highlight:: bash
-In order to make the logins persist when you reboot the server, you need to
+In order to make the user session (and so logins) persist when you reboot the server, you need to
 pass a ``SECRET_KEY`` to the hub. Like with any Flask app you should be very
 careful not to store this key somewhere easily findable. Ususally people store
 it as an environmental variable::
