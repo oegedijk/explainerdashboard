@@ -23,10 +23,8 @@
 
 
 ### Classifier plots:
-- add wizard to lift curve
-
 - pdp: add multiclass option
-    - no icelines to keep it from getting too busy?
+    - no icelines just mean and index with different thickness
 
 ### Regression plots:
 
@@ -61,11 +59,9 @@
 - automatic reloads with watchdog
 - add reloader=None, debug=None, options
 - make example deployment on heroku
-- copy users.yaml to correct directory with to_yaml
 
 
 ### Components
-- add "no wizard" option to LiftCurveComponent
 - autodetect when uuid name get rendered and issue warning
 - Add side-by-side option to cutoff selector component
 
@@ -119,7 +115,7 @@
 
 ## Library level:
 - Make example heroku deployment repo
-
+- Make example heroku ExplainerHub repo
 - hide (prefix '_') to non-public API class methods
 - submit pull request to shap with broken test for 
     https://github.com/slundberg/shap/issues/723

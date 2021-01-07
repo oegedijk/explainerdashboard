@@ -8,8 +8,9 @@ to host them at a single place. This is made easy with ``ExplainerHub``.
 Possible use cases are: 
 
 1. Showcasing multiple models to compare and decide which 
-one to put into production
-2. Keeping ExplainerDashboards up and running for all models in production. 
+   one to put into production
+2. Keeping ExplainerDashboards up and running for all models in production 
+   in a single place
 
 You can initialize an ``ExplainerHub`` by passing in a list of ``ExplainerDashboards``::
 
@@ -18,7 +19,7 @@ You can initialize an ``ExplainerHub`` by passing in a list of ``ExplainerDashbo
     hub = ExplainerHub([db1, db2])
     hub.run()
 
-Each dashboard is hosted on it's own url path (e.g. ``127.0.0.1:8050/dashboard1``),
+Each dashboard is hosted on it's own url path (e.g. ``localhost:8050/dashboard1``),
 and a front end dashboard with links and descriptions for every dashboard is hosted
 at e.g. ``localhost:8050``:
 

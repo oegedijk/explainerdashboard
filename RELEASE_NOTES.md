@@ -40,6 +40,8 @@
 - added option "None" to shap dependence color col. Also removes the point cloud 
     from the violin plots for categorical features.
 - added option `mode` to `ExplainerDashboard.run()` that can override self.mode.
+- `users.yaml` now gets copied to the correct directory when you store with
+    for example `hub.to_yaml("subdirectory/hub/hub.yaml")`
 
 ### Other Changes
 -
