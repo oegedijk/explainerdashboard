@@ -1332,12 +1332,9 @@ class ExplainerHub:
         users_db = ExplainerHub._load_users_db(self.users_file)
         users_db['users'].update(self.logins)
         for db, instance_users in self.db_users.items():
-            file_users = users_db['dashboard_users'].get(dashboard)
-            if file_users is None:
-                dashboard_users = sorted(instance_users)
-            else:
-                dashboard_users = sorted(list(set(file_users + instance_users)))
-            users_db['dashboard_users'][dashboard] = dashboard_users
+            file_users = users_db['dashboard_users'].get(db) or []
+            dashboard_users = sorted(list(set(file_users + instance_users)))
+            users_db['dashboard_users'][db] = dashboard_users
             
         if output_users_file is None:
             output_users_file = self.users_file
