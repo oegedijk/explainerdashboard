@@ -315,14 +315,14 @@ class BaseExplainer(ABC):
             if self.shap == 'tree':
                 print("Generating self.shap_explainer = "
                       f"shap.TreeExplainer(model{NoX_str})")
-                self._shap_explainer = shap.TreeExplainer(self.model, self.X_background)
+                self._shap_explainer = shap.TreeExplainer(self.model)
             elif self.shap=='linear':
                 if self.X_background is None:
                     print(
                         "Warning: shap values for shap.LinearExplainer get "
                         "calculated against X_background, but paramater "
                         "X_background=None, so using X instead")
-                print(f"Generating self.shap_explainer = shap.LinearExplainer(model, {X_str})...")
+                print(f"Generating self.shap_explainer = shap.LinearExplainer(model{X_str})...")
                 self._shap_explainer = shap.LinearExplainer(self.model, 
                     self.X_background if self.X_background is not None else self.X)
             elif self.shap=='deep':

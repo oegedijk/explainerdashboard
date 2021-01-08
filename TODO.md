@@ -23,6 +23,8 @@
 
 
 ### Classifier plots:
+- move predicted and actual to outer layer of ConfusionMatrixComponent
+    - move predicted below graph?
 - pdp: add multiclass option
     - no icelines just mean and index with different thickness
 
