@@ -459,6 +459,16 @@ class ExplainerDashboard:
             ("explainer should be an instance of BaseExplainer, such as "
             "ClassifierExplainer or RegressionExplainer!")
         
+        if self.explainer.cats_only:
+            print("Note: explainer contains a model and data that deal with "
+                    "categorical features directly. Not all elements of the "
+                    "ExplainerDashboard are compatible with such models, and "
+                    "so setting the following **kwargs: "
+                    "cats=True, hide_cats=True, hide_pdp=True, " 
+                    "hide_whatifpdp=True, shap_interaction=False", flush=True)
+            kwargs.update(dict(
+                cats=True, hide_cats=True, hide_pdp=True, 
+                hide_whatifpdp=True, shap_interaction=False))
         if kwargs: 
             print("**kwargs: Passing the following keyword arguments to all the dashboard"
                 f" ExplainerComponents: {', '.join([f'{k}={v}' for k,v in kwargs.items()])}...")
@@ -469,7 +479,7 @@ class ExplainerDashboard:
                 print("No y labels were passed to the Explainer, so setting"
                         " model_summary=False...", flush=True)
                 model_summary = False
-            if shap_interaction and not explainer.interactions_should_work:
+            if shap_interaction and (not explainer.interactions_should_work or self.explainer.cats_only):
                 print("For this type of model and model_output interactions don't "
                           "work, so setting shap_interaction=False...", flush=True)
                 shap_interaction = False
