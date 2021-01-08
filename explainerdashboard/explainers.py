@@ -18,6 +18,7 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype, is_string_dtype
 
 from pdpbox import pdp
 import shap
@@ -88,12 +89,28 @@ class BaseExplainer(ABC):
             descriptions=descriptions, target=target, n_jobs=n_jobs, 
             permutation_cv=n_jobs, na_fill=na_fill)
 
+        
+
         if isinstance(model, Pipeline):
             self.X, self.model = split_pipeline(model, X)
             self.X_background, _ = split_pipeline(model, X_background, verbose=0)
         else:
             self.X, self.X_background = X, X_background
             self.model = model
+
+        if not all([is_numeric_dtype(X[col]) for col in X.columns]):
+            self.cats_only = True
+            self.cats = [col for col in X.columns if not is_numeric_dtype(X[col])]
+            self.cats_dict = {col:self.X[col].unique().tolist() for col in self.cats}
+            print("Warning: detected non-numeric columns in X! "
+                f"Autodetecting the following categorical columns: {self.cats}. \n"
+                "Setting self.cats_only=True, which means that passing cats=False "
+                "to explainer methods will not work, pdp plot will not work, "
+                "and shap interaction values will not work... "
+                "ExplainerDashboard will disable these features by default.", flush=True)
+        else:
+            self.cats_only = False
+            self.cats, self.cats_dict = parse_cats(self.X, cats)
 
         if y is not None:
             self.y = pd.Series(y)
@@ -127,8 +144,6 @@ class BaseExplainer(ABC):
 
         self.model_output = model_output
 
-        self.cats, self.cats_dict = parse_cats(self.X, cats)
-
         if idxs is not None:
             assert len(idxs) == len(self.X) == len(self.y), \
                 ("idxs should be same length as X but is not: "
@@ -158,7 +173,7 @@ class BaseExplainer(ABC):
         self.is_classifier = False
         self.is_regression = False
         self.interactions_should_work = True
-        _ = self.shap_explainer
+        
 
     @classmethod
     def from_file(cls, filepath):
@@ -483,6 +498,8 @@ class BaseExplainer(ABC):
         Returns:
           col
         """
+        if self.cats_only:
+            return col
         if col in self.cats:
             # first onehot-encoded columns
             return self.cats_dict[col][0]
@@ -638,19 +655,29 @@ class BaseExplainer(ABC):
     def permutation_importances_cats(self):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
-            self._perm_imps_cats = cv_permutation_importances(
-                            self.model, self.X, self.y, self.metric, 
-                            cats_dict=self.cats_dict,
-                            cv=self.permutation_cv,
-                            n_jobs=self.n_jobs,
-                            needs_proba=self.is_classifier)
+            if self.cats_only:
+                self._perm_imps_cats = cv_permutation_importances(
+                                self.model, self.X, self.y, self.metric,
+                                cv=self.permutation_cv,
+                                n_jobs=self.n_jobs,
+                                needs_proba=self.is_classifier)
+            else:
+                self._perm_imps_cats = cv_permutation_importances(
+                                self.model, self.X, self.y, self.metric, 
+                                cats_dict=self.cats_dict,
+                                cv=self.permutation_cv,
+                                n_jobs=self.n_jobs,
+                                needs_proba=self.is_classifier)
         return make_callable(self._perm_imps_cats)
 
     @property
     def X_cats(self):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
-            self._X_cats = merge_categorical_columns(self.X, self.cats_dict)
+            if self.cats_only:
+                self._X_cats = self.X
+            else:
+                self._X_cats = merge_categorical_columns(self.X, self.cats_dict)
         return self._X_cats
 
     @property
@@ -688,8 +715,11 @@ class BaseExplainer(ABC):
     def shap_values_cats(self):
         """SHAP values when categorical features have been grouped"""
         if not hasattr(self, '_shap_values_cats'):
-            self._shap_values_cats = merge_categorical_shap_values(
-                    self.X, self.shap_values, self.cats_dict)
+            if self.cats_only:
+                self._shap_values_cats = self.shap_explainer.shap_values(self.X)
+            else:
+                self._shap_values_cats = merge_categorical_shap_values(
+                        self.X, self.shap_values, self.cats_dict)
         return make_callable(self._shap_values_cats)
 
     @property
@@ -732,7 +762,7 @@ class BaseExplainer(ABC):
         """Mean absolute SHAP values with categoricals grouped."""
         if not hasattr(self, '_mean_abs_shap_cats'):
             self._mean_abs_shap_cats = mean_absolute_shap_values(
-                                self.columns, self.shap_values, self.cats_dict)
+                                self.columns_cats, self.shap_values_cats)
         return make_callable(self._mean_abs_shap_cats)
 
     def calculate_properties(self, include_interactions=True):
@@ -955,9 +985,10 @@ class BaseExplainer(ABC):
         if X_row is not None:
             if ((len(X_row.columns) == len(self.X_cats.columns)) and 
                 (X_row.columns == self.X_cats.columns).all()):
-                if cats: 
+                if cats or self.cats_only: 
                     X_row_cats = X_row
-                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
+                if not self.cats_only:
+                    X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
             else:
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
@@ -970,8 +1001,9 @@ class BaseExplainer(ABC):
                 shap_values = shap_values[self.get_pos_label_index(pos_label)]
 
             if cats:
-                shap_values_cats = merge_categorical_shap_values(X_row, shap_values, self.cats_dict)
-                return get_contrib_df(self.shap_base_value(pos_label), shap_values_cats[0], 
+                if not self.cats_only:
+                    shap_values = merge_categorical_shap_values(X_row, shap_values, self.cats_dict)
+                return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
                             X_row_cats, topx, cutoff, sort, cols)   
             else:
                 return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
@@ -1094,10 +1126,10 @@ class BaseExplainer(ABC):
         """
         assert col in self.X.columns or col in self.cats, \
             f"{col} not in columns of dataset"
-        if col in self.columns and not col in self.columns_cats:
-            features = col
-        else:
+        if col in self.cats_dict:
             features = self.cats_dict[col]
+        else:
+            features = col
 
         if index is not None:
             index = self.get_index(index)
@@ -1593,6 +1625,11 @@ class ClassifierExplainer(BaseExplainer):
         self._params_dict = {**self._params_dict, **dict(
             labels=labels, pos_label=pos_label)}
 
+        if self.cats_only and model_output == 'probability':
+            print("Warning: Models that deal with categorical features directly "
+                f"such as {self.model.__class__.__name__} are incompatible with model_output='probability'"
+                " for now. So setting model_output='logodds'...", flush=True)
+            self.model_output = 'logodds'
         if labels is not None:
             self.labels = labels
         elif hasattr(self.model, 'classes_'):
@@ -1612,6 +1649,8 @@ class ClassifierExplainer(BaseExplainer):
                     flush=True)
             self.__class__ = XGBClassifierExplainer
 
+        _ = self.shap_explainer
+
     @property
     def shap_explainer(self):
         """Initialize SHAP explainer. 
@@ -1621,13 +1660,9 @@ class ClassifierExplainer(BaseExplainer):
         if not hasattr(self, '_shap_explainer'):
             model_str = str(type(self.model)).replace("'", "").replace("<", "").replace(">", "").split(".")[-1]
             if self.shap == 'tree':
-                if (str(type(self.model)).endswith("XGBClassifier'>") or
-                    str(type(self.model)).endswith("LGBMClassifier'>") or
-                    str(type(self.model)).endswith("CatBoostClassifier'>") or
-                    str(type(self.model)).endswith("GradientBoostingClassifier'>") or
-                    str(type(self.model)).endswith("HistGradientBoostingClassifier'>")
-                    ):
-                    
+                if safe_is_instance(self.model, 
+                    "XGBClassifier", "LGBMClassifier", "CatBoostClassifier", 
+                    "GradientBoostingClassifier", "HistGradientBoostingClassifier"):
                     if self.model_output == "probability": 
                         if self.X_background is None:
                             print(
@@ -1801,7 +1836,10 @@ class ClassifierExplainer(BaseExplainer):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
             print("Calculating categorical permutation importances (if slow, try setting n_jobs parameter)...", flush=True)
-            self._perm_imps_cats = [cv_permutation_importances(
+            if self.cats_only:
+                self._perm_imps_cats = self.permutation_importances
+            else:
+                self._perm_imps_cats = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric, 
                             cats_dict=self.cats_dict,
                             cv=self.permutation_cv,
@@ -1863,10 +1901,14 @@ class ClassifierExplainer(BaseExplainer):
     def shap_values_cats(self):
         """SHAP values with categoricals grouped together"""
         if not hasattr(self, '_shap_values_cats'):
-            _ = self.shap_values
-            self._shap_values_cats = [
-                    merge_categorical_shap_values(
-                        self.X, sv, self.cats_dict) for sv in self._shap_values]
+            if self.cats_only:
+                _ = self.shap_values
+                self._shap_values_cats = self._shap_values
+            else:
+                _ = self.shap_values
+                self._shap_values_cats = [
+                        merge_categorical_shap_values(
+                            self.X, sv, self.cats_dict) for sv in self._shap_values]
             
         return default_list(self._shap_values_cats, self.pos_label)
 
@@ -1922,10 +1964,10 @@ class ClassifierExplainer(BaseExplainer):
     def mean_abs_shap_cats(self):
         """mean absolute SHAP values with categoricals grouped together"""
         if not hasattr(self, '_mean_abs_shap_cats'):
-            _ = self.shap_values
+            _ = self.shap_values_cats
             self._mean_abs_shap_cats = [
-                mean_absolute_shap_values(self.columns, sv, self.cats_dict) 
-                    for sv in self._shap_values]
+                mean_absolute_shap_values(self.columns_cats, sv) 
+                    for sv in self._shap_values_cats]
         return default_list(self._mean_abs_shap_cats, self.pos_label)
 
     def cutoff_from_percentile(self, percentile, pos_label=None):
@@ -2452,6 +2494,8 @@ class RegressionExplainer(BaseExplainer):
         if str(type(self.model)).endswith("XGBRegressor'>"):
             print(f"Changing class type to XGBRegressionExplainer...", flush=True)
             self.__class__ = XGBRegressionExplainer
+
+        _ = self.shap_explainer
     
     @property
     def residuals(self):
