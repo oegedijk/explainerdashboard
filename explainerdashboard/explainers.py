@@ -18,8 +18,8 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype, is_string_dtype
 
-from pdpbox import pdp
 import shap
 
 from dtreeviz.trees import ShadowDecTree, dtreeviz
@@ -95,6 +95,20 @@ class BaseExplainer(ABC):
             self.X, self.X_background = X, X_background
             self.model = model
 
+        if not all([is_numeric_dtype(X[col]) for col in X.columns]):
+            self.cats_only = True
+            self.cats = [col for col in X.columns if not is_numeric_dtype(X[col])]
+            self.cats_dict = {col:self.X[col].unique().tolist() for col in self.cats}
+            print("Warning: detected non-numeric columns in X! "
+                f"Autodetecting the following categorical columns: {self.cats}. \n"
+                "Setting self.cats_only=True, which means that passing cats=False "
+                "to explainer methods will not work,  and shap interaction values "
+                "will not work... ExplainerDashboard will disable these features "
+                " by default.", flush=True)
+        else:
+            self.cats_only = False
+            self.cats, self.cats_dict = parse_cats(self.X, cats)
+
         if y is not None:
             self.y = pd.Series(y)
             self.y_missing = False
@@ -127,8 +141,6 @@ class BaseExplainer(ABC):
 
         self.model_output = model_output
 
-        self.cats, self.cats_dict = parse_cats(self.X, cats)
-
         if idxs is not None:
             assert len(idxs) == len(self.X) == len(self.y), \
                 ("idxs should be same length as X but is not: "
@@ -158,7 +170,7 @@ class BaseExplainer(ABC):
         self.is_classifier = False
         self.is_regression = False
         self.interactions_should_work = True
-        _ = self.shap_explainer
+        
 
     @classmethod
     def from_file(cls, filepath):
@@ -283,6 +295,8 @@ class BaseExplainer(ABC):
           Boolean whether cats should be True
 
         """
+        if self.cats_only:
+            return True
         if col2 is None:
             if col1 in self.columns:
                 return False
@@ -446,7 +460,7 @@ class BaseExplainer(ABC):
           list of columns
 
         """
-        if cats:
+        if cats or self.cats_only:
             return self.mean_abs_shap_cats(pos_label).Feature.tolist()
         else:
             return self.mean_abs_shap(pos_label).Feature.tolist()
@@ -461,7 +475,7 @@ class BaseExplainer(ABC):
             int, number of features
 
         """
-        if cats:
+        if cats or self.cats_only:
             return len(self.columns_cats)
         else:
             return len(self.columns)
@@ -483,6 +497,8 @@ class BaseExplainer(ABC):
         Returns:
           col
         """
+        if self.cats_only:
+            return col
         if col in self.cats:
             # first onehot-encoded columns
             return self.cats_dict[col][0]
@@ -638,19 +654,29 @@ class BaseExplainer(ABC):
     def permutation_importances_cats(self):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
-            self._perm_imps_cats = cv_permutation_importances(
-                            self.model, self.X, self.y, self.metric, 
-                            cats_dict=self.cats_dict,
-                            cv=self.permutation_cv,
-                            n_jobs=self.n_jobs,
-                            needs_proba=self.is_classifier)
+            if self.cats_only:
+                self._perm_imps_cats = cv_permutation_importances(
+                                self.model, self.X, self.y, self.metric,
+                                cv=self.permutation_cv,
+                                n_jobs=self.n_jobs,
+                                needs_proba=self.is_classifier)
+            else:
+                self._perm_imps_cats = cv_permutation_importances(
+                                self.model, self.X, self.y, self.metric, 
+                                cats_dict=self.cats_dict,
+                                cv=self.permutation_cv,
+                                n_jobs=self.n_jobs,
+                                needs_proba=self.is_classifier)
         return make_callable(self._perm_imps_cats)
 
     @property
     def X_cats(self):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
-            self._X_cats = merge_categorical_columns(self.X, self.cats_dict)
+            if self.cats_only:
+                self._X_cats = self.X
+            else:
+                self._X_cats = merge_categorical_columns(self.X, self.cats_dict)
         return self._X_cats
 
     @property
@@ -688,8 +714,11 @@ class BaseExplainer(ABC):
     def shap_values_cats(self):
         """SHAP values when categorical features have been grouped"""
         if not hasattr(self, '_shap_values_cats'):
-            self._shap_values_cats = merge_categorical_shap_values(
-                    self.X, self.shap_values, self.cats_dict)
+            if self.cats_only:
+                self._shap_values_cats = self.shap_explainer.shap_values(self.X)
+            else:
+                self._shap_values_cats = merge_categorical_shap_values(
+                        self.X, self.shap_values, self.cats_dict)
         return make_callable(self._shap_values_cats)
 
     @property
@@ -732,7 +761,7 @@ class BaseExplainer(ABC):
         """Mean absolute SHAP values with categoricals grouped."""
         if not hasattr(self, '_mean_abs_shap_cats'):
             self._mean_abs_shap_cats = mean_absolute_shap_values(
-                                self.columns, self.shap_values, self.cats_dict)
+                                self.columns_cats, self.shap_values_cats)
         return make_callable(self._mean_abs_shap_cats)
 
     def calculate_properties(self, include_interactions=True):
@@ -784,8 +813,10 @@ class BaseExplainer(ABC):
           pd.DataFrame: shap_df
 
         """
-        shap_df = self.mean_abs_shap_cats(pos_label) if cats \
-                        else self.mean_abs_shap(pos_label)
+        if cats or self.cats_only:
+            shap_df = self.mean_abs_shap_cats(pos_label)
+        else:
+            shap_df = self.mean_abs_shap(pos_label)
 
         if topx is None: topx = len(shap_df)
         if cutoff is None: cutoff = shap_df['MEAN_ABS_SHAP'].min()
@@ -808,7 +839,7 @@ class BaseExplainer(ABC):
           list: top_interactions
 
         """
-        if cats:
+        if cats or self.cats_only:
             if hasattr(self, '_shap_interaction_values'):
                 col_idx = self.X_cats.columns.get_loc(col)
                 top_interactions = self.X_cats.columns[
@@ -857,7 +888,7 @@ class BaseExplainer(ABC):
           np.array(N,N): shap_interaction_values
 
         """
-        if cats:
+        if cats or self.cats_only:
             return self.shap_interaction_values_cats(pos_label)[:,
                         self.X_cats.columns.get_loc(col), :]
         else:
@@ -884,7 +915,7 @@ class BaseExplainer(ABC):
           pd.DataFrame: importance_df
 
         """
-        if cats:
+        if cats or self.cats_only:
             importance_df = self.permutation_importances_cats(pos_label)
         else:
             importance_df = self.permutation_importances(pos_label)
@@ -955,9 +986,10 @@ class BaseExplainer(ABC):
         if X_row is not None:
             if ((len(X_row.columns) == len(self.X_cats.columns)) and 
                 (X_row.columns == self.X_cats.columns).all()):
-                if cats: 
+                if cats or self.cats_only: 
                     X_row_cats = X_row
-                X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
+                if not self.cats_only:
+                    X_row = X_cats_to_X(X_row, self.cats_dict, self.X.columns)    
             else:
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
@@ -970,8 +1002,9 @@ class BaseExplainer(ABC):
                 shap_values = shap_values[self.get_pos_label_index(pos_label)]
 
             if cats:
-                shap_values_cats = merge_categorical_shap_values(X_row, shap_values, self.cats_dict)
-                return get_contrib_df(self.shap_base_value(pos_label), shap_values_cats[0], 
+                if not self.cats_only:
+                    shap_values = merge_categorical_shap_values(X_row, shap_values, self.cats_dict)
+                return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
                             X_row_cats, topx, cutoff, sort, cols)   
             else:
                 return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
@@ -1031,7 +1064,7 @@ class BaseExplainer(ABC):
 
         """
         importance_df = mean_absolute_shap_values(
-            self.columns_cats if cats else self.columns, 
+            self.columns_cats if (cats or self.cats_only) else self.columns, 
             self.shap_interaction_values_by_col(col, cats, pos_label))
 
         if topx is None: topx = len(importance_df)
@@ -1075,37 +1108,24 @@ class BaseExplainer(ABC):
                         'Cat_Value', 'Cont_Value', 'Value_Type', 'Feature_Order']
         return cdf
 
-    def get_pdp_result(self, col, index=None, X_row=None, drop_na=True,
+    def pdp_df(self, col, index=None, X_row=None, drop_na=True,
                         sample=500, num_grid_points=20, pos_label=None):
-        """Uses the PDPBox to calculate partial dependences for feature col.
-
-        Args:
-          col(str): Feature to calculate partial dependences for
-          index(int or str, optional, optional): Index of row to put at iloc[0], defaults to None
-          X_row (single row pd.DataFrame): row of features to highlight in pdp
-          drop_na(bool, optional, optional): drop rows where col equals na_fill, defaults to True
-          sample(int, optional, optional): Number of rows to sample for plot, defaults to 500
-          num_grid_points(ints: int, optional, optional): Number of grid points to calculate, default 20
-          pos_label:  (Default value = None)
-
-        Returns:
-          PDPBox.pdp_result: pdp_result
-
-        """
         assert col in self.X.columns or col in self.cats, \
             f"{col} not in columns of dataset"
-        if col in self.columns and not col in self.columns_cats:
-            features = col
-        else:
+        if col in self.cats and not self.cats_only:
             features = self.cats_dict[col]
+        else:
+            features = col
+        if pos_label is None: 
+            pos_label = self.pos_label
 
         if index is not None:
             index = self.get_index(index)
-            if len(features)==1 and drop_na: # regular col, not onehotencoded
-                sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
+            if isinstance(features, str) and drop_na: # regular col, not onehotencoded
+                sample_size=min(sample, len(self.X[(self.X[features] != self.na_fill)])-1)
                 sampleX = pd.concat([
                     self.X[self.X.index==index],
-                    self.X[(self.X.index != index) & (self.X[features[0]] != self.na_fill)]\
+                    self.X[(self.X.index != index) & (self.X[features] != self.na_fill)]\
                             .sample(sample_size)],
                     ignore_index=True, axis=0)
             else:
@@ -1122,11 +1142,11 @@ class BaseExplainer(ABC):
                 assert (X_row.columns == self.X.columns).all(), \
                     "X_row should have the same columns as self.X or self.X_cats!"
 
-            if len(features)==1 and drop_na: # regular col, not onehotencoded
-                sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
+            if isinstance(features, str) and drop_na: # regular col, not onehotencoded
+                sample_size=min(sample, len(self.X[(self.X[features] != self.na_fill)])-1)
                 sampleX = pd.concat([
                     X_row,
-                    self.X[(self.X[features[0]] != self.na_fill)]\
+                    self.X[(self.X[features] != self.na_fill)]\
                             .sample(sample_size)],
                     ignore_index=True, axis=0)
             else:
@@ -1136,32 +1156,26 @@ class BaseExplainer(ABC):
                     self.X.sample(sample_size)],
                     ignore_index=True, axis=0)
         else:
-            if len(features)==1 and drop_na: # regular col, not onehotencoded
-                sample_size=min(sample, len(self.X[(self.X[features[0]] != self.na_fill)])-1)
-                sampleX = self.X[(self.X[features[0]] != self.na_fill)]\
+            if isinstance(features, str) and drop_na: # regular col, not onehotencoded
+                sample_size=min(sample, len(self.X[(self.X[features] != self.na_fill)])-1)
+                sampleX = self.X[(self.X[features] != self.na_fill)]\
                                 .sample(sample_size)
             else:
                 sampleX = self.X.sample(min(sample, len(self.X)))
 
         # if only a single value (i.e. not onehot encoded, take that value
         # instead of list):
-        if len(features)==1: features=features[0]
-        pdp_result = pdp.pdp_isolate(
-                model=self.model, dataset=sampleX,
-                model_features=self.X.columns,
-                num_grid_points=num_grid_points, feature=features)
-        if isinstance(features, list):
-            # strip 'col_' from the grid points
-            if isinstance(pdp_result, list):
-                for i in range(len(pdp_result)):
-                    pdp_result[i].feature_grids = \
-                        np.array([f[len(col)+1:] if f.startswith(col+"_") else f 
-                            for f in pdp_result[i].feature_grids])
-            else:
-                pdp_result.feature_grids = \
-                        np.array([f[len(col)+1:] if f.startswith(col+"_") else f 
-                        for f in pdp_result.feature_grids])
-        return pdp_result
+
+        pdp_df = get_pdp_df(
+                model=self.model, X_sample=sampleX,
+                feature=features,
+                n_grid_points=num_grid_points, pos_label=pos_label)
+
+        if all([str(c).startswith(col+"_") for c in pdp_df.columns]):
+            pdp_df.columns = [str(c)[len(col)+1:] for c in pdp_df.columns]
+        if self.is_classifier:
+            pdp_df = pdp_df.multiply(100)
+        return pdp_df
 
     def get_dfs(self, cats=True, round=None, lang='en', pos_label=None):
         """return three summary dataframes for storing main results
@@ -1182,7 +1196,7 @@ class BaseExplainer(ABC):
           pd.DataFrame, pd.DataFrame, pd.DataFrame: cols_df, shap_df, contribs_df
 
         """
-        if cats:
+        if cats or self.cats_only:
             cols_df = self.X_cats.copy()
             shap_df = pd.DataFrame(self.shap_values_cats(pos_label), columns = self.X_cats.columns)
         else:
@@ -1289,7 +1303,7 @@ class BaseExplainer(ABC):
           plotly.fig: fig
 
         """
-        if col in self.cats:
+        if col in self.cats or self.cats_only:
             cats = True
         interactions_df = self.interactions_df(col, cats=cats, topx=topx, pos_label=pos_label)
         title = f"Average interaction shap values for {col}"
@@ -1366,7 +1380,7 @@ class BaseExplainer(ABC):
             else:
                 title = f"Impact of Feature on Prediction<br> (SHAP values)"
 
-        if cats:
+        if cats or self.cats_only:
             return plotly_shap_scatter_plot(
                                 self.shap_values_cats(pos_label),
                                 self.X_cats,
@@ -1405,7 +1419,7 @@ class BaseExplainer(ABC):
         Returns:
           fig
         """
-        if col in self.cats:
+        if col in self.cats or self.cats_only:
             cats = True
         interact_cols = self.shap_top_interactions(col, cats=cats, pos_label=pos_label)
         if topx is None: topx = len(interact_cols)
@@ -1530,28 +1544,28 @@ class BaseExplainer(ABC):
           plotly.Fig: fig
 
         """
-        pdp_result = self.get_pdp_result(col, index, X_row,
+        pdp_df = self.pdp_df(col, index, X_row,
                         drop_na=drop_na, sample=sample, num_grid_points=gridpoints, pos_label=pos_label)
         units = "Predicted %" if self.model_output=='probability' else self.units
         if index is not None:
             col_value, pred = self.get_col_value_plus_prediction(col, index=index, pos_label=pos_label)
-            return plotly_pdp(pdp_result,
-                            display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
+            return plotly_pdp(pdp_df,
+                            display_index=0, # the idx to be displayed is always set to the first row by self.pdp_df()
                             index_feature_value=col_value, index_prediction=pred,
                             feature_name=col,
                             num_grid_lines=min(gridlines, sample, len(self.X)),
                             target=self.target, units=units)
         elif X_row is not None:
             col_value, pred = self.get_col_value_plus_prediction(col, X_row=X_row, pos_label=pos_label)
-            return plotly_pdp(pdp_result,
-                            display_index=0, # the idx to be displayed is always set to the first row by self.get_pdp_result()
+            return plotly_pdp(pdp_df,
+                            display_index=0, # the idx to be displayed is always set to the first row by self.pdp_df()
                             index_feature_value=col_value, index_prediction=pred,
                             feature_name=col,
                             num_grid_lines=min(gridlines, sample, len(self.X)),
                             target=self.target, units=units)
 
         else:
-            return plotly_pdp(pdp_result, feature_name=col,
+            return plotly_pdp(pdp_df, feature_name=col,
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
                         target=self.target, units=units)
 
@@ -1593,6 +1607,11 @@ class ClassifierExplainer(BaseExplainer):
         self._params_dict = {**self._params_dict, **dict(
             labels=labels, pos_label=pos_label)}
 
+        if self.cats_only and model_output == 'probability':
+            print("Warning: Models that deal with categorical features directly "
+                f"such as {self.model.__class__.__name__} are incompatible with model_output='probability'"
+                " for now. So setting model_output='logodds'...", flush=True)
+            self.model_output = 'logodds'
         if labels is not None:
             self.labels = labels
         elif hasattr(self.model, 'classes_'):
@@ -1612,6 +1631,8 @@ class ClassifierExplainer(BaseExplainer):
                     flush=True)
             self.__class__ = XGBClassifierExplainer
 
+        _ = self.shap_explainer
+
     @property
     def shap_explainer(self):
         """Initialize SHAP explainer. 
@@ -1621,13 +1642,9 @@ class ClassifierExplainer(BaseExplainer):
         if not hasattr(self, '_shap_explainer'):
             model_str = str(type(self.model)).replace("'", "").replace("<", "").replace(">", "").split(".")[-1]
             if self.shap == 'tree':
-                if (str(type(self.model)).endswith("XGBClassifier'>") or
-                    str(type(self.model)).endswith("LGBMClassifier'>") or
-                    str(type(self.model)).endswith("CatBoostClassifier'>") or
-                    str(type(self.model)).endswith("GradientBoostingClassifier'>") or
-                    str(type(self.model)).endswith("HistGradientBoostingClassifier'>")
-                    ):
-                    
+                if safe_is_instance(self.model, 
+                    "XGBClassifier", "LGBMClassifier", "CatBoostClassifier", 
+                    "GradientBoostingClassifier", "HistGradientBoostingClassifier"):
                     if self.model_output == "probability": 
                         if self.X_background is None:
                             print(
@@ -1801,7 +1818,11 @@ class ClassifierExplainer(BaseExplainer):
         """permutation importances with categoricals grouped"""
         if not hasattr(self, '_perm_imps_cats'):
             print("Calculating categorical permutation importances (if slow, try setting n_jobs parameter)...", flush=True)
-            self._perm_imps_cats = [cv_permutation_importances(
+            if self.cats_only:
+                _ = self.permutation_importances
+                self._perm_imps_cats = self._perm_imps
+            else:
+                self._perm_imps_cats = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric, 
                             cats_dict=self.cats_dict,
                             cv=self.permutation_cv,
@@ -1863,10 +1884,14 @@ class ClassifierExplainer(BaseExplainer):
     def shap_values_cats(self):
         """SHAP values with categoricals grouped together"""
         if not hasattr(self, '_shap_values_cats'):
-            _ = self.shap_values
-            self._shap_values_cats = [
-                    merge_categorical_shap_values(
-                        self.X, sv, self.cats_dict) for sv in self._shap_values]
+            if self.cats_only:
+                _ = self.shap_values
+                self._shap_values_cats = self._shap_values
+            else:
+                _ = self.shap_values
+                self._shap_values_cats = [
+                        merge_categorical_shap_values(
+                            self.X, sv, self.cats_dict) for sv in self._shap_values]
             
         return default_list(self._shap_values_cats, self.pos_label)
 
@@ -1922,10 +1947,10 @@ class ClassifierExplainer(BaseExplainer):
     def mean_abs_shap_cats(self):
         """mean absolute SHAP values with categoricals grouped together"""
         if not hasattr(self, '_mean_abs_shap_cats'):
-            _ = self.shap_values
+            _ = self.shap_values_cats
             self._mean_abs_shap_cats = [
-                mean_absolute_shap_values(self.columns, sv, self.cats_dict) 
-                    for sv in self._shap_values]
+                mean_absolute_shap_values(self.columns_cats, sv) 
+                    for sv in self._shap_values_cats]
         return default_list(self._mean_abs_shap_cats, self.pos_label)
 
     def cutoff_from_percentile(self, percentile, pos_label=None):
@@ -2018,51 +2043,6 @@ class ClassifierExplainer(BaseExplainer):
                 metrics_descriptions_dict[k] = f"A measure of how far the predicted label is from the true label on average in log space {round(v, 2)}"
         return metrics_descriptions_dict
 
-    def get_pdp_result(self, col, index=None, X_row=None, drop_na=True,
-                        sample=1000, num_grid_points=20, pos_label=None):
-        """gets a the result out of the PDPBox library
-        
-        Adjust for multiple labels.
-
-        Args:
-          col(str): Feature to display 
-          index(str or int): index to add to plot (Default value = None)
-          X_row (pd.DataFrame, single row): single row of features to highlight
-            in pdp
-          drop_na(bool): drop value equal to self.fill_na  (Default value = True)
-          sample(int): sample size to compute average pdp  (Default value = 1000)
-          num_grid_points(int): number of horizontal breakpoints in pdp (Default value = 20)
-          pos_label: positive class  (Default value = None)
-
-        Returns:
-          PDPBox pdp result
-
-        """
-        if pos_label is None: pos_label = self.pos_label
-        pdp_result = super().get_pdp_result(
-                                col, index, X_row, drop_na, sample, num_grid_points)
-        
-        if len(self.labels)==2:
-            # for binary classifer PDPBox only gives pdp for the positive class.
-            # instead of a list of pdps for every class
-            # so we simply inverse when predicting the negative 
-            if self.model_output == 'probability':
-                pdp_result.pdp = 100*pdp_result.pdp
-                pdp_result.ice_lines = pdp_result.ice_lines.multiply(100)
-            if pos_label==0:
-                if self.model_output == 'probability':
-                    pdp_result.pdp = 100 - pdp_result.pdp
-                    pdp_result.ice_lines = 100 - pdp_result.ice_lines
-                elif self.model_output == 'logodds':
-                    pdp_result.pdp = -pdp_result.pdp
-                    pdp_result.ice_lines = -pdp_result.ice_lines
-            return pdp_result
-        else:
-            pdp_result = pdp_result[pos_label]
-            if self.model_output == 'probability':
-                pdp_result.pdp = 100*pdp_result.pdp
-                pdp_result.ice_lines = pdp_result.ice_lines.multiply(100)
-            return pdp_result
 
     def random_index(self, y_values=None, return_str=False,
                     pred_proba_min=None, pred_proba_max=None,
@@ -2452,6 +2432,8 @@ class RegressionExplainer(BaseExplainer):
         if str(type(self.model)).endswith("XGBRegressor'>"):
             print(f"Changing class type to XGBRegressionExplainer...", flush=True)
             self.__class__ = XGBRegressionExplainer
+
+        _ = self.shap_explainer
     
     @property
     def residuals(self):

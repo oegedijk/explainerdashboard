@@ -6,7 +6,6 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
 
-import pdpbox
 import plotly.graph_objects as go
 
 from explainerdashboard.explainers import ClassifierExplainer
@@ -168,13 +167,14 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         df = self.explainer.prediction_result_df(0)
         self.assertIsInstance(df, pd.DataFrame)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", X_row=self.explainer.X.iloc[[0]]), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", X_row=self.explainer.X_cats.iloc[[0]]), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", X_row=self.explainer.X_cats.iloc[[0]]), pd.DataFrame)
 
     def test_get_dfs(self):
         cols_df, shap_df, contribs_df = self.explainer.get_dfs()

@@ -12,7 +12,6 @@ from sklearn.preprocessing import StandardScaler, OrdinalEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 
-import pdpbox
 import plotly.graph_objects as go
 
 from explainerdashboard.explainers import ClassifierExplainer
@@ -85,8 +84,11 @@ class ClassifierBaseExplainerTestsPipeline(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_values, np.ndarray)
         self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("age"), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("sex"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("sex", index=0), pd.DataFrame)
 
 
 
