@@ -34,52 +34,10 @@ from jupyter_dash import JupyterDash
 
 import plotly.io as pio
 
+from .dashboard_methods import instantiate_component
 from .dashboard_components import *
 from .dashboard_tabs import *
 from .explainers import BaseExplainer
-
-
-
-
-def instantiate_component(component, explainer, name=None, **kwargs):
-    """Returns an instantiated ExplainerComponent.
-    If the component input is just a class definition, instantiate it with
-    explainer and k**wargs.
-    If it is already an ExplainerComponent instance then return it.
-    If it is any other instance with layout and register_components methods,
-    then add a name property and return it. 
-
-    Args:
-        component ([type]): Either a class definition or instance
-        explainer ([type]): An Explainer object that will be used to instantiate class definitions
-        kwargs: kwargs will be passed on to the instance
-
-    Raises:
-        ValueError: if component is not a subclass or instance of ExplainerComponent,
-                or is an instance without layout and register_callbacks methods
-
-    Returns:
-        [type]: instantiated component
-    """
-
-    if inspect.isclass(component) and issubclass(component, ExplainerComponent):
-        component = component(explainer, name=name, **kwargs)
-        return component
-    elif isinstance(component, ExplainerComponent):
-        return component
-    elif (not inspect.isclass(component)
-          and hasattr(component, "layout")):
-        if not (hasattr(component, "name") and isinstance(component.name, str)):
-            if name is None:
-                name = shortuuid.ShortUUID().random(length=5)
-            print(f"Warning: setting {component}.name to {name}")
-            component.name = name
-        if not hasattr(component, "title"):
-            print(f"Warning: setting {component}.title to 'Custom'")
-            component.title = "Custom"
-        return component
-    else:
-        raise ValueError(f"{component} is not a valid component...")
 
 
 class ExplainerTabsLayout:
@@ -234,7 +192,6 @@ class ExplainerPageLayout(ExplainerComponent):
         
         self.selector = PosLabelSelector(explainer, name="0", pos_label=pos_label)
         self.page  = instantiate_component(component, explainer, name="1", **kwargs) 
-        print(self.page.name, flush=True)
         self.connector = PosLabelConnector(self.selector, self.page)
         
         self.fluid = fluid
