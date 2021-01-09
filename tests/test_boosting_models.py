@@ -5,8 +5,6 @@ import numpy as np
 
 from sklearn.metrics import r2_score, roc_auc_score
 
-import pdpbox
-
 from xgboost import XGBClassifier, XGBRegressor
 from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
 from catboost import CatBoostClassifier, CatBoostRegressor
@@ -59,12 +57,12 @@ class XGBRegressionTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Deck"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
 class LGBMRegressionTests(unittest.TestCase):
     def setUp(self):
@@ -110,11 +108,12 @@ class LGBMRegressionTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=True)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
 class CatBoostRegressionTests(unittest.TestCase):
     def setUp(self):
@@ -161,12 +160,12 @@ class CatBoostRegressionTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Deck"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
 
 class XGBCLassifierTests(unittest.TestCase):
@@ -220,11 +219,12 @@ class XGBCLassifierTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
@@ -295,11 +295,12 @@ class LGBMClassifierTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
@@ -370,11 +371,12 @@ class CatBoostClassifierTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)

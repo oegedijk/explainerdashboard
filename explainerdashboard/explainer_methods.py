@@ -2,9 +2,11 @@
 from functools import partial
 import re
 from collections import Counter
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 
 from dtreeviz.trees import ShadowDecTree
 
@@ -15,6 +17,18 @@ from sklearn.model_selection import StratifiedKFold
 
 from joblib import Parallel, delayed
 
+def safe_is_instance(obj, *instance_str):
+    """Checks instance by comparing str(type(obj)) to one or more
+    instance_str. """
+    obj_str = str(type(obj))
+    for i in instance_str:
+        if i.endswith("'>"):
+            if obj_str.endswith(i):
+                return True
+        else:
+            if obj_str[:-2].endswith(i):
+                return True
+    return False
 
 def guess_shap(model):
     """guesses which SHAP explainer to use for a particular model, based
@@ -104,44 +118,6 @@ def parse_cats(X, cats, sep:str="_"):
         cats_dict[col] = [col]
     return cats_list, cats_dict
 
-
-# Could be removed:
-
-# def get_feature_dict(cols, cats=None, sep="_"):
-#     """helper function to get a dictionary with onehot-encoded columns
-#     grouped per category. 
-
-#     Example:
-#         get_features_dict(["Age", "Sex_Male", "Sex_Female"], cats=["Sex"])
-#         will return {"Age": ["Age"], "Sex": ["Sex_Male", "Sex_Female"]}
-
-#     Args:
-#         cols (list of str): list of column names
-#         cats (list of str, optional): list of categorically encoded columns. 
-#             All columns names starting with such a column name will be grouped together. 
-#             Defaults to None.
-#         sep (str), seperator used between the category and encoding. Defaults to '_' 
-
-#     Returns:
-#         dict
-#     """
-#     feature_dict = {}
-
-#     if cats is None:
-#         return {col: [col] for col in cols}
-
-#     for col in cats:
-#         cat_cols = [c for c in cols if c.startswith(col + sep)]
-#         if len(cat_cols) > 1:
-#             feature_dict[col] = cat_cols
-
-#     # add all the individual features
-#     other_cols = list(set(cols) - set([item for sublist in list(feature_dict.values())
-#                                                 for item in sublist]))
-
-#     for col in other_cols:
-#         feature_dict[col] = [col]
-#     return feature_dict
 
 
 def split_pipeline(pipeline, X, verbose=1):
@@ -533,6 +509,68 @@ def mean_absolute_shap_values(columns, shap_values, cats_dict=None):
             'MEAN_ABS_SHAP': list(shap_abs_mean_dict.values())
         }).sort_values('MEAN_ABS_SHAP', ascending=False).reset_index(drop=True)
     return shap_df
+
+
+def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label=1,
+                  n_grid_points=10, min_percentage=0, max_percentage=100):
+    """Returns a dataframe with partial dependence for every row in X_sample for a number of feature values
+
+    Args:
+        model (): sklearn compatible model to generate pdp for
+        X_sample (pd.DataFrame): X to generate pdp for
+        feature (Union[str, List]): Feature to generate pdp for. Either the 
+            name of a column in X_sample, or a list of onehot-encoded columns.  
+        pos_label (int, optional): for classifier model, which class to use
+            as the positive class. Defaults to 1.
+        n_grid_points (int, optional): For numeric features: number of grid points
+            to divide the x axis by. Defaults to 10.
+        min_percentage (int, optional): For numeric features: minimum percentage of
+            samples to start x axis by. If large than 0 a form of winsorizing the 
+            x axis. Defaults to 0.
+        max_percentage (int, optional): For numeric features: maximum percentage of
+            samples to end x axis by. If smaller than 100 a form of winsorizing the 
+            x axis. Defaults to 100.
+    """
+    def get_grid_points(array, n_grid_points=10, min_percentage=0, max_percentage=100):
+        if not is_numeric_dtype(array):
+            raise ValueError("array should be a numeric dtype!")
+        if isinstance(array, pd.Series):
+            array = array.values
+        percentile_grids = np.linspace(start=min_percentage, stop=max_percentage, num=n_grid_points)
+        value_grids = np.percentile(array, percentile_grids)
+        return value_grids
+
+    if isinstance(feature, str):
+        if not is_numeric_dtype(X_sample[feature]):
+            grid_values = sorted(X_sample[feature].unique().tolist())
+        else:
+            grid_values = get_grid_points(X_sample[feature], 
+                                          n_grid_points=n_grid_points, 
+                                          min_percentage=min_percentage, 
+                                          max_percentage=max_percentage).tolist()
+    elif isinstance(feature, list):
+        grid_values = feature
+    else:
+        raise ValueError("feature should either be a column name (str), "
+                         "or a list of onehot-encoded columns!")
+
+    pdp_df = pd.DataFrame()
+    for grid_value in grid_values:
+        dtemp = X_sample.copy()
+        if isinstance(feature, list):
+            assert set(X_sample[grid_value].unique()).issubset({0, 1}),\
+                (f"{grid_values} When passing a list of features these have to be onehotencoded!"
+                 f"But X_sample['{grid_value}'].unique()=={list(set(X_sample[grid_value].unique()))}")
+            dtemp.loc[:, grid_values] = [1 if g==grid_value else 0 for g in grid_values]
+        else:
+            dtemp.loc[:, feature] = grid_value
+        if hasattr(model, "predict_proba"):
+            preds = model.predict_proba(dtemp)[:, pos_label]
+        else:
+            preds = model.predict(dtemp)  
+        pdp_df[grid_value] = preds
+    
+    return pdp_df
 
 
 def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, 

@@ -1000,14 +1000,14 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     return fig
 
 
-def plotly_pdp(pdp_result, 
+def plotly_pdp(pdp_df, 
                display_index=None, index_feature_value=None, index_prediction=None,
                absolute=True, plot_lines=True, num_grid_lines=100, feature_name=None,
                round=2, target="", units="", index_name="index"):
     """Display partial-dependence plot (pdp)
 
     Args:
-        pdp_result (pdp_result): Generated from pdp.pdp_result()
+        pdp_df (pd.DataFrame): Generated from get_pdp_df()
         display_index (int, str, optional): Index to highligh in plot. 
             Defaults to None.
         index_feature_value (str, float, optional): value of feature for index. 
@@ -1020,8 +1020,7 @@ def plotly_pdp(pdp_result,
             Defaults to True.
         num_grid_lines (int, optional): Number of sample gridlines to display. 
             Defaults to 100.
-        feature_name (str, optional): Name of the feature that the pdp_result
-            was generated for. Defaults to None.
+        feature_name (str, optional): Name of the feature. Defaults to None.
         round (int, optional): Rounding to apply to floats. Defaults to 2.
         target (str, optional): Name of target variables. Defaults to "".
         units (str, optional): Units of target variable. Defaults to "".
@@ -1030,48 +1029,45 @@ def plotly_pdp(pdp_result,
     Returns:
         Plotly fig
     """
-    
-    if feature_name is None: feature_name = pdp_result.feature
-
+    if absolute:
+        pdp_mean = pdp_df.mean().round(round).values
+    else:
+        pdp_mean = pdp_df.mean().round(round).values - pdp_df.mean().round(round).values[0]
+        
     trace0 = go.Scatter(
-            x = pdp_result.feature_grids,
-            y = pdp_result.pdp.round(round) if absolute else (
-                    pdp_result.pdp - pdp_result.pdp[0]).round(round),
+            x = pdp_df.columns.values,
+            y = pdp_mean,
             mode = 'lines+markers',
             line = dict(color='grey', width = 4),
-            name = f'average prediction <br>for different values of <br>{pdp_result.feature}'
+            name = f'average prediction <br>for different values of <br>{feature_name}'
         )
     data = [trace0]
 
     if display_index is not None:
         trace1 = go.Scatter(
-            x = pdp_result.feature_grids,
-            y = pdp_result.ice_lines.iloc[display_index].round(round).values if absolute else \
-                pdp_result.ice_lines.iloc[display_index].round(round).values - pdp_result.ice_lines.iloc[display_index].round(round).values[0],
+            x = pdp_df.columns.values,
+            y = pdp_df.iloc[[display_index]].round(round).values[0] if absolute else \
+                pdp_df.iloc[[display_index]].round(round).values[0] - pdp_df.iloc[[display_index]].values[0,0],
             mode = 'lines+markers',
             line = dict(color='blue', width = 4),
-            name = f'prediction for {index_name} {display_index} <br>for different values of <br>{pdp_result.feature}'
+            name = f'prediction for {index_name} {display_index} <br>for different values of <br>{feature_name}'
         )
         data.append(trace1)
-
     if plot_lines:
-        x = pdp_result.feature_grids
-        ice_lines = pdp_result.ice_lines.sample(num_grid_lines)
-        ice_lines = ice_lines.values if absolute else\
-                    ice_lines.values - np.expand_dims(ice_lines.iloc[:, 0].transpose().values, axis=1)
+        x = pdp_df.columns.values
+        pdp_sample = pdp_df.sample(min(num_grid_lines, len(pdp_df)))
+        ice_lines = pdp_sample.values if absolute else\
+                    pdp_sample.values - np.expand_dims(pdp_sample.iloc[:, 0].values, axis=1)
 
-        for y in ice_lines:
-            data.append(
-                go.Scatter(
+        for row in pdp_sample.itertuples(index=False):
+            data.append(go.Scatter(
                     x = x,
-                    y = y,
+                    y = tuple(row),
                     mode='lines',
                     hoverinfo='skip',
                     line=dict(color='grey'),
                     opacity=0.1,
-                    showlegend=False             
-                )
-            )
+                    showlegend=False))
 
     layout = go.Layout(title = f'pdp plot for {feature_name}',
                         plot_bgcolor = '#fff',
@@ -1079,7 +1075,6 @@ def plotly_pdp(pdp_result,
                         xaxis=dict(title=feature_name))
 
     fig = go.Figure(data=data, layout=layout)
-
     shapes = []
     annotations = []
 
@@ -1094,10 +1089,8 @@ def plotly_pdp(pdp_result,
                         yref='y',
                         x0=index_feature_value,
                         x1=index_feature_value,
-                        y0=np.min(ice_lines) if plot_lines else \
-                            np.min(pdp_result.pdp),
-                        y1=np.max(ice_lines) if plot_lines \
-                            else np.max(pdp_result.pdp),
+                        y0=pdp_sample.min().min() if plot_lines else pdp_mean.min(),
+                        y1=pdp_sample.max().max() if plot_lines else pdp_mean.max(),
                         line=dict(
                             color="MediumPurple",
                             width=4,
@@ -1106,8 +1099,7 @@ def plotly_pdp(pdp_result,
                          ))
         annotations.append(
             go.layout.Annotation(x=index_feature_value, 
-                                 y=np.min(ice_lines) if plot_lines else \
-                                    np.min(pdp_result.pdp),
+                                 y=pdp_sample.min().min() if plot_lines else pdp_mean.min(),
                                  text=f"baseline value = {index_feature_value}"))
 
     if index_prediction is not None:
@@ -1116,22 +1108,19 @@ def plotly_pdp(pdp_result,
                         type='line',
                         xref='x',
                         yref='y',
-                        x0=pdp_result.feature_grids[0],
-                        x1=pdp_result.feature_grids[-1],
+                        x0=pdp_df.columns.values[0],
+                        x1=pdp_df.columns.values[-1],
                         y0=index_prediction,
                         y1=index_prediction,
                         line=dict(
                             color="MediumPurple",
                             width=4,
                             dash="dot",
-                        ),
-                         ))
-        annotations.append(
-            go.layout.Annotation(
-                x=pdp_result.feature_grids[
-                            int(0.5*len(pdp_result.feature_grids))], 
-                y=index_prediction, 
-                text=f"baseline pred = {np.round(index_prediction,2)}"))
+                        )
+                    )
+        )
+        
+        annotations.append(go.layout.Annotation(x=pdp_df.columns[int(0.5*len(pdp_df.columns))], y=index_prediction, text=f"baseline pred = {np.round(index_prediction,2)}"))
 
     fig.update_layout(annotations=annotations)
     fig.update_layout(shapes=shapes)
