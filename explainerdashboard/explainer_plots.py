@@ -1030,13 +1030,13 @@ def plotly_pdp(pdp_df,
         Plotly fig
     """
     if absolute:
-        mean_pdp = pdp_df.mean().round(round).values
+        pdp_mean = pdp_df.mean().round(round).values
     else:
-        mean_pdp = pdp_df.mean().round(round).values - pdp_df.mean().round(round).values[0]
+        pdp_mean = pdp_df.mean().round(round).values - pdp_df.mean().round(round).values[0]
         
     trace0 = go.Scatter(
             x = pdp_df.columns.values,
-            y = mean_pdp,
+            y = pdp_mean,
             mode = 'lines+markers',
             line = dict(color='grey', width = 4),
             name = f'average prediction <br>for different values of <br>{feature_name}'
