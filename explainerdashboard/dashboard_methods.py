@@ -8,6 +8,7 @@ __all__ = [
     'get_dbc_tooltips',
     'update_params',
     'update_kwargs',
+    'instantiate_component'
 ]
 
 import sys
@@ -173,9 +174,12 @@ class ExplainerComponent(ABC):
                         it's unique. Defaults to None.
         """
         self._store_child_params(no_param=['explainer'])
-
-        if self.name is None:
-            self.name = shortuuid.ShortUUID().random(length=5)
+        if not hasattr(self, "name") or self.name is None:
+            self.name = "uuid"+shortuuid.ShortUUID().random(length=5)
+        if title is not None:
+            self.title = title
+        if not hasattr(self, "title"):
+            self.title = "Custom"
 
         self._components = []
         self._dependencies = []
@@ -394,3 +398,46 @@ class PosLabelSelector(ExplainerComponent):
             ])
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))
+
+
+def instantiate_component(component, explainer, name=None, **kwargs):
+    """Returns an instantiated ExplainerComponent.
+    If the component input is just a class definition, instantiate it with
+    explainer and k**wargs.
+    If it is already an ExplainerComponent instance then return it.
+    If it is any other instance with layout and register_components methods,
+    then add a name property and return it. 
+
+    Args:
+        component ([type]): Either a class definition or instance
+        explainer ([type]): An Explainer object that will be used to instantiate class definitions
+        name (str): name to assign to ExplainerComponent
+        kwargs: kwargs will be passed on to the instance
+
+    Raises:
+        ValueError: if component is not a subclass or instance of ExplainerComponent,
+                or is an instance without layout and register_callbacks methods
+
+    Returns:
+        ExplainerComponent: instantiated component
+    """
+
+    if inspect.isclass(component) and issubclass(component, ExplainerComponent):
+        init_argspec = inspect.getargspec(component.__init__)
+        if not init_argspec.keywords:
+            kwargs = {k:v for k,v in kwargs.items() if k in init_argspec.args}
+        if "name" in init_argspec.args:
+            component = component(explainer, name=name, **kwargs)
+        else:
+            print(f"ExplainerComponent {component} does not accept a name parameter, "
+                    f"so cannot assign name={name}!"
+                    "Make sure to set name explicitly yourself if you want to "
+                    "deploy across multiple workers or a cluster, as otherwise "
+                    "each instance in the cluster will generate its own random "
+                    "uuid name!")
+            component = component(explainer, **kwargs)
+        return component
+    elif isinstance(component, ExplainerComponent):
+        return component
+    else:
+        raise ValueError(f"{component} is not a valid ExplainerComponent...")
