@@ -5,7 +5,6 @@ import numpy as np
 
 from sklearn.metrics import r2_score, roc_auc_score
 
-import pdpbox
 import shap
 import plotly.graph_objects as go
 
@@ -87,11 +86,12 @@ class LinearRegressionTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
     def test_get_dfs(self):
         cols_df, shap_df, contribs_df = self.explainer.get_dfs()
@@ -112,7 +112,7 @@ class LogisticRegressionTests(unittest.TestCase):
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, roc_auc_score, 
                             shap='linear',
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=['Sex', 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
 
@@ -159,11 +159,12 @@ class LogisticRegressionTests(unittest.TestCase):
     def test_calculate_properties(self):
         self.explainer.calculate_properties(include_interactions=False)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Sex", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Sex"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Sex", index=0), pd.DataFrame)
 
     def test_pos_label(self):
         self.explainer.pos_label = 1
@@ -214,6 +215,7 @@ class LogisticRegressionKernelTests(unittest.TestCase):
                                                 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
+
     def test_shap_values(self):
         self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
         self.assertTrue(self.explainer.shap_values.shape == (len(self.explainer), len(self.explainer.columns)))

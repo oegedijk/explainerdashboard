@@ -2,6 +2,7 @@
 
 import dash
 
+from catboost import CatBoostClassifier, CatBoostRegressor
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
@@ -86,6 +87,38 @@ def get_multiclass_explainer(xgboost=False, include_y=True):
     return multi_explainer
 
 
+def get_catboost_classifier():
+    X_train, y_train, X_test, y_test = titanic_survive()
+    train_names, test_names = titanic_names()
+
+    model = CatBoostClassifier(iterations=100, verbose=0).fit(X_train, y_train)
+    explainer = ClassifierExplainer(
+                        model, X_test, y_test, 
+                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
+                                            'Deck', 'Embarked'],
+                        labels=['Not survived', 'Survived'],
+                        idxs=test_names)
+
+    X_cats, y_cats = explainer.X_cats, explainer.y
+    model = CatBoostClassifier(iterations=5, verbose=0).fit(X_cats, y_cats, cat_features=[5, 6, 7])
+    explainer = ClassifierExplainer(model, X_cats, y_cats)
+    explainer.calculate_properties(include_interactions=False)
+    return explainer
+
+
+def get_catboost_regressor():
+    X_train, y_train, X_test, y_test = titanic_fare()
+
+    model = CatBoostRegressor(iterations=5, verbose=0).fit(X_train, y_train)
+    explainer = RegressionExplainer(model, X_test, y_test, 
+                                    cats=["Sex", 'Deck', 'Embarked'])
+    X_cats, y_cats = explainer.X_cats, explainer.y
+    model = CatBoostRegressor(iterations=5, verbose=0).fit(X_cats, y_cats, cat_features=[5, 6, 7])
+    explainer = RegressionExplainer(model, X_cats, y_cats)
+    explainer.calculate_properties(include_interactions=False)
+    return explainer
+
+
 def test_classification_dashboard(dash_duo):
     explainer = get_classification_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
@@ -152,6 +185,22 @@ def test_regression_dashboard_no_y(dash_duo):
 
 def test_multiclass_dashboard_no_y(dash_duo):
     explainer = get_multiclass_explainer(include_y=False)
+    db = ExplainerDashboard(explainer, title="testing", responsive=False)
+    dash_duo.start_server(db.app)
+    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
+    assert dash_duo.get_logs() == [], "browser console should contain no error"
+
+
+def test_catboost_classification_dashboard(dash_duo):
+    explainer = get_catboost_classifier()
+    db = ExplainerDashboard(explainer, title="testing", responsive=False)
+    dash_duo.start_server(db.app)
+    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
+    assert dash_duo.get_logs() == [], "browser console should contain no error"
+
+
+def test_cat_boost_regression_dashboard(dash_duo):
+    explainer = get_catboost_regressor()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)

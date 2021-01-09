@@ -32,6 +32,8 @@
 
 
 ## Explainers:
+- pass n_jobs to pdp_isolate
+- autodetect xgboost booster or catboost.core and suggest XGBClassifier, etc
 - make X_cats with categorical encoding .astype("category")
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
