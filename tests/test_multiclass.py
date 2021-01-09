@@ -5,7 +5,6 @@ import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
-import pdpbox
 
 import plotly.graph_objects as go
 
@@ -117,11 +116,12 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertEqual(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape, 
                         self.explainer.shap_values_cats.shape)
 
-    def test_pdp_result(self):
-        self.assertIsInstance(self.explainer.get_pdp_result("Age"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender"), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Age", index=0), pdpbox.pdp.PDPIsolate)
-        self.assertIsInstance(self.explainer.get_pdp_result("Gender", index=0), pdpbox.pdp.PDPIsolate)
+    def test_pdp_df(self):
+        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
     def test_get_dfs(self):
         cols_df, shap_df, contribs_df = self.explainer.get_dfs()

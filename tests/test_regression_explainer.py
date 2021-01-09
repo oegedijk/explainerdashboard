@@ -114,16 +114,6 @@ class RegressionBunchTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
 
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     unittest.main()
 

@@ -464,11 +464,9 @@ class ExplainerDashboard:
                     "categorical features directly. Not all elements of the "
                     "ExplainerDashboard are compatible with such models, and "
                     "so setting the following **kwargs: "
-                    "cats=True, hide_cats=True, hide_pdp=True, " 
-                    "hide_whatifpdp=True, shap_interaction=False", flush=True)
+                    "cats=True, hide_cats=True, shap_interaction=False", flush=True)
             kwargs.update(dict(
-                cats=True, hide_cats=True, hide_pdp=True, 
-                hide_whatifpdp=True, shap_interaction=False))
+                cats=True, hide_cats=True, shap_interaction=False))
         if kwargs: 
             print("**kwargs: Passing the following keyword arguments to all the dashboard"
                 f" ExplainerComponents: {', '.join([f'{k}={v}' for k,v in kwargs.items()])}...")

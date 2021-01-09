@@ -5,7 +5,6 @@ jupyter_dash
 dtreeviz
 numpy
 pandas
-PDPbox
 scikit-learn
 shap>=0.37
 shortuuid
