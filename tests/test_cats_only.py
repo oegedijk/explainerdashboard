@@ -75,6 +75,15 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertEqual(self.explainer.equivalent_col("Sex"), "Sex_female")
         self.assertIsNone(self.explainer.equivalent_col("random"))
 
+    def test_ordered_cats(self):
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['female', 'male'])
+        self.assertEqual(self.explainer.ordered_cats("Deck", topx=2), ['A', 'B'])
+
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='shap'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='shap'), list)
+
     def test_get_col(self):
         self.assertIsInstance(self.explainer.get_col("Sex"), pd.Series)
         self.assertEqual(self.explainer.get_col("Sex").dtype, "object")
@@ -197,6 +206,18 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Sex", highlight_index=0)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="freq")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="shap")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", sort="freq")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", sort="shap")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_contributions(self):
@@ -358,6 +379,16 @@ class CatBoostClassifierTests(unittest.TestCase):
     def test_random_index(self):
         self.assertIsInstance(self.explainer.random_index(), int)
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
+
+    def test_ordered_cats(self):
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['female', 'male'])
+        self.assertEqual(self.explainer.ordered_cats("Deck", topx=2), ['A', 'B'])
+
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='shap'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='shap'), list)
+
 
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
@@ -552,6 +583,18 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_shap_dependence("Sex", highlight_index=0)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="freq")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="shap")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", sort="freq")
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_shap_dependence("Deck", sort="shap")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_pdp(self):
