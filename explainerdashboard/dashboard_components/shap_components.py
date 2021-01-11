@@ -56,7 +56,7 @@ class ShapSummaryComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        if self.explainer.cats is None or not self.explainer.cats:
+        if not self.explainer.onehot_cols:
             self.hide_cats = True
         
         if self.depth is not None:
@@ -339,7 +339,10 @@ class ShapDependenceComponent(ExplainerComponent):
             options = ([{'label': col, 'value':col} 
                             for col in sorted_interact_cols] 
                             + [dict(label="None", value="no_color_col")])
-            value = sorted_interact_cols[1]                                
+            if col in self.explainer.cat_cols:
+                value = None
+            else:
+                value = sorted_interact_cols[1]                                
             return (options, value)
 
         @app.callback(
@@ -447,7 +450,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats)-1)
-        if not self.explainer.cats:
+        if not self.explainer.onehot_cols:
             self.hide_cats = True
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
@@ -890,7 +893,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats))
 
-        if not self.explainer.cats:
+        if not self.explainer.onehot_cols:
             self.hide_cats = True
         
         if self.feature_input_component is not None:
@@ -1098,7 +1101,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features(self.cats))
         
-        if not self.explainer.cats:
+        if not self.explainer.onehot_cols:
             self.hide_cats = True
 
         if self.feature_input_component is not None:

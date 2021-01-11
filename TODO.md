@@ -3,6 +3,7 @@
 
 ## Bugs:
 - dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
+- shap dependence: when no point cloud, do not highlight!
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -20,7 +21,10 @@
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
 - add some of these:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
-
+- shap dependence plot, sort categorical features by:
+    - alphabet
+    - number of obs
+    - mean abs shap
 
 ### Classifier plots:
 - move predicted and actual to outer layer of ConfusionMatrixComponent
@@ -31,7 +35,9 @@
 ### Regression plots:
 
 
+
 ## Explainers:
+- add sort_cats method to sort method={'alphabetically', 'observations', 'shap'}
 - pass n_jobs to pdp_isolate
 - autodetect xgboost booster or catboost.core and suggest XGBClassifier, etc
 - make X_cats with categorical encoding .astype("category")
@@ -44,6 +50,7 @@
         the verbal explanation.
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
+
 
 ## notebooks:
 
