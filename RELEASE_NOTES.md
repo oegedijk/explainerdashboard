@@ -1,5 +1,26 @@
 # Release Notes
 
+
+## 0.2.20:
+### Breaking Changes
+-  WhatIfComponent deprecated. Use WhatIfComposite or connect components yourself to a FeatureInputComponent
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
 ## 0.2.19
 ### Breaking Changes
 - ExplainerHub: parameter `user_json` is now called `users_file` (and default to a `users.yaml` file)

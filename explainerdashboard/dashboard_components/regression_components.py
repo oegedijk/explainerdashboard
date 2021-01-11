@@ -951,7 +951,10 @@ class RegressionVsColComponent(ExplainerComponent):
              Input('reg-vs-col-winsor-'+self.name, 'value')],
         )
         def update_residuals_graph(col, display, points, winsor):
-            style = {} if col in self.explainer.cats else dict(display="none")
+            if col in self.explainer.onehot_cols or col in self.explainer.categorical_cols:
+                style = {}
+            else:
+                style = dict(display="none")
             if display == 'observed':
                 return self.explainer.plot_y_vs_feature(
                         col, points=bool(points), winsor=winsor, dropna=True), style

@@ -3,7 +3,6 @@ __all__ = [
     'ImportancesComponent',
     'FeatureInputComponent',
     'PdpComponent',
-    'WhatIfComponent',
 ]
 from math import ceil
 
@@ -151,7 +150,7 @@ class ImportancesComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        if not self.explainer.cats:
+        if not self.explainer.onehot_cols:
             self.hide_cats = True
 
         assert importance_type in ['shap', 'permutation'], \
@@ -329,7 +328,7 @@ class PdpComponent(ExplainerComponent):
         if self.col is None:
             self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
 
-        if not self.explainer.cats:
+        if not self.explainer.onehot_cols:
             self.hide_cats = True
             
         if self.feature_input_component is not None:
@@ -543,18 +542,27 @@ class FeatureInputComponent(ExplainerComponent):
         self._input_features = self.explainer.columns_ranked_by_shap(cats=True)
         self._feature_inputs = [
             self._generate_dash_input(
-                feature, self.explainer.cats, self.explainer.cats_dict) 
+                feature, self.explainer.onehot_cols, self.explainer.onehot_dict, self.explainer.categorical_dict) 
                                 for feature in self._input_features]
         self._feature_callback_inputs = [Input('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
         self._feature_callback_outputs = [Output('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features] 
         if self.description is None: self.description = """
         Adjust the input values to see predictions for what if scenarios."""
 
-    def _generate_dash_input(self, col, cats, cats_dict):
-        if col in cats:
+    def _generate_dash_input(self, col, onehot_cols, onehot_dict, cat_dict):
+        if col in cat_dict:
+            col_values = cat_dict[col]
+            return dbc.FormGroup([
+                    dbc.Label(col),
+                    dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
+                             options=[dict(label=col_val, value=col_val) for col_val in col_values],
+                             clearable=False),
+                    dbc.FormText(f"Select any {col}") if not self.hide_range else None,
+                ])   
+        elif col in onehot_cols:
             col_values = [
                 col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
-                    for col_val in cats_dict[col]]
+                    for col_val in onehot_dict[col]]
             return dbc.FormGroup([
                     dbc.Label(col),
                     dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
@@ -626,155 +634,5 @@ class FeatureInputComponent(ExplainerComponent):
             return feature_values
 
 
-class WhatIfComponent(ExplainerComponent):
-    def __init__(self, explainer, title="What if...", name=None,
-                    hide_title=False,  hide_subtitle=False, hide_index=False, 
-                    hide_selector=False, hide_contributions=False, hide_pdp=False,
-                    index=None, pdp_col=None, pos_label=None, description=None,
-                    **kwargs):
-        """Interaction Dependence Component.
 
-        Args:
-            explainer (Explainer): explainer object constructed with either
-                        ClassifierExplainer() or RegressionExplainer()
-            title (str, optional): Title of tab or page. Defaults to 
-                        "What if...".
-            name (str, optional): unique name to add to Component elements. 
-                        If None then random uuid is generated to make sure 
-                        it's unique. Defaults to None.
-            hide_title (bool, optional): hide the title
-            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
-            hide_index (bool, optional): hide the index selector
-            hide_selector (bool, optional): hide the pos_label selector
-            hide_contributions (bool, optional): hide the contributions graph
-            hide_pdp (bool, optional): hide the pdp graph
-            index (str, int, optional): default index
-            pdp_col (str, optional): default pdp feature col
-            pos_label ({int, str}, optional): initial pos label. 
-                        Defaults to explainer.pos_label
-            description (str, optional): Tooltip to display when hover over
-                component title. When None default text is shown. 
-        """
-        super().__init__(explainer, title, name)
-
-        assert len(explainer.columns) == len(set(explainer.columns)), \
-            "Not all column names are unique, so cannot launch whatif component/tab!"
-        
-        if self.pdp_col is None:
-            self.pdp_col = self.explainer.columns_ranked_by_shap(cats=True)[0]
-            
-        self.index_name = 'whatif-index-'+self.name
-        
-        self._input_features = self.explainer.columns_cats
-        self._feature_inputs = [
-            self._generate_dash_input(
-                feature, self.explainer.cats, self.explainer.cats_dict) 
-                                for feature in self._input_features]
-        self._feature_callback_inputs = [Input('whatif-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
-        self._feature_callback_outputs = [Output('whatif-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
-        
-        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        
-        self.register_dependencies('preds', 'shap_values')
-        
-        
-    def _generate_dash_input(self, col, cats, cats_dict):
-        if col in cats:
-            col_values = [
-                col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
-                    for col_val in cats_dict[col]]
-            return html.Div([
-                html.P(col),
-                dcc.Dropdown(id='whatif-'+col+'-input-'+self.name, 
-                             options=[dict(label=col_val, value=col_val) for col_val in col_values],
-                             clearable=False)
-            ])
-        else:
-            return  html.Div([
-                        html.P(col),
-                        dbc.Input(id='whatif-'+col+'-input-'+self.name, type="number"),
-                    ])
-        
-    def layout(self):
-        return dbc.Card([
-            make_hideable(
-                dbc.CardHeader([
-                    dbc.Row([
-                            dbc.Col([
-                                html.H1(self.title)
-                            ]), 
-                    ]),
-                ]), hide=self.hide_title),
-            dbc.CardBody([
-                dbc.Row([
-                    make_hideable(
-                            dbc.Col([
-                                dbc.Label(f"{self.explainer.index_name}:"),
-                                dcc.Dropdown(id='whatif-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index)
-                            ], md=4), hide=self.hide_index), 
-                    make_hideable(
-                            dbc.Col([self.selector.layout()
-                        ], md=2), hide=self.hide_selector),
-                    ], form=True),
-                dbc.Row([
-                    dbc.Col([
-                        html.H3("Edit Feature input:")
-                    ])
-                ]),
-                dbc.Row([
-                    dbc.Col([
-                        *self._feature_inputs[:int((len(self._feature_inputs) + 1)/2)]
-                    ]),
-                    dbc.Col([
-                        *self._feature_inputs[int((len(self._feature_inputs) + 1)/2):]
-                    ]),
-                ]),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            html.H3("Prediction and contributions:"),
-                            dcc.Graph(id='whatif-contrib-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-                        ]), hide=self.hide_contributions),
-                    make_hideable(
-                        dbc.Col([
-                            html.H3("Partial dependence:"),
-                            dcc.Dropdown(id='whatif-pdp-col-'+self.name, 
-                                        options=[dict(label=col, value=col) for col in self._input_features],
-                                        value=self.pdp_col),
-                            dcc.Graph(id='whatif-pdp-graph-'+self.name, 
-                                        config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
-                        ]), hide=self.hide_pdp),
-                ])
-            ])
-        ])
-
-    def component_callbacks(self, app):
-        @app.callback(
-            [Output('whatif-contrib-graph-'+self.name, 'figure'),
-             Output('whatif-pdp-graph-'+self.name, 'figure')],
-            [Input('whatif-pdp-col-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value'),
-             *self._feature_callback_inputs,
-             ],
-        )
-        def update_whatif_plots(pdp_col, pos_label, *input_args):
-            X_row = pd.DataFrame(dict(zip(self._input_features, input_args)), index=[0]).fillna(0)
-            contrib_plot = self.explainer.plot_shap_contributions(X_row=X_row, pos_label=pos_label)
-            pdp_plot = self.explainer.plot_pdp(pdp_col, X_row=X_row, pos_label=pos_label)
-            return contrib_plot, pdp_plot
-        
-        @app.callback(
-            [*self._feature_callback_outputs],
-            [Input('whatif-index-'+self.name, 'value')]
-        )
-        def update_whatif_inputs(index):
-            idx = self.explainer.get_int_idx(index)
-            if idx is None:
-                raise PreventUpdate
-            feature_values = self.explainer.X_cats.iloc[[idx]].values[0].tolist()
-            return feature_values
                         

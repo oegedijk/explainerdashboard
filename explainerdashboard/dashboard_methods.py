@@ -175,11 +175,9 @@ class ExplainerComponent(ABC):
         """
         self._store_child_params(no_param=['explainer'])
         if not hasattr(self, "name") or self.name is None:
-            self.name = "uuid"+shortuuid.ShortUUID().random(length=5)
-        if title is not None:
-            self.title = title
-        if not hasattr(self, "title"):
-            self.title = "Custom"
+            self.name = name or "uuid"+shortuuid.ShortUUID().random(length=5)
+        if not hasattr(self, "title") or self.title is None:
+            self.title = title or "Custom"
 
         self._components = []
         self._dependencies = []
@@ -423,18 +421,22 @@ def instantiate_component(component, explainer, name=None, **kwargs):
     """
 
     if inspect.isclass(component) and issubclass(component, ExplainerComponent):
-        init_argspec = inspect.getargspec(component.__init__)
-        if not init_argspec.keywords:
-            kwargs = {k:v for k,v in kwargs.items() if k in init_argspec.args}
-        if "name" in init_argspec.args:
+        init_argspec = inspect.getfullargspec(component.__init__)
+        assert len(init_argspec.args) > 1 and init_argspec.args[1] == 'explainer', \
+            (f"The first parameter of {component.__name__}.__init__ should be 'explainer'. "
+            f"Instead the __init__ is: {component.__name__}.__init__{inspect.signature(component.__init__)}")
+        if not init_argspec.varkw:
+            kwargs = {k:v for k,v in kwargs.items() if k in init_argspec.args + init_argspec.kwonlyargs}
+        if "name" in init_argspec.args+init_argspec.kwonlyargs:
             component = component(explainer, name=name, **kwargs)
         else:
             print(f"ExplainerComponent {component} does not accept a name parameter, "
-                    f"so cannot assign name={name}!"
-                    "Make sure to set name explicitly yourself if you want to "
-                    "deploy across multiple workers or a cluster, as otherwise "
-                    "each instance in the cluster will generate its own random "
-                    "uuid name!")
+                    f"so cannot assign name='{name}': "
+                    f"{component.__name__}.__init__{inspect.signature(component.__init__)}. "
+                    "Make sure to set super().__init__(name=...) explicitly yourself "
+                    "inside the __init__ if you want to deploy across multiple "
+                    "workers or a cluster, as otherwise each instance in the "
+                    "cluster will generate its own random uuid name!")
             component = component(explainer, **kwargs)
         return component
     elif isinstance(component, ExplainerComponent):
