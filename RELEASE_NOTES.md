@@ -3,20 +3,21 @@
 
 ## 0.2.20:
 ### Breaking Changes
--  WhatIfComponent deprecated. Use WhatIfComposite or connect components yourself to a FeatureInputComponent
+-  `WhatIfComponent` deprecated. Use `WhatIfComposite` or connect components 
+    yourself to a `FeatureInputComponent`
 - 
 
 ### New Features
--
--
+- Adds support for model with categorical features that were not onehot encoded (used by e.g. CatBoost)
+- Adds filter on number of categories to display in violin plots, and how to sort 
+    the categories (alphabetical, by frequency or by mean abs shap)
 
 ### Bug Fixes
 -
 -
 
 ### Improvements
--
--
+- No longer dependening on PDPbox dependency: built on partial dependence functions.
 
 ### Other Changes
 -

@@ -201,9 +201,12 @@ class ShapDependenceComponent(ExplainerComponent):
                     subtitle="Relationship between feature value and SHAP value",
                     hide_title=False, hide_subtitle=False, hide_cats=False, hide_col=False, 
                     hide_color_col=False, hide_index=False,
-                    hide_selector=False,
-                    pos_label=None, cats=True, col=None, 
-                    color_col=None, index=None, description=None, **kwargs):
+                    hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
+                    hide_footer=False,
+                    pos_label=None, cats=True, 
+                    col=None, color_col=None, index=None, 
+                    cats_topx=10, cats_sort='freq',
+                    description=None, **kwargs):
         """Show shap dependence graph
 
         Args:
@@ -222,6 +225,9 @@ class ShapDependenceComponent(ExplainerComponent):
             hide_color_col (bool, optional): hide color feature selector Defaults to False.
             hide_index (bool, optional): hide index selector Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
+            hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
+            hide_footer (bool, optional): hide the footer.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             cats (bool, optional): group cats. Defaults to True.
@@ -229,6 +235,10 @@ class ShapDependenceComponent(ExplainerComponent):
             color_col (str, optional): Color plot by values of this Feature. 
                         Defaults to None.
             index (int, optional): Highlight a particular index. Defaults to None.
+            cats_topx (int, optional): number of categories to display for 
+                categorical features.
+            cats_sort (str, optional): how to sort categories: 'alphabet', 
+                'freq' or 'shap'. Defaults to 'freq'.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -324,12 +334,42 @@ class ShapDependenceComponent(ExplainerComponent):
                                 dcc.Graph(id='shap-dependence-graph-'+self.name,
                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
             ]), 
+            make_hideable(
+                dbc.CardFooter([
+                    html.Div([
+                        dbc.Row([
+                            make_hideable(
+                                dbc.Col([
+                                    dbc.Label("Categories:", id='shap-dependence-n-categories-label-'+self.name),
+                                    dbc.Tooltip("Number of categories to display", 
+                                                target='shap-dependence-n-categories-label-'+self.name),
+                                    dbc.Input(id='shap-dependence-n-categories-'+self.name, 
+                                        value=self.cats_topx,
+                                        type="number", min=1, max=50, step=1),
+                                ], md=2), self.hide_cats_topx),
+                            make_hideable(
+                                dbc.Col([
+                                        html.Label('Sort categories:', id='shap-dependence-categories-sort-label-'+self.name),
+                                        dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                                    "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                                    target='shap-dependence-categories-sort-label-'+self.name),
+                                        dbc.Select(id='shap-dependence-categories-sort-'+self.name,
+                                                options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                            {'label': 'Frequency', 'value': 'freq'},
+                                                            {'label': 'Shap impact', 'value': 'shap'}],
+                                                value=self.cats_sort),
+                                    ], md=4), hide=self.hide_cats_sort),
+                        ])
+                    ], id='shap-dependence-categories-div-'+self.name,
+                        style={} if self.col in self.explainer.cat_cols else dict(display="none"))
+                ]), hide=self.hide_footer),
         ])
 
     def component_callbacks(self, app):
         @app.callback(
             [Output('shap-dependence-color-col-'+self.name, 'options'),
-             Output('shap-dependence-color-col-'+self.name, 'value')],
+             Output('shap-dependence-color-col-'+self.name, 'value'),
+             Output('shap-dependence-categories-div-'+self.name, 'style')],
             [Input('shap-dependence-col-'+self.name, 'value')],
             [State('shap-dependence-group-cats-'+self.name, 'value'),
              State('pos-label-'+self.name, 'value')])
@@ -341,22 +381,27 @@ class ShapDependenceComponent(ExplainerComponent):
                             + [dict(label="None", value="no_color_col")])
             if col in self.explainer.cat_cols:
                 value = None
+                style = dict()
             else:
-                value = sorted_interact_cols[1]                                
-            return (options, value)
+                value = sorted_interact_cols[1]   
+                style = dict(display="none")                             
+            return (options, value, style)
 
         @app.callback(
             Output('shap-dependence-graph-'+self.name, 'figure'),
             [Input('shap-dependence-color-col-'+self.name, 'value'),
              Input('shap-dependence-index-'+self.name, 'value'),
+             Input('shap-dependence-n-categories-'+self.name, 'value'),
+             Input('shap-dependence-categories-sort-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
             [State('shap-dependence-col-'+self.name, 'value')])
-        def update_dependence_graph(color_col, index, pos_label, col):
+        def update_dependence_graph(color_col, index, topx, sort, pos_label, col):
             if col is not None:
                 if color_col =="no_color_col": 
                     color_col, index = None, None
                 return self.explainer.plot_shap_dependence(
-                            col, color_col, highlight_index=index, pos_label=pos_label)
+                            col, color_col, topx=topx, sort=sort, 
+                            highlight_index=index, pos_label=pos_label)
             raise PreventUpdate
 
         @app.callback(
@@ -610,8 +655,10 @@ class InteractionDependenceComponent(ExplainerComponent):
                     subtitle="Relation between feature value and shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_cats=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
-                    hide_selector=False, hide_top=False, hide_bottom=False,
+                    hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
+                    hide_top=False, hide_bottom=False,
                     pos_label=None, cats=True, col=None, interact_col=None,
+                    cats_topx=10, cats_sort='freq',
                     description=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
@@ -638,6 +685,10 @@ class InteractionDependenceComponent(ExplainerComponent):
                         Defaults to False.
             hide_selector (bool, optional): hide pos label selector. 
                         Defaults to False.
+            hide_cats_topx (bool, optional): hide the categories topx input. 
+                        Defaults to False.
+            hide_cats_sort (bool, optional): hide the categories sort selector.
+                        Defaults to False.
             hide_top (bool, optional): Hide the top interaction graph 
                         (col vs interact_col). Defaults to False.
             hide_bottom (bool, optional): hide the bottom interaction graph 
@@ -648,6 +699,10 @@ class InteractionDependenceComponent(ExplainerComponent):
             col (str, optional): Feature to find interactions for. Defaults to None.
             interact_col (str, optional): Feature to interact with. Defaults to None.
             highlight (int, optional): Index row to highlight Defaults to None.
+            cats_topx (int, optional): number of categories to display for 
+                categorical features.
+            cats_sort (str, optional): how to sort categories: 'alphabet', 
+                'freq' or 'shap'. Defaults to 'freq'.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -738,21 +793,76 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     dbc.Col([
                         make_hideable(
-                        dcc.Loading(id='loading-interaction-dependence-graph-'+self.name, 
-                                children=[dcc.Graph(id='interaction-dependence-graph-'+self.name,
+                        dcc.Loading(id='loading-interaction-dependence-top-graph-'+self.name, 
+                                children=[dcc.Graph(id='interaction-dependence-top-graph-'+self.name,
                                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                                 hide=self.hide_top),
                     ]),
                 ]),
+                html.Div([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                dbc.Label("Categories:", id='interaction-dependence-top-n-categories-label-'+self.name),
+                                dbc.Tooltip("Number of categories to display", 
+                                            target='interaction-dependence-top-n-categories-label-'+self.name),
+                                dbc.Input(id='interaction-dependence-top-n-categories-'+self.name, 
+                                    value=self.cats_topx,
+                                    type="number", min=1, max=50, step=1),
+                            ], md=2), self.hide_cats_topx),
+                        make_hideable(
+                            dbc.Col([
+                                    html.Label('Sort categories:', id='interaction-dependence-top-categories-sort-label-'+self.name),
+                                    dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                                "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                                target='interaction-dependence-top-categories-sort-label-'+self.name),
+                                    dbc.Select(id='interaction-dependence-top-categories-sort-'+self.name,
+                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                        {'label': 'Frequency', 'value': 'freq'},
+                                                        {'label': 'Shap impact', 'value': 'shap'}],
+                                            value=self.cats_sort),
+                                ], md=4), hide=self.hide_cats_sort),
+                    ])
+                ], id='interaction-dependence-top-categories-div-'+self.name, 
+                    style={} if self.interact_col in self.explainer.cat_cols else dict(display="none")),
+                
                 dbc.Row([
                     dbc.Col([
                         make_hideable(
-                        dcc.Loading(id='loading-reverse-interaction-graph-'+self.name, 
-                                children=[dcc.Graph(id='interaction-dependence-reverse-graph-'+self.name,
+                        dcc.Loading(id='loading-reverse-interaction-bottom-graph-'+self.name, 
+                                children=[dcc.Graph(id='interaction-dependence-bottom-graph-'+self.name,
                                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                                 hide=self.hide_bottom),
                     ]),
                 ]),
+
+                html.Div([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                dbc.Label("Categories:", id='interaction-dependence-bottom-n-categories-label-'+self.name),
+                                dbc.Tooltip("Number of categories to display", 
+                                            target='interaction-dependence-bottom-n-categories-label-'+self.name),
+                                dbc.Input(id='interaction-dependence-bottom-n-categories-'+self.name, 
+                                    value=self.cats_topx,
+                                    type="number", min=1, max=50, step=1),
+                            ], md=2), self.hide_cats_topx),
+                        make_hideable(
+                            dbc.Col([
+                                    html.Label('Sort categories:', id='interaction-dependence-bottom-categories-sort-label-'+self.name),
+                                    dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                                "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                                target='interaction-dependence-bottom-categories-sort-label-'+self.name),
+                                    dbc.Select(id='interaction-dependence-bottom-categories-sort-'+self.name,
+                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                        {'label': 'Frequency', 'value': 'freq'},
+                                                        {'label': 'Shap impact', 'value': 'shap'}],
+                                            value=self.cats_sort),
+                                ], md=4), hide=self.hide_cats_sort),
+                    ])
+                ], id='interaction-dependence-bottom-categories-div-'+self.name, 
+                    style={} if self.col in self.explainer.cat_cols else dict(display="none")),
+
             ]),
         ])
 
@@ -781,18 +891,39 @@ class InteractionDependenceComponent(ExplainerComponent):
             raise PreventUpdate
 
         @app.callback(
-            [Output('interaction-dependence-graph-'+self.name, 'figure'),
-             Output('interaction-dependence-reverse-graph-'+self.name, 'figure')],
+            [Output('interaction-dependence-top-graph-'+self.name, 'figure'),
+             Output('interaction-dependence-top-categories-div-'+self.name, 'style')],
             [Input('interaction-dependence-interact-col-'+self.name, 'value'),
              Input('interaction-dependence-index-'+self.name, 'value'),
+             Input('interaction-dependence-top-n-categories-'+self.name, 'value'),
+             Input('interaction-dependence-top-categories-sort-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
              Input('interaction-dependence-col-'+self.name, 'value')])
-        def update_dependence_graph(interact_col, index, pos_label, col):
+        def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
             if col is not None and interact_col is not None:
+                style = {} if interact_col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_shap_interaction(
-                            col, interact_col, highlight_index=index, pos_label=pos_label),
-                        self.explainer.plot_shap_interaction(
-                            interact_col, col, highlight_index=index, pos_label=pos_label))
+                            col, interact_col, highlight_index=index, pos_label=pos_label,
+                            topx=topx, sort=sort),
+                        style)
+            raise PreventUpdate
+
+        @app.callback(
+            [Output('interaction-dependence-bottom-graph-'+self.name, 'figure'),
+             Output('interaction-dependence-bottom-categories-div-'+self.name, 'style')],
+            [Input('interaction-dependence-interact-col-'+self.name, 'value'),
+             Input('interaction-dependence-index-'+self.name, 'value'),
+             Input('interaction-dependence-bottom-n-categories-'+self.name, 'value'),
+             Input('interaction-dependence-bottom-categories-sort-'+self.name, 'value'),
+             Input('pos-label-'+self.name, 'value'),
+             Input('interaction-dependence-col-'+self.name, 'value')])
+        def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
+            if col is not None and interact_col is not None:
+                style = {} if col in self.explainer.cat_cols else dict(display="none")
+                return (self.explainer.plot_shap_interaction(
+                            interact_col, col, highlight_index=index, pos_label=pos_label,
+                            topx=topx, sort=sort),
+                        style)
             raise PreventUpdate
 
         

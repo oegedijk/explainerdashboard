@@ -166,8 +166,6 @@ class BaseExplainer(ABC):
         else:
             self.interactions_should_work = True
 
-        
-
     @classmethod
     def from_file(cls, filepath):
         """Load an Explainer from file. Depending on the suffix of the filepath 
@@ -498,6 +496,47 @@ class BaseExplainer(ABC):
             # the cat that the col belongs to
             return [k for k, v in self.onehot_dict.items() if col in v][0]
         return None
+
+    def ordered_cats(self, col, topx=None, mode='alphabet'):
+        """Return a list of categories in an categorical column, sorted
+        by mode.
+
+        Args:
+            col (str): Categorical feature to return categories for.
+            topx (int, optional): Return topx top categories. Defaults to None.
+            mode (str, optional): Sorting method, either alphabetically ('alphabet'),
+                by frequency ('freq') or mean absolute shap ('shap'). 
+                Defaults to 'alphabet'.
+
+        Raises:
+            ValueError: if mode is other than 'alphabet', 'freq', 'shap
+
+        Returns:
+            list
+        """
+        assert col in self.cat_cols, \
+            f"{col} is not a categorical feature!"
+        if mode=='alphabet':
+            if topx is None:
+                return sorted(self.X_cats[col].unique().tolist())
+            else:
+                return sorted(self.X_cats[col].unique().tolist())[:topx]
+        elif mode=='freq':
+            if topx is None:
+                return self.X_cats[col].value_counts().index.tolist()
+            else:
+                return self.X_cats[col].value_counts().nlargest(topx).index.tolist()
+        elif mode=='shap':
+            if topx is None:
+                return (pd.Series(self.shap_values_cats[:, self.columns_cats.index(col)], 
+                        index=self.X_cats[col]).abs().groupby(level=0).mean()
+                            .sort_values(ascending=False).index.tolist())
+            else:
+                return (pd.Series(self.shap_values_cats[:, self.columns_cats.index(col)], 
+                        index=self.X_cats[col]).abs().groupby(level=0).mean()
+                            .sort_values(ascending=False).nlargest(topx).index.tolist())
+        else:
+            raise ValueError(f"mode='{mode}', but should be 'alphabet', 'freq', or 'shap'")
 
     def get_row_from_input(self, inputs:List, ranked_by_shap=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
@@ -1408,7 +1447,8 @@ class BaseExplainer(ABC):
                 idxs=self.idxs.values, highlight_index=index, na_fill=self.na_fill,
                 index_name=self.index_name)
 
-    def plot_shap_dependence(self, col, color_col=None, highlight_index=None, pos_label=None):
+    def plot_shap_dependence(self, col, color_col=None, highlight_index=None, 
+                                topx=None, sort='alphabet', pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1419,8 +1459,13 @@ class BaseExplainer(ABC):
           col(str): feature to be displayed
           color_col(str): if color_col provided then shap values colored (blue-red) 
                     according to feature color_col (Default value = None)
-          highlight_idx: individual observation to be highlighed in the plot. 
+          highlight_index: individual observation to be highlighed in the plot. 
                     (Default value = None)
+          topx (int, optional): for categorical features only display topx
+                categories.
+          sort (str): for categorical features, how to sort the categories:
+                alphabetically 'alphabet', most frequent first 'freq', 
+                highest mean absolute value first 'shap'. Defaults to 'alphabet'.
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -1430,6 +1475,7 @@ class BaseExplainer(ABC):
         highlight_idx = self.get_int_idx(highlight_index)
 
         if cats:
+            
             if col in self.onehot_cols or col in self.categorical_cols:
                 return plotly_shap_violin_plot(
                             self.X_cats, 
@@ -1438,7 +1484,8 @@ class BaseExplainer(ABC):
                             color_col, 
                             highlight_index=highlight_idx,
                             idxs=self.idxs.values,
-                            index_name=self.index_name)
+                            index_name=self.index_name,
+                            cats_order=self.ordered_cats(col, topx, sort))
             else:
                 return plotly_dependence_plot(
                             self.X_cats, 
@@ -1459,7 +1506,8 @@ class BaseExplainer(ABC):
                                 color_col, 
                                 highlight_index=highlight_idx,
                                 idxs=self.idxs.values,
-                                index_name=self.index_name)
+                                index_name=self.index_name,
+                                cats_order=self.ordered_cats(col, topx, sort))
             else:
                 return plotly_dependence_plot(
                                 self.X, 
@@ -1473,7 +1521,7 @@ class BaseExplainer(ABC):
                                 index_name=self.index_name)
 
     def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
-                                pos_label=None):
+                                topx=10, sort='alphabet', pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         Args:
@@ -1495,7 +1543,7 @@ class BaseExplainer(ABC):
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
                 interact_col, col, interaction=True, units=self.units, 
                 highlight_index=highlight_idx, idxs=self.idxs.values,
-                index_name=self.index_name)
+                index_name=self.index_name, cats_order=self.ordered_cats(interact_col, topx, sort))
         else:
             return plotly_dependence_plot(self.X_cats if cats else self.X,
                 self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),

@@ -915,9 +915,9 @@ class RegressionVsColComponent(ExplainerComponent):
                                         "When you have some real outliers it can help to remove them"
                                         " from the plot so it is easier to see the overall pattern.", 
                                     target='reg-vs-col-winsor-label-'+self.name),
-                            dbc.Input(id='reg-vs-col-winsor-'+self.name, 
-                                    value=self.winsor,
-                                type="number", min=0, max=49, step=1),
+                                dbc.Input(id='reg-vs-col-winsor-'+self.name, 
+                                        value=self.winsor,
+                                    type="number", min=0, max=49, step=1),
                         ], md=4), hide=self.hide_winsor),  
                     make_hideable(
                         dbc.Col([
