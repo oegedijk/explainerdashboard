@@ -92,7 +92,7 @@ def parse_cats(X, cats, sep:str="_"):
     if isinstance(cats, dict):
         for k, v in cats.items():
             assert set(v).issubset(set(all_cols)), \
-                f"These cats columns for {k} could not be found in X.columns: {set(v)-set(cols)}!"
+                f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
             col_counter.update(v)
         onehot_dict = cats
     elif isinstance(cats, list):
@@ -103,7 +103,7 @@ def parse_cats(X, cats, sep:str="_"):
             if isinstance(cat, dict):
                 for k, v in cat.items():
                     assert set(v).issubset(set(all_cols)), \
-                        f"These cats columns for {k} could not be found in X.columns: {set(v)-set(cols)}!"
+                        f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
                     col_counter.update(v)
                     onehot_dict[k] = v
     multi_cols =  [v for v, c in col_counter.most_common() if c > 1]
