@@ -95,10 +95,26 @@ class BaseExplainer(ABC):
             self.X, self.X_background = X, X_background
             self.model = model
 
+        if safe_is_instance(model, "xgboost.core.Booster"):
+            raise ValueError("For xgboost models, currently only the scikit-learn "
+                "compatible wrappers xgboost.sklearn.XGBClassifier and "
+                "xgboost.sklearn.XGBRegressor are supported, so please use those "
+                "instead of xgboost.Booster!")
+
+        if safe_is_instance(model, "lightgbm.Booster"):
+            raise ValueError("For lightgbm, currently only the scikit-learn "
+                "compatible wrappers lightgbm.LGBMClassifier and lightgbm.LGBMRegressor "
+                "are supported, so please use those instead of lightgbm.Booster!")
+
         self.onehot_cols, self.onehot_dict = parse_cats(self.X, cats)
         self.categorical_cols = [col for col in X.columns if not is_numeric_dtype(X[col])]
         self.categorical_dict = {col:sorted(X[col].unique().tolist()) for col in self.categorical_cols}
         self.cat_cols = self.onehot_cols + self.categorical_cols
+        if self.categorical_cols:
+            print(f"Warning: Detected the following categorical columns: {self.categorical_cols}."
+                    "Unfortunately for now shap interaction values do not work with"
+                    "categorical columns.", flush=True)
+            self.interactions_should_work = False
 
         if y is not None:
             self.y = pd.Series(y)
@@ -497,36 +513,36 @@ class BaseExplainer(ABC):
             return [k for k, v in self.onehot_dict.items() if col in v][0]
         return None
 
-    def ordered_cats(self, col, topx=None, mode='alphabet'):
+    def ordered_cats(self, col, topx=None, sort='alphabet'):
         """Return a list of categories in an categorical column, sorted
         by mode.
 
         Args:
             col (str): Categorical feature to return categories for.
             topx (int, optional): Return topx top categories. Defaults to None.
-            mode (str, optional): Sorting method, either alphabetically ('alphabet'),
+            sort (str, optional): Sorting method, either alphabetically ('alphabet'),
                 by frequency ('freq') or mean absolute shap ('shap'). 
                 Defaults to 'alphabet'.
 
         Raises:
-            ValueError: if mode is other than 'alphabet', 'freq', 'shap
+            ValueError: if sort is other than 'alphabet', 'freq', 'shap
 
         Returns:
             list
         """
         assert col in self.cat_cols, \
             f"{col} is not a categorical feature!"
-        if mode=='alphabet':
+        if sort=='alphabet':
             if topx is None:
                 return sorted(self.X_cats[col].unique().tolist())
             else:
                 return sorted(self.X_cats[col].unique().tolist())[:topx]
-        elif mode=='freq':
+        elif sort=='freq':
             if topx is None:
                 return self.X_cats[col].value_counts().index.tolist()
             else:
                 return self.X_cats[col].value_counts().nlargest(topx).index.tolist()
-        elif mode=='shap':
+        elif sort=='shap':
             if topx is None:
                 return (pd.Series(self.shap_values_cats[:, self.columns_cats.index(col)], 
                         index=self.X_cats[col]).abs().groupby(level=0).mean()
@@ -536,7 +552,7 @@ class BaseExplainer(ABC):
                         index=self.X_cats[col]).abs().groupby(level=0).mean()
                             .sort_values(ascending=False).nlargest(topx).index.tolist())
         else:
-            raise ValueError(f"mode='{mode}', but should be 'alphabet', 'freq', or 'shap'")
+            raise ValueError(f"sort='{sort}', but should be in {{'alphabet', 'freq', 'shap'}}")
 
     def get_row_from_input(self, inputs:List, ranked_by_shap=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
@@ -1021,7 +1037,8 @@ class BaseExplainer(ABC):
             if cats:
                 shap_values = merge_categorical_shap_values(X_row, shap_values, self.onehot_dict)
                 return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
-                            X_row_cats, topx, cutoff, sort, cols)   
+                            remove_cat_names(X_row_cats, self.onehot_dict), 
+                            topx, cutoff, sort, cols)   
             else:
                 return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
                             X_row, topx, cutoff, sort, cols)  
@@ -1030,7 +1047,8 @@ class BaseExplainer(ABC):
             if cats:
                 return get_contrib_df(self.shap_base_value(pos_label), 
                                         self.shap_values_cats(pos_label)[idx],
-                                        self.X_cats.iloc[[idx]], topx, cutoff, sort, cols)
+                                        remove_cat_names(self.X_cats.iloc[[idx]], self.onehot_dict), 
+                                        topx, cutoff, sort, cols)
             else:
                 return get_contrib_df(self.shap_base_value(pos_label), 
                                         self.shap_values(pos_label)[idx],
@@ -1124,14 +1142,55 @@ class BaseExplainer(ABC):
                         'Cat_Value', 'Cont_Value', 'Value_Type', 'Feature_Order']
         return cdf
 
-    def pdp_df(self, col, index=None, X_row=None, drop_na=True,
-                        sample=500, num_grid_points=20, pos_label=None):
+    def pdp_df(self, col, index=None, X_row=None, drop_na=True, sample=500, 
+                    n_grid_points=10, pos_label=None, sort='freq'):
+        """Return a pdp_df for generating partial dependence plots.
+
+        Args:
+            col (str): Feature to generate partial dependence for.
+            index ({int, str}, optional): Index to include on first row
+                of pdp_df. Defaults to None.
+            X_row (pd.DataFrame, optional): Single row to put on first row of pdp_df. 
+                Defaults to None.
+            drop_na (bool, optional): Drop self.na_fill values. Defaults to True.
+            sample (int, optional): Sample size for pdp_df. Defaults to 500.
+            n_grid_points (int, optional): Number of grid points on x axis. 
+                Defaults to 10.
+            pos_label ([type], optional): [description]. Defaults to None.
+            sort (str, optional): For categorical features: how to sort:
+             'alphabet', 'freq', 'shap'. Defaults to 'freq'.
+
+        Returns:
+            pd.DataFrame
+        """
         assert col in self.X.columns or col in self.onehot_cols, \
             f"{col} not in columns of dataset"
         if col in self.onehot_cols:
-            features = self.onehot_dict[col]
+            features = self.ordered_cats(col, n_grid_points, sort)
+            if index is not None or X_row is not None:
+                val, pred = self.get_col_value_plus_prediction(col, index, X_row)
+                if val not in features:
+                    features[-1] = val
+            grid_values = None
+        elif col in self.categorical_cols:
+            features = col
+            grid_values = self.ordered_cats(col, n_grid_points, sort)
+            if index is not None or X_row is not None:
+                val, pred = self.get_col_value_plus_prediction(col, index, X_row)
+                if val not in grid_values:
+                    grid_values[-1] = val
         else:
             features = col
+            if drop_na:
+                vals = np.delete(self.X[col].values, np.where(self.X[col].values==self.na_fill), axis=0)
+                grid_values = get_grid_points(vals, n_grid_points=n_grid_points)
+            else:
+                grid_values = get_grid_points(self.X[col].values, n_grid_points=n_grid_points)
+            if index is not None or X_row is not None:
+                val, pred = self.get_col_value_plus_prediction(col, index, X_row)
+                if val not in grid_values:
+                    grid_values = np.append(grid_values, val).sort()
+
         if pos_label is None: 
             pos_label = self.pos_label
 
@@ -1179,17 +1238,14 @@ class BaseExplainer(ABC):
             else:
                 sampleX = self.X.sample(min(sample, len(self.X)))
 
-        # if only a single value (i.e. not onehot encoded, take that value
-        # instead of list):
-
         pdp_df = get_pdp_df(
                 model=self.model, X_sample=sampleX,
-                feature=features,
-                n_grid_points=num_grid_points, pos_label=pos_label)
+                feature=features, n_grid_points=n_grid_points, 
+                pos_label=pos_label, grid_values=grid_values)
 
         if all([str(c).startswith(col+"_") for c in pdp_df.columns]):
             pdp_df.columns = [str(c)[len(col)+1:] for c in pdp_df.columns]
-        if self.is_classifier:
+        if self.is_classifier and self.model_output == 'probability':
             pdp_df = pdp_df.multiply(100)
         return pdp_df
 
@@ -1552,7 +1608,8 @@ class BaseExplainer(ABC):
                 index_name=self.index_name)
 
     def plot_pdp(self, col, index=None, X_row=None, drop_na=True, sample=100,
-                    gridlines=100, gridpoints=10, pos_label=None):
+                    gridlines=100, gridpoints=10, sort='freq', round=2,
+                    pos_label=None):
         """plot partial dependence plot (pdp)
         
         returns plotly fig for a partial dependence plot showing ice lines
@@ -1573,6 +1630,10 @@ class BaseExplainer(ABC):
                     defaults to 100
           gridpoints(ints: int, optional): number of points on the x axis 
                     to calculate the pdp for, defaults to 10
+          sort (str, optional): For categorical features: how to sort:
+             'alphabet', 'freq', 'shap'. Defaults to 'freq'.
+          round (int, optional): round float prediction to number of digits.
+            Defaults to 2.
           pos_label:  (Default value = None)
 
         Returns:
@@ -1580,29 +1641,26 @@ class BaseExplainer(ABC):
 
         """
         pdp_df = self.pdp_df(col, index, X_row,
-                        drop_na=drop_na, sample=sample, num_grid_points=gridpoints, pos_label=pos_label)
+                        drop_na=drop_na, sample=sample, n_grid_points=gridpoints, 
+                        pos_label=pos_label, sort=sort)
         units = "Predicted %" if self.model_output=='probability' else self.units
-        if index is not None:
-            col_value, pred = self.get_col_value_plus_prediction(col, index=index, pos_label=pos_label)
+        if index is not None or X_row is not None:
+            col_value, pred = self.get_col_value_plus_prediction(col, index=index, X_row=X_row, pos_label=pos_label)
+            if (col in self.cat_cols 
+                and col_value not in pdp_df.columns 
+                and col_value[len(col)+1:] in pdp_df.columns):
+                col_value = col_value[len(col)+1:]
             return plotly_pdp(pdp_df,
                             display_index=0, # the idx to be displayed is always set to the first row by self.pdp_df()
-                            index_feature_value=col_value, index_prediction=pred,
+                            index_feature_value=col_value, 
+                            index_prediction=pred,
                             feature_name=col,
                             num_grid_lines=min(gridlines, sample, len(self.X)),
-                            target=self.target, units=units)
-        elif X_row is not None:
-            col_value, pred = self.get_col_value_plus_prediction(col, X_row=X_row, pos_label=pos_label)
-            return plotly_pdp(pdp_df,
-                            display_index=0, # the idx to be displayed is always set to the first row by self.pdp_df()
-                            index_feature_value=col_value, index_prediction=pred,
-                            feature_name=col,
-                            num_grid_lines=min(gridlines, sample, len(self.X)),
-                            target=self.target, units=units)
-
+                            round=round, target=self.target, units=units)
         else:
             return plotly_pdp(pdp_df, feature_name=col,
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
-                        target=self.target, units=units)
+                        round=round, target=self.target, units=units)
 
 
 class ClassifierExplainer(BaseExplainer):

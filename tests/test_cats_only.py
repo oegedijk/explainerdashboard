@@ -79,10 +79,10 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertEqual(self.explainer.ordered_cats("Sex"), ['female', 'male'])
         self.assertEqual(self.explainer.ordered_cats("Deck", topx=2), ['A', 'B'])
 
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='freq'), list)
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='freq'), list)
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='shap'), list)
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='shap'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='shap'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='shap'), list)
 
     def test_get_col(self):
         self.assertIsInstance(self.explainer.get_col("Sex"), pd.Series)
@@ -384,10 +384,10 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertEqual(self.explainer.ordered_cats("Sex"), ['female', 'male'])
         self.assertEqual(self.explainer.ordered_cats("Deck", topx=2), ['A', 'B'])
 
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='freq'), list)
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='freq'), list)
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", mode='shap'), list)
-        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, mode='shap'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='freq'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='shap'), list)
+        self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='shap'), list)
 
 
     def test_preds(self):

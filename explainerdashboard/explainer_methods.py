@@ -202,10 +202,12 @@ def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
 
     # if not a single 1 then encoded feature must have been dropped
     feature_value[np.max(X[onehot_cols].values, axis=1) == 0] = -1
-    mapping = {-1: "NOT_ENCODED"}
-    col_values = [col[len(encoded_col)+1:] if col.startswith(encoded_col+sep) 
-                    else col for col in onehot_cols]
-    mapping.update({i: col for i, col in enumerate(col_values)})
+    if all([col.startswith(col+"_") for col in onehot_cols]):
+        mapping = {-1: encoded_col+"_NOT_ENCODED"}
+    else:
+        mapping = {-1: "NOT_ENCODED"}
+
+    mapping.update({i: col for i, col in enumerate(onehot_cols)})
     return pd.Series(feature_value).map(mapping).values
 
 
@@ -234,6 +236,17 @@ def merge_categorical_columns(X, onehot_dict=None, sep="_"):
     return X_cats
 
 
+def remove_cat_names(X_cats, onehot_dict):
+    """removes the leading category names in the onehotencoded columns. 
+    Turning e.g 'Sex_male' into 'male', etc"""
+    X_cats = X_cats.copy()
+    for cat, cols in onehot_dict.items():
+        if len(cols) > 1:
+            mapping = {c:c[len(cat)+1:] for c in cols if c.startswith(cat+'_')}
+            X_cats.loc[:, cat] = X_cats.loc[:, cat].map(mapping, na_action='ignore').values
+    return X_cats
+
+
 def X_cats_to_X(X_cats, onehot_dict, X_columns, sep="_"):
     """
     re-onehotencodes a dataframe where onehotencoded columns had previously
@@ -250,14 +263,10 @@ def X_cats_to_X(X_cats, onehot_dict, X_columns, sep="_"):
     """
     non_cat_cols = [col for col in X_cats.columns if col in X_columns]
     X_new = X_cats[non_cat_cols].copy()
-    for cat, labels in onehot_dict.items():
-        if len(labels) > 1:
-            for label in labels:
-                if label.startswith(cat+sep):
-                    label_val = label[len(cat)+len(sep):]
-                else:
-                    label_val = label
-                X_new[label] = (X_cats[cat]==label_val).astype(int)
+    for cat, cols in onehot_dict.items():
+        if len(cols) > 1:
+            for col in cols:
+                X_new[col] = (X_cats[cat]==col).astype(np.int8)
     return X_new[X_columns]
 
 
@@ -513,9 +522,41 @@ def mean_absolute_shap_values(columns, shap_values, onehot_dict=None):
         }).sort_values('MEAN_ABS_SHAP', ascending=False).reset_index(drop=True)
     return shap_df
 
+def get_grid_points(array, n_grid_points=10, min_percentage=0, max_percentage=100):
+    """seperates a numerical array into a number of grid points. Helper function
+    for get_pdp_df.
+
+    Args:
+        array (np.array): array
+        n_grid_points (int, optional): number of points to divide array in. 
+            Defaults to 10.
+        min_percentage (int, optional): Minimum percentage to start at, 
+            ignoring outliers. Defaults to 0.
+        max_percentage (int, optional): Maximum percentage to reach, ignoring 
+            outliers. Defaults to 100.
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        np.array
+    """
+    
+    if isinstance(array, pd.Series):
+        array = array.values
+    else:
+        array = np.array(array)
+    if not is_numeric_dtype(array):
+        raise ValueError("array should be a numeric dtype!")
+        
+    percentile_grids = np.linspace(start=min_percentage, stop=max_percentage, num=n_grid_points)
+    value_grids = np.percentile(array, percentile_grids)
+    return value_grids
+
 
 def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label=1,
-                  n_grid_points=10, min_percentage=0, max_percentage=100):
+                  n_grid_points:int=10, min_percentage:int=0, max_percentage:int=100,
+                  multiclass:bool=False, grid_values:List=None):
     """Returns a dataframe with partial dependence for every row in X_sample for a number of feature values
 
     Args:
@@ -533,31 +574,36 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
         max_percentage (int, optional): For numeric features: maximum percentage of
             samples to end x axis by. If smaller than 100 a form of winsorizing the 
             x axis. Defaults to 100.
+        multiclass (bool, optional): for classifier models, return a list of dataframes,
+            one for each predicted label.
+        grid_values (list, optional): list of grid values. Default to None, in which
+            case it will be inferred from X_sample.
     """
-    def get_grid_points(array, n_grid_points=10, min_percentage=0, max_percentage=100):
-        if not is_numeric_dtype(array):
-            raise ValueError("array should be a numeric dtype!")
-        if isinstance(array, pd.Series):
-            array = array.values
-        percentile_grids = np.linspace(start=min_percentage, stop=max_percentage, num=n_grid_points)
-        value_grids = np.percentile(array, percentile_grids)
-        return value_grids
+    
 
-    if isinstance(feature, str):
-        if not is_numeric_dtype(X_sample[feature]):
-            grid_values = sorted(X_sample[feature].unique().tolist())
+    if grid_values is None:
+        if isinstance(feature, str):
+            if not is_numeric_dtype(X_sample[feature]):
+                grid_values = sorted(X_sample[feature].unique().tolist())
+            else:
+                grid_values = get_grid_points(X_sample[feature], 
+                                              n_grid_points=n_grid_points, 
+                                              min_percentage=min_percentage, 
+                                              max_percentage=max_percentage).tolist()
+        elif isinstance(feature, list):
+            grid_values = feature
         else:
-            grid_values = get_grid_points(X_sample[feature], 
-                                          n_grid_points=n_grid_points, 
-                                          min_percentage=min_percentage, 
-                                          max_percentage=max_percentage).tolist()
-    elif isinstance(feature, list):
-        grid_values = feature
-    else:
-        raise ValueError("feature should either be a column name (str), "
-                         "or a list of onehot-encoded columns!")
+            raise ValueError("feature should either be a column name (str), "
+                             "or a list of onehot-encoded columns!")
 
-    pdp_df = pd.DataFrame()
+    if hasattr(model, "predict_proba"):
+        n_labels = model.predict_proba(X_sample.iloc[[0]]).shape[1]
+        if multiclass:
+            pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
+        else:
+            pdp_df = pd.DataFrame()
+    else:
+        pdp_df = pd.DataFrame()
     for grid_value in grid_values:
         dtemp = X_sample.copy()
         if isinstance(feature, list):
@@ -568,12 +614,19 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
         else:
             dtemp.loc[:, feature] = grid_value
         if hasattr(model, "predict_proba"):
-            preds = model.predict_proba(dtemp)[:, pos_label]
+            pred_probas = model.predict_proba(dtemp)
+            if multiclass:
+                for i in range(n_labels):
+                    pdp_dfs[i][grid_value] = pred_probas[:, i]
+            else:
+                pdp_df[grid_value] = pred_probas[:, pos_label]
         else:
             preds = model.predict(dtemp)  
-        pdp_df[grid_value] = preds
-    
-    return pdp_df
+            pdp_df[grid_value] = preds
+    if multiclass:
+        return pdp_dfs
+    else:
+        return pdp_df
 
 
 def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, 

@@ -31,15 +31,16 @@
     - move predicted below graph?
 - pdp: add multiclass option
     - no icelines just mean and index with different thickness
+    - new method?
 
 ### Regression plots:
 
 
 
 ## Explainers:
-- add sort_cats method to sort method={'alphabetically', 'observations', 'shap'}
+- minimize pd.DataFrame and np.array size:
+    - astype(float16), pd.category, etc
 - pass n_jobs to pdp_isolate
-- autodetect xgboost booster or catboost.core and suggest XGBClassifier, etc
 - make X_cats with categorical encoding .astype("category")
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -75,8 +76,8 @@
 
 ### Components
 - autodetect when uuid name get rendered and issue warning
-- Add side-by-side option to cutoff selector component
 
+- Add side-by-side option to cutoff selector component
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks
 - add querystring method to ExplainerComponents
@@ -101,7 +102,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add wizard test
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately
@@ -109,6 +109,7 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add cats_topx cats_sort to docs
 - add hide_wizard and wizard to docs
 - add hide_poweredby to docs
 - add Docker deploy example (from issue)

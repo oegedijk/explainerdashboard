@@ -279,10 +279,11 @@ class PdpComponent(ExplainerComponent):
                     hide_title=False,  hide_subtitle=False, 
                     hide_footer=False, hide_selector=False,
                     hide_dropna=False, hide_sample=False, 
-                    hide_gridlines=False, hide_gridpoints=False,
+                    hide_gridlines=False, hide_gridpoints=False, hide_cats_sort=False,
                     feature_input_component=None,
                     pos_label=None, col=None, index=None, cats=True,
                     dropna=True, sample=100, gridlines=50, gridpoints=10,
+                    cats_sort='freq',
                     description=None, **kwargs):
         """Show Partial Dependence Plot component
 
@@ -306,6 +307,7 @@ class PdpComponent(ExplainerComponent):
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
             hide_gridpoints (bool, optional): Hide gridpounts input. Defaults to False.
+            hide_cats_sort (bool, optional): Hide the categorical sorting dropdown. Defaults to False.
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
@@ -318,6 +320,8 @@ class PdpComponent(ExplainerComponent):
             sample (int, optional): Sample size to calculate average partial dependence. Defaults to 100.
             gridlines (int, optional): Number of ice lines to display in plot. Defaults to 50.
             gridpoints (int, optional): Number of breakpoints on horizontal axis Defaults to 10.
+            cats_sort (str, optional): how to sort categories: 'alphabet', 
+                'freq' or 'shap'. Defaults to 'freq'.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -431,7 +435,7 @@ class PdpComponent(ExplainerComponent):
                             ]), hide=self.hide_dropna),
                         make_hideable(
                             dbc.Col([ 
-                                dbc.Label("Pdp sample size:", id='pdp-sample-label-'+self.name ),
+                                dbc.Label("Sample:", id='pdp-sample-label-'+self.name ),
                                 dbc.Tooltip("Number of observations to use to calculate average partial dependence", 
                                             target='pdp-sample-label-'+self.name ),
                                 dbc.Input(id='pdp-sample-'+self.name, value=self.sample,
@@ -454,11 +458,34 @@ class PdpComponent(ExplainerComponent):
                                 dbc.Input(id='pdp-gridpoints-'+self.name, value=self.gridpoints,
                                     type="number", min=0, max=100, step=1),
                             ]), hide=self.hide_gridpoints),
+                        make_hideable(
+                            html.Div([
+                                dbc.Col([
+                                        html.Label('Sort categories:', id='pdp-categories-sort-label-'+self.name),
+                                        dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                                    "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                                    target='pdp-categories-sort-label-'+self.name),
+                                        dbc.Select(id='pdp-categories-sort-'+self.name,
+                                                options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                            {'label': 'Frequency', 'value': 'freq'},
+                                                            {'label': 'Shap impact', 'value': 'shap'}],
+                                                value=self.cats_sort),
+                                    ])], 
+                                id='pdp-categories-sort-div-'+self.name,
+                                style={} if self.col in self.explainer.cat_cols else dict(display="none")
+                            ), hide=self.hide_cats_sort),
                     ], form=True),
                 ]), hide=self.hide_footer)
         ])
                 
     def component_callbacks(self, app):
+
+        @app.callback(
+            Output('pdp-categories-sort-div-'+self.name, 'style'),
+            Input('pdp-col-'+self.name, 'value')
+        )
+        def update_pdp_sort_div(col):
+            return {} if col in self.explainer.cat_cols else dict(display="none")
         
         @app.callback(
             Output('pdp-col-'+self.name, 'options'),
@@ -479,12 +506,13 @@ class PdpComponent(ExplainerComponent):
                  Input('pdp-sample-'+self.name, 'value'),
                  Input('pdp-gridlines-'+self.name, 'value'),
                  Input('pdp-gridpoints-'+self.name, 'value'),
+                 Input('pdp-categories-sort-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value')]
             )
-            def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, pos_label):
+            def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, sort, pos_label):
                 return self.explainer.plot_pdp(col, index, 
-                    drop_na=bool(drop_na), sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
-                    pos_label=pos_label)
+                    drop_na=bool(drop_na), sample=sample, gridlines=gridlines, 
+                    gridpoints=gridpoints, sort=sort, pos_label=pos_label)
         else:
             @app.callback(
                 Output('pdp-graph-'+self.name, 'figure'),
@@ -493,14 +521,15 @@ class PdpComponent(ExplainerComponent):
                  Input('pdp-sample-'+self.name, 'value'),
                  Input('pdp-gridlines-'+self.name, 'value'),
                  Input('pdp-gridpoints-'+self.name, 'value'),
+                 Input('pdp-categories-sort-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs]
             )
-            def update_pdp_graph(col, drop_na, sample, gridlines, gridpoints, pos_label, *inputs):
+            def update_pdp_graph(col, drop_na, sample, gridlines, gridpoints, sort, pos_label, *inputs):
                 X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
                 return self.explainer.plot_pdp(col, X_row=X_row,
-                    drop_na=bool(drop_na), sample=sample, gridlines=gridlines, gridpoints=gridpoints, 
-                    pos_label=pos_label)
+                    drop_na=bool(drop_na), sample=sample, gridlines=gridlines, 
+                    gridpoints=gridpoints, sort=sort, pos_label=pos_label)
 
 
 class FeatureInputComponent(ExplainerComponent):
@@ -560,13 +589,15 @@ class FeatureInputComponent(ExplainerComponent):
                     dbc.FormText(f"Select any {col}") if not self.hide_range else None,
                 ])   
         elif col in onehot_cols:
-            col_values = [
+            col_values = onehot_dict[col]
+            display_values = [
                 col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
-                    for col_val in onehot_dict[col]]
+                    for col_val in col_values]
             return dbc.FormGroup([
                     dbc.Label(col),
                     dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
-                             options=[dict(label=col_val, value=col_val) for col_val in col_values],
+                             options=[dict(label=display, value=col_val) 
+                                        for display, col_val in zip(display_values, col_values)],
                              clearable=False),
                     dbc.FormText(f"Select any {col}") if not self.hide_range else None,
                 ])   

@@ -1017,7 +1017,7 @@ def plotly_pdp(pdp_df,
             Defaults to None.
         index_feature_value (str, float, optional): value of feature for index. 
             Defaults to None.
-        index_prediction (float, optional): Final prediction for index. 
+        index_prediction (float, optional): Baseline prediction for index. 
             Defaults to None.
         absolute (bool, optional): Display absolute pdp lines. If false then 
             display relative to base. Defaults to True.
@@ -1125,7 +1125,12 @@ def plotly_pdp(pdp_df,
                     )
         )
         
-        annotations.append(go.layout.Annotation(x=pdp_df.columns[int(0.5*len(pdp_df.columns))], y=index_prediction, text=f"baseline pred = {np.round(index_prediction,2)}"))
+        annotations.append(
+            go.layout.Annotation(
+                x=pdp_df.columns[int(0.5*len(pdp_df.columns))], 
+                y=index_prediction, 
+                text=f"baseline pred = {str(np.round(index_prediction,round))}")
+                )
 
     fig.update_layout(annotations=annotations)
     fig.update_layout(shapes=shapes)
