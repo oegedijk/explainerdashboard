@@ -20,6 +20,8 @@
 ### Improvements
 - No longer dependening on PDPbox dependency: built own partial dependence 
     functions with categorical feature support
+- autodetect xgboost.cor.Booster or lightgbm.Booster and give ValueError to
+    use the sklearn compatible wrappers instead.
 
 ### Other Changes
 -
