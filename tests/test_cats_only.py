@@ -76,8 +76,8 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsNone(self.explainer.equivalent_col("random"))
 
     def test_ordered_cats(self):
-        self.assertEqual(self.explainer.ordered_cats("Sex"), ['female', 'male'])
-        self.assertEqual(self.explainer.ordered_cats("Deck", topx=2), ['A', 'B'])
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['Sex_female', 'Sex_male'])
+        self.assertEqual(self.explainer.ordered_cats("Deck", topx=2, sort='alphabet'), ['Deck_A', 'Deck_B'])
 
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='freq'), list)
@@ -381,8 +381,8 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
     def test_ordered_cats(self):
-        self.assertEqual(self.explainer.ordered_cats("Sex"), ['female', 'male'])
-        self.assertEqual(self.explainer.ordered_cats("Deck", topx=2), ['A', 'B'])
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['Sex_female', 'Sex_male'])
+        self.assertEqual(self.explainer.ordered_cats("Deck", topx=2, sort='alphabet'), ['Deck_A', 'Deck_B'])
 
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='freq'), list)
