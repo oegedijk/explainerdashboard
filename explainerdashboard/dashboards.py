@@ -658,19 +658,22 @@ class ExplainerDashboard:
     def _convert_str_tabs(self, component):
         if isinstance(component, str):
             if component == 'importances':
-                return ImportancesTab
+                return ImportancesComposite
             elif component == 'model_summary':
-                return ModelSummaryTab
+                if self.explainer.is_classifier:
+                    return ClassifierModelStatsComposite
+                else:
+                    return RegressionModelStatsComposite
             elif component == 'contributions':
-                return ContributionsTab
+                return IndividualPredictionsComposite
             elif component == 'whatif':
-                return WhatIfTab
+                return WhatIfComposite
             elif component == 'shap_dependence':
-                return ShapDependenceTab
+                return ShapDependenceComposite
             elif component == 'shap_interaction':
-                return ShapInteractionsTab
+                return ShapInteractionsComposite
             elif component == 'decision_trees':
-                return  DecisionTreesTab
+                return  DecisionTreesComposite
         return component
 
     @staticmethod

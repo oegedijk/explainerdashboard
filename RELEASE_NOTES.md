@@ -16,7 +16,7 @@
     and how to sort the categories (alphabetical, by frequency or by mean abs shap)
 
 ### Bug Fixes
--
+- fixes bug where str tab indicators returned e.g. the old ImportancesTab instead of ImportancesComposite
 -
 
 ### Improvements
