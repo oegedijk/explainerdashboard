@@ -5,13 +5,15 @@
 ### Breaking Changes
 -  `WhatIfComponent` deprecated. Use `WhatIfComposite` or connect components 
     yourself to a `FeatureInputComponent`
-- 
+- renaming properties:
+    `explainer.cats` -> `explainer.onehot_cols`
+    `explainer.cats_dict` -> `explainer.onehot_dict`
 
 ### New Features
 - Adds support for model with categorical features that were not onehot encoded 
     (e.g. CatBoost)
-- Adds filter on number of categories to display in violin plots, and how to sort 
-    the categories (alphabetical, by frequency or by mean abs shap)
+- Adds filter on number of categories to display in violin plots and pdp plot, 
+    and how to sort the categories (alphabetical, by frequency or by mean abs shap)
 
 ### Bug Fixes
 -
@@ -20,12 +22,14 @@
 ### Improvements
 - No longer dependening on PDPbox dependency: built own partial dependence 
     functions with categorical feature support
-- autodetect xgboost.cor.Booster or lightgbm.Booster and give ValueError to
+- autodetect xgboost.core.Booster or lightgbm.Booster and give ValueError to
     use the sklearn compatible wrappers instead.
 
 ### Other Changes
--
--
+- Introduces list of categorical columns: `explainer.categorical_cols`
+- Introduces dictionary with categorical columns categories: `explainer.categorical_dict`
+- Introduces list of all categorical features: `explainer.cat_cols`
+
 ## 0.2.19
 ### Breaking Changes
 - ExplainerHub: parameter `user_json` is now called `users_file` (and default to a `users.yaml` file)
