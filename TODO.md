@@ -3,6 +3,7 @@
 
 ## Bugs:
 - dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
+- shap dependence: when no point cloud, do not highlight!
 
 ## Layout:
 - Find a proper frontender to help :)
@@ -20,20 +21,26 @@
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
 - add some of these:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
-
+- shap dependence plot, sort categorical features by:
+    - alphabet
+    - number of obs
+    - mean abs shap
 
 ### Classifier plots:
 - move predicted and actual to outer layer of ConfusionMatrixComponent
     - move predicted below graph?
 - pdp: add multiclass option
     - no icelines just mean and index with different thickness
+    - new method?
 
 ### Regression plots:
 
 
+
 ## Explainers:
+- minimize pd.DataFrame and np.array size:
+    - astype(float16), pd.category, etc
 - pass n_jobs to pdp_isolate
-- autodetect xgboost booster or catboost.core and suggest XGBClassifier, etc
 - make X_cats with categorical encoding .astype("category")
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -44,6 +51,7 @@
         the verbal explanation.
 - rename RandomForestExplainer and XGBExplainer methods into something more logical
     - Breaking change!
+
 
 ## notebooks:
 
@@ -68,8 +76,8 @@
 
 ### Components
 - autodetect when uuid name get rendered and issue warning
-- Add side-by-side option to cutoff selector component
 
+- Add side-by-side option to cutoff selector component
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks
 - add querystring method to ExplainerComponents
@@ -94,7 +102,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add wizard test
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately
@@ -102,6 +109,7 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add cats_topx cats_sort to docs
 - add hide_wizard and wizard to docs
 - add hide_poweredby to docs
 - add Docker deploy example (from issue)

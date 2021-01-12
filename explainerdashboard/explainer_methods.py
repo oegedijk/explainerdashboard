@@ -70,7 +70,7 @@ def guess_shap(model):
 
 
 def parse_cats(X, cats, sep:str="_"):
-    """parse onehot encoded columns to a cats_dict.
+    """parse onehot encoded columns to a onehot_dict.
     - cats can be a dict where you enumerate each individual onehot encoded column belonging to 
         each categorical feature, e.g. cats={
                     'Sex':['Sex_female', 'Sex_male'], 
@@ -83,40 +83,43 @@ def parse_cats(X, cats, sep:str="_"):
     Asserts that all columns can be found in X.columns.
     Asserts that all columns are only passed once.
     """
-    cols = X.columns
+    all_cols = X.columns
+    onehot_cols = []
+    onehot_dict = {}
+    
     col_counter = Counter()
-    cats_dict = {}
+
     if isinstance(cats, dict):
         for k, v in cats.items():
-            assert set(v).issubset(set(cols)), \
-                f"These cats columns for {k} could not be found in X.columns: {set(v)-set(cols)}!"
+            assert set(v).issubset(set(all_cols)), \
+                f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
             col_counter.update(v)
-        cats_dict = cats
+        onehot_dict = cats
     elif isinstance(cats, list):
         for cat in cats:
             if isinstance(cat, str):
-                cats_dict[cat] = [c for c in cols if c.startswith(cat + sep)]
-                col_counter.update(cats_dict[cat])
+                onehot_dict[cat] = [c for c in all_cols if c.startswith(cat + sep)]
+                col_counter.update(onehot_dict[cat])
             if isinstance(cat, dict):
                 for k, v in cat.items():
-                    assert set(v).issubset(set(cols)), \
-                        f"These cats columns for {k} could not be found in X.columns: {set(v)-set(cols)}!"
+                    assert set(v).issubset(set(all_cols)), \
+                        f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
                     col_counter.update(v)
-                    cats_dict[k] = v
+                    onehot_dict[k] = v
     multi_cols =  [v for v, c in col_counter.most_common() if c > 1]
     assert not multi_cols, \
         (f"The following columns seem to have been passed to cats multiple times: {multi_cols}. "
          "Please make sure that each onehot encoded column is only assigned to one cat column!")
-    assert not set(cats_dict.keys()) & set(cols), \
-         (f"These new cats columns are already in X.columns: {list(set(cats_dict.keys()) & set(cols))}! "
+    assert not set(onehot_dict.keys()) & set(all_cols), \
+         (f"These new cats columns are already in X.columns: {list(set(onehot_dict.keys()) & set(all_cols))}! "
             "Please select a different name for your new cats columns!")
     for col, count in col_counter.most_common():
         assert set(X[col].astype(int).unique()).issubset({0,1}), \
             f"{col} is not a onehot encoded column (i.e. has values other than 0, 1)!"
-    cats_list = list(cats_dict.keys())
-    for col in [col for col in cols if col not in col_counter.keys()]:
-        cats_dict[col] = [col]
-    return cats_list, cats_dict
+    onehot_cols = list(onehot_dict.keys())
+    for col in [col for col in all_cols if col not in col_counter.keys()]:
+        onehot_dict[col] = [col]
+    return onehot_cols, onehot_dict
 
 
 
@@ -199,14 +202,16 @@ def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
 
     # if not a single 1 then encoded feature must have been dropped
     feature_value[np.max(X[onehot_cols].values, axis=1) == 0] = -1
-    mapping = {-1: "NOT_ENCODED"}
-    col_values = [col[len(encoded_col)+1:] if col.startswith(encoded_col+sep) 
-                    else col for col in onehot_cols]
-    mapping.update({i: col for i, col in enumerate(col_values)})
+    if all([col.startswith(col+"_") for col in onehot_cols]):
+        mapping = {-1: encoded_col+"_NOT_ENCODED"}
+    else:
+        mapping = {-1: "NOT_ENCODED"}
+
+    mapping.update({i: col for i, col in enumerate(onehot_cols)})
     return pd.Series(feature_value).map(mapping).values
 
 
-def merge_categorical_columns(X, cats_dict=None, sep="_"):
+def merge_categorical_columns(X, onehot_dict=None, sep="_"):
     """
     Returns a new feature Dataframe X_cats where the onehotencoded
     categorical features have been merged back with the old value retrieved
@@ -215,7 +220,7 @@ def merge_categorical_columns(X, cats_dict=None, sep="_"):
     Args:
         X (pd.DataFrame): original dataframe with onehotencoded columns, e.g.
             columns=['Age', 'Sex_Male', 'Sex_Female"].
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
         sep (str): separator used in the encoding, e.g. "_" for Sex_Male. 
             Defaults to "_".
@@ -224,21 +229,32 @@ def merge_categorical_columns(X, cats_dict=None, sep="_"):
         pd.DataFrame, with onehot encodings merged back into categorical columns.
     """
     X_cats = X.copy()
-    for col_name, col_list in cats_dict.items():
+    for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
             X_cats[col_name] = retrieve_onehot_value(X, col_name, col_list, sep)
             X_cats.drop(col_list, axis=1, inplace=True)
     return X_cats
 
 
-def X_cats_to_X(X_cats, cats_dict, X_columns, sep="_"):
+def remove_cat_names(X_cats, onehot_dict):
+    """removes the leading category names in the onehotencoded columns. 
+    Turning e.g 'Sex_male' into 'male', etc"""
+    X_cats = X_cats.copy()
+    for cat, cols in onehot_dict.items():
+        if len(cols) > 1:
+            mapping = {c:c[len(cat)+1:] for c in cols if c.startswith(cat+'_')}
+            X_cats.loc[:, cat] = X_cats.loc[:, cat].map(mapping, na_action='ignore').values
+    return X_cats
+
+
+def X_cats_to_X(X_cats, onehot_dict, X_columns, sep="_"):
     """
     re-onehotencodes a dataframe where onehotencoded columns had previously
     been merged with merge_categorical_columns(...)
     
     Args:
         X_cats (pd.DataFrame): dataframe with merged categorical columns cats
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
         X_columns: list of columns of original dataframe
     
@@ -247,18 +263,14 @@ def X_cats_to_X(X_cats, cats_dict, X_columns, sep="_"):
     """
     non_cat_cols = [col for col in X_cats.columns if col in X_columns]
     X_new = X_cats[non_cat_cols].copy()
-    for cat, labels in cats_dict.items():
-        if len(labels) > 1:
-            for label in labels:
-                if label.startswith(cat+sep):
-                    label_val = label[len(cat)+len(sep):]
-                else:
-                    label_val = label
-                X_new[label] = (X_cats[cat]==label_val).astype(int)
+    for cat, cols in onehot_dict.items():
+        if len(cols) > 1:
+            for col in cols:
+                X_new[col] = (X_cats[cat]==col).astype(np.int8)
     return X_new[X_columns]
 
 
-def merge_categorical_shap_values(X, shap_values, cats_dict=None, sep="_"):
+def merge_categorical_shap_values(X, shap_values, onehot_dict=None, sep="_"):
     """
     Returns a new feature new shap values np.array
     where the shap values of onehotencoded categorical features have been
@@ -269,13 +281,13 @@ def merge_categorical_shap_values(X, shap_values, cats_dict=None, sep="_"):
             in the shap_values np.ndarray.
         shap_values (np.ndarray): numpy array of shap values, output of
             e.g. shap.TreeExplainer(X).shap_values()
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
         sep (str): seperator used between variable and category. 
             Defaults to "_".
     """
     shap_df = pd.DataFrame(shap_values, columns=X.columns)
-    for col_name, col_list in cats_dict.items():
+    for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
             shap_df[col_name] = shap_df[col_list].sum(axis=1)
             shap_df.drop(col_list, axis=1, inplace=True)
@@ -283,7 +295,7 @@ def merge_categorical_shap_values(X, shap_values, cats_dict=None, sep="_"):
 
 
 def merge_categorical_shap_interaction_values(shap_interaction_values, 
-            old_columns, new_columns, cats_dict):
+            old_columns, new_columns, onehot_dict):
     """
     Returns a 3d numpy array shap_interaction_values where the onehot-encoded 
     categorical columns have been added up together.
@@ -299,7 +311,7 @@ def merge_categorical_shap_interaction_values(shap_interaction_values,
             e.g. ["Age", "Sex_Male", "Sex_Female"]
         new_columns (list of str): list of column names without onehotencodings, 
             e.g. ["Age", "Sex"]
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
         
     Returns:
@@ -323,9 +335,9 @@ def merge_categorical_shap_interaction_values(shap_interaction_values,
             newcol_idx1 = new_columns.index(new_col1)
             newcol_idx2 = new_columns.index(new_col2)
             oldcol_idxs1 = [old_columns.index(col)
-                                for col in cats_dict[new_col1]]
+                                for col in onehot_dict[new_col1]]
             oldcol_idxs2 = [old_columns.index(col)
-                                for col in cats_dict[new_col2]]
+                                for col in onehot_dict[new_col2]]
             siv[:, newcol_idx1, newcol_idx2] = \
                 shap_interaction_values[:, oldcol_idxs1, :][:, :, oldcol_idxs2]\
                 .sum(axis=(1, 2))
@@ -359,7 +371,7 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
     return _scorer
 
 
-def permutation_importances(model, X, y, metric, cats_dict=None,
+def permutation_importances(model, X, y, metric, onehot_dict=None,
                             greater_is_better=True, needs_proba=False,
                             pos_label=1, n_repeats=1, n_jobs=None, sort=True, verbose=0):
     """
@@ -372,7 +384,7 @@ def permutation_importances(model, X, y, metric, cats_dict=None,
         y (pd.Series): series of targets
         metric: metric to be evaluated (usually R2 for regression, roc_auc for 
             classification)
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
         greater_is_better (bool): indicates whether the higher score on the metric
             indicates a better model.
@@ -388,8 +400,8 @@ def permutation_importances(model, X, y, metric, cats_dict=None,
     """
     X = X.copy()
 
-    if cats_dict is None:
-        cats_dict = {col:[col] for col in X.columns}
+    if onehot_dict is None:
+        onehot_dict = {col:[col] for col in X.columns}
 
     if isinstance(metric, str):
         scorer = make_scorer(metric, greater_is_better=greater_is_better, needs_proba=needs_proba)
@@ -412,7 +424,7 @@ def permutation_importances(model, X, y, metric, cats_dict=None,
     
     scores = Parallel(n_jobs=n_jobs)(delayed(_permutation_importance)(
                     model, X, y, scorer, col_name, col_list, baseline, n_repeats
-            ) for col_name, col_list in cats_dict.items())
+            ) for col_name, col_list in onehot_dict.items())
     
     importances_df = pd.DataFrame(scores, columns=['Feature', 'Score'])
     importances_df['Importance'] = baseline - importances_df['Score']
@@ -423,7 +435,7 @@ def permutation_importances(model, X, y, metric, cats_dict=None,
         return importances_df
 
 
-def cv_permutation_importances(model, X, y, metric, cats_dict=None, greater_is_better=True,
+def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is_better=True,
                                 needs_proba=False, pos_label=None, cv=None, 
                                 n_repeats=1, n_jobs=None, verbose=0):
     """
@@ -435,7 +447,7 @@ def cv_permutation_importances(model, X, y, metric, cats_dict=None, greater_is_b
         y (pd.Series): series of targets
         metric: metric to be evaluated (usually R2 for regression, roc_auc for 
             classification)
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
         greater_is_better (bool): indicates whether the higher score on the metric
             indicates a better model.
@@ -448,7 +460,7 @@ def cv_permutation_importances(model, X, y, metric, cats_dict=None, greater_is_b
         verbose (int): set to 1 to print output for debugging. Defaults to 0.
     """
     if cv is None:
-        return permutation_importances(model, X, y, metric, cats_dict,
+        return permutation_importances(model, X, y, metric, onehot_dict,
                                         greater_is_better=greater_is_better,
                                         needs_proba=needs_proba,
                                         pos_label=pos_label,
@@ -465,7 +477,7 @@ def cv_permutation_importances(model, X, y, metric, cats_dict=None, greater_is_b
 
         model.fit(X_train, y_train)
 
-        imp = permutation_importances(model, X_test, y_test, metric, cats_dict,
+        imp = permutation_importances(model, X_test, y_test, metric, onehot_dict,
                                         greater_is_better=greater_is_better,
                                         needs_proba=needs_proba,
                                         pos_label=pos_label,
@@ -482,23 +494,23 @@ def cv_permutation_importances(model, X, y, metric, cats_dict=None, greater_is_b
                         .sort_values('Importance', ascending=False)
 
 
-def mean_absolute_shap_values(columns, shap_values, cats_dict=None):
+def mean_absolute_shap_values(columns, shap_values, onehot_dict=None):
     """
     Returns a dataframe with the mean absolute shap values for each feature.
 
     Args:
         columns (list of str): list of column names
         shap_values (np.ndarray): 2d array of SHAP values
-        cats_dict (dict): dict of features with lists for onehot-encoded variables,
+        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
 
     Returns:
         pd.DataFrame with columns 'Feature' and 'MEAN_ABS_SHAP'.
     """
-    if cats_dict is None:
-        cats_dict = {col:[col] for col in columns}
+    if onehot_dict is None:
+        onehot_dict = {col:[col] for col in columns}
     shap_abs_mean_dict = {}
-    for col_name, col_list in cats_dict.items():
+    for col_name, col_list in onehot_dict.items():
         shap_abs_mean_dict[col_name] = np.absolute(
             shap_values[:, [columns.index(col) for col in col_list]].sum(axis=1)
         ).mean()
@@ -510,9 +522,41 @@ def mean_absolute_shap_values(columns, shap_values, cats_dict=None):
         }).sort_values('MEAN_ABS_SHAP', ascending=False).reset_index(drop=True)
     return shap_df
 
+def get_grid_points(array, n_grid_points=10, min_percentage=0, max_percentage=100):
+    """seperates a numerical array into a number of grid points. Helper function
+    for get_pdp_df.
+
+    Args:
+        array (np.array): array
+        n_grid_points (int, optional): number of points to divide array in. 
+            Defaults to 10.
+        min_percentage (int, optional): Minimum percentage to start at, 
+            ignoring outliers. Defaults to 0.
+        max_percentage (int, optional): Maximum percentage to reach, ignoring 
+            outliers. Defaults to 100.
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        np.array
+    """
+    
+    if isinstance(array, pd.Series):
+        array = array.values
+    else:
+        array = np.array(array)
+    if not is_numeric_dtype(array):
+        raise ValueError("array should be a numeric dtype!")
+        
+    percentile_grids = np.linspace(start=min_percentage, stop=max_percentage, num=n_grid_points)
+    value_grids = np.percentile(array, percentile_grids)
+    return value_grids
+
 
 def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label=1,
-                  n_grid_points=10, min_percentage=0, max_percentage=100):
+                  n_grid_points:int=10, min_percentage:int=0, max_percentage:int=100,
+                  multiclass:bool=False, grid_values:List=None):
     """Returns a dataframe with partial dependence for every row in X_sample for a number of feature values
 
     Args:
@@ -530,31 +574,36 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
         max_percentage (int, optional): For numeric features: maximum percentage of
             samples to end x axis by. If smaller than 100 a form of winsorizing the 
             x axis. Defaults to 100.
+        multiclass (bool, optional): for classifier models, return a list of dataframes,
+            one for each predicted label.
+        grid_values (list, optional): list of grid values. Default to None, in which
+            case it will be inferred from X_sample.
     """
-    def get_grid_points(array, n_grid_points=10, min_percentage=0, max_percentage=100):
-        if not is_numeric_dtype(array):
-            raise ValueError("array should be a numeric dtype!")
-        if isinstance(array, pd.Series):
-            array = array.values
-        percentile_grids = np.linspace(start=min_percentage, stop=max_percentage, num=n_grid_points)
-        value_grids = np.percentile(array, percentile_grids)
-        return value_grids
+    
 
-    if isinstance(feature, str):
-        if not is_numeric_dtype(X_sample[feature]):
-            grid_values = sorted(X_sample[feature].unique().tolist())
+    if grid_values is None:
+        if isinstance(feature, str):
+            if not is_numeric_dtype(X_sample[feature]):
+                grid_values = sorted(X_sample[feature].unique().tolist())
+            else:
+                grid_values = get_grid_points(X_sample[feature], 
+                                              n_grid_points=n_grid_points, 
+                                              min_percentage=min_percentage, 
+                                              max_percentage=max_percentage).tolist()
+        elif isinstance(feature, list):
+            grid_values = feature
         else:
-            grid_values = get_grid_points(X_sample[feature], 
-                                          n_grid_points=n_grid_points, 
-                                          min_percentage=min_percentage, 
-                                          max_percentage=max_percentage).tolist()
-    elif isinstance(feature, list):
-        grid_values = feature
-    else:
-        raise ValueError("feature should either be a column name (str), "
-                         "or a list of onehot-encoded columns!")
+            raise ValueError("feature should either be a column name (str), "
+                             "or a list of onehot-encoded columns!")
 
-    pdp_df = pd.DataFrame()
+    if hasattr(model, "predict_proba"):
+        n_labels = model.predict_proba(X_sample.iloc[[0]]).shape[1]
+        if multiclass:
+            pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
+        else:
+            pdp_df = pd.DataFrame()
+    else:
+        pdp_df = pd.DataFrame()
     for grid_value in grid_values:
         dtemp = X_sample.copy()
         if isinstance(feature, list):
@@ -565,12 +614,19 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
         else:
             dtemp.loc[:, feature] = grid_value
         if hasattr(model, "predict_proba"):
-            preds = model.predict_proba(dtemp)[:, pos_label]
+            pred_probas = model.predict_proba(dtemp)
+            if multiclass:
+                for i in range(n_labels):
+                    pdp_dfs[i][grid_value] = pred_probas[:, i]
+            else:
+                pdp_df[grid_value] = pred_probas[:, pos_label]
         else:
             preds = model.predict(dtemp)  
-        pdp_df[grid_value] = preds
-    
-    return pdp_df
+            pdp_df[grid_value] = preds
+    if multiclass:
+        return pdp_dfs
+    else:
+        return pdp_df
 
 
 def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None, 

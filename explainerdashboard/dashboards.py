@@ -415,18 +415,6 @@ class ExplainerDashboard:
         assert 'BaseExplainer' in str(explainer.__class__.mro()), \
             ("explainer should be an instance of BaseExplainer, such as "
             "ClassifierExplainer or RegressionExplainer!")
-        
-        if self.explainer.cats_only:
-            print("Note: explainer contains a model and data that deal with "
-                    "categorical features directly. Not all elements of the "
-                    "ExplainerDashboard are compatible with such models, and "
-                    "so setting the following **kwargs: "
-                    "cats=True, hide_cats=True, shap_interaction=False", flush=True)
-            kwargs.update(dict(
-                cats=True, hide_cats=True, shap_interaction=False))
-        if kwargs: 
-            print("**kwargs: Passing the following keyword arguments to all the dashboard"
-                f" ExplainerComponents: {', '.join([f'{k}={v}' for k,v in kwargs.items()])}...")
 
         if tabs is None:
             tabs = []
@@ -434,7 +422,7 @@ class ExplainerDashboard:
                 print("No y labels were passed to the Explainer, so setting"
                         " model_summary=False...", flush=True)
                 model_summary = False
-            if shap_interaction and (not explainer.interactions_should_work or self.explainer.cats_only):
+            if shap_interaction and (not explainer.interactions_should_work):
                 print("For this type of model and model_output interactions don't "
                           "work, so setting shap_interaction=False...", flush=True)
                 shap_interaction = False
@@ -670,19 +658,22 @@ class ExplainerDashboard:
     def _convert_str_tabs(self, component):
         if isinstance(component, str):
             if component == 'importances':
-                return ImportancesTab
+                return ImportancesComposite
             elif component == 'model_summary':
-                return ModelSummaryTab
+                if self.explainer.is_classifier:
+                    return ClassifierModelStatsComposite
+                else:
+                    return RegressionModelStatsComposite
             elif component == 'contributions':
-                return ContributionsTab
+                return IndividualPredictionsComposite
             elif component == 'whatif':
-                return WhatIfTab
+                return WhatIfComposite
             elif component == 'shap_dependence':
-                return ShapDependenceTab
+                return ShapDependenceComposite
             elif component == 'shap_interaction':
-                return ShapInteractionsTab
+                return ShapInteractionsComposite
             elif component == 'decision_trees':
-                return  DecisionTreesTab
+                return  DecisionTreesComposite
         return component
 
     @staticmethod
@@ -1829,13 +1820,6 @@ class InlineExplainer:
     def pdp(self, title="Partial Dependence Plots", **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
         comp = PdpComponent(self._explainer, **kwargs)
-        self._run_component(comp, title)
-
-    @delegates_kwargs(WhatIfComponent)
-    @delegates_doc(WhatIfComponent)
-    def whatif(self, title="What if...", **kwargs):
-        """Show What if... component inline in notebook"""
-        comp = WhatIfComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
 
     

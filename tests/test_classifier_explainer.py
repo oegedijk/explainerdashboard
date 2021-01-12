@@ -107,6 +107,9 @@ class ClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_lift_curve(cutoff=0.5)
         self.assertIsInstance(fig, go.Figure)
 
+        fig = self.explainer.plot_lift_curve(add_wizard=False, round=3)
+        self.assertIsInstance(fig, go.Figure)
+
     def test_plot_lift_curve(self):
         fig = self.explainer.plot_lift_curve()
         self.assertIsInstance(fig, go.Figure)
