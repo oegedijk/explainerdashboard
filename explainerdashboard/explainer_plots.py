@@ -827,7 +827,8 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
 
 
 def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, 
-        interaction=False, units="", highlight_index=None, idxs=None, index_name="index"):
+        interaction=False, units="", highlight_index=None, idxs=None, index_name="index",
+        cats_order=None):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
 
@@ -856,10 +857,13 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         
     x = X[col_name].copy()
     shaps = shap_values[:, X.columns.get_loc(col_name)]
-    n_cats = X[col_name].nunique()
+    if cats_order is None:
+        cats_order = sorted(X[col_name].unique().tolist())
+
+    n_cats = len(cats_order)
     
     if idxs is not None:
-        assert len(idxs)==X.shape[0]
+        assert len(idxs)==X.shape[0]==len(shaps)
         idxs = np.array([str(idx) for idx in idxs])
     else:
         idxs = np.array([str(i) for i in range(X.shape[0])])
@@ -879,9 +883,10 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
     else:
         fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
-    fig.update_yaxes(range=[shaps.min()*1.3 if shaps.min() < 0 else shaps.min()*0.76, shaps.max()*1.3])  
+    shap_range = shaps.max() - shaps.min()
+    fig.update_yaxes(range=[shaps.min()-0.1*shap_range, shaps.max()+0.1*shap_range])  
 
-    for i, cat in enumerate(X[col_name].unique()):
+    for i, cat in enumerate(cats_order):
         col = 1+i*2 if points or color_col is not None else 1+i
         fig.add_trace(go.Violin(
                             x=x[x == cat],
@@ -1012,7 +1017,7 @@ def plotly_pdp(pdp_df,
             Defaults to None.
         index_feature_value (str, float, optional): value of feature for index. 
             Defaults to None.
-        index_prediction (float, optional): Final prediction for index. 
+        index_prediction (float, optional): Baseline prediction for index. 
             Defaults to None.
         absolute (bool, optional): Display absolute pdp lines. If false then 
             display relative to base. Defaults to True.
@@ -1120,7 +1125,12 @@ def plotly_pdp(pdp_df,
                     )
         )
         
-        annotations.append(go.layout.Annotation(x=pdp_df.columns[int(0.5*len(pdp_df.columns))], y=index_prediction, text=f"baseline pred = {np.round(index_prediction,2)}"))
+        annotations.append(
+            go.layout.Annotation(
+                x=pdp_df.columns[int(0.5*len(pdp_df.columns))], 
+                y=index_prediction, 
+                text=f"baseline pred = {str(np.round(index_prediction,round))}")
+                )
 
     fig.update_layout(annotations=annotations)
     fig.update_layout(shapes=shapes)
