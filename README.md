@@ -130,10 +130,7 @@ model = RandomForestRegressor().fit(X_train, y_train)
 
 explainer = RegressionExplainer(model, X_test, y_test, 
                                 cats=['Deck', 'Embarked', 'Sex'],
-                                descriptions=feature_descriptions, # defaults to None
-                                idxs = test_names, # defaults to X.index
-                                index_name = "Passenger", # defaults to X.index.name
-                                target = "Fare", # defaults to y.name
+                                descriptions=feature_descriptions, 
                                 units = "$", # defaults to ""
                                 )
 
