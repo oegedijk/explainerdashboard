@@ -134,7 +134,7 @@ explainer = RegressionExplainer(model, X_test, y_test,
                                 units = "$", # defaults to ""
                                 )
 
-db = ExplainerDashboard(explainer).run()
+ExplainerDashboard(explainer).run()
 ```
 
 `y_test` is actually optional, although some parts of the dashboard like performance
