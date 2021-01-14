@@ -261,6 +261,7 @@ You can also hide individual components on the various tabs:
 
 ```python
     ExplainerDashboard(explainer, 
+        hide_poweredby=True, # hide the poweredby:explainerdashboard footer
         # importances tab:
         hide_importances=True,
         # classification stats tab:
@@ -308,6 +309,7 @@ ExplainerDashboard(explainer,
                     hide_sample=True, # hide sample size input on pdp component
                     hide_gridlines=True, # hide gridlines on pdp component
                     hide_gridpoints=True, # hide gridpoints input on pdp component
+                    hide_cats_sort=True, # hide the sorting option for categorical features
                     hide_cutoff=True, # hide cutoff selector on classification components
                     hide_percentage=True, # hide percentage toggle on classificaiton components
                     hide_log_x=True, # hide x-axis logs toggle on regression plots
@@ -315,6 +317,7 @@ ExplainerDashboard(explainer,
                     hide_ratio=True, # hide the residuals type dropdown
                     hide_points=True, # hide the show violin scatter markers toggle
                     hide_winsor=True, # hide the winsorize input
+                    hide_wizard=True, # hide the wizard toggle in lift curve component
                     hide_range=True, # hide the range subscript on feature input
                     hide_star_explanation=True, # hide the '* indicates observed label` text
 )
@@ -336,6 +339,7 @@ ExplainerDashboard(explainer,
                     cats=False, # do not group categorical onehot features
                     depth=5, # only show top 5 features
                     sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
+                    cats_sort='alphabet', # short categorical features alphabetically
                     orientation='horizontal', # horizontal bars in contributions graph
                     index='Rugg, Miss. Emily', # initial index to display
                     pdp_col='Fare', # initial pdp feature
