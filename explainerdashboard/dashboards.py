@@ -402,8 +402,6 @@ class ExplainerDashboard:
             self.explainer.categorical_cols = []
             self.explainer.categorical_dict = {}
 
-        if not hasattr(self.explainer, "onehot_cols"):
-            self.explainer.onehot_cols = 
         self.app = self._get_dash_app()
 
         if logins is not None:
