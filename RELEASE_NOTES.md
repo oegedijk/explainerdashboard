@@ -1,5 +1,14 @@
 # Release Notes
 
+## 0.2.20.1:
+
+
+### Bug Fixes
+- fixes bug allowing single list of logins for ExplainerDashboard when passed 
+    on to ExplainerHub
+- fixes bug with explainer generated with explainerdashboard < version 0.2.20 
+    that did not have a onehot_cols property
+
 
 ## 0.2.20:
 ### Breaking Changes
