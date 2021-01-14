@@ -38,10 +38,11 @@
 
 
 ## Explainers:
+- add get_X_row() and get_index_list() methods, and implement it throughout the dashboard.
 - minimize pd.DataFrame and np.array size:
     - astype(float16), pd.category, etc
 - pass n_jobs to pdp_isolate
-- make X_cats with categorical encoding .astype("category")
+- add option drop non-cats
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
