@@ -826,14 +826,14 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     return fig
 
 
-def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, 
+def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False, 
         interaction=False, units="", highlight_index=None, idxs=None, index_name="index",
         cats_order=None):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
 
     Args:
-        X (pd.DataFrame): dataframe of input rows
+        X_col (pd.DataFrame): dataframe of input rows
         shap_values (np.ndarray): shap values generated for X
         col_name (str): Column of X to display violin plot for
         color_col (str, optional): Column of X to color plot markers by. 
@@ -852,21 +852,19 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         Plotly fig
     """
     
-    assert is_string_dtype(X[col_name]), \
-        f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
+    assert not is_numeric_dtype(X_col), \
+        f'{X_col.name} is not categorical! Can only plot violin plots for categorical features!'
         
-    x = X[col_name].copy()
-    shaps = shap_values[:, X.columns.get_loc(col_name)]
     if cats_order is None:
-        cats_order = sorted(X[col_name].unique().tolist())
+        cats_order = sorted(X_col.unique().tolist())
 
     n_cats = len(cats_order)
     
     if idxs is not None:
-        assert len(idxs)==X.shape[0]==len(shaps)
+        assert len(idxs)==X_col.shape[0]==len(shap_values)
         idxs = np.array([str(idx) for idx in idxs])
     else:
-        idxs = np.array([str(i) for i in range(X.shape[0])])
+        idxs = np.array([str(i) for i in range(X_col.shape[0])])
 
     if highlight_index is not None:
         if isinstance(highlight_index, int):
@@ -877,72 +875,68 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
             highlight_idx = np.where(idxs==highlight_index)[0].item()
             highlight_name = highlight_index
 
-    if points or color_col is not None:
+    if points or X_color_col is not None:
         fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
         showscale = True
     else:
         fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
-    shap_range = shaps.max() - shaps.min()
-    fig.update_yaxes(range=[shaps.min()-0.1*shap_range, shaps.max()+0.1*shap_range])  
+    shap_range = shap_values.max() - shap_values.min()
+    fig.update_yaxes(range=[shap_values.min()-0.1*shap_range, shap_values.max()+0.1*shap_range])  
 
     for i, cat in enumerate(cats_order):
-        col = 1+i*2 if points or color_col is not None else 1+i
+        col = 1+i*2 if points or X_color_col is not None else 1+i
         fig.add_trace(go.Violin(
-                            x=x[x == cat],
-                            y=shaps[x == cat],
+                            x=X_col[X_col == cat],
+                            y=shap_values[X_col == cat],
                             name=cat,
                             box_visible=True,
                             meanline_visible=True,  
                             showlegend=False,
                                ),
                      row=1, col=col)
-        if color_col is not None:
-            if is_numeric_dtype(X[color_col]):
+        if X_color_col is not None:
+            if is_numeric_dtype(X_color_col):
                 fig.add_trace(go.Scattergl(
-                                x=np.random.randn(len(x[x == cat])),
-                                y=shaps[x == cat],
-                                name=color_col,
+                                x=np.random.randn((X_col == cat).sum()),
+                                y=shap_values[X_col == cat],
+                                name=X_color_col.name,
                                 mode='markers',
                                 showlegend=False,
                                 hoverinfo="text",
-                                # hovertemplate = 
-                                # "<i>shap</i>: %{y:.2f}<BR>" +
-                                # f"<i>{color_col}" + ": %{marker.color}",
                                 text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
-                                            for index, shap, col in zip(idxs[x==cat], shaps[x == cat], X[color_col][x==cat])],
+                                            for index, shap, col in zip(idxs[X_col==cat], 
+                                                                        shap_values[X_col == cat], 
+                                                                        X_color_col[X_col==cat])],
                                 marker=dict(size=7, 
                                         opacity=0.6,
-                                        cmin=X[color_col].min(),
-                                        cmax=X[color_col].max(),
-                                        color=X[color_col][x==cat],
+                                        cmin=X_color_col.min(),
+                                        cmax=X_color_col.max(),
+                                        color=X_color_col[x==cat],
                                         colorscale='Bluered',
                                         showscale=showscale,
-                                        colorbar=dict(title=color_col)),              
+                                        colorbar=dict(title=X_color_col.name)),              
                                 ),
                          row=1, col=col+1)
             else:
-                n_color_cats = X[color_col].nunique()
-                colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+                n_color_cats = X_color_col.nunique()
+                colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
+                          '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
                 colors = colors * (1+int(n_color_cats / len(colors)))
                 colors = colors[:n_color_cats]
-                for color_cat, color in zip(X[color_col].unique(), colors):
+                for color_cat, color in zip(X_color_col.unique(), colors):
                     fig.add_trace(go.Scattergl(
-                                    x=np.random.randn(len(x[(x == cat) & (X[color_col] == color_cat)])),
-                                    y=shaps[(x == cat) & (X[color_col] == color_cat)],
+                                    x=np.random.randn(((X_col == cat) & (X_color_col == color_cat)).sum()),
+                                    y=shap_values[(X_col == cat) & (X_color_col == color_cat)],
                                     name=color_cat,
-                                   
                                     mode='markers',
                                     showlegend=showscale,
                                     hoverinfo="text",
-                                    text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
+                                    text = [f"{index_name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
                                                 for index, shap, col in zip(
-                                                                idxs[(x == cat) & (X[color_col] == color_cat)], 
-                                                                shaps[(x == cat) & (X[color_col] == color_cat)], 
-                                                                X[color_col][(x == cat) & (X[color_col] == color_cat)])],
-                                    # hovertemplate = 
-                                    # "<i>shap</i>: %{y:.2f}<BR>" +
-                                    # f"<i>{color_col}: {color_cat}",
+                                                                idxs[(X_col == cat) & (X_color_col == color_cat)], 
+                                                                shap_values[(X_col == cat) & (X_color_col == color_cat)], 
+                                                                X_color_col[(X_col == cat) & (X_color_col == color_cat)])],
                                     marker=dict(size=7, 
                                                 opacity=0.8,
                                                 color=color)           
@@ -952,24 +946,22 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
             showscale = False
         elif points:
             fig.add_trace(go.Scattergl(
-                            x=np.random.randn(len(x[x == cat])),
-                            y=shaps[x == cat],
+                            x=np.random.randn((X_col == cat).sum()),
+                            y=shap_values[X_col == cat],
                             mode='markers',
                             showlegend=False,
-                            # hovertemplate = 
-                            # "<i>shap</i>: %{y:.2f}",
                             hoverinfo="text",
                             text = [f"{index_name}: {index}<br>shap: {shap}" 
-                                        for index, shap in zip(idxs[(x == cat)], shaps[x == cat])],
+                                        for index, shap in zip(idxs[(X_col == cat)], shap_values[X_col == cat])],
                             marker=dict(size=7, 
                                     opacity=0.6,
                                        color='blue'),
                         ), row=1, col=col+1)
-        if highlight_index is not None and X[col_name][highlight_idx]==cat:
+        if highlight_index is not None and X_col[highlight_idx]==cat:
             fig.add_trace(
                 go.Scattergl(
                     x=[0], 
-                    y=[shaps[highlight_idx]], 
+                    y=[shaps_values[highlight_idx]], 
                     mode='markers',
                     marker=dict(
                         color='LightSkyBlue',
@@ -986,7 +978,7 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                     showlegend=False,
                 ), row=1, col=col+1)
 
-    if points or color_col is not None:
+    if points or X_color_col is not None:
         for i in range(n_cats):
             fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
             fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
@@ -995,12 +987,12 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         yaxis=dict(title=f"SHAP value ({units})" if units !="" else "SHAP value"),
         hovermode='closest')
 
-    if color_col is not None and interaction:
-        fig.update_layout(title=f'Interaction plot for {col_name} and {color_col}')
-    elif color_col is not None:
-        fig.update_layout(title=f'Shap values for {col_name}<br>(colored by {color_col})')
+    if X_color_col is not None and interaction:
+        fig.update_layout(title=f'Interaction plot for {X_col.name} and {X_color_col.name}')
+    elif X_color_col is not None:
+        fig.update_layout(title=f'Shap values for {X_col.name}<br>(colored by {X_color_col.name})')
     else:
-        fig.update_layout(title=f'Shap values for {col_name}')
+        fig.update_layout(title=f'Shap values for {X_col.name}')
     
     return fig
 
