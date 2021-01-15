@@ -104,10 +104,10 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
 
     def test_top_interactions(self):
-        self.assertIsInstance(self.explainer.shap_top_interactions("Age"), list)
-        self.assertIsInstance(self.explainer.shap_top_interactions("Age", topx=4), list)
-        self.assertIsInstance(self.explainer.shap_top_interactions("Age", cats=True), list)
-        self.assertIsInstance(self.explainer.shap_top_interactions("Gender", cats=True), list)
+        self.assertIsInstance(self.explainer.top_shap_interactions("Age"), list)
+        self.assertIsInstance(self.explainer.top_shap_interactions("Age", topx=4), list)
+        self.assertIsInstance(self.explainer.top_shap_interactions("Age", cats=True), list)
+        self.assertIsInstance(self.explainer.top_shap_interactions("Gender", cats=True), list)
 
     def test_permutation_importances_df(self):
         self.assertIsInstance(self.explainer.permutation_importances_df(), pd.DataFrame)

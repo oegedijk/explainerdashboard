@@ -221,7 +221,7 @@ def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
     return pd.Series(feature_value).map(mapping)
 
 
-def merge_categorical_columns(X, onehot_dict=None, sep="_", drop_regular=True):
+def merge_categorical_columns(X, onehot_dict=None, cols=None, sep="_", drop_regular=False):
     """
     Returns a new feature Dataframe X_cats where the onehotencoded
     categorical features have been merged back with the old value retrieved
@@ -232,6 +232,7 @@ def merge_categorical_columns(X, onehot_dict=None, sep="_", drop_regular=True):
             columns=['Age', 'Sex_Male', 'Sex_Female"].
         onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
+        cols (list[str]): list of columns to return
         sep (str): separator used in the encoding, e.g. "_" for Sex_Male. 
             Defaults to "_".
     
@@ -245,8 +246,22 @@ def merge_categorical_columns(X, onehot_dict=None, sep="_", drop_regular=True):
         else:
             if not drop_regular:
                 X_cats.loc[:, col_name] = X[col_name].values
-    return X_cats
+    if cols:
+        return X_cats[cols]
+    else:
+        return X_cats
 
+def matching_cols(cols1, cols2):
+    """returns True if cols1 and cols2 match."""
+    if isinstance(cols1, pd.DataFrame):
+        cols1 = cols1.columns
+    if isinstance(cols2, pd.DataFrame):
+        cols2 = cols2.columns
+    if len(cols1) != len(cols2):
+        return False
+    if (pd.Index(cols1) == pd.Index(cols2)).all():
+        return True
+    return False
 
 def remove_cat_names(X_cats, onehot_dict):
     """removes the leading category names in the onehotencoded columns. 
@@ -282,30 +297,26 @@ def X_cats_to_X(X_cats, onehot_dict, X_columns, sep="_"):
     return X_new[X_columns]
 
 
-def merge_categorical_shap_values(X, shap_values, onehot_dict=None, output_cols=None):
+def merge_categorical_shap_values(shap_df, onehot_dict=None, output_cols=None):
     """
     Returns a new feature new shap values np.array
     where the shap values of onehotencoded categorical features have been
     added up.
 
     Args:
-        X (pd.DataFrame): dataframe whose columns correspond to the columns
-            in the shap_values np.ndarray.
-        shap_values (np.ndarray): numpy array of shap values, output of
-            e.g. shap.TreeExplainer(X).shap_values()
+        shap_df(pd.DataFrame): dataframe of shap values with appropriate column names
         onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
             
     Returns:
         pd.DataFrame
     """
-    shap_df = pd.DataFrame(shap_values, columns=X.columns)
     onehot_cols = []
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
             shap_df[col_name] = shap_df[col_list].sum(axis=1)
             onehot_cols.append(col_name)
-    if output_cols:
+    if output_cols is not None:
         return shap_df[output_cols]
     return shap_df[onehot_cols]
 
@@ -337,23 +348,24 @@ def merge_categorical_shap_interaction_values(shap_interaction_values,
     """
 
     if isinstance(old_columns, pd.DataFrame):
-        old_columns = old_columns.columns.tolist()
+        old_columns = old_columns.columns
     if isinstance(new_columns, pd.DataFrame):
-        new_columns = new_columns.columns.tolist()
+        new_columns = new_columns.columns
+    old_columns = pd.Index(old_columns)
+    new_columns = pd.Index(new_columns)
     
-
     siv = np.zeros((shap_interaction_values.shape[0], 
                         len(new_columns), len(new_columns)))
 
     # note: given the for loops here, this code could probably be optimized.
-    # but only run once anyway
+    #       But only runs once anyway...
     for new_col1 in new_columns:
         for new_col2 in new_columns:
-            newcol_idx1 = new_columns.index(new_col1)
-            newcol_idx2 = new_columns.index(new_col2)
-            oldcol_idxs1 = [old_columns.index(col)
+            newcol_idx1 = new_columns.get_loc(new_col1)
+            newcol_idx2 = new_columns.get_loc(new_col2)
+            oldcol_idxs1 = [old_columns.get_loc(col)
                                 for col in onehot_dict[new_col1]]
-            oldcol_idxs2 = [old_columns.index(col)
+            oldcol_idxs2 = [old_columns.get_loc(col)
                                 for col in onehot_dict[new_col2]]
             siv[:, newcol_idx1, newcol_idx2] = \
                 shap_interaction_values[:, oldcol_idxs1, :][:, :, oldcol_idxs2]\
@@ -526,10 +538,11 @@ def get_mean_absolute_shap_df(columns, shap_values, onehot_dict=None):
     """
     if onehot_dict is None:
         onehot_dict = {col:[col] for col in columns}
+    columns = pd.Index(columns)
     shap_abs_mean_dict = {}
     for col_name, col_list in onehot_dict.items():
         shap_abs_mean_dict[col_name] = np.absolute(
-            shap_values[:, [columns.index(col) for col in col_list]].sum(axis=1)
+            shap_values[:, [columns.get_loc(col) for col in col_list]].sum(axis=1)
         ).mean()
 
     shap_df = pd.DataFrame(
