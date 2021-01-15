@@ -395,7 +395,7 @@ class ExplainerDashboard:
                 self.external_stylesheets.append(bootstrap_theme)
 
         if not hasattr(self.explainer, "onehot_dict"):
-            # explainerdashboard < v0.2.20
+            # explainer generated with explainerdashboard < v0.2.20
             self.explainer.onehot_dict = self.explainer.cats_dict
             self.explainer.onehot_cols = self.explainer.cats
             self.explainer.cat_cols = self.explainer.cats

@@ -1,9 +1,13 @@
 
 # TODO:
 
+
 ## Bugs:
 - dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
 - shap dependence: when no point cloud, do not highlight!
+- /Users/oege/projects/explainerhub/venv/lib/python3.8/site-packages/sklearn/tree/_classes.py:1254: FutureWarning:
+
+the classes_ attribute is to be deprecated from version 0.22 and will be removed in 0.24.
 
 ## Layout:
 - Find a proper frontender to help :)

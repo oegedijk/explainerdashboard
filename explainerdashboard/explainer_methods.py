@@ -122,6 +122,16 @@ def parse_cats(X, cats, sep:str="_"):
     return onehot_cols, onehot_dict
 
 
+def get_encoded_and_regular_cols(cols, onehot_dict):
+    """return a list of onehot encoded cols and a list of remainder cols.
+    """
+    encoded_cols = []
+    for enc_cols in onehot_dict.values():
+        if len(enc_cols) > 1: 
+            encoded_cols.extend(enc_cols)
+    regular_cols = [col for col in cols if col not in encoded_cols]
+    return encoded_cols, regular_cols
+
 
 def split_pipeline(pipeline, X, verbose=1):
     """Returns an X_transformed dataframe and model from a fitted 
@@ -208,10 +218,10 @@ def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
         mapping = {-1: "NOT_ENCODED"}
 
     mapping.update({i: col for i, col in enumerate(onehot_cols)})
-    return pd.Series(feature_value).map(mapping).values
+    return pd.Series(feature_value).map(mapping)
 
 
-def merge_categorical_columns(X, onehot_dict=None, sep="_"):
+def merge_categorical_columns(X, onehot_dict=None, sep="_", drop_regular=True):
     """
     Returns a new feature Dataframe X_cats where the onehotencoded
     categorical features have been merged back with the old value retrieved
@@ -228,11 +238,13 @@ def merge_categorical_columns(X, onehot_dict=None, sep="_"):
     Returns:
         pd.DataFrame, with onehot encodings merged back into categorical columns.
     """
-    X_cats = X.copy()
+    X_cats = pd.DataFrame()
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
-            X_cats[col_name] = retrieve_onehot_value(X, col_name, col_list, sep)
-            X_cats.drop(col_list, axis=1, inplace=True)
+            X_cats[col_name] = retrieve_onehot_value(X, col_name, col_list, sep).astype("category")
+        else:
+            if not drop_regular:
+                X_cats.loc[:, col_name] = X[col_name].values
     return X_cats
 
 
@@ -270,7 +282,7 @@ def X_cats_to_X(X_cats, onehot_dict, X_columns, sep="_"):
     return X_new[X_columns]
 
 
-def merge_categorical_shap_values(X, shap_values, onehot_dict=None, sep="_"):
+def merge_categorical_shap_values(X, shap_values, onehot_dict=None, output_cols=None):
     """
     Returns a new feature new shap values np.array
     where the shap values of onehotencoded categorical features have been
@@ -283,15 +295,20 @@ def merge_categorical_shap_values(X, shap_values, onehot_dict=None, sep="_"):
             e.g. shap.TreeExplainer(X).shap_values()
         onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
-        sep (str): seperator used between variable and category. 
-            Defaults to "_".
+            
+    Returns:
+        pd.DataFrame
     """
     shap_df = pd.DataFrame(shap_values, columns=X.columns)
+    onehot_cols = []
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
             shap_df[col_name] = shap_df[col_list].sum(axis=1)
-            shap_df.drop(col_list, axis=1, inplace=True)
-    return shap_df.values
+            onehot_cols.append(col_name)
+    if output_cols:
+        return shap_df[output_cols]
+    return shap_df[onehot_cols]
+
 
 
 def merge_categorical_shap_interaction_values(shap_interaction_values, 
@@ -494,7 +511,7 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
                         .sort_values('Importance', ascending=False)
 
 
-def mean_absolute_shap_values(columns, shap_values, onehot_dict=None):
+def get_mean_absolute_shap_df(columns, shap_values, onehot_dict=None):
     """
     Returns a dataframe with the mean absolute shap values for each feature.
 

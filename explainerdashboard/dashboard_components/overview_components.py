@@ -656,13 +656,10 @@ class FeatureInputComponent(ExplainerComponent):
             [Input('feature-input-index-'+self.name, 'value')]
         )
         def update_whatif_inputs(index):
-            idx = self.explainer.get_int_idx(index)
-            if idx is None:
+            if index is None:
                 raise PreventUpdate
-            feature_values = (self.explainer.X_cats
-                                [self.explainer.columns_ranked_by_shap(cats=True)]
-                                .iloc[[idx]].values[0].tolist())
-            return feature_values
+            X_row = self.explainer.get_X_row(index, cats=True)[self.explainer.columns_ranked_by_shap(cats=True)]
+            return X_row.values[0].tolist()
 
 
 
