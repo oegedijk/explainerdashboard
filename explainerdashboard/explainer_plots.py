@@ -33,6 +33,8 @@ from sklearn.metrics import (classification_report, confusion_matrix,
                              precision_recall_curve, roc_curve, 
                              roc_auc_score, average_precision_score)
 
+from .explainer_methods import matching_cols
+
 
 def plotly_prediction_piechart(predictions_df, showlegend=True, size=250):
     """Return piechart with predict_proba distributions for ClassifierExplainer
@@ -655,44 +657,38 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
     return fig
 
 
-def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
+def plotly_dependence_plot(X_col, shap_values, interact_col=None, 
                             interaction=False, na_fill=-999, round=2, units="", 
-                            highlight_index=None, idxs=None, index_name="index"):
+                            highlight_index=None, idxs=None):
     """Returns a dependence plot showing the relationship between feature col_name
     and shap values for col_name. Do higher values of col_name increase prediction
     or decrease them? Or some kind of U-shape or other?
 
     Args:
-        X (pd.DataFrame): dataframe with rows of input data
-        shap_values (np.ndarray): shap values generated for X
-        col_name (str): column name for which to generate plot
-        interact_col_name (str, optional): Column name by which to color the 
-        markers. Defaults to None.
+        X_col (pd.Series): pd.Series with column values.
+        shap_values (np.ndarray): shap values generated for X_col
+        interact_col (pd.Series): pd.Series with column marker values. Defaults to None.
         interaction (bool, optional): Is this a plot of shap interaction values? 
             Defaults to False.
         na_fill (int, optional): value used for filling missing values. 
             Defaults to -999.
         round (int, optional): Rounding to apply to floats. Defaults to 2.
         units (str, optional): Units of the target variable. Defaults to "".
-        highlight_index (str, int, optional): index row of X to highlight in t
-        he plot. Defaults to None.
-        idxs (list, optional): list of descriptors of the index, e.g. 
+        highlight_index (str, int, optional): index row of X to highlight in 
+            the plot. Defaults to None.
+        idxs (pd.Index, optional): list of descriptors of the index, e.g. 
             names or other identifiers. Defaults to None.
-        index_name (str): identifier for idxs. Defaults to "index".
-
-
+            
     Returns:
         Plotly fig
     """
-    assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
-    assert (interact_col_name is None and not interaction) or interact_col_name in X.columns.tolist(),\
-            f'{interact_col_name} not in X.columns'
-
+    assert len(X_col) == len(shap_values), \
+        f"Column(len={len(X_col)}) and Shap values(len={len(shap_values)}) and should have the same length!"
     if idxs is not None:
-        assert len(idxs)==X.shape[0]
-        idxs = [str(idx) for idx in idxs]
+        assert len(idxs)==X_col.shape[0]
+        idxs = pd.Index(idxs).astype(str)
     else:
-        idxs = [str(i) for i in range(X.shape[0])]
+        idxs = X_col.index.astype(str)
 
     if highlight_index is not None:
         if isinstance(highlight_index, int):
@@ -700,91 +696,107 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
             highlight_name = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
             assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
-            highlight_idx = np.where(idxs==highlight_index)[0].item()
+            highlight_idx = idxs.get_loc(highlight_index)
             highlight_name = highlight_index
     
-    x = X[col_name].replace({-999:np.nan})
-    if len(shap_values.shape)==2:
-        y = shap_values[:, X.columns.get_loc(col_name)]
-    elif len(shap_values.shape)==3 and interact_col_name is not None:
-        y = shap_values[:, X.columns.get_loc(col_name), X.columns.get_loc(interact_col_name)]
-    else:
-        raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
+    col_name = X_col.name
+ 
+#     if len(shap_values.shape)==2:
+#         y = shap_values[:, X.columns.get_loc(col_name)]
+#     elif len(shap_values.shape)==3 and interact_col_name is not None:
+#         y = shap_values[:, X.columns.get_loc(col_name), X.columns.get_loc(interact_col_name)]
+#     else:
+#         raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
     
-    if interact_col_name is not None:
-        text = np.array([f'{index_name}={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                    for index, col_val, col_col_val, shap_val in zip(idxs, x, X[interact_col_name], np.round(y, round))])
+    
+    if interact_col is not None:
+        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={col_col_val}<br>SHAP={shap_val}' 
+                    for index, col_val, col_col_val, shap_val in zip(idxs, X_col, interact_col, np.round(shap_values, round))])
     else:
-        text = np.array([f'{index_name}={index}<br>{col_name}={col_val}<br>SHAP={shap_val}' 
-                    for index, col_val, shap_val in zip(idxs, x, np.round(y, round))])  
+        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>SHAP={shap_val}' 
+                    for index, col_val, shap_val in zip(idxs, X_col, np.round(shap_values, round))])  
         
     data = []
     
-    if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
-        for onehot_col in X[interact_col_name].unique().tolist():
-                data.append(
-                    go.Scattergl(
-                        x=X[X[interact_col_name]==onehot_col][col_name].replace({-999:np.nan}),
-                        y=shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)],
-                        mode='markers',
-                        marker=dict(
-                                size=7,
-                                showscale=False,
-                                opacity=0.6,
-                            ),
-                        
-                        showlegend=True,
-                        opacity=0.8,
-                        hoverinfo="text",
-                        name=onehot_col,
-                        text=[f'{index_name}={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                                for index, col_val, col_col_val, shap_val in zip(idxs,
-                                    X[X[interact_col_name]==onehot_col][col_name], 
-                                    X[X[interact_col_name]==onehot_col][interact_col_name], 
-                                    np.round(shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)], round))],
-                        )
+    X_col = X_col.copy().replace({na_fill:np.nan})
+    y = shap_values
+    if interact_col is not None and not is_numeric_dtype(interact_col):
+        for onehot_col in interact_col.unique().tolist():
+            data.append(
+                go.Scattergl(
+                    x=X_col[interact_col==onehot_col].replace({na_fill:np.nan}),
+                    y=shap_values[interact_col==onehot_col],
+                    mode='markers',
+                    marker=dict(
+                            size=7,
+                            showscale=False,
+                            opacity=0.6,
+                        ),
+                    showlegend=True,
+                    opacity=0.8,
+                    hoverinfo="text",
+                    name=onehot_col,
+                    text=[f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={interact_val}<br>SHAP={shap_val}' 
+                            for index, col_val, interact_val, shap_val in zip(idxs,
+                                X_col[interact_col==onehot_col], 
+                                interact_col[interact_col==onehot_col], 
+                                np.round(shap_values[interact_col==onehot_col], round))],
                     )
-                
-    elif interact_col_name is not None and is_numeric_dtype(X[interact_col_name]):
-        data.append(go.Scattergl(
-                        x=x[X[interact_col_name]!=na_fill],
-                        y=y[X[interact_col_name]!=na_fill], 
-                        mode='markers',
-                        text=text[X[interact_col_name]!=na_fill],
-                        hoverinfo="text",
-                        marker=dict(size=7, 
-                                    opacity=0.6,
-                                    color=X[interact_col_name][X[interact_col_name]!=na_fill],
-                                    colorscale='Bluered',
-                                    colorbar=dict(
-                                        title=interact_col_name
-                                        ),
-                                    showscale=True),    
-                ))
-        data.append(go.Scattergl(
-                        x=x[X[interact_col_name]==na_fill],
-                        y=y[X[interact_col_name]==na_fill], 
+                )         
+    elif interact_col is not None and is_numeric_dtype(interact_col):
+        if na_fill in interact_col:
+            data.append(go.Scattergl(
+                    x=X_col[interact_col != na_fill],
+                    y=shap_values[interact_col != na_fill], 
+                    mode='markers',
+                    text=text[interact_col != na_fill],
+                    hoverinfo="text",
+                    marker=dict(size=7, 
+                                opacity=0.6,
+                                color=interact_col[interact_col != na_fill],
+                                colorscale='Bluered',
+                                colorbar=dict(title=interact_col.name),
+                                showscale=True),    
+            ))
+            data.append(go.Scattergl(
+                        x=X_col[interact_col == na_fill],
+                        y=shap_values[interact_col == na_fill], 
                         mode='markers',
                         text=text[X[interact_col_name]==na_fill],
                         hoverinfo="text",
                         marker=dict(size=7, 
                                     opacity=0.35,
                                     color='grey'),
-                ))
+            ))
+        else:
+            data.append(go.Scattergl(
+                    x=X_col,
+                    y=shap_values, 
+                    mode='markers',
+                    text=text,
+                    hoverinfo="text",
+                    marker=dict(size=7, 
+                                opacity=0.6,
+                                color=interact_col,
+                                colorscale='Bluered',
+                                colorbar=dict(title=interact_col.name),
+                                showscale=True),    
+            ))
+            
     else:
         data.append(go.Scattergl(
-                        x=x, 
-                        y=y, 
+                        x=X_col, 
+                        y=shap_values, 
                         mode='markers',
                         text=text,
                         hoverinfo="text",
-                        marker=dict(size=7, 
-                                    opacity=0.6)  ,                    
+                        marker=dict(size=7, opacity=0.6),                    
                 ))
+        
     if interaction:
-        title = f'Interaction plot for {col_name} and {interact_col_name}'
+        title = f'Interaction plot for {X_col.name} and {interact_col.name}'
     else:
-        title = f'Dependence plot for {col_name}'
+        title = f'Dependence plot for {X_col.name}'
 
     layout = go.Layout(
             title=title,
@@ -798,14 +810,14 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         
     fig = go.Figure(data, layout)
     
-    if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
+    if interact_col is not None and not is_numeric_dtype(interact_col):
         fig.update_layout(showlegend=True)
                                                       
     if highlight_index is not None:
         fig.add_trace(
             go.Scattergl(
-                x=[x[highlight_idx]], 
-                y=[y[highlight_idx]], 
+                x=[X_col[highlight_idx]], 
+                y=[shap_values[highlight_idx]], 
                 mode='markers',
                 marker=dict(
                     color='LightSkyBlue',
@@ -816,8 +828,8 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         width=4
                     )
                 ),
-                name=f"{index_name} {highlight_name}",
-                text=f"{index_name} {highlight_name}",
+                name=f"{idxs.name} {highlight_name}",
+                text=f"{idxs.name} {highlight_name}",
                 hoverinfo="text",
                 showlegend=False,
             ),
@@ -827,7 +839,7 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
 
 
 def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False, 
-        interaction=False, units="", highlight_index=None, idxs=None, index_name="index",
+        interaction=False, units="", highlight_index=None, idxs=None,
         cats_order=None):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
@@ -862,9 +874,9 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
     
     if idxs is not None:
         assert len(idxs)==X_col.shape[0]==len(shap_values)
-        idxs = np.array([str(idx) for idx in idxs])
+        idxs = pd.Index(idxs).astype(str)
     else:
-        idxs = np.array([str(i) for i in range(X_col.shape[0])])
+        idxs = X_col.index.astype(str)
 
     if highlight_index is not None:
         if isinstance(highlight_index, int):
@@ -872,7 +884,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
             highlight_name = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
             assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
-            highlight_idx = np.where(idxs==highlight_index)[0].item()
+            highlight_idx = idxs.get_loc(highlight_index)
             highlight_name = highlight_index
 
     if points or X_color_col is not None:
@@ -883,6 +895,15 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
 
     shap_range = shap_values.max() - shap_values.min()
     fig.update_yaxes(range=[shap_values.min()-0.1*shap_range, shap_values.max()+0.1*shap_range])  
+    
+    if X_color_col is not None:
+        color_cats = X_color_col.unique()
+        n_color_cats = len(color_cats)
+        colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
+                    '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+        colors = colors * (1+int(n_color_cats / len(colors)))
+        colors = colors[:n_color_cats]
+        show_legend = set(color_cats)
 
     for i, cat in enumerate(cats_order):
         col = 1+i*2 if points or X_color_col is not None else 1+i
@@ -904,7 +925,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                 mode='markers',
                                 showlegend=False,
                                 hoverinfo="text",
-                                text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
+                                text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
                                             for index, shap, col in zip(idxs[X_col==cat], 
                                                                         shap_values[X_col == cat], 
                                                                         X_color_col[X_col==cat])],
@@ -912,27 +933,22 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                         opacity=0.6,
                                         cmin=X_color_col.min(),
                                         cmax=X_color_col.max(),
-                                        color=X_color_col[x==cat],
+                                        color=X_color_col[X_col==cat],
                                         colorscale='Bluered',
                                         showscale=showscale,
                                         colorbar=dict(title=X_color_col.name)),              
                                 ),
                          row=1, col=col+1)
             else:
-                n_color_cats = X_color_col.nunique()
-                colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
-                          '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
-                colors = colors * (1+int(n_color_cats / len(colors)))
-                colors = colors[:n_color_cats]
-                for color_cat, color in zip(X_color_col.unique(), colors):
+                for color_cat, color in zip(color_cats, colors):
                     fig.add_trace(go.Scattergl(
                                     x=np.random.randn(((X_col == cat) & (X_color_col == color_cat)).sum()),
                                     y=shap_values[(X_col == cat) & (X_color_col == color_cat)],
                                     name=color_cat,
                                     mode='markers',
-                                    showlegend=showscale,
+                                    showlegend=color_cat in show_legend,
                                     hoverinfo="text",
-                                    text = [f"{index_name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
+                                    text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
                                                 for index, shap, col in zip(
                                                                 idxs[(X_col == cat) & (X_color_col == color_cat)], 
                                                                 shap_values[(X_col == cat) & (X_color_col == color_cat)], 
@@ -942,7 +958,9 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                                 color=color)           
                                     ),
                              row=1, col=col+1)
-                
+                    if color_cat in X_color_col[X_col==cat].unique():
+                        show_legend = show_legend - {color_cat}
+                    
             showscale = False
         elif points:
             fig.add_trace(go.Scattergl(
@@ -951,7 +969,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                             mode='markers',
                             showlegend=False,
                             hoverinfo="text",
-                            text = [f"{index_name}: {index}<br>shap: {shap}" 
+                            text = [f"{idxs.name}: {index}<br>shap: {shap}" 
                                         for index, shap in zip(idxs[(X_col == cat)], shap_values[X_col == cat])],
                             marker=dict(size=7, 
                                     opacity=0.6,
@@ -961,7 +979,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
             fig.add_trace(
                 go.Scattergl(
                     x=[0], 
-                    y=[shaps_values[highlight_idx]], 
+                    y=[shap_values[highlight_idx]], 
                     mode='markers',
                     marker=dict(
                         color='LightSkyBlue',
@@ -972,8 +990,8 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                             width=4
                         )
                     ),
-                    name = f"{index_name} {highlight_name}",
-                    text=f"{index_name} {highlight_name}",
+                    name = f"{idxs.name} {highlight_name}",
+                    text=f"{idxs.name} {highlight_name}",
                     hoverinfo="text",
                     showlegend=False,
                 ), row=1, col=col+1)
@@ -1429,15 +1447,16 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap values", 
-                idxs=None, highlight_index=None, na_fill=-999, index_name="index"):
+def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Shap values", 
+                idxs=None, highlight_index=None, na_fill=-999, round=3, index_name="index"):
     """Generate a shap values summary plot where features are ranked from
     highest mean absolute shap value to lowest, with point clouds shown
     for each feature. 
 
     Args:
-        shap_values (np.ndarray): shap_values
+        
         X (pd.DataFrame): dataframe of input features
+        shap_values_df (pd.DataFrame): dataframe shap_values with same columns as X
         display_columns (List[str]): list of feature to be displayed. If None
             default to all columns in X.
         title (str, optional): Title to display above graph. 
@@ -1448,20 +1467,22 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
             Defaults to None.
         na_fill (int, optional): Fill value used to fill missing values, 
             will be colored grey in the graph.. Defaults to -999.
+        round (int, optional): rounding to apply to floats. Defaults to 3.
         index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         Plotly fig
     """
-    
+    assert matching_cols(X, shap_values_df), "X and shap_values_df should have matching columns!"
     if display_columns is None:
         display_columns = X.columns.tolist()
     if idxs is not None:
         assert len(idxs)==X.shape[0]
-        idxs = np.array([str(idx) for idx in idxs])
+        idxs = pd.Index(idxs).astype(str)
     else:
-        idxs = np.array([str(i) for i in range(X.shape[0])])
+        idxs = X.index.astype(str)
         
+    length = len(X)
     if highlight_index is not None:
         if isinstance(highlight_index, int):
             assert highlight_index >=0 and highlight_index < len(X), \
@@ -1475,23 +1496,48 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
             raise ValueError("Please pass either int or str highlight_index!")
         
     # make sure that columns are actually in X:
-    display_columns = [col for col in display_columns if col in X.columns.tolist()]    
-    shap_df = pd.DataFrame(shap_values, columns=X.columns, index=X.index)
-    min_shap = np.round(shap_values.min()-0.01, 2)
-    max_shap = np.round(shap_values.max()+0.01, 2)
+    display_columns = [col for col in display_columns if col in X.columns]  
+    min_shap = shap_values_df.min().min()
+    max_shap = shap_values_df.max().max()
+    shap_range = max_shap - min_shap
+    min_shap = min_shap - 0.01 * shap_range
+    max_shap = max_shap + 0.01 * shap_range
 
     fig =  make_subplots(rows=len(display_columns), cols=1, 
                          subplot_titles=display_columns, shared_xaxes=True)
     
     for i, col in enumerate(display_columns):
-        
-        if is_string_dtype(X[col]): 
+        if is_numeric_dtype(X[col]):
+            # numerical feature get a single bluered plot
+            fig.add_trace(go.Scattergl(
+                            x=shap_values_df[col],
+                            y=np.random.rand(length),
+                            mode='markers',
+                            marker=dict(
+                              size=5,
+                              color=X[col].replace({na_fill:np.nan}),
+                              colorscale='Bluered',
+                              showscale=True,
+                              opacity=0.3,
+                              colorbar=dict(
+                                title="feature value <br> (red is high)", 
+                                showticklabels=False),
+                            ),
+                            name=col,
+                            showlegend=False,
+                            opacity=0.8,
+                            hoverinfo="text",
+                            text=[f"{index_name}={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
+                              for i, shap, value in zip(idxs, shap_values_df[col], X[col].replace({na_fill:np.nan}))],
+                            ),
+                     row=i+1, col=1);
+        else: 
             # if str type then categorical variable, 
             # so plot each category in a different color:
             for onehot_col in X[col].unique().tolist():
                 fig.add_trace(go.Scattergl(
-                                x=shap_df[X[col]==onehot_col][col],
-                                y=np.random.rand(len(shap_df[X[col]==onehot_col])),
+                                x=shap_values_df[X[col]==onehot_col][col],
+                                y=np.random.rand(len(shap_values_df[X[col]==onehot_col])),
                                 mode='markers',
                                 marker=dict(
                                       size=5,
@@ -1503,36 +1549,14 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                                 opacity=0.8,
                                 hoverinfo="text",
                                 text=[f"{index_name}={i}<br>{col}={onehot_col}<br>shap={np.round(shap,3)}" 
-                                      for i, shap in zip(idxs[X[col]==onehot_col], shap_df[X[col]==onehot_col][col])],
+                                      for i, shap in zip(idxs[X[col]==onehot_col], shap_values_df[X[col]==onehot_col][col])],
                                 ),
                      row=i+1, col=1);
-        else:
-            # numerical feature get a single bluered plot
-            fig.add_trace(go.Scattergl(x=shap_df[col],
-                                   y=np.random.rand(len(shap_df)),
-                                  mode='markers',
-                                  marker=dict(
-                                      size=5,
-                                      color=X[col].replace({na_fill:np.nan}),
-                                      colorscale='Bluered',
-                                      showscale=True,
-                                      opacity=0.3,
-                                      colorbar=dict(
-                                        title="feature value <br> (red is high)", 
-                                        showticklabels=False),
-                                  ),
-                                name=col,
-                                showlegend=False,
-                                opacity=0.8,
-                                hoverinfo="text",
-                                text=[f"{index_name}={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
-                                      for i, shap, value in zip(idxs, shap_df[col], X[col].replace({-999:np.nan}))],
-                                ),
-                     row=i+1, col=1);
+
         if highlight_index is not None:
             fig.add_trace(
             go.Scattergl(
-                x=[shap_df[col].iloc[highlight_idx]], 
+                x=[shap_values_df[col].iloc[highlight_idx]], 
                 y=[0], 
                 mode='markers',
                 marker=dict(
@@ -1545,7 +1569,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                     )
                 ),
                 name = f"{index_name} {highlight_index}",
-                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_df[col].iloc[highlight_idx]}",
+                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_values_df[col].iloc[highlight_idx]}",
                 hoverinfo="text",
                 showlegend=False,
             ), row=i+1, col=1)

@@ -404,7 +404,7 @@ class ShapDependenceComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Dependence', name=None,
                     hide_selector=True, 
                     hide_shapsummary=False, hide_shapdependence=False,
-                    depth=None, cats=True, **kwargs):
+                    depth=None, **kwargs):
         """Composite of ShapSummary and ShapDependence component
 
         Args:
@@ -419,18 +419,15 @@ class ShapDependenceComposite(ExplainerComponent):
             hide_shapsummary (bool, optional): hide ShapSummaryComponent
             hide_shapdependence (bool, optional): ShapDependenceComponent
             depth (int, optional): Number of features to display. Defaults to None.
-            cats (bool, optional): Group categorical features. Defaults to True.
         """
         super().__init__(explainer, title, name)
         
         self.shap_summary = ShapSummaryComponent(
                     self.explainer, name=self.name+"0",
-                    **update_params(kwargs, hide_selector=hide_selector, depth=depth, cats=cats))
+                    **update_params(kwargs, hide_selector=hide_selector, depth=depth))
         self.shap_dependence = ShapDependenceComponent(
                     self.explainer, name=self.name+"1",
-                    hide_selector=hide_selector, cats=cats,
-                    **update_params(kwargs, hide_cats=True)
-                    )
+                    hide_selector=hide_selector, **kwargs)
         self.connector = ShapSummaryDependenceConnector(
                     self.shap_summary, self.shap_dependence)
 
@@ -446,7 +443,7 @@ class ShapInteractionsComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Interactions', name=None,
                     hide_selector=True,
                     hide_interactionsummary=False, hide_interactiondependence=False,
-                    depth=None, cats=True, **kwargs):
+                    depth=None, **kwargs):
         """Composite of InteractionSummaryComponent and InteractionDependenceComponent
 
         Args:
@@ -461,14 +458,12 @@ class ShapInteractionsComposite(ExplainerComponent):
             hide_interactionsummary (bool, optional): hide InteractionSummaryComponent
             hide_interactiondependence (bool, optional): hide InteractionDependenceComponent
             depth (int, optional): Initial number of features to display. Defaults to None.
-            cats (bool, optional): Initally group cats. Defaults to True.
         """
         super().__init__(explainer, title, name)
-
         self.interaction_summary = InteractionSummaryComponent(explainer, name=self.name+"0",
-                hide_selector=hide_selector, depth=depth, cats=cats, **kwargs)
+                hide_selector=hide_selector, depth=depth,  **kwargs)
         self.interaction_dependence = InteractionDependenceComponent(explainer, name=self.name+"1",
-                hide_selector=hide_selector, cats=cats, **update_params(kwargs, hide_cats=True))
+                hide_selector=hide_selector,  **kwargs)
         self.connector = InteractionSummaryDependenceConnector(
             self.interaction_summary, self.interaction_dependence)
         

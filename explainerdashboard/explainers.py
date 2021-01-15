@@ -113,6 +113,9 @@ class BaseExplainer(ABC):
         self.categorical_cols = [col for col in self.regular_cols if not is_numeric_dtype(X[col])]
         self.categorical_dict = {col:sorted(X[col].unique().tolist()) for col in self.categorical_cols}
         self.cat_cols = self.onehot_cols + self.categorical_cols
+        self.original_cols = self.X.columns
+        self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
+
         if self.categorical_cols:
             for col in self.categorical_cols:
                 self.X[col] = self.X[col].astype("category")
@@ -122,7 +125,7 @@ class BaseExplainer(ABC):
             self.interactions_should_work = False
 
         if y is not None:
-            self.y = pd.Series(y)
+            self.y = pd.Series(y).astype(precision)
             self.y_missing = False
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
@@ -177,7 +180,7 @@ class BaseExplainer(ABC):
         self.permutation_cv = permutation_cv
         self.na_fill = na_fill
         self.precision = precision
-        self.columns = self.X.columns.tolist()
+        self.columns = self.X.columns
         self.pos_label = None
         self.units = ""
         self.is_classifier = False
@@ -295,27 +298,9 @@ class BaseExplainer(ABC):
         return len(self.X)
 
     def __contains__(self, index):
-        if self.get_int_idx(index) is not None:
+        if self.get_idx(index) is not None:
             return True
         return False
-
-    def check_cats(self, col1, col2=None):
-        """check whether should use cats=True based on col1 (and col2)
-
-        Args:
-          col1: First column
-          col2:  Second column (Default value = None)
-
-        Returns:
-          Boolean whether cats should be True
-
-        """
-        if col1 in self.onehot_cols: 
-            return True
-        if col2 is not None and col2 in self.onehot_cols:
-            return True
-        return False
-
 
     @property
     def shap_explainer(self):
@@ -352,7 +337,7 @@ class BaseExplainer(ABC):
                     self.X_background if self.X_background is not None else self.X)
         return self._shap_explainer
 
-    def get_int_idx(self, index):
+    def get_idx(self, index):
         """Turn str index into an int index
 
         Args:
@@ -445,7 +430,7 @@ class BaseExplainer(ABC):
                                 .values).astype(self.precision)
         return make_callable(self._pred_percentiles)
 
-    def columns_ranked_by_shap(self, cats=False, pos_label=None):
+    def columns_ranked_by_shap(self, pos_label=None):
         """returns the columns of X, ranked by mean abs shap value
 
         Args:
@@ -456,10 +441,7 @@ class BaseExplainer(ABC):
           list of columns
 
         """
-        if cats:
-            return self.mean_abs_shap_cats(pos_label).Feature.tolist()
-        else:
-            return self.mean_abs_shap(pos_label).Feature.tolist()
+        return self.mean_abs_shap_df(pos_label).Feature.tolist()
 
     def n_features(self, cats=False):
         """number of features with cats=True or cats=False
@@ -471,37 +453,7 @@ class BaseExplainer(ABC):
             int, number of features
 
         """
-        if cats:
-            return len(self.regular_cols)+len(self.onehot_cols)
-        else:
-            return len(self.columns)
-
-    def equivalent_col(self, col):
-        """Find equivalent col in columns_cats or columns
-        
-        if col in self.columns, return equivalent col in self.columns_cats,
-                e.g. equivalent_col('Gender_Male') -> 'Gender'
-        if col in self.columns_cats, return first one hot encoded col,
-                e.g. equivalent_col('Gender') -> 'Gender_Male'
-        
-        (useful for switching between cats=True and cats=False, while
-            maintaining column selection)
-
-        Args:
-          col:  col to get equivalent col for
-
-        Returns:
-          col
-        """
-        if col in self.regular_cols:
-            return col
-        elif col in self.onehot_cols:
-            # first onehot-encoded columns
-            return self.onehot_dict[col][0]
-        elif col in self.encoded_cols:
-            # the cat that the col belongs to
-            return [k for k, v in self.onehot_dict.items() if col in v][0]
-        return None
+        return len(self.merged_cols)
 
     def ordered_cats(self, col, topx=None, sort='alphabet', pos_label=None):
         """Return a list of categories in an categorical column, sorted
@@ -539,31 +491,25 @@ class BaseExplainer(ABC):
             else:
                 return X[col].value_counts().nlargest(topx).index.tolist()
         elif sort=='shap':
-            sv = self.shap_values_cats(pos_label) if col in onehot_cols else self.shap_values(pos_label)
-
             if topx is None:
-                return (pd.Series(sv[:, self.columns_cats.index(col)], 
-                        index=X[col]).abs().groupby(level=0).mean()
-                            .sort_values(ascending=False).index.tolist())
+                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.X_cats[col].values)
+                            .abs().groupby(level=0).mean().sort_values(ascending=False).index.tolist())
             else:
-                return (pd.Series(sv[:, self.columns_cats.index(col)], 
-                        index=X[col]).abs().groupby(level=0).mean()
-                            .sort_values(ascending=False).nlargest(topx).index.tolist())
+                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.X_cats[col].values)
+                            .abs().groupby(level=0).mean().sort_values(ascending=False).nlargest(topx).index.tolist())
         else:
             raise ValueError(f"sort='{sort}', but should be in {{'alphabet', 'freq', 'shap'}}")
-
 
     def get_index_list(self):
         return list(self.idxs)
 
-    def get_X_row(self, index, cats=False):
-        idx = self.get_int_idx(index)
-        X_row = self.X.iloc[[idx]]
-        if cats:
-            X_row = merge_categorical_columns(X_row, self.onehot_dict, drop_regular=False)[self.columns_cats]
+    def get_X_row(self, index, merge=False):
+        X_row = self.X.iloc[[self.get_idx(index)]]
+        if merge:
+            X_row = merge_categorical_columns(X_row, self.onehot_dict)[self.merged_cols]
         return X_row
 
-    def get_row_from_input(self, inputs:List, ranked_by_shap=False):
+    def get_row_from_input(self, inputs:List, ranked_by_shap=False, return_merged=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
         if len(inputs)==1 and isinstance(inputs[0], list):
             inputs = inputs[0]
@@ -571,17 +517,25 @@ class BaseExplainer(ABC):
             inputs = list(inputs[0])
         else:
             inputs = list(inputs)
-        if len(inputs) == len(self.columns_cats):
-            cols = self.columns_ranked_by_shap(cats=True) if ranked_by_shap else self.columns_cats
-            df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
-            return df[self.columns_cats]
+
+        if len(inputs) == len(self.merged_cols):
+            cols = self.columns_ranked_by_shap() if ranked_by_shap else self.merged_cols
+            df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)[self.merged_cols]
+            if return_merged:
+                return df_merged
+            else:
+                return X_cats_to_X(df_merged, self.onehot_dict, self.columns)
+
         elif len(inputs) == len(self.columns):
-            cols = self.columns_ranked_by_shap() if ranked_by_shap else self.columns
+            cols = self.columns
             df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
-            return df[self.columns]
+            if return_merged:
+                return merge_categorical_columns(df, self.onehot_dict, self.merged_cols)
+            else:
+                return df
         else:
             raise ValueError(f"len inputs {len(inputs)} should be the same length as either "
-                f"explainer.columns_cats ({len(self.columns_cats)}) or "
+                f"explainer.merged_cols ({len(self.merged_cols)}) or "
                 f"explainer.columns ({len(self.columns)})!")
 
 
@@ -596,8 +550,6 @@ class BaseExplainer(ABC):
         """
         if col in self.descriptions.keys():
             return self.descriptions[col]
-        elif self.equivalent_col(col) in self.descriptions.keys():
-            return self.descriptions[self.equivalent_col(col)]
         return ""
 
     def description_list(self, cols):
@@ -626,14 +578,11 @@ class BaseExplainer(ABC):
         assert col in self.columns or col in self.onehot_cols, \
             f"{col} not in columns!"
 
-        if col in self.X.columns:
+        if col in self.onehot_cols:
+            return self.X_cats[col]
+        else:
             return self.X[col]
-        elif col in self.onehot_cols:
-            if hasattr(self, "_X_cats"):
-                return self._X_cats[col]
-            else:
-                return pd.Series(retrieve_onehot_value(
-                    self.X, col, self.onehot_dict[col]), name=col)
+
         
     def get_col_value_plus_prediction(self, col, index=None, X_row=None, pos_label=None):
         """return value of col and prediction for either index or X_row
@@ -642,30 +591,29 @@ class BaseExplainer(ABC):
           col: feature col
           index (str or int, optional): index row
           X_row (single row pd.DataFrame, optional): single row of features
+          pos_label (int): positive label
         
         Returns:
-          tupe(value of col, prediction for index)
+          value of col, prediction for index
 
         """
-        
         assert (col in self.X.columns) or (col in self.onehot_cols),\
             f"{col} not in columns of dataset"
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
             assert X_row.shape[0] == 1, "X_Row should be single row dataframe!"
-            
-            if ((len(X_row.columns) == len(self.columns_cats)) and 
-                (X_row.columns == self.columns_cats).all()):
-                X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)    
-            else:
-                assert (X_row.columns == self.X.columns).all(), \
-                    "X_row should have the same columns as self.X or self.X_cats!"
-            
-            if col in X_row.columns:
+
+            if matching_cols(X_row.columns, self.merged_cols):
                 col_value = X_row[col].item()
-            elif col in self.onehot_cols:
-                col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col]).item()
+                X_row = X_cats_to_X(X_row, self.onehot_dict, self.columns)    
+            else:
+                assert matching_cols(X_row.columns, self.columns), \
+                    "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
+                if col in self.onehot_cols:
+                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col]).item()
+                else:
+                    col_value = X_row[col].item()
 
             if self.is_classifier:
                 if pos_label is None:
@@ -685,38 +633,27 @@ class BaseExplainer(ABC):
         """Permutation importances """
         if not hasattr(self, '_perm_imps'):
             print("Calculating importances...", flush=True)
-            self._perm_imps = cv_permutation_importances(
+            self._perm_imps = (cv_permutation_importances(
                                 self.model, self.X, self.y, self.metric,
-                                cv=self.permutation_cv,
-                                n_jobs=self.n_jobs,
-                                needs_proba=self.is_classifier)
-        return make_callable(self._perm_imps)
-
-    @property
-    def permutation_importances_cats(self):
-        """permutation importances with categoricals grouped"""
-        if not hasattr(self, '_perm_imps_cats'):
-            self._perm_imps_cats = cv_permutation_importances(
-                                self.model, self.X, self.y, self.metric, 
                                 onehot_dict=self.onehot_dict,
                                 cv=self.permutation_cv,
                                 n_jobs=self.n_jobs,
                                 needs_proba=self.is_classifier)
-        return make_callable(self._perm_imps_cats)
+                                .sort_values("Importance", ascending=False))
+            self._perm_imps = make_callable(self._perm_imps)                 
+        return self._perm_imps
 
     @property
     def X_cats(self):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
-            self._X_cats = merge_categorical_columns(self.X, self.onehot_dict)
+            self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, drop_regular=True)
+            self._X_cats = self._X_cats.set_index(self.X.index)
         return self._X_cats
 
     @property
-    def columns_cats(self):
-        """columns of X with categorical features grouped"""
-        if not hasattr(self, '_columns_cats'):
-            self._columns_cats = self.regular_cols + self.X_cats.columns.tolist()
-        return self._columns_cats
+    def X_merged(self):
+        return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
 
     @property
     def shap_base_value(self):
@@ -727,7 +664,7 @@ class BaseExplainer(ABC):
         if not hasattr(self, '_shap_base_value'):
             # CatBoost needs shap values calculated before expected value
             if not hasattr(self, "_shap_values"):
-                _ = self.shap_values
+                _ = self.shap_values_df
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
                 # shap library now returns an array instead of float
@@ -735,21 +672,17 @@ class BaseExplainer(ABC):
         return make_callable(self._shap_base_value)
 
     @property
-    def shap_values(self):
+    def shap_values_df(self):
         """SHAP values calculated using the shap library"""
-        if not hasattr(self, '_shap_values'):
+        if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
-            self._shap_values = pd.DataFrame(self.shap_explainer.shap_values(self.X).astype(self.precision), columns=self.columns)
-        return make_callable(self._shap_values)
+            self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
+                                    columns=self.columns, index=self.X.index)
+            self._shap_values_df = merge_categorical_shap_values(
+                    self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
+            self._shap_values_df = make_callable(self._shap_values_df)
+        return self._shap_values_df
     
-    @property
-    def shap_values_cats(self):
-        """SHAP values when categorical features have been grouped"""
-        if not hasattr(self, '_shap_values_cats'):
-            self._shap_values_cats = merge_categorical_shap_values(
-                        self.X, self.shap_values, self.onehot_dict).astype(self.precision)
-        return make_callable(self._shap_values_cats)
-
     @property
     def shap_interaction_values(self):
         """SHAP interaction values calculated using shap library"""
@@ -765,41 +698,25 @@ class BaseExplainer(ABC):
                     "reducing these will speed up the calculation.", 
                     flush=True)
             self._shap_interaction_values = \
-                self.shap_explainer.shap_interaction_values(self.X).astype(self.precision)
-        return make_callable(self._shap_interaction_values)
-
-    @property
-    def shap_interaction_values_cats(self):
-        """SHAP interaction values with categorical features grouped"""
-        if not hasattr(self, '_shap_interaction_values_cats'):
-            self._shap_interaction_values_cats = \
+                self.shap_explainer.shap_interaction_values(self.X)
+            self._shap_interaction_values = \
                 merge_categorical_shap_interaction_values(
-                    self.shap_interaction_values, self.columns, self.columns_cats, 
+                    self.shap_interaction_values, self.columns, self.merged_cols, 
                     self.onehot_dict).astype(self.precision)
-        return make_callable(self._shap_interaction_values_cats)
+            self._shap_interaction_values = make_callable(self._shap_interaction_values) 
+        return self._shap_interaction_values
 
     @property
-    def mean_abs_shap(self):
+    def mean_abs_shap_df(self):
         """Mean absolute SHAP values per feature."""
         if not hasattr(self, '_mean_abs_shap'):
-            self._mean_abs_shap = (self.shap_values.abs().mean()
+            self._mean_abs_shap_df = (self.shap_values_df[self.merged_cols].abs().mean()
                     .sort_values(ascending=False)
                     .to_frame().rename_axis(index="Feature").reset_index()
                     .rename(columns={0:"MEAN_ABS_SHAP"}))
-        return make_callable(self._mean_abs_shap)
+            self._mean_abs_shap_df = make_callable(self._mean_abs_shap_df)
+        return self._mean_abs_shap_df
 
-    @property
-    def mean_abs_shap_cats(self):
-        """Mean absolute SHAP values with categoricals grouped."""
-        if not hasattr(self, '_mean_abs_shap_cats'):
-            mean_abs_cats = (self.shap_values_cats.abs().mean()
-                    .to_frame().rename_axis(index="Feature").reset_index()
-                    .rename(columns={0:"MEAN_ABS_SHAP"}))
-
-            self._mean_abs_shap_cats = (pd.concat([
-                    mean_abs_cats, self.mean_abs_shap[self.mean_abs_shap.Feature.isin(self.regular_cols)]])
-                    .sort_values("MEAN_ABS_SHAP", ascending=False))
-        return make_callable(self._mean_abs_shap_cats)
 
     def calculate_properties(self, include_interactions=True):
         """Explicitely calculates all lazily calculated properties.
@@ -815,17 +732,14 @@ class BaseExplainer(ABC):
 
         """
         _ = (self.preds,  self.pred_percentiles,
-                self.shap_base_value, self.shap_values,
-                self.mean_abs_shap)
+                self.shap_base_value, self.shap_values_df,
+                self.mean_abs_shap_df)
         if not self.y_missing:
             _ = self.permutation_importances
         if self.onehot_cols:
-            _ = (self.mean_abs_shap_cats, self.X_cats,
-                    self.shap_values_cats)
+            _ = self.X_cats
         if self.interactions_should_work and include_interactions:
             _ = self.shap_interaction_values
-            if self.onehot_cols:
-                _ = self.shap_interaction_values_cats
 
     def metrics(self, *args, **kwargs):
         """returns a dict of metrics.
@@ -834,33 +748,29 @@ class BaseExplainer(ABC):
         """
         return {}
     
-    def mean_abs_shap_df(self, topx=None, cutoff=None, cats=False, pos_label=None):
+    def get_mean_abs_shap_df(self, topx=None, cutoff=None, pos_label=None):
         """sorted dataframe with mean_abs_shap
         
         returns a pd.DataFrame with the mean absolute shap values per features,
         sorted rom highest to lowest.
 
         Args:
-          topx(int, optional, optional): Only return topx most importance features, defaults to None
-          cutoff(float, optional, optional): Only return features with mean abs shap of at least cutoff, defaults to None
-          cats(bool, optional, optional): group categorical variables, defaults to False
+          topx(int, optional, optional): Only return topx most importance 
+            features, defaults to None
+          cutoff(float, optional, optional): Only return features with mean 
+            abs shap of at least cutoff, defaults to None
           pos_label:  (Default value = None)
 
         Returns:
           pd.DataFrame: shap_df
 
         """
-        if cats:
-            shap_df = self.mean_abs_shap_cats(pos_label)
-        else:
-            shap_df = self.mean_abs_shap(pos_label)
-
+        shap_df = self.mean_abs_shap_df(pos_label)
         if topx is None: topx = len(shap_df)
         if cutoff is None: cutoff = shap_df['MEAN_ABS_SHAP'].min()
-        return (shap_df[shap_df['MEAN_ABS_SHAP'] >= cutoff]
-                    .sort_values('MEAN_ABS_SHAP', ascending=False).head(topx))
+        return (shap_df[shap_df['MEAN_ABS_SHAP'] >= cutoff].head(topx))
 
-    def shap_top_interactions(self, col, topx=None, cats=False, pos_label=None):
+    def top_shap_interactions(self, col, topx=None, pos_label=None):
         """returns the features that interact with feature col in descending order.
         
         if shap interaction values have already been calculated, use those.
@@ -876,69 +786,40 @@ class BaseExplainer(ABC):
           list: top_interactions
 
         """
-        if col in self.onehot_cols:
-            cats = True
-        if cats:
-            if hasattr(self, '_shap_interaction_values'):
-                _ = self.shap_interaction_values_cats
-                col_idx = self.columns_cats.index(col)
-                order = np.argsort(-np.abs(self.shap_interaction_values_cats(pos_label)[:, col_idx, :]).mean(0))
-                top_interactions = np.array(self.columns_cats)[order].tolist()
-            else:
-                top_interactions = self.columns_ranked_by_shap(cats)
-                top_interactions.insert(0, top_interactions.pop(
-                    top_interactions.index(col))) #put col first
-
-            if topx is None: 
-                return top_interactions
-            else:
-                return top_interactions[:topx]
+        if hasattr(self, '_shap_interaction_values'):
+            col_idx = self.merged_cols.get_loc(col)
+            order = np.argsort(-np.abs(self.shap_interaction_values(pos_label)[:, col_idx, :]).mean(0))
+            top_interactions = self.merged_cols[order].tolist()
         else:
-            if hasattr(self, '_shap_interaction_values'):
-                col_idx = self.columns.index(col)
-                order = np.argsort(-np.abs(self.shap_interaction_values(pos_label)[:, col_idx, :]).mean(0))
-                top_interactions = self.X.columns[order].tolist()
-            else:
-                if hasattr(shap, "utils"):
-                    interaction_idxs = shap.utils.approximate_interactions(
-                        col, self.shap_values(pos_label), self.X)
-                elif hasattr(shap, "common"):
-                    # shap < 0.35 has approximate interactions in common module
-                    interaction_idxs = shap.common.approximate_interactions(
-                        col, self.shap_values(pos_label), self.X)
+            top_interactions = self.columns_ranked_by_shap()
+            top_interactions.insert(0, top_interactions.pop(
+                top_interactions.index(col))) #put col first
 
-                top_interactions = self.X.columns[interaction_idxs].tolist()
-                #put col first
-                top_interactions.insert(0, top_interactions.pop(-1)) 
+        if topx is None: 
+            return top_interactions
+        else:
+            return top_interactions[:topx]
 
-            if topx is None: 
-                return top_interactions
-            else:
-                return top_interactions[:topx]
-
-    def shap_interaction_values_by_col(self, col, cats=False, pos_label=None):
+    def shap_interaction_values_for_col(self, col, interact_col=None, pos_label=None):
         """returns the shap interaction values[np.array(N,N)] for feature col
 
         Args:
           col(str): features for which you'd like to get the interaction value
-          cats(bool, optional, optional): group categorical, defaults to False
           pos_label:  (Default value = None)
 
         Returns:
           np.array(N,N): shap_interaction_values
 
         """
-        if cats:
-            assert col in self.columns_cats, \
-                f"{col} not found in columns_cats!"
-            return self.shap_interaction_values_cats(pos_label)[:,
-                        self.columns_cats.index(col), :]
+        assert col in self.merged_cols, f"{col} not in self.merged_cols!"
+        if interact_col is None:
+            return self.shap_interaction_values(pos_label)[:, self.merged_cols.get_loc(col), :]
         else:
-            return self.shap_interaction_values(pos_label)[:,
-                        self.X.columns.get_loc(col), :]
+            assert interact_col in self.merged_cols, f"{interact_col} not in self.merged_cols!"
+            return self.shap_interaction_values(pos_label)[
+                :, self.merged_cols.get_loc(col), self.merged_cols.get_loc(interact_col)]
 
-    def permutation_importances_df(self, topx=None, cutoff=None, cats=False, 
-                                    pos_label=None):
+    def get_permutation_importances_df(self, topx=None, cutoff=None, pos_label=None):
         """dataframe with features ordered by permutation importance.
         
         For more about permutation importances.
@@ -950,31 +831,25 @@ class BaseExplainer(ABC):
                 features, defaults to None
           cutoff(float, optional, optional): only return features with importance 
                 of at least cutoff, defaults to None
-          cats(bool, optional, optional): Group categoricals, defaults to False
           pos_label:  (Default value = None)
 
         Returns:
           pd.DataFrame: importance_df
 
         """
-        if cats:
-            importance_df = self.permutation_importances_cats(pos_label)
-        else:
-            importance_df = self.permutation_importances(pos_label)
+        importance_df = self.permutation_importances(pos_label)
 
         if topx is None: topx = len(importance_df)
         if cutoff is None: cutoff = importance_df.Importance.min()
         return importance_df[importance_df.Importance >= cutoff].head(topx)
 
-    def importances_df(self, kind="shap", topx=None, cutoff=None, cats=False, 
-                        pos_label=None):
-        """wrapper function for mean_abs_shap_df() and permutation_importance_df()
+    def get_importances_df(self, kind="shap", topx=None, cutoff=None, pos_label=None):
+        """wrapper function for get_mean_abs_shap_df() and get_permutation_importance_df()
 
         Args:
           kind(str): 'shap' or 'permutations'  (Default value = "shap")
           topx: only display topx highest features (Default value = None)
           cutoff: only display features above cutoff (Default value = None)
-          cats: Group categoricals (Default value = False)
           pos_label: Positive class (Default value = None)
 
         Returns:
@@ -984,12 +859,12 @@ class BaseExplainer(ABC):
         assert kind=='shap' or kind=='permutation', \
                 "kind should either be 'shap' or 'permutation'!"
         if kind=='permutation':
-            return self.permutation_importances_df(topx, cutoff, cats, pos_label)
+            return self.get_permutation_importances_df(topx, cutoff, pos_label)
         elif kind=='shap':
-            return self.mean_abs_shap_df(topx, cutoff, cats, pos_label)
+            return self.get_mean_abs_shap_df(topx, cutoff, pos_label)
 
-    def contrib_df(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, sort='abs',
-                    pos_label=None):
+    def contrib_df(self, index=None, X_row=None, topx=None, cutoff=None, 
+                    sort='abs', pos_label=None):
         """shap value contributions to the prediction for index.
         
         Used as input for the plot_contributions() method.
@@ -998,7 +873,6 @@ class BaseExplainer(ABC):
           index(int or str): index for which to calculate contributions
           X_row (pd.DataFrame, single row): single row of feature for which
                 to calculate contrib_df. Can us this instead of index
-          cats(bool, optional, optional): Group categoricals, defaults to True
           topx(int, optional, optional): Only return topx features, remainder 
                     called REST, defaults to None
           cutoff(float, optional, optional): only return features with at least 
@@ -1018,53 +892,41 @@ class BaseExplainer(ABC):
 
         if sort =='importance':
             if cutoff is None:
-                cols = self.columns_ranked_by_shap(cats)
+                cols = self.columns_ranked_by_shap()
             else:
-                cols = self.mean_abs_shap_df(cats=cats).query(f"MEAN_ABS_SHAP > {cutoff}").Feature.tolist()
+                cols = self.mean_abs_shap_df().query(f"MEAN_ABS_SHAP > {cutoff}").Feature.tolist()
             if topx is not None:
                 cols = cols[:topx]
         else:
             cols =  None
+        if index is not None:
+            X_row = self.get_X_row(index)
         if X_row is not None:
-            if ((len(X_row.columns) == len(self.columns_cats)) and 
-                (X_row.columns == self.columns_cats).all()):
-                X_row_cats = X_row  
+            if matching_cols(X_row.columns, self.merged_cols):
+                X_row_merged = X_row  
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)       
             else:
-                assert (X_row.columns == self.X.columns).all(), \
-                    "X_row should have the same columns as self.X or self.X_cats!"
-                X_row_cats = merge_categorical_columns(X_row, self.onehot_dict, drop_regular=False)[self.columns_cats]
+                assert matching_cols(X_row.columns, self.columns), \
+                    "X_row should have the same columns as self.X or self.merged_cols!"
+                X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, drop_regular=False)[self.merged_cols]
 
             shap_values = self.shap_explainer.shap_values(X_row)
             if self.is_classifier:
                 if not isinstance(shap_values, list) and len(self.labels)==2:
                     shap_values = [-shap_values, shap_values]
                 shap_values = shap_values[self.get_pos_label_index(pos_label)]
+            shap_values_df = pd.DataFrame(shap_values, columns=self.columns)
 
-            if cats:
-                shap_values_cats = merge_categorical_shap_values(X_row, shap_values, 
-                                        self.onehot_dict, self.columns_cats)
-                return get_contrib_df(self.shap_base_value(pos_label), shap_values_cats[0], 
-                            remove_cat_names(X_row_cats, self.onehot_dict), 
-                            topx, cutoff, sort, cols)   
-            else:
-                return get_contrib_df(self.shap_base_value(pos_label), shap_values[0], 
-                            X_row, topx, cutoff, sort, cols)  
-        elif index is not None:
-            idx = self.get_int_idx(index)
-            if cats:
-                return get_contrib_df(self.shap_base_value(pos_label), 
-                                        self.shap_values_cats(pos_label)[idx],
-                                        remove_cat_names(self.X_cats.iloc[[idx]], self.onehot_dict), 
-                                        topx, cutoff, sort, cols)
-            else:
-                return get_contrib_df(self.shap_base_value(pos_label), 
-                                        self.shap_values(pos_label)[idx],
-                                        self.X.iloc[[idx]], topx, cutoff, sort, cols)
+            shap_values_df = merge_categorical_shap_values(shap_values_df, 
+                                    self.onehot_dict, self.merged_cols)
+            return get_contrib_df(self.shap_base_value(pos_label), shap_values_df.values[0], 
+                        remove_cat_names(X_row_merged, self.onehot_dict), 
+                        topx, cutoff, sort, cols)   
+
         else:
             raise ValueError("Either index or X_row should be passed!")
 
-    def contrib_summary_df(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, 
+    def contrib_summary_df(self, index=None, X_row=None, topx=None, cutoff=None, 
                             round=2, sort='abs', pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format
 
@@ -1072,7 +934,6 @@ class BaseExplainer(ABC):
           index: index to show contrib_summary_df for
           X_row (pd.DataFrame, single row): single row of feature for which
                 to calculate contrib_df. Can us this instead of index
-          cats: Group categoricals (Default value = True)
           topx: Only show topx highest features(Default value = None)
           cutoff: Only show features above cutoff (Default value = None)
           round: round figures (Default value = 2)
@@ -1085,18 +946,16 @@ class BaseExplainer(ABC):
         Returns:
           pd.DataFrame
         """
-        idx = self.get_int_idx(index) # if passed str convert to int index
-        return get_contrib_summary_df(
-                    self.contrib_df(idx, X_row, cats, topx, cutoff, sort, pos_label), 
-                model_output=self.model_output, round=round, units=self.units, na_fill=self.na_fill)
+        contrib_df = self.contrib_df(index, X_row, topx, cutoff, sort, pos_label)
+        return get_contrib_summary_df(contrib_df, model_output=self.model_output, 
+                        round=round, units=self.units, na_fill=self.na_fill)
 
-    def interactions_df(self, col, cats=False, topx=None, cutoff=None, 
+    def interactions_df(self, col, topx=None, cutoff=None, 
                             pos_label=None):
         """dataframe of mean absolute shap interaction values for col
 
         Args:
           col: Feature to get interactions_df for
-          cats: Group categoricals (Default value = False)
           topx: Only display topx most important features (Default value = None)
           cutoff: Only display features with mean abs shap of at least cutoff (Default value = None)
           pos_label: Positive class  (Default value = None)
@@ -1105,50 +964,12 @@ class BaseExplainer(ABC):
           pd.DataFrame
 
         """
-        importance_df = get_absolute_shap_df(
-            self.columns_cats if cats else self.columns, 
-            self.shap_interaction_values_by_col(col, cats, pos_label))
+        importance_df = get_mean_absolute_shap_df(self.merged_cols, 
+            self.shap_interaction_values_for_col(col, pos_label))
 
         if topx is None: topx = len(importance_df)
-        if cutoff is None: cutoff = importance_df.MEAN_ABS_SHAP.min()
-        return importance_df[importance_df.MEAN_ABS_SHAP >= cutoff].head(topx)
-    
-    def formatted_contrib_df(self, index, round=None, lang='en', pos_label=None):
-        """contrib_df formatted in a particular idiosyncratic way.
-        
-        Additional language option for output in Dutch (lang='nl')
-
-        Args:
-          index(str or int): index to return contrib_df for
-          round(int, optional, optional): rounding of continuous features, defaults to 2
-          lang(str, optional, optional): language to name the columns, defaults to 'en'
-          pos_label:  (Default value = None)
-
-        Returns:
-          pd.DataFrame: formatted_contrib_df
-        """
-        cdf = self.contrib_df(index, cats=True, pos_label=pos_label).copy()
-        cdf.reset_index(inplace=True)
-        cdf.loc[cdf.col=='base_value', 'value'] = np.nan
-        cdf['row_id'] = self.get_int_idx(index)
-        cdf['name_id'] = index
-        cdf['cat_value'] = np.where(cdf.col.isin(self.onehot_cols), cdf.value, np.nan)
-        cdf['cont_value'] = np.where(cdf.col.isin(self.onehot_cols), np.nan, cdf.value)
-        if round is not None:
-            rounded_cont = np.round(cdf['cont_value'].values.astype(float), round)
-            cdf['value'] = np.where(cdf.col.isin(self.onehot_cols), cdf.cat_value, rounded_cont)
-        cdf['type'] = np.where(cdf.col.isin(self.onehot_cols), 'cat', 'cont')
-        cdf['abs_contribution'] = np.abs(cdf.contribution)
-        cdf = cdf[['row_id', 'name_id', 'contribution', 'abs_contribution',
-                    'col', 'value', 'cat_value', 'cont_value', 'type', 'index']]
-        if lang == 'nl':
-            cdf.columns = ['row_id', 'name_id', 'SHAP', 'ABS_SHAP', 'Variabele', 'Waarde',
-                            'Cat_Waarde', 'Cont_Waarde', 'Waarde_Type', 'Variabele_Volgorde']
-            return cdf
-
-        cdf.columns = ['row_id', 'name_id', 'SHAP', 'ABS_SHAP', 'Feature', 'Value',
-                        'Cat_Value', 'Cont_Value', 'Value_Type', 'Feature_Order']
-        return cdf
+        if cutoff is None: cutoff = importance_df['MEAN_ABS_SHAP'].min()
+        return importance_df[importance_df['MEAN_ABS_SHAP'] >= cutoff].head(topx)
 
     def pdp_df(self, col, index=None, X_row=None, drop_na=True, sample=500, 
                     n_grid_points=10, pos_label=None, sort='freq'):
@@ -1218,12 +1039,11 @@ class BaseExplainer(ABC):
                     self.X[(self.X.index!=index)].sample(sample_size)],
                     ignore_index=True, axis=0)
         elif X_row is not None:
-            if ((len(X_row.columns) == len(self.columns_cats)) and 
-                (X_row.columns == self.columns_cats).all()):
+            if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)    
             else:
-                assert (X_row.columns == self.X.columns).all(), \
-                    "X_row should have the same columns as self.X or self.X_cats!"
+                assert matching_cols(X_row.columns, self.columns), \
+                    "X_row should have the same columns as self.X or self.merged_cols!"
 
             if isinstance(features, str) and drop_na: # regular col, not onehotencoded
                 sample_size=min(sample, len(self.X[(self.X[features] != self.na_fill)])-1)
@@ -1257,93 +1077,13 @@ class BaseExplainer(ABC):
             pdp_df = pdp_df.multiply(100)
         return pdp_df
 
-    def get_dfs(self, cats=True, round=None, lang='en', pos_label=None):
-        """return three summary dataframes for storing main results
-        
-        Returns three pd.DataFrames. The first with id, prediction, actual and
-        feature values, the second with only id and shap values. The third
-        is similar to contrib_df for every id.
-        These can then be used to build your own custom dashboard on these data,
-        for example using PowerBI.
-
-        Args:
-          cats(bool, optional, optional): group categorical variables, defaults to True
-          round(int, optional, optional): how to round shap values (Default value = None)
-          lang(str, optional, optional): language to format dfs in. Defaults to 'en', 'nl' also available
-          pos_label:  (Default value = None)
-
-        Returns:
-          pd.DataFrame, pd.DataFrame, pd.DataFrame: cols_df, shap_df, contribs_df
-
-        """
-        if cats:
-            cols_df = self.X_cats.copy()
-            shap_df = pd.DataFrame(self.shap_values_cats(pos_label), columns = self.X_cats.columns)
-        else:
-            cols_df = self.X.copy()
-            shap_df = pd.DataFrame(self.shap_values(pos_label), columns = self.X.columns)
-
-        actual_str = 'Uitkomst' if lang == 'nl' else 'Actual'
-        prediction_str = 'Voorspelling' if lang == 'nl' else 'Prediction'
-        
-        cols_df.insert(0, actual_str, self.y )
-        if self.is_classifier:
-            cols_df.insert(0, prediction_str, self.pred_probas)
-        else:
-            cols_df.insert(0, prediction_str, self.preds)
-        cols_df.insert(0, 'name_id', self.idxs)
-        cols_df.insert(0, 'row_id', range(len(self)))
- 
-        shap_df.insert(0, 'SHAP_base', np.repeat(self.shap_base_value, len(self)))
-        shap_df.insert(0, 'name_id', self.idxs)
-        shap_df.insert(0, 'row_id', range(len(self)))
-
-
-        contribs_df = None
-        for idx in range(len(self)):
-            fcdf = self.formatted_contrib_df(idx, round=round, lang=lang)
-            if contribs_df is None: contribs_df = fcdf
-            else: contribs_df = pd.concat([contribs_df, fcdf])
-
-        return cols_df, shap_df, contribs_df
-
-    def to_sql(self, conn, schema, name, if_exists='replace',
-                cats=True, round=None, lang='en', pos_label=None):
-        """Writes three dataframes generated by .get_dfs() to a sql server.
-        
-        Tables will be called name_COLS and name_SHAP and name_CONTRBIB
-
-        Args:
-          conn(sqlalchemy.engine.Engine or sqlite3.Connection):     
-                    database connecter acceptable for pd.to_sql
-          schema(str): schema to write to
-          name(str): name prefix of tables
-          cats(bool, optional, optional): group categorical variables, defaults to True
-          if_exists({'fail’, ‘replace’, ‘append’}, default ‘replace’, optional): 
-                    How to behave if the table already exists. (Default value = 'replace')
-          round(int, optional, optional): how to round shap values (Default value = None)
-          lang(str, optional, optional): language to format dfs in. Defaults to 'en', 'nl' also available
-          pos_label:  (Default value = None)
-
-        Returns:
-
-        """
-        cols_df, shap_df, contribs_df = self.get_dfs(cats, round, lang, pos_label)
-        cols_df.to_sql(con=conn, schema=schema, name=name+"_COLS",
-                        if_exists=if_exists, index=False)
-        shap_df.to_sql(con=conn, schema=schema, name=name+"_SHAP",
-                        if_exists=if_exists, index=False)
-        contribs_df.to_sql(con=conn, schema=schema, name=name+"_CONTRIB",
-                        if_exists=if_exists, index=False)
-
-    def plot_importances(self, kind='shap', topx=None, cats=False, round=3, pos_label=None):
+    def plot_importances(self, kind='shap', topx=None,  round=3, pos_label=None):
         """plot barchart of importances in descending order.
 
         Args:
           type(str, optional): shap' for mean absolute shap values, 'permutation' for
                     permutation importances, defaults to 'shap'
           topx(int, optional, optional): Only return topx features, defaults to None
-          cats(bool, optional, optional): Group categoricals defaults to False
           kind:  (Default value = 'shap')
           round:  (Default value = 3)
           pos_label:  (Default value = None)
@@ -1352,7 +1092,7 @@ class BaseExplainer(ABC):
           plotly.fig: fig
 
         """
-        importances_df = self.importances_df(kind=kind, topx=topx, cats=cats, pos_label=pos_label)
+        importances_df = self.get_importances_df(kind=kind, topx=topx, pos_label=pos_label)
         if kind=='shap':
             if self.target: 
                 title = f"Average impact on predicted {self.target}<br>(mean absolute SHAP value)"
@@ -1370,12 +1110,11 @@ class BaseExplainer(ABC):
             return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
 
-    def plot_interactions(self, col, cats=False, topx=None, pos_label=None):
+    def plot_interactions(self, col, topx=None, pos_label=None):
         """plot mean absolute shap interaction value for col.
 
         Args:
           col: column for which to generate shap interaction value
-          cats(bool, optional, optional): Group categoricals defaults to False
           topx(int, optional, optional): Only return topx features, defaults to None
           pos_label:  (Default value = None)
 
@@ -1383,13 +1122,11 @@ class BaseExplainer(ABC):
           plotly.fig: fig
 
         """
-        if col in self.onehot_cols:
-            cats = True
-        interactions_df = self.interactions_df(col, cats=cats, topx=topx, pos_label=pos_label)
+        interactions_df = self.interactions_df(col,topx=topx, pos_label=pos_label)
         title = f"Average interaction shap values for {col}"
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
-    def plot_shap_contributions(self, index=None, X_row=None, cats=True, topx=None, cutoff=None, 
+    def plot_shap_contributions(self, index=None, X_row=None, topx=None, cutoff=None, 
                         sort='abs', orientation='vertical', higher_is_better=True,
                         round=2, pos_label=None):
         """plot waterfall plot of shap value contributions to the model prediction for index.
@@ -1399,7 +1136,6 @@ class BaseExplainer(ABC):
           X_row (pd.DataFrame single row): a single row of a features to plot
                 shap contributions for. Can use this instead of index for
                 what-if scenarios.
-          cats(bool, optional, optional): Group categoricals, defaults to True
           topx(int, optional, optional): Only display topx features, 
                         defaults to None
           cutoff(float, optional, optional): Only display features with at least 
@@ -1422,12 +1158,12 @@ class BaseExplainer(ABC):
 
         """
         assert orientation in ['vertical', 'horizontal']
-        contrib_df = self.contrib_df(self.get_int_idx(index), X_row, cats, topx, cutoff, sort, pos_label)
+        contrib_df = self.contrib_df(index, X_row, topx, cutoff, sort, pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
 
-    def plot_shap_summary(self, index=None, topx=None, cats=False, pos_label=None):
+    def plot_shap_summary(self, index=None, topx=None, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
@@ -1436,7 +1172,6 @@ class BaseExplainer(ABC):
         Args:
           index (str or int): index to highlight
           topx(int, optional): Only display topx most important features, defaults to None
-          cats(bool, optional): Group categoricals , defaults to False
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -1460,30 +1195,20 @@ class BaseExplainer(ABC):
             else:
                 title = f"Impact of Feature on Prediction<br> (SHAP values)"
 
-        if cats:
-            return plotly_shap_scatter_plot(
-                                self.shap_values_cats(pos_label),
-                                self.X_cats,
-                                self.importances_df(kind='shap', topx=topx, cats=True, pos_label=pos_label)\
-                                        ['Feature'].values.tolist(), 
-                                idxs=self.idxs.values,
-                                highlight_index=index,
-                                title=title,
-                                na_fill=self.na_fill,
-                                index_name=self.index_name)
-        else:
-            return plotly_shap_scatter_plot(
-                                self.shap_values(pos_label),
-                                self.X,
-                                self.importances_df(kind='shap', topx=topx, cats=False, pos_label=pos_label)\
-                                        ['Feature'].values.tolist(), 
+        cols = self.get_importances_df(kind='shap', topx=topx, pos_label=pos_label)\
+                                        ['Feature'].values.tolist()
+
+        return plotly_shap_scatter_plot(
+                                self.X_merged[cols],
+                                self.shap_values_df(pos_label)[cols],
+                                cols, 
                                 idxs=self.idxs.values,
                                 highlight_index=index,
                                 title=title,
                                 na_fill=self.na_fill,
                                 index_name=self.index_name)
 
-    def plot_shap_interaction_summary(self, col, index=None, topx=None, cats=False, pos_label=None):
+    def plot_shap_interaction_summary(self, col, index=None, topx=None,  pos_label=None):
         """Plot barchart of mean absolute shap interaction values
         
         Displays all individual shap interaction values for each feature in a
@@ -1499,16 +1224,18 @@ class BaseExplainer(ABC):
         Returns:
           fig
         """
-        if col in self.onehot_cols:
-            cats = True
-        interact_cols = self.shap_top_interactions(col, cats=cats, pos_label=pos_label)
+        interact_cols = self.top_shap_interactions(col, pos_label=pos_label)
+
+        shap_df = pd.DataFrame(self.shap_interaction_values_for_col(col, pos_label=pos_label),
+                            columns=self.merged_cols, index=self.idxs)
+                            
+                            
         if topx is None: topx = len(interact_cols)
         title = f"Shap interaction values for {col}"
 
         return plotly_shap_scatter_plot(
-                self.shap_interaction_values_by_col(col, cats=cats, pos_label=pos_label),
-                self.X_cats if cats else self.X, interact_cols[:topx], title=title, 
-                idxs=self.idxs.values, highlight_index=index, na_fill=self.na_fill,
+                self.X_merged, shap_df, interact_cols[:topx], title=title, 
+                idxs=self.idxs, highlight_index=index, na_fill=self.na_fill,
                 index_name=self.index_name)
 
     def plot_shap_dependence(self, col, color_col=None, highlight_index=None, 
@@ -1535,41 +1262,28 @@ class BaseExplainer(ABC):
         Returns:
 
         """
-        cats = self.check_cats(col, color_col)
-        highlight_idx = self.get_int_idx(highlight_index)
         if color_col is None:
             X_color_col = None
         else:
-            X_color_col = self.X_cats[color_col] if color_col in self.onehot_cols else self.X[color_col]
+            X_color_col = self.get_col(color_col)
 
-        if col in self.onehot_cols:
+        if col in self.cat_cols:
             return plotly_shap_violin_plot(
-                            self.X_cats[col], 
-                            self.shap_values_cats(pos_label)[col], 
+                            self.get_col(col), 
+                            self.shap_values_df(pos_label)[col], 
                             X_color_col, 
-                            highlight_index=highlight_idx,
-                            idxs=self.idxs.values,
-                            index_name=self.index_name,
+                            highlight_index=highlight_index,
+                            idxs=self.idxs,
                             cats_order=self.ordered_cats(col, topx, sort))
-        elif col in self.categorical_cols:
-            return plotly_shap_violin_plot(
-                self.X[col], 
-                self.shap_values(pos_label)[col], 
-                X_color_col, 
-                highlight_index=highlight_idx,
-                idxs=self.idxs.values,
-                index_name=self.index_name,
-                cats_order=self.ordered_cats(col, topx, sort))
         else:
             return plotly_dependence_plot(
-                        self.X[col], 
-                        self.shap_values(pos_label)[col],
+                        self.get_col(col), 
+                        self.shap_values_df(pos_label)[col],
                         X_color_col, 
                         na_fill=self.na_fill, 
                         units=self.units, 
-                        highlight_index=highlight_idx,
-                        idxs=self.idxs.values,
-                        index_name=self.index_name)
+                        highlight_index=highlight_index,
+                        idxs=self.idxs)
 
     def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
                                 topx=10, sort='alphabet', pos_label=None):
@@ -1585,22 +1299,23 @@ class BaseExplainer(ABC):
           plotly.Fig: Plotly Fig
 
         """
-        cats = self.check_cats(col, interact_col)
-        highlight_idx = self.get_int_idx(highlight_index)
-
-        if cats and (interact_col in self.onehot_cols or interact_col in self.categorical_cols):
+        
+        if col in self.cat_cols:
             return plotly_shap_violin_plot(
-                self.X_cats, 
-                self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, interaction=True, units=self.units, 
-                highlight_index=highlight_idx, idxs=self.idxs.values,
-                index_name=self.index_name, cats_order=self.ordered_cats(interact_col, topx, sort))
+                self.get_col(col), 
+                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label),
+                self.get_col(interact_col), 
+                interaction=True, units=self.units, 
+                highlight_index=highlight_index, idxs=self.idxs,
+                cats_order=self.ordered_cats(col, topx, sort))
         else:
-            return plotly_dependence_plot(self.X_cats if cats else self.X,
-                self.shap_interaction_values_by_col(col, cats, pos_label=pos_label),
-                interact_col, col, interaction=True, units=self.units,
-                highlight_index=highlight_idx, idxs=self.idxs.values,
-                index_name=self.index_name)
+            return plotly_dependence_plot(
+                self.get_col(col),
+                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label),
+                self.get_col(interact_col), 
+                interaction=True, units=self.units,
+                highlight_index=highlight_index, idxs=self.idxs)
+            
 
     def plot_pdp(self, col, index=None, X_row=None, drop_na=True, sample=100,
                     gridlines=100, gridpoints=10, sort='freq', round=2,
@@ -2508,10 +2223,10 @@ class RegressionExplainer(BaseExplainer):
         self.units = units
         self.is_regression = True
 
-        if str(type(self.model)).endswith("RandomForestRegressor'>"):
+        if safe_is_instance("RandomForestRegressor"):
             print(f"Changing class type to RandomForestRegressionExplainer...", flush=True)
             self.__class__ = RandomForestRegressionExplainer 
-        if str(type(self.model)).endswith("XGBRegressor'>"):
+        if safe_is_instance("XGBRegressor"):
             print(f"Changing class type to XGBRegressionExplainer...", flush=True)
             self.__class__ = XGBRegressionExplainer
 
@@ -2635,7 +2350,7 @@ class RegressionExplainer(BaseExplainer):
         if index is None and X_row is None:
             raise ValueError("You need to either pass an index or X_row!")
         if index is not None:
-            int_idx = self.get_int_idx(index)
+            int_idx = self.get_idx(index)
             preds_df = pd.DataFrame(columns = ["", self.target])
             preds_df = preds_df.append(
                 pd.Series(("Predicted", str(np.round(self.preds[int_idx], round)) + f" {self.units}"), 
@@ -2649,11 +2364,11 @@ class RegressionExplainer(BaseExplainer):
                         index=preds_df.columns), ignore_index=True)
 
         elif X_row is not None:
-            if X_row.columns.tolist()==self.columns_cats:
+            if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns) 
-            assert np.all(X_row.columns==self.X.columns), \
+            assert matching_cols(X_row.columns, self.columns), \
                 ("The column names of X_row should match X! Instead X_row.columns"
-                 f"={X_row.columns.tolist()}...")
+                 f"={X_row.columns}...")
             prediction = self.model.predict(X_row)[0]
             preds_df = pd.DataFrame(columns = ["", self.target])
             preds_df = preds_df.append(
@@ -2702,7 +2417,7 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot predicted vs actual!")
         return plotly_predicted_vs_actual(self.y, self.preds, 
-                target=self.target, units=self.units, idxs=self.idxs.values, 
+                target=self.target, units=self.units, idxs=self.idxs, 
                 logs=logs, log_x=log_x, log_y=log_y, round=round, 
                 index_name=self.index_name)
     
@@ -2721,7 +2436,7 @@ class RegressionExplainer(BaseExplainer):
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot residuals!")
-        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs.values,
+        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
                                      vs_actual=vs_actual, target=self.target, 
                                      units=self.units, residuals=residuals, 
                                      round=round, index_name=self.index_name)
@@ -2746,9 +2461,8 @@ class RegressionExplainer(BaseExplainer):
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot residuals!")
-        assert col in self.columns or col in self.columns_cats, \
-            f'{col} not in columns or columns_cats!'
-        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
+        col_vals = self.get_col(col)
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_residuals_vs_col(
             self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
@@ -2773,9 +2487,8 @@ class RegressionExplainer(BaseExplainer):
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot y vs feature!")
-        assert col in self.columns or col in self.columns_cats, \
-            f'{col} not in columns or columns_cats!'
-        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
+        col_vals = self.get_col(col)
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
                 idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
@@ -2797,9 +2510,8 @@ class RegressionExplainer(BaseExplainer):
         Returns:
           plotly fig
         """
-        assert col in self.columns or col in self.columns_cats, \
-            f'{col} not in columns or columns_cats!'
-        col_vals = self.X_cats[col] if self.check_cats(col) else self.X[col]
+        assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
+        col_vals = self.get_col(col)
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
                 idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
