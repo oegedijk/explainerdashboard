@@ -327,7 +327,9 @@ class ExplainerComponent(ABC):
         compute properties multiple times in parallel."""
         for dep in self.dependencies:
             try:
-                _ = getattr(self.explainer, dep)
+                attribute = getattr(self.explainer, dep)
+                if callable(attribute):
+                    _ = attribute()
             except:
                 ValueError(f"Failed to generate dependency '{dep}': "
                     "Failed to calculate or retrieve explainer property explainer.{dep}...")

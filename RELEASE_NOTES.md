@@ -1,5 +1,28 @@
 # Release Notes
 
+
+## 0.3.0:
+
+### Breaking Changes
+- 
+- 
+
+### New Features
+- new `memory_usage()` method
+- added `max_cat_colors` parameters to `plot_shap_summary` and `plot_shap_dependence` and `plot_shap_interaction`
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- encoding onehot columns with np.int8
+- adds
+
+### Other Changes
+-
+-
+
 ## 0.2.20.1:
 
 

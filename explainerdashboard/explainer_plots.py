@@ -24,7 +24,7 @@ __all__= [
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_string_dtype
+from pandas.api.types import is_numeric_dtype
 
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
@@ -33,7 +33,7 @@ from sklearn.metrics import (classification_report, confusion_matrix,
                              precision_recall_curve, roc_curve, 
                              roc_auc_score, average_precision_score)
 
-from .explainer_methods import matching_cols
+from .explainer_methods import matching_cols, safe_isinstance
 
 
 def plotly_prediction_piechart(predictions_df, showlegend=True, size=250):
@@ -840,7 +840,7 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
 
 def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False, 
         interaction=False, units="", highlight_index=None, idxs=None,
-        cats_order=None):
+        cats_order=None, max_cat_colors=5):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
 
@@ -897,24 +897,27 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
     fig.update_yaxes(range=[shap_values.min()-0.1*shap_range, shap_values.max()+0.1*shap_range])  
     
     if X_color_col is not None:
-        color_cats = X_color_col.unique()
+        color_cats = list(X_color_col.value_counts().index[:max_cat_colors])
         n_color_cats = len(color_cats)
         colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
                     '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
         colors = colors * (1+int(n_color_cats / len(colors)))
         colors = colors[:n_color_cats]
-        show_legend = set(color_cats)
+        show_legend = set(color_cats+["Category_Other"])
 
     for i, cat in enumerate(cats_order):
         col = 1+i*2 if points or X_color_col is not None else 1+i
+        if cat.startswith(X_col.name+"_"):
+            cat_name = cat[len(X_col.name)+1:]
+        else:
+            cat_name = cat
         fig.add_trace(go.Violin(
-                            x=X_col[X_col == cat],
+                            x=np.repeat(cat_name, len(X_col[X_col == cat])),
                             y=shap_values[X_col == cat],
-                            name=cat,
+                            name=cat_name,
                             box_visible=True,
                             meanline_visible=True,  
-                            showlegend=False,
-                               ),
+                            showlegend=False),
                      row=1, col=col)
         if X_color_col is not None:
             if is_numeric_dtype(X_color_col):
@@ -930,7 +933,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                                                         shap_values[X_col == cat], 
                                                                         X_color_col[X_col==cat])],
                                 marker=dict(size=7, 
-                                        opacity=0.6,
+                                        opacity=0.3,
                                         cmin=X_color_col.min(),
                                         cmax=X_color_col.max(),
                                         color=X_color_col[X_col==cat],
@@ -941,25 +944,48 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                          row=1, col=col+1)
             else:
                 for color_cat, color in zip(color_cats, colors):
+                    if color_cat.startswith(X_color_col.name+"_"):
+                        color_cat_name = color_cat[len(X_color_col.name)+1:]
+                    else:
+                        color_cat_name = color_cat
+            
                     fig.add_trace(go.Scattergl(
                                     x=np.random.randn(((X_col == cat) & (X_color_col == color_cat)).sum()),
                                     y=shap_values[(X_col == cat) & (X_color_col == color_cat)],
-                                    name=color_cat,
+                                    name=color_cat_name,
                                     mode='markers',
                                     showlegend=color_cat in show_legend,
                                     hoverinfo="text",
-                                    text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
-                                                for index, shap, col in zip(
+                                    text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {color_cat_name}" 
+                                                for index, shap in zip(
                                                                 idxs[(X_col == cat) & (X_color_col == color_cat)], 
-                                                                shap_values[(X_col == cat) & (X_color_col == color_cat)], 
-                                                                X_color_col[(X_col == cat) & (X_color_col == color_cat)])],
+                                                                shap_values[(X_col == cat) & (X_color_col == color_cat)])],
                                     marker=dict(size=7, 
-                                                opacity=0.8,
+                                                opacity=0.3,
                                                 color=color)           
                                     ),
                              row=1, col=col+1)
                     if color_cat in X_color_col[X_col==cat].unique():
                         show_legend = show_legend - {color_cat}
+                if X_color_col.nunique() > max_cat_colors:
+                    fig.add_trace(go.Scattergl(
+                                        x=np.random.randn(((X_col == cat) & (~X_color_col.isin(color_cats))).sum()),
+                                        y=shap_values[(X_col == cat) & (~X_color_col.isin(color_cats))],
+                                        name="Other",
+                                        mode='markers',
+                                        showlegend="Category_Other" in show_legend,
+                                        hoverinfo="text",
+                                        text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
+                                                    for index, shap, col in zip(
+                                                                    idxs[(X_col == cat) & (~X_color_col.isin(color_cats))], 
+                                                                    shap_values[(X_col == cat) & (~X_color_col.isin(color_cats))],
+                                                                    X_color_col[(X_col == cat) & (~X_color_col.isin(color_cats))])],
+                                        marker=dict(size=7, 
+                                                    opacity=0.3,
+                                                    color="grey")           
+                                        ),
+                                 row=1, col=col+1)
+                    show_legend = show_legend - {"Category_Other"}
                     
             showscale = False
         elif points:
@@ -1448,7 +1474,7 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
 
 
 def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Shap values", 
-                idxs=None, highlight_index=None, na_fill=-999, round=3, index_name="index"):
+                idxs=None, highlight_index=None, na_fill=-999, round=3, max_cat_colors=5):
     """Generate a shap values summary plot where features are ranked from
     highest mean absolute shap value to lowest, with point clouds shown
     for each feature. 
@@ -1481,6 +1507,7 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
         idxs = pd.Index(idxs).astype(str)
     else:
         idxs = X.index.astype(str)
+    index_name = idxs.name
         
     length = len(X)
     if highlight_index is not None:
@@ -1532,27 +1559,54 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
                             ),
                      row=i+1, col=1);
         else: 
-            # if str type then categorical variable, 
-            # so plot each category in a different color:
-            for onehot_col in X[col].unique().tolist():
+            color_cats = list(X[col].value_counts().index[:max_cat_colors])
+            n_color_cats = len(color_cats)
+            colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
+                        '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+            colors = colors * (1+int(n_color_cats / len(colors)))
+            colors = colors[:n_color_cats]
+            for cat, color in zip(color_cats, colors):
                 fig.add_trace(go.Scattergl(
-                                x=shap_values_df[X[col]==onehot_col][col],
-                                y=np.random.rand(len(shap_values_df[X[col]==onehot_col])),
+                                x=shap_values_df[col][X[col]==cat],
+                                y=np.random.rand((X[col]==cat).sum()),
                                 mode='markers',
                                 marker=dict(
                                       size=5,
                                       showscale=False,
                                       opacity=0.3,
+                                      color=color,
                                   ),
-                                name=onehot_col,
+                                name=cat,
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{index_name}={i}<br>{col}={onehot_col}<br>shap={np.round(shap,3)}" 
-                                      for i, shap in zip(idxs[X[col]==onehot_col], shap_values_df[X[col]==onehot_col][col])],
+                                text=[f"{index_name}={i}<br>{col}={cat}<br>shap={np.round(shap,3)}" 
+                                      for i, shap in zip(idxs[X[col]==cat], 
+                                            shap_values_df[col][X[col]==cat])],
                                 ),
-                     row=i+1, col=1);
-
+                     row=i+1, col=1)
+            if X[col].nunique() > max_cat_colors:
+                fig.add_trace(go.Scattergl(
+                                x=shap_values_df[col][~X[col].isin(color_cats)],
+                                y=np.random.rand((~X[col].isin(color_cats)).sum()),
+                                mode='markers',
+                                marker=dict(
+                                      size=5,
+                                      showscale=False,
+                                      opacity=0.3,
+                                      color="grey",
+                                  ),
+                                name="Other",
+                                showlegend=False,
+                                opacity=0.8,
+                                hoverinfo="text",
+                                text=[f"{index_name}={i}<br>{col}={col_val}<br>shap={np.round(shap,3)}" 
+                                      for i, shap, col_val in zip(idxs[~X[col].isin(color_cats)], 
+                                                              shap_values_df[col][~X[col].isin(color_cats)],
+                                                              X[col][~X[col].isin(color_cats)])],
+                                ),
+                     row=i+1, col=1)
+                
         if highlight_index is not None:
             fig.add_trace(
             go.Scattergl(
@@ -1812,7 +1866,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
                                                     np.round(preds, round), 
                                                     np.round(res, round))] 
     
-    if is_string_dtype(col):
+    if not is_numeric_dtype(col):
         n_cats = col.nunique()
         
         if points:
@@ -1941,7 +1995,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
                                                     np.round(y, round), 
                                                     np.round(preds, round))] 
     
-    if is_string_dtype(col):
+    if not is_numeric_dtype(col):
         n_cats = col.nunique()
         
         if points:
@@ -2062,7 +2116,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
     preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
                   for idx, actual, pred in zip(idxs,np.round(y, round), np.round(preds, round))] 
     
-    if is_string_dtype(col):
+    if not is_numeric_dtype(col):
         n_cats = col.nunique()
         
         if points:
@@ -2160,8 +2214,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
     Returns:
         Plotly fig
     """
-    assert (str(type(model)).endswith("RandomForestClassifier'>") 
-            or str(type(model)).endswith("RandomForestRegressor'>")), \
+    assert safe_isinstance(model, "RandomForestClassifier", "RandomForestRegressor"), \
         f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
     
     colors = ['blue'] * len(model.estimators_) 
@@ -2170,8 +2223,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
             f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
         colors[highlight_tree] = 'red'
         
-    if (hasattr(model.estimators_[0], "classes_") 
-        and model.estimators_[0].classes_[0] is not None): #if classifier
+    if safe_isinstance(model, "RandomForestClassifier"):
         preds_df = (
             pd.DataFrame({
                 'model' : range(len(model.estimators_)), 

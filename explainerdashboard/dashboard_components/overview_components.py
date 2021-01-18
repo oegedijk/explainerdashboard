@@ -209,7 +209,7 @@ class ImportancesComponent(ExplainerComponent):
                             html.Label('Depth:', id='importances-depth-label-'+self.name),
                             dbc.Select(id='importances-depth-'+self.name,
                                         options = [{'label': str(i+1), 'value':i+1} 
-                                                    for i in range(self.explainer.n_features())],
+                                                    for i in range(self.explainer.n_features)],
                                         value=self.depth),
                             dbc.Tooltip("Select how many features to display", target='importances-depth-label-'+self.name)
                         ], md=2), self.hide_depth),   

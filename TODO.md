@@ -5,15 +5,9 @@
 - check all register_dependencies()
 - rename tree methods
 - regression vs col:
-    - fix violin plots
-    - set cat col order
     - rename cat col names
-- fix json bug
-- fix shap summary
-- fix shap interaction summary detailed
-- fix shap interaction dependence: cats is flipped
-- set limited color_col categories
-- make violin points more opaque
+    - add cat col sorter
+- use prediction in xgboostexplainer plot_trees method
 
 ## Bugs:
 - dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!

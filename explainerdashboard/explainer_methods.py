@@ -17,7 +17,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from joblib import Parallel, delayed
 
-def safe_is_instance(obj, *instance_str):
+def safe_isinstance(obj, *instance_str):
     """Checks instance by comparing str(type(obj)) to one or more
     instance_str. """
     obj_str = str(type(obj))
@@ -1205,7 +1205,8 @@ def get_xgboost_path_df(xgbmodel, X_row, n_tree=None):
         xgbmodel_treedump = xgbmodel.get_booster().get_dump()[n_tree]
     else:
         raise ValueError("Couldn't extract a treedump. Please pass a fitted xgboost model.")
-        
+    if isinstance(X_row, pd.DataFrame) and len(X_row)==1:
+        X_row = X_row.squeeze()
     node_dict = get_xgboost_node_dict(xgbmodel_treedump)
     
     prediction_path_df = pd.DataFrame(columns = ['node', 'feature', 'cutoff', 'value'])
