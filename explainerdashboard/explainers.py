@@ -11,6 +11,8 @@ __all__ = ['BaseExplainer',
             'RandomForestRegressionBunch', # deprecated
             ]
 
+import sys
+import inspect
 from abc import ABC
 import base64
 from pathlib import Path
@@ -37,6 +39,28 @@ from .make_callables import make_callable, default_list, default_2darray
 import plotly.io as pio
 pio.templates.default = "none"
 
+def insert_pos_label(func):
+    """decorator to insert pos_label=self.pos_label into method call when pos_label=None"""
+    def inner(self, *args, **kwargs):
+        if 'pos_label' in kwargs:
+            if kwargs['pos_label'] is not None:
+                return func(self, *args, **kwargs)
+            else:   
+                kwargs.update(dict(pos_label=self.pos_label))
+                return func(self, *args, **kwargs)
+        argspec = inspect.getfullargspec(func).args 
+        assert 'pos_label' in argspec, \
+            f"Method {func} does not take pos_label as a parameter!"
+        index = argspec.index('pos_label')
+        kwargs = kwargs or {}
+        if len(args) < index or args[index-1] is None:
+            kwargs.update(dict(zip(argspec[1:], args)))
+            kwargs.update(dict(pos_label=self.pos_label))
+            return func(self, **kwargs)
+        else:
+            return func(self, *args, **kwargs) 
+    return inner
+
 class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X, y=None, permutation_metric=r2_score, 
@@ -44,7 +68,7 @@ class BaseExplainer(ABC):
                     cats=None, idxs=None, index_name=None, target=None,
                     descriptions=None, 
                     n_jobs=None, permutation_cv=None, na_fill=-999,
-                    precision="float32"):
+                    precision="float64"):
         """Defines the basic functionality that is shared by both
         ClassifierExplainer and RegressionExplainer. 
 
@@ -83,7 +107,7 @@ class BaseExplainer(ABC):
                 This is for calculating permutation importances against
                 X_train. Defaults to None
             na_fill (int): The filler used for missing values, defaults to -999.
-            precision: precision with which to store values. Defaults to np.float32.
+            precision: precision with which to store values. Defaults to "float64".
         """
         self._params_dict = dict(
             shap=shap, model_output=model_output, cats=cats, 
@@ -97,13 +121,13 @@ class BaseExplainer(ABC):
             self.X, self.X_background = X, X_background
             self.model = model
 
-        if safe_is_instance(model, "xgboost.core.Booster"):
+        if safe_isinstance(model, "xgboost.core.Booster"):
             raise ValueError("For xgboost models, currently only the scikit-learn "
                 "compatible wrappers xgboost.sklearn.XGBClassifier and "
                 "xgboost.sklearn.XGBRegressor are supported, so please use those "
                 "instead of xgboost.Booster!")
 
-        if safe_is_instance(model, "lightgbm.Booster"):
+        if safe_isinstance(model, "lightgbm.Booster"):
             raise ValueError("For lightgbm, currently only the scikit-learn "
                 "compatible wrappers lightgbm.LGBMClassifier and lightgbm.LGBMRegressor "
                 "are supported, so please use those instead of lightgbm.Booster!")
@@ -115,6 +139,9 @@ class BaseExplainer(ABC):
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
+
+        if self.encoded_cols:
+            self.X[self.encoded_cols] = self.X[self.encoded_cols].astype(np.int8)
 
         if self.categorical_cols:
             for col in self.categorical_cols:
@@ -160,11 +187,15 @@ class BaseExplainer(ABC):
             assert len(idxs) == len(self.X) == len(self.y), \
                 ("idxs should be same length as X but is not: "
                 f"len(idxs)={len(idxs)} but  len(X)={len(self.X)}!")
-            self.idxs = pd.Index(idxs, dtype=str)
+            self.idxs = pd.Index(idxs).astype(str)
         else:
             self.idxs = X.index.astype(str)
-        self.X.index = self.idxs
-        self.y.index = self.idxs
+        self.X.reset_index(drop=True, inplace=True)
+        self.y.reset_index(drop=True, inplace=True)
+
+        self._get_index_list_func = None
+        self._get_X_row_func = None
+        self._get_y_func = None
 
         if index_name is None:
             if self.idxs.name is not None:
@@ -172,6 +203,7 @@ class BaseExplainer(ABC):
             else:
                 self.index_name = "Index"
         else:
+            self.idxs.name = index_name.capitalize()
             self.index_name = index_name.capitalize()
 
         self.descriptions = {} if descriptions is None else descriptions
@@ -185,7 +217,7 @@ class BaseExplainer(ABC):
         self.units = ""
         self.is_classifier = False
         self.is_regression = False
-        if safe_is_instance(self.model, "CatBoostRegressor", "CatBoostClassifier"):
+        if safe_isinstance(self.model, "CatBoostRegressor", "CatBoostClassifier"):
             self.interactions_should_work = False
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
@@ -408,8 +440,8 @@ class BaseExplainer(ABC):
         else:
             return None
         if return_str:
-            return idx
-        return idxs.get_loc(idx)
+            return self.idxs[idx]
+        return idx
 
     @property
     def preds(self):
@@ -419,8 +451,7 @@ class BaseExplainer(ABC):
             self._preds = self.model.predict(self.X).astype(self.precision)
         return self._preds
     
-    @property
-    def pred_percentiles(self):
+    def pred_percentiles(self, pos_label=None):
         """returns percentile rank of model predictions"""
         if not hasattr(self, '_pred_percentiles'):
             print("Calculating prediction percentiles...", flush=True)
@@ -428,7 +459,7 @@ class BaseExplainer(ABC):
                                 .rank(method='min')
                                 .divide(len(self.preds))
                                 .values).astype(self.precision)
-        return make_callable(self._pred_percentiles)
+        return self._pred_percentiles
 
     def columns_ranked_by_shap(self, pos_label=None):
         """returns the columns of X, ranked by mean abs shap value
@@ -443,15 +474,12 @@ class BaseExplainer(ABC):
         """
         return self.mean_abs_shap_df(pos_label).Feature.tolist()
 
-    def n_features(self, cats=False):
-        """number of features with cats=True or cats=False
-
-        Args:
-          cats:  (Default value = False)
-
+    @property
+    def n_features(self):
+        """number of features 
+        
         Returns:
             int, number of features
-
         """
         return len(self.merged_cols)
 
@@ -501,13 +529,46 @@ class BaseExplainer(ABC):
             raise ValueError(f"sort='{sort}', but should be in {{'alphabet', 'freq', 'shap'}}")
 
     def get_index_list(self):
-        return list(self.idxs)
+        if self._get_index_list_func is not None:
+            index_list = self._get_index_list_func()
+        else:
+            index_list = list(self.idxs)
+        if not isinstance(index_list, list):
+            raise ValueError("self._get_index_list_func() should return a list! "
+                        f"Instead returned {index_list}")
+        return index_list
+
+    def set_index_list_func(self, func):
+        self._get_index_list_func = func
 
     def get_X_row(self, index, merge=False):
-        X_row = self.X.iloc[[self.get_idx(index)]]
+        if self._get_X_row_func is not None:
+            X_row = self._get_X_row_func(index)
+        else:
+            X_row = self.X.iloc[[self.get_idx(index)]]
+
+        if not matching_cols(X_row.columns, self.columns):
+            raise ValueError(f"columns do not match! Got {X_row.columns}, but was"
+                    f"expecting {self.columns}")
         if merge:
             X_row = merge_categorical_columns(X_row, self.onehot_dict)[self.merged_cols]
         return X_row
+
+    def set_X_row_func(self, func):
+        self._get_X_row_func = func
+
+    def get_y(self, index):
+        if self._get_y_func is not None:
+            y = self._get_y_func(index)
+        else:
+            if self.y_missing:
+                y = None
+            else:
+                y = self.y.iloc[self.get_idx(index)]
+        return y
+
+    def set_y_func(self, func):
+        self._get_y_func = func
 
     def get_row_from_input(self, inputs:List, ranked_by_shap=False, return_merged=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
@@ -628,8 +689,7 @@ class BaseExplainer(ABC):
             raise ValueError("You need to pass either index or X_row!")
 
 
-    @property
-    def permutation_importances(self):
+    def permutation_importances(self, pos_label=None):
         """Permutation importances """
         if not hasattr(self, '_perm_imps'):
             print("Calculating importances...", flush=True)
@@ -640,7 +700,7 @@ class BaseExplainer(ABC):
                                 n_jobs=self.n_jobs,
                                 needs_proba=self.is_classifier)
                                 .sort_values("Importance", ascending=False))
-            self._perm_imps = make_callable(self._perm_imps)                 
+            self._perm_imps = self._perm_imps                 
         return self._perm_imps
 
     @property
@@ -648,15 +708,13 @@ class BaseExplainer(ABC):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
             self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, drop_regular=True)
-            self._X_cats = self._X_cats.set_index(self.X.index)
         return self._X_cats
 
     @property
     def X_merged(self):
         return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
 
-    @property
-    def shap_base_value(self):
+    def shap_base_value(self, pos_label=None):
         """the intercept for the shap values.
         
         (i.e. 'what would the prediction be if we knew none of the features?')
@@ -669,22 +727,19 @@ class BaseExplainer(ABC):
             if isinstance(self._shap_base_value, np.ndarray):
                 # shap library now returns an array instead of float
                 self._shap_base_value = self._shap_base_value.item()
-        return make_callable(self._shap_base_value)
+        return self._shap_base_value
 
-    @property
-    def shap_values_df(self):
+    def shap_values_df(self, pos_label=None):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
             self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
-                                    columns=self.columns, index=self.X.index)
+                                    columns=self.columns)
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
-            self._shap_values_df = make_callable(self._shap_values_df)
         return self._shap_values_df
     
-    @property
-    def shap_interaction_values(self):
+    def shap_interaction_values(self, pos_label=None):
         """SHAP interaction values calculated using shap library"""
         assert self.shap != 'linear', \
             "Unfortunately shap.LinearExplainer does not provide " \
@@ -701,20 +756,17 @@ class BaseExplainer(ABC):
                 self.shap_explainer.shap_interaction_values(self.X)
             self._shap_interaction_values = \
                 merge_categorical_shap_interaction_values(
-                    self.shap_interaction_values, self.columns, self.merged_cols, 
+                    self._shap_interaction_values, self.columns, self.merged_cols, 
                     self.onehot_dict).astype(self.precision)
-            self._shap_interaction_values = make_callable(self._shap_interaction_values) 
         return self._shap_interaction_values
 
-    @property
-    def mean_abs_shap_df(self):
+    def mean_abs_shap_df(self, pos_label=None):
         """Mean absolute SHAP values per feature."""
         if not hasattr(self, '_mean_abs_shap'):
-            self._mean_abs_shap_df = (self.shap_values_df[self.merged_cols].abs().mean()
+            self._mean_abs_shap_df = (self.shap_values_df(pos_label)[self.merged_cols].abs().mean()
                     .sort_values(ascending=False)
                     .to_frame().rename_axis(index="Feature").reset_index()
                     .rename(columns={0:"MEAN_ABS_SHAP"}))
-            self._mean_abs_shap_df = make_callable(self._mean_abs_shap_df)
         return self._mean_abs_shap_df
 
 
@@ -740,6 +792,49 @@ class BaseExplainer(ABC):
             _ = self.X_cats
         if self.interactions_should_work and include_interactions:
             _ = self.shap_interaction_values
+
+    def memory_usage(self, cutoff=0):
+        """returns a pd.DataFrame witht the memory usage of each attribute of
+        this explainer object"""
+        def get_size(obj):
+            def get_inner_size(obj):
+                if isinstance(obj, pd.DataFrame):
+                    return obj.memory_usage().sum()
+                elif isinstance(obj, pd.Series):
+                    return obj.memory_usage()
+                elif isinstance(obj, pd.Index):
+                    return obj.memory_usage()
+                elif isinstance(obj, np.ndarray):
+                    return obj.nbytes
+                else:
+                    return sys.getsizeof(obj)
+
+            if isinstance(obj, list):
+                return sum([get_inner_size(o) for o in obj])
+            elif isinstance(obj, dict):
+                return sum([get_inner_size(o) for o in obj.values()])
+            else:
+                return get_inner_size(obj)
+
+        def size_to_string(num, suffix='B'):
+            for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+                if np.abs(num) < 1024.0:
+                    return "%3.1f%s%s" % (num, unit, suffix)
+                num /= 1024.0
+            return "%.1f%s%s" % (num, 'Yi', suffix)
+
+        memory_df = pd.DataFrame(columns=['property', 'type', 'bytes', 'size'])
+        for k, v in self.__dict__.items():
+            memory_df = memory_df.append(dict(
+                property=f"self.{k}", type=v.__class__.__name__, 
+                bytes=get_size(v), size=size_to_string(get_size(v))), 
+                ignore_index=True)
+        
+        print("Explainer total memory usage (approximate): ", 
+                    size_to_string(memory_df.bytes.sum()), flush=True)
+        return (memory_df[memory_df.bytes>cutoff]
+                    .sort_values("bytes", ascending=False)
+                    .reset_index(drop=True))
 
     def metrics(self, *args, **kwargs):
         """returns a dict of metrics.
@@ -1163,7 +1258,7 @@ class BaseExplainer(ABC):
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
 
-    def plot_shap_summary(self, index=None, topx=None, pos_label=None):
+    def plot_shap_summary(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
@@ -1171,7 +1266,10 @@ class BaseExplainer(ABC):
 
         Args:
           index (str or int): index to highlight
-          topx(int, optional): Only display topx most important features, defaults to None
+          topx(int, optional): Only display topx most important features, 
+            defaults to None
+          max_cat_colors (int, optional): for categorical features, maximum number
+            of categories to label with own color. Defaults to 5. 
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -1202,13 +1300,14 @@ class BaseExplainer(ABC):
                                 self.X_merged[cols],
                                 self.shap_values_df(pos_label)[cols],
                                 cols, 
-                                idxs=self.idxs.values,
+                                idxs=self.idxs,
                                 highlight_index=index,
                                 title=title,
                                 na_fill=self.na_fill,
-                                index_name=self.index_name)
+                                max_cat_colors=max_cat_colors)
 
-    def plot_shap_interaction_summary(self, col, index=None, topx=None,  pos_label=None):
+    def plot_shap_interaction_summary(self, col, index=None, topx=None, 
+                                        max_cat_colors=5, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
         
         Displays all individual shap interaction values for each feature in a
@@ -1218,28 +1317,26 @@ class BaseExplainer(ABC):
           col(type]): feature for which to show interactions summary
           index (str or int): index to highlight
           topx(int, optional): only show topx most important features, defaults to None
-          cats:  group categorical features (Default value = False)
+          max_cat_colors (int, optional): for categorical features, maximum number
+            of categories to label with own color. Defaults to 5. 
           pos_label: positive class (Default value = None)
 
         Returns:
           fig
         """
         interact_cols = self.top_shap_interactions(col, pos_label=pos_label)
-
         shap_df = pd.DataFrame(self.shap_interaction_values_for_col(col, pos_label=pos_label),
-                            columns=self.merged_cols, index=self.idxs)
-                            
-                            
+                            columns=self.merged_cols)                            
         if topx is None: topx = len(interact_cols)
         title = f"Shap interaction values for {col}"
-
         return plotly_shap_scatter_plot(
                 self.X_merged, shap_df, interact_cols[:topx], title=title, 
                 idxs=self.idxs, highlight_index=index, na_fill=self.na_fill,
-                index_name=self.index_name)
+                max_cat_colors=max_cat_colors)
 
     def plot_shap_dependence(self, col, color_col=None, highlight_index=None, 
-                                topx=None, sort='alphabet', pos_label=None):
+                                topx=None, sort='alphabet', max_cat_colors=5, 
+                                pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1257,6 +1354,8 @@ class BaseExplainer(ABC):
           sort (str): for categorical features, how to sort the categories:
                 alphabetically 'alphabet', most frequent first 'freq', 
                 highest mean absolute value first 'shap'. Defaults to 'alphabet'.
+          max_cat_colors (int, optional): for categorical features, maximum number
+                of categories to label with own color. Defaults to 5. 
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -1274,7 +1373,8 @@ class BaseExplainer(ABC):
                             X_color_col, 
                             highlight_index=highlight_index,
                             idxs=self.idxs,
-                            cats_order=self.ordered_cats(col, topx, sort))
+                            cats_order=self.ordered_cats(col, topx, sort),
+                            max_cat_colors=max_cat_colors)
         else:
             return plotly_dependence_plot(
                         self.get_col(col), 
@@ -1286,13 +1386,19 @@ class BaseExplainer(ABC):
                         idxs=self.idxs)
 
     def plot_shap_interaction(self, col, interact_col, highlight_index=None, 
-                                topx=10, sort='alphabet', pos_label=None):
+                                topx=10, sort='alphabet', max_cat_colors=5, 
+                                pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         Args:
           col(str): feature for which to find interaction values
           interact_col(str): feature for which interaction value are displayed
-          highlight_idx(int, optional, optional): idx that will be highlighted, defaults to None
+          highlight_index(str, optional): index that will be highlighted, defaults to None
+          topx (int, optional): number of categorical features to display in violin plots.
+          sort (str, optional): how to sort categorical features in violin plots.
+                Should be in {'alphabet', 'freq', 'shap'}.
+          max_cat_colors (int, optional): for categorical features, maximum number
+                of categories to label with own color. Defaults to 5. 
           pos_label:  (Default value = None)
 
         Returns:
@@ -1307,7 +1413,8 @@ class BaseExplainer(ABC):
                 self.get_col(interact_col), 
                 interaction=True, units=self.units, 
                 highlight_index=highlight_index, idxs=self.idxs,
-                cats_order=self.ordered_cats(col, topx, sort))
+                cats_order=self.ordered_cats(col, topx, sort),
+                max_cat_colors=max_cat_colors)
         else:
             return plotly_dependence_plot(
                 self.get_col(col),
@@ -1445,7 +1552,7 @@ class ClassifierExplainer(BaseExplainer):
         if not hasattr(self, '_shap_explainer'):
             model_str = str(type(self.model)).replace("'", "").replace("<", "").replace(">", "").split(".")[-1]
             if self.shap == 'tree':
-                if safe_is_instance(self.model, 
+                if safe_isinstance(self.model, 
                     "XGBClassifier", "LGBMClassifier", "CatBoostClassifier", 
                     "GradientBoostingClassifier", "HistGradientBoostingClassifier"):
                     if self.model_output == "probability": 
@@ -2223,10 +2330,10 @@ class RegressionExplainer(BaseExplainer):
         self.units = units
         self.is_regression = True
 
-        if safe_is_instance("RandomForestRegressor"):
+        if safe_isinstance(model, "RandomForestRegressor"):
             print(f"Changing class type to RandomForestRegressionExplainer...", flush=True)
             self.__class__ = RandomForestRegressionExplainer 
-        if safe_is_instance("XGBRegressor"):
+        if safe_isinstance(model, "XGBRegressor"):
             print(f"Changing class type to XGBRegressionExplainer...", flush=True)
             self.__class__ = XGBRegressionExplainer
 
@@ -2574,6 +2681,7 @@ class RandomForestExplainer(BaseExplainer):
                             for decision_tree in self.model.estimators_]
         return self._decision_trees
 
+    @insert_pos_label
     def decisiontree_df(self, tree_idx, index, pos_label=None):
         """dataframe with all decision nodes of a particular decision tree
 
@@ -2589,17 +2697,14 @@ class RandomForestExplainer(BaseExplainer):
         """
         assert tree_idx >= 0 and tree_idx < len(self.decision_trees), \
             f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
-        idx = self.get_int_idx(index)
-        assert idx >= 0 and idx < len(self.X), \
-            f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
-        
+        X_row = self.get_X_row(index)
         if self.is_classifier:
-            if pos_label is None: pos_label = self.pos_label
-            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx],
+            return get_decisiontree_df(self.decision_trees[tree_idx], X_row.squeeze(),
                     pos_label=pos_label)
         else:
-            return get_decisiontree_df(self.decision_trees[tree_idx], self.X.iloc[idx])
+            return get_decisiontree_df(self.decision_trees[tree_idx], X_row.squeeze())
 
+    @insert_pos_label
     def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
 
@@ -2613,8 +2718,7 @@ class RandomForestExplainer(BaseExplainer):
           dataframe with summary of the decision tree path
 
         """
-        idx=self.get_int_idx(index)
-        return get_decisiontree_summary_df(self.decisiontree_df(tree_idx, idx, pos_label=pos_label),
+        return get_decisiontree_summary_df(self.decisiontree_df(tree_idx, index, pos_label=pos_label),
                     classifier=self.is_classifier, round=round, units=self.units)
 
     def decision_path_file(self, tree_idx, index, show_just_path=False):
@@ -2634,9 +2738,8 @@ class RandomForestExplainer(BaseExplainer):
             print("No graphviz 'dot' executable available!") 
             return None
 
-        idx = self.get_int_idx(index)
         viz = dtreeviz(self.decision_trees[tree_idx], 
-                        X=self.X.iloc[idx, :], 
+                        X=self.get_X_row(index).squeeze(), 
                         fancy=False,
                         show_node_labels = False,
                         show_just_path=show_just_path) 
@@ -2686,7 +2789,7 @@ class RandomForestExplainer(BaseExplainer):
         svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
         return svg_encoded
 
-
+    @insert_pos_label
     def plot_trees(self, index, highlight_tree=None, round=2, 
                 higher_is_better=True, pos_label=None):
         """plot barchart predictions of each individual prediction tree
@@ -2702,22 +2805,19 @@ class RandomForestExplainer(BaseExplainer):
         Returns:
 
         """
-        idx=self.get_int_idx(index)
-        assert idx is not None, 'invalid index'
+        
+        X_row = self.get_X_row(index)
+        y = self.get_y(index)
         
         if self.is_classifier:
-            if pos_label is None: pos_label = self.pos_label
-            if not np.isnan(self.y[idx]):
-                y = 100*self.y_binary(pos_label)[idx] 
-            else:
-                y = None
-
-            return plotly_rf_trees(self.model, self.X.iloc[[idx]], y,
+            pos_label = self.get_pos_label_index(pos_label)
+            if y is not None:
+                y = 100 * int(y==pos_label)
+            return plotly_rf_trees(self.model, X_row, y,
                         highlight_tree=highlight_tree, round=round, 
                         pos_label=pos_label, target=self.target)
         else:
-            y = self.y[idx]
-            return plotly_rf_trees(self.model, self.X.iloc[[idx]], y,
+            return plotly_rf_trees(self.model, X_row, y,
                         highlight_tree=highlight_tree, round=round, 
                         target=self.target, units=self.units)
 
@@ -2797,6 +2897,7 @@ class XGBExplainer(BaseExplainer):
                             for i in range(len(self.model_dump_list))]
         return self._decision_trees
 
+    @insert_pos_label
     def decisiontree_df(self, tree_idx, index, pos_label=None):
         """dataframe with all decision nodes of a particular decision tree
 
@@ -2812,16 +2913,11 @@ class XGBExplainer(BaseExplainer):
         """
         assert tree_idx >= 0 and tree_idx < self.no_of_trees, \
             f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
-        idx = self.get_int_idx(index)
-        assert idx >= 0 and idx < len(self.X), \
-            f"=index {idx} outside 0 and size of X ({len(self.X)}) range"
         
         if self.is_classifier:
-            if pos_label is None: 
-                pos_label = self.pos_label
             if len(self.labels) > 2:
                 tree_idx = tree_idx * len(self.labels) + pos_label
-        return get_xgboost_path_df(self.model_dump_list[tree_idx], self.X.iloc[idx])
+        return get_xgboost_path_df(self.model_dump_list[tree_idx], self.get_X_row(index))
 
 
     def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
@@ -2837,9 +2933,7 @@ class XGBExplainer(BaseExplainer):
           dataframe with summary of the decision tree path
 
         """
-        idx = self.get_int_idx(index)
-        return get_xgboost_path_summary_df(self.decisiontree_df(tree_idx, idx, pos_label=pos_label))
-
+        return get_xgboost_path_summary_df(self.decisiontree_df(tree_idx, index, pos_label=pos_label))
 
     def decision_path_file(self, tree_idx, index, show_just_path=False, pos_label=None):
         """get a dtreeviz visualization of a particular tree in the random forest.
@@ -2859,15 +2953,12 @@ class XGBExplainer(BaseExplainer):
             print("No graphviz 'dot' executable available!") 
             return None
 
-        idx = self.get_int_idx(index)
         if self.is_classifier:
-            if pos_label is None: 
-                pos_label = self.pos_label
             if len(self.labels) > 2:
                 tree_idx = tree_idx * len(self.labels) + pos_label
 
         viz = dtreeviz(self.decision_trees[tree_idx], 
-                        X=self.X.iloc[idx], 
+                        X=self.get_X_row(index).squeeze(), 
                         fancy=False,
                         show_node_labels = False,
                         show_just_path=show_just_path) 
@@ -2917,7 +3008,6 @@ class XGBExplainer(BaseExplainer):
         svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
         return svg_encoded
 
-
     def plot_trees(self, index, highlight_tree=None, round=2, 
                 higher_is_better=True, pos_label=None):
         """plot barchart predictions of each individual prediction tree
@@ -2933,23 +3023,21 @@ class XGBExplainer(BaseExplainer):
         Returns:
 
         """
-        idx=self.get_int_idx(index)
-        assert idx is not None, 'invalid index'
         if self.is_classifier:
-            if pos_label is None: 
-                pos_label = self.pos_label
-            y = self.y_binary(pos_label)[idx]
+            pos_label = self.get_pos_label_index(pos_label)
+
+            y = 100 * int(self.get_y(index) == pos_label)
             xgboost_preds_df = get_xgboost_preds_df(
-                self.model, self.X.iloc[[idx]], pos_label=pos_label)
+                self.model, self.get_X_Row(index), pos_label=pos_label)
             return plotly_xgboost_trees(xgboost_preds_df, 
                             y=y, 
                             highlight_tree=highlight_tree, 
                             target=self.target, 
                             higher_is_better=higher_is_better)
         else:
-            y = self.y[idx]
-            xgboost_preds_df = get_xgboost_preds_df(
-                self.model, self.X.iloc[[idx]])
+            X_row = self.get_X_row(index)
+            y = self.model.predict(X_row)
+            xgboost_preds_df = get_xgboost_preds_df(self.model, X_row)
             return plotly_xgboost_trees(xgboost_preds_df, 
                             y=y, highlight_tree=highlight_tree,
                             target=self.target, units=self.units,
