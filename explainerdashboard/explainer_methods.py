@@ -1036,7 +1036,7 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     return siv
     
 
-def get_decisiontree_df(decision_tree, observation, pos_label=1):
+def get_decisionpath_df(decision_tree, observation, pos_label=1):
     """summarize the path through a DecisionTree for a specific observation.
 
     Args:

@@ -5,10 +5,6 @@ __all__ = ['BaseExplainer',
             'RandomForestRegressionExplainer',
             'XGBClassifierExplainer',
             'XGBRegressionExplainer',
-            'ClassifierBunch', # deprecated
-            'RegressionBunch', # deprecated
-            'RandomForestClassifierBunch', # deprecated
-            'RandomForestRegressionBunch', # deprecated
             ]
 
 import sys
@@ -2549,7 +2545,7 @@ class RegressionExplainer(BaseExplainer):
                                      round=round, index_name=self.index_name)
     
     def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0):
+                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
         """Plot residuals vs individual features
 
         Args:
@@ -2571,13 +2567,21 @@ class RegressionExplainer(BaseExplainer):
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
         col_vals = self.get_col(col)
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
-        return plotly_residuals_vs_col(
-            self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-            residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
-            round=round, winsor=winsor, index_name=self.index_name)
+        if col in self.cat_cols:
+            return plotly_residuals_vs_col(
+                self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
+                round=round, winsor=winsor, index_name=self.index_name,
+                cats_order=self.ordered_cats(col, topx, sort))
+        else:
+            return plotly_residuals_vs_col(
+                self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
+                round=round, winsor=winsor, index_name=self.index_name)
+
 
     def plot_y_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0):
+                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
         """Plot y vs individual features
 
         Args:
@@ -2597,12 +2601,19 @@ class RegressionExplainer(BaseExplainer):
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
         col_vals = self.get_col(col)
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
-        return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
-                units=self.units, target=self.target, index_name=self.index_name)
+        if col in self.cat_cols:
+            return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+                    units=self.units, target=self.target, index_name=self.index_name,
+                    cats_order=self.ordered_cats(col, topx, sort))
+        else:
+            return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+                    units=self.units, target=self.target, index_name=self.index_name)
+
 
     def plot_preds_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0):
+                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
         """Plot y vs individual features
 
         Args:
@@ -2620,26 +2631,28 @@ class RegressionExplainer(BaseExplainer):
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
         col_vals = self.get_col(col)
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
-        return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
-                units=self.units, target=self.target, index_name=self.index_name)
+        if col in self.cat_cols:
+            return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+                    units=self.units, target=self.target, index_name=self.index_name,
+                    cats_order=self.ordered_cats(col, topx, sort))
+        else:
+            return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
+                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+                    units=self.units, target=self.target, index_name=self.index_name)
 
 
-class RandomForestExplainer(BaseExplainer):
-    """RandomForestBunch allows for the analysis of individual DecisionTrees that
-    make up the RandomForest.
+class TreeExplainer(BaseExplainer):
 
-    """
-    
     @property
     def is_tree_explainer(self):
-        """this is either a RandomForestExplainer or XGBExplainer"""
+        """this is a TreeExplainer"""
         return True
 
     @property
     def no_of_trees(self):
         """The number of trees in the RandomForest model"""
-        return len(self.model.estimators_)
+        raise NotImplementedError
         
     @property
     def graphviz_available(self):
@@ -2663,65 +2676,52 @@ class RandomForestExplainer(BaseExplainer):
         return self._graphviz_available
 
     @property
-    def decision_trees(self):
+    def shadow_trees(self):
         """a list of ShadowDecTree objects"""
-        if not hasattr(self, '_decision_trees'):
-            print("Calculating ShadowDecTree for each individual decision tree...", flush=True)
-            assert hasattr(self.model, 'estimators_'), \
-                """self.model does not have an estimators_ attribute, so probably not
-                actually a sklearn RandomForest?"""
-                
-            self._decision_trees = [
-                ShadowDecTree.get_shadow_tree(decision_tree,
-                                        self.X,
-                                        self.y,
-                                        feature_names=self.X.columns.tolist(),
-                                        target_name='target',
-                                        class_names = self.labels if self.is_classifier else None)
-                            for decision_tree in self.model.estimators_]
-        return self._decision_trees
+        raise NotImplementedError
 
     @insert_pos_label
-    def decisiontree_df(self, tree_idx, index, pos_label=None):
+    def decisionpath_df(self, tree_idx, index, pos_label=None):
         """dataframe with all decision nodes of a particular decision tree
+        for a particular observation.
 
         Args:
           tree_idx: the n'th tree in the random forest
           index: row index
-          round:  (Default value = 2)
           pos_label:  positive class (Default value = None)
 
         Returns:
           dataframe with summary of the decision tree path
 
         """
-        assert tree_idx >= 0 and tree_idx < len(self.decision_trees), \
+        assert tree_idx >= 0 and tree_idx < len(self.shadow_trees), \
             f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
         X_row = self.get_X_row(index)
         if self.is_classifier:
-            return get_decisiontree_df(self.decision_trees[tree_idx], X_row.squeeze(),
+            return get_decisionpath_df(self.shadow_trees[tree_idx], X_row.squeeze(),
                     pos_label=pos_label)
         else:
-            return get_decisiontree_df(self.decision_trees[tree_idx], X_row.squeeze())
+            return get_decisionpath_df(self.shadow_trees[tree_idx], X_row.squeeze())
 
     @insert_pos_label
-    def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
+    def decisionpath_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
 
         Args:
-          tree_idx: the n'th tree in the random forest
-          index: row index
-          round:  (Default value = 2)
+          tree_idx: the n'th tree in the random forest or boosted ensemble
+          index: index
+          round: rounding to apply to floats (Default value = 2)
           pos_label:  positive class (Default value = None)
 
         Returns:
           dataframe with summary of the decision tree path
 
         """
-        return get_decisiontree_summary_df(self.decisiontree_df(tree_idx, index, pos_label=pos_label),
+        return get_decisiontree_summary_df(
+                self.decisionpath_df(tree_idx, index, pos_label=pos_label),
                     classifier=self.is_classifier, round=round, units=self.units)
 
-    def decision_path_file(self, tree_idx, index, show_just_path=False):
+    def decision_tree_file(self, tree_idx, index, show_just_path=False):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
@@ -2738,14 +2738,14 @@ class RandomForestExplainer(BaseExplainer):
             print("No graphviz 'dot' executable available!") 
             return None
 
-        viz = dtreeviz(self.decision_trees[tree_idx], 
+        viz = dtreeviz(self.shadow_trees[tree_idx], 
                         X=self.get_X_row(index).squeeze(), 
                         fancy=False,
                         show_node_labels = False,
                         show_just_path=show_just_path) 
         return viz.save_svg()
 
-    def decision_path(self, tree_idx, index, show_just_path=False):
+    def decision_tree(self, tree_idx, index, show_just_path=False):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
@@ -2763,10 +2763,10 @@ class RandomForestExplainer(BaseExplainer):
             return None
 
         from IPython.display import SVG
-        svg_file = self.decision_path_file(tree_idx, index, show_just_path)
+        svg_file = self.decision_tree_file(tree_idx, index, show_just_path)
         return SVG(open(svg_file,'rb').read())
 
-    def decision_path_encoded(self, tree_idx, index, show_just_path=False):
+    def decision_tree_encoded(self, tree_idx, index, show_just_path=False):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
@@ -2784,11 +2784,73 @@ class RandomForestExplainer(BaseExplainer):
             print("No graphviz 'dot' executable available!")
             return None
         
-        svg_file = self.decision_path_file(tree_idx, index, show_just_path)
+        svg_file = self.decision_tree_file(tree_idx, index, show_just_path)
         encoded = base64.b64encode(open(svg_file,'rb').read()) 
         svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
         return svg_encoded
 
+    @insert_pos_label
+    def plot_trees(self, index, highlight_tree=None, round=2, 
+                higher_is_better=True, pos_label=None):
+        """plot barchart predictions of each individual prediction tree
+
+        Args:
+          index: index to display predictions for
+          highlight_tree:  tree to highlight in plot (Default value = None)
+          round: rounding of numbers in plot (Default value = 2)
+          higher_is_better (bool): flip red and green. Dummy bool for compatibility
+                with gbm plot_trees().
+          pos_label: positive class (Default value = None)
+
+        Returns:
+
+        """
+        
+        raise NotImplementedError
+
+    def calculate_properties(self, include_interactions=True):
+        """
+
+        Args:
+          include_interactions:  If False do not calculate shap interaction value
+            (Default value = True)
+
+        Returns:
+
+        """
+        _ = self.shadow_trees
+        super().calculate_properties(include_interactions=include_interactions)
+
+
+class RandomForestExplainer(TreeExplainer):
+    """RandomForestExplainer allows for the analysis of individual DecisionTrees that
+    make up the RandomForestClassifier or RandomForestRegressor. """
+
+    @property
+    def no_of_trees(self):
+        """The number of trees in the RandomForest model"""
+        return len(self.model.estimators_)
+
+    @property
+    def shadow_trees(self):
+        """a list of ShadowDecTree objects"""
+        if not hasattr(self, '_shadow_trees'):
+            print("Calculating ShadowDecTree for each individual decision tree...", flush=True)
+            assert hasattr(self.model, 'estimators_'), \
+                """self.model does not have an estimators_ attribute, so probably not
+                actually a sklearn RandomForest?"""
+                
+            self._shadow_trees = [
+                ShadowDecTree.get_shadow_tree(decision_tree,
+                                        self.X,
+                                        self.y,
+                                        feature_names=self.X.columns.tolist(),
+                                        target_name='target',
+                                        class_names = self.labels if self.is_classifier else None)
+                            for decision_tree in self.model.estimators_]
+        return self._shadow_trees
+
+   
     @insert_pos_label
     def plot_trees(self, index, highlight_tree=None, round=2, 
                 higher_is_better=True, pos_label=None):
@@ -2821,34 +2883,17 @@ class RandomForestExplainer(BaseExplainer):
                         highlight_tree=highlight_tree, round=round, 
                         target=self.target, units=self.units)
 
-    def calculate_properties(self, include_interactions=True):
-        """
-
-        Args:
-          include_interactions:  If False do not calculate shap interaction value
-            (Default value = True)
-
-        Returns:
-
-        """
-        _ = self.decision_trees
-        super().calculate_properties(include_interactions=include_interactions)
 
 
-class XGBExplainer(BaseExplainer):
+class XGBExplainer(TreeExplainer):
     """XGBExplainer allows for the analysis of individual DecisionTrees that
     make up the xgboost model.
     """
 
     @property
-    def is_tree_explainer(self):
-        """this is either a RandomForestExplainer or XGBExplainer"""
-        return True
-
-    @property
     def model_dump_list(self):
         if not hasattr(self, "_model_dump_list"):
-            print("Generating model dump...", flush=True)
+            print("Generating xgboost model dump...", flush=True)
             self._model_dump_list = self.model.get_booster().get_dump()
         return self._model_dump_list
 
@@ -2856,37 +2901,18 @@ class XGBExplainer(BaseExplainer):
     def no_of_trees(self):
         """The number of trees in the RandomForest model"""
         if self.is_classifier and len(self.labels) > 2:
+            # for multiclass classification xgboost generates a seperate
+            # tree for each class
             return int(len(self.model_dump_list) / len(self.labels))
         return len(self.model_dump_list)
-        
-    @property
-    def graphviz_available(self):
-        """ """
-        if not hasattr(self, '_graphviz_available'):
-            try:
-                import graphviz.backend as be
-                cmd = ["dot", "-V"]
-                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
-            except:
-                print("""
-                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
-                so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
-
-                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz 
-                for dtreeviz. 
-                """)
-                self._graphviz_available = False
-            else:
-                self._graphviz_available = True
-        return self._graphviz_available
 
     @property
-    def decision_trees(self):
+    def shadow_trees(self):
         """a list of ShadowDecTree objects"""
-        if not hasattr(self, '_decision_trees'):
+        if not hasattr(self, '_shadow_trees'):
             print("Calculating ShadowDecTree for each individual decision tree...", flush=True)
                 
-            self._decision_trees = [
+            self._shadow_trees = [
                 ShadowDecTree.get_shadow_tree(self.model.get_booster(),
                                         self.X,
                                         self.y,
@@ -2895,10 +2921,10 @@ class XGBExplainer(BaseExplainer):
                                         class_names = self.labels if self.is_classifier else None,
                                         tree_index=i)
                             for i in range(len(self.model_dump_list))]
-        return self._decision_trees
+        return self._shadow_trees
 
     @insert_pos_label
-    def decisiontree_df(self, tree_idx, index, pos_label=None):
+    def decisionpath_df(self, tree_idx, index, pos_label=None):
         """dataframe with all decision nodes of a particular decision tree
 
         Args:
@@ -2916,26 +2942,25 @@ class XGBExplainer(BaseExplainer):
         
         if self.is_classifier:
             if len(self.labels) > 2:
+                # for multiclass classification xgboost generates a seperate
+                # tree for each class
                 tree_idx = tree_idx * len(self.labels) + pos_label
         return get_xgboost_path_df(self.model_dump_list[tree_idx], self.get_X_row(index))
 
-
-    def decisiontree_summary_df(self, tree_idx, index, round=2, pos_label=None):
+    def decisionpath_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
-
         Args:
           tree_idx: the n'th tree in the random forest
           index: row index
           round:  (Default value = 2)
           pos_label:  positive class (Default value = None)
-
         Returns:
           dataframe with summary of the decision tree path
-
         """
-        return get_xgboost_path_summary_df(self.decisiontree_df(tree_idx, index, pos_label=pos_label))
+        return get_xgboost_path_summary_df(self.decisionpath_df(tree_idx, index, pos_label=pos_label))
 
-    def decision_path_file(self, tree_idx, index, show_just_path=False, pos_label=None):
+    @insert_pos_label
+    def decision_tree_file(self, tree_idx, index, show_just_path=False, pos_label=None):
         """get a dtreeviz visualization of a particular tree in the random forest.
 
         Args:
@@ -2964,50 +2989,7 @@ class XGBExplainer(BaseExplainer):
                         show_just_path=show_just_path) 
         return viz.save_svg()
 
-    def decision_path(self, tree_idx, index, show_just_path=False, pos_label=None):
-        """get a dtreeviz visualization of a particular tree in the random forest.
-
-        Args:
-          tree_idx: the n'th tree in the random forest
-          index: row index
-          show_just_path (bool, optional): show only the path not rest of the 
-                    tree. Defaults to False. 
-
-        Returns:
-          a IPython display SVG object for e.g. jupyter notebook.
-
-        """
-        if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!") 
-            return None
-
-        from IPython.display import SVG
-        svg_file = self.decision_path_file(tree_idx, index, show_just_path, pos_label)
-        return SVG(open(svg_file,'rb').read())
-
-    def decision_path_encoded(self, tree_idx, index, show_just_path=False, pos_label=None):
-        """get a dtreeviz visualization of a particular tree in the random forest.
-
-        Args:
-          tree_idx: the n'th tree in the random forest
-          index: row index
-          show_just_path (bool, optional): show only the path not rest of the 
-                    tree. Defaults to False. 
-
-        Returns:
-          a base64 encoded image, for inclusion in websites (e.g. dashboard)
-        
-
-        """
-        if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!")
-            return None
-        
-        svg_file = self.decision_path_file(tree_idx, index, show_just_path, pos_label)
-        encoded = base64.b64encode(open(svg_file,'rb').read()) 
-        svg_encoded = 'data:image/svg+xml;base64,{}'.format(encoded.decode()) 
-        return svg_encoded
-
+    @insert_pos_label
     def plot_trees(self, index, highlight_tree=None, round=2, 
                 higher_is_better=True, pos_label=None):
         """plot barchart predictions of each individual prediction tree
@@ -3025,8 +3007,8 @@ class XGBExplainer(BaseExplainer):
         """
         if self.is_classifier:
             pos_label = self.get_pos_label_index(pos_label)
-
-            y = 100 * int(self.get_y(index) == pos_label)
+            y = self.get_y(index)
+            y = 100 * int(y == pos_label) if y is not None else y
             xgboost_preds_df = get_xgboost_preds_df(
                 self.model, self.get_X_Row(index), pos_label=pos_label)
             return plotly_xgboost_trees(xgboost_preds_df, 
@@ -3053,7 +3035,7 @@ class XGBExplainer(BaseExplainer):
         Returns:
 
         """
-        _ = self.decision_trees, self.model_dump_list
+        _ = self.shadow_trees, self.model_dump_list
         super().calculate_properties(include_interactions=include_interactions)
 
 
@@ -3083,33 +3065,3 @@ class XGBRegressionExplainer(XGBExplainer, RegressionExplainer):
     RegressionExplainer.
     """
     pass
-
-
-class ClassifierBunch:
-    """ """
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ClassifierBunch has been deprecated, use ClassifierExplainer instead...")
-
-class RegressionBunch:
-    """ """
-    def __init__(self, *args, **kwargs):
-        raise ValueError("RegressionBunch has been deprecated, use RegressionrExplainer instead...")
-
-class RandomForestExplainerBunch:
-    """ """
-    def __init__(self, *args, **kwargs):
-        raise ValueError("RandomForestExplainerBunch has been deprecated, use RandomForestExplainer instead...")
-
-class RandomForestClassifierBunch:
-    """ """
-    def __init__(self, *args, **kwargs):
-        raise ValueError("RandomForestClassifierBunch has been deprecated, use RandomForestClassifierExplainer instead...")
-
-class RandomForestRegressionBunch:
-    """ """
-    def __init__(self, *args, **kwargs):
-        raise ValueError("RandomForestRegressionBunch has been deprecated, use RandomForestRegressionExplainer instead...")
-
-
-
-

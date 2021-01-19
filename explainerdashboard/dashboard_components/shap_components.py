@@ -119,7 +119,7 @@ class ShapSummaryComponent(ExplainerComponent):
                                             target='shap-summary-index-label-'+self.name),
                                 dcc.Dropdown(id='shap-summary-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
+                                                    for idx in self.explainer.idxs],
                                     value=self.index),
                             ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
@@ -209,6 +209,8 @@ class ShapDependenceComponent(ExplainerComponent):
             color_col (str, optional): Color plot by values of this Feature. 
                         Defaults to None.
             index (int, optional): Highlight a particular index. Defaults to None.
+            cats_topx (int, optional): maximum number of categories to display
+                for categorical features. Defaults to 10.
             cats_sort (str, optional): how to sort categories: 'alphabet', 
                 'freq' or 'shap'. Defaults to 'freq'.
             max_cat_colors (int, optional): for categorical features, maximum number
@@ -283,7 +285,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                         target='shap-dependence-index-label-'+self.name),
                             dcc.Dropdown(id='shap-dependence-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
+                                                for idx in self.explainer.idxs],
                                 value=self.index)
                         ], md=4), hide=self.hide_index),         
                 ], form=True),
@@ -515,7 +517,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                                             target='interaction-summary-index-label-'+self.name),
                                 dcc.Dropdown(id='interaction-summary-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
+                                                    for idx in self.explainer.idxs],
                                     value=self.index),
                             ], id='interaction-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
@@ -688,7 +690,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                                             target='interaction-dependence-index-label-'+self.name),
                                 dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
+                                                    for idx in self.explainer.idxs],
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
                     ], form=True),

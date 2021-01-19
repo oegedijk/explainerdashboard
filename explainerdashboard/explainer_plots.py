@@ -858,7 +858,10 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
         highlight_index (int, str, optional): Row index to highligh. Defaults to None.
         idxs (List[str], optional): List of identifiers for each row in X, e.g. 
             names or id's. Defaults to None.
-        index_name (str): identifier for idxs. Defaults to "index".
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
+        max_cat_colors (int, optional): maximum number of X_color_col categories
+            to colorize in scatter plot next to violin plot. Defaults to 5.
 
     Returns:
         Plotly fig
@@ -1700,12 +1703,8 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     
     layout = go.Layout(
         title=f"Predicted {target} vs Observed {target}",
-        yaxis=dict(
-            title=f"Predicted {target}" + f" ({units})" if units else "",
-        ),
-        xaxis=dict(
-            title=f"Observed {target}" + f" ({units})" if units else "",
-        ),
+        yaxis=dict(title=f"Predicted {target}" + (f" ({units})" if units else "")),
+        xaxis=dict(title=f"Observed {target}" + (f" ({units})" if units else "")),
         plot_bgcolor = '#fff',
         hovermode = 'closest',
     )
@@ -1807,7 +1806,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
 
 def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference',
                             idxs=None, round=2, points=True, winsor=0, 
-                            na_fill=-999, index_name="index"):
+                            na_fill=-999, index_name="index", cats_order=None):
     """Generates a residuals plot vs a particular feature column.
 
     Args:
@@ -1827,6 +1826,8 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
         index_name (str): identifier for idxs. Defaults to "index".
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
 
 
     Returns:
@@ -1867,7 +1868,9 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
                                                     np.round(res, round))] 
     
     if not is_numeric_dtype(col):
-        n_cats = col.nunique()
+        if cats_order is None:
+            cats_order = sorted(col.unique().tolist())
+        n_cats = len(cats_order)
         
         if points:
             fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
@@ -1878,7 +1881,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
                                 np.percentile(residuals_display, 100-winsor)]) 
 
-        for i, cat in enumerate(col.unique()):
+        for i, cat in enumerate(cats_order):
             column = 1+i*2 if points else 1+i
             fig.add_trace(go.Violin(
                                 x=col[col == cat],
@@ -1897,7 +1900,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
                                 text=[t for t, b in zip(residuals_text, col == cat) if b],
                                 hoverinfo="text",
                                 marker=dict(size=7, 
-                                        opacity=0.6,
+                                        opacity=0.3,
                                         color='blue'),
                             ), row=1, col=column+1)
 
@@ -1954,7 +1957,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
 
 def plotly_actual_vs_col(y, preds, col, col_name=None, 
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999,
-                            units="", target="", index_name="index"):
+                            units="", target="", index_name="index", cats_order=None):
     """Generates a residuals plot vs a particular feature column.
 
     Args:
@@ -1972,6 +1975,8 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
         index_name (str): identifier for idxs. Defaults to "index".
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
 
 
     Returns:
@@ -1996,7 +2001,9 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
                                                     np.round(preds, round))] 
     
     if not is_numeric_dtype(col):
-        n_cats = col.nunique()
+        if cats_order is None:
+            cats_order = sorted(col.unique().tolist())
+        n_cats = len(cats_order)
         
         if points:
             fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
@@ -2007,7 +2014,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         fig.update_yaxes(range=[np.percentile(y, winsor), 
                                 np.percentile(y, 100-winsor)]) 
 
-        for i, cat in enumerate(col.unique()):
+        for i, cat in enumerate(cats_order):
             column = 1+i*2 if points else 1+i
             fig.add_trace(go.Violin(
                                 x=col[col == cat],
@@ -2077,7 +2084,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
 
 def plotly_preds_vs_col(y, preds, col, col_name=None, 
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999,
-                            units="", target="", index_name="index"):
+                            units="", target="", index_name="index", cats_order=None):
     """Generates plot of predictions vs a particular feature column.
 
     Args:
@@ -2095,7 +2102,8 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
         index_name (str): identifier for idxs. Defaults to "index".
-
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
 
     Returns:
         Plotly fig
@@ -2117,7 +2125,9 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
                   for idx, actual, pred in zip(idxs,np.round(y, round), np.round(preds, round))] 
     
     if not is_numeric_dtype(col):
-        n_cats = col.nunique()
+        if cats_order is None:
+            cats_order = sorted(col.unique().tolist())
+        n_cats = len(cats_order)
         
         if points:
             fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
@@ -2128,7 +2138,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         fig.update_yaxes(range=[np.percentile(preds, winsor), 
                                 np.percentile(preds, 100-winsor)]) 
 
-        for i, cat in enumerate(col.unique()):
+        for i, cat in enumerate(cats_order):
             column = 1+i*2 if points else 1+i
             fig.add_trace(go.Violin(
                                 x=col[col == cat],
