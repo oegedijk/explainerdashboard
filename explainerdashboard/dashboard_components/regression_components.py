@@ -699,9 +699,11 @@ class RegressionVsColComponent(ExplainerComponent):
                     subtitle="Are predictions and residuals correlated with features?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_col=False, hide_ratio=False, 
-                    hide_points=False, hide_winsor=False,
+                    hide_points=False, hide_winsor=False, 
+                    hide_cats_topx=False, hide_cats_sort=False,
                     col=None, display='difference', 
-                    points=True, winsor=0, description=None, **kwargs):
+                    points=True, winsor=0, cats_topx=10, cats_sort='freq', 
+                    description=None, **kwargs):
         """Show residuals, observed or preds vs a particular Feature component
 
         Args:
@@ -720,6 +722,8 @@ class RegressionVsColComponent(ExplainerComponent):
             hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
             hide_points (bool, optional): Hide group points toggle. Defaults to False.
             hide_winsor (bool, optional): Hide winsor input. Defaults to False.
+            hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
+            hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
             col ([type], optional): Initial feature to display. Defaults to None.
             display (str, {'observed', 'predicted', difference', 'ratio', 'log-ratio'} optional): 
                     What to display on y axis. Defaults to 'difference'.
@@ -727,6 +731,10 @@ class RegressionVsColComponent(ExplainerComponent):
                     for categorical cols. Defaults to True
             winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+            cats_topx (int, optional): maximum number of categories to display
+                for categorical features. Defaults to 10.
+            cats_sort (str, optional): how to sort categories: 'alphabet', 
+                'freq' or 'shap'. Defaults to 'freq'.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -808,25 +816,50 @@ class RegressionVsColComponent(ExplainerComponent):
                                 dbc.Input(id='reg-vs-col-winsor-'+self.name, 
                                         value=self.winsor,
                                     type="number", min=0, max=49, step=1),
-                        ], md=4), hide=self.hide_winsor),  
+                        ], md=4), hide=self.hide_winsor), 
+                    
                     make_hideable(
                         dbc.Col([
                             html.Div([
                                 dbc.FormGroup([
-                                        dbc.Label("Scatter:"),
-                                        dbc.Tooltip("For categorical features, display "
-                                                "a point cloud next to the violin plots.", 
-                                                    target='reg-vs-col-show-points-'+self.name),
-                                        dbc.Checklist(
-                                            options=[{"label": "Show point cloud", "value": True}],
-                                            value=[True] if self.points else [],
-                                            id='reg-vs-col-show-points-'+self.name,
-                                            inline=True,
-                                            switch=True,
-                                        ),
-                                    ]),
+                                    dbc.Label("Scatter:"),
+                                    dbc.Tooltip("For categorical features, display "
+                                            "a point cloud next to the violin plots.", 
+                                                target='reg-vs-col-show-points-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Show point cloud", "value": True}],
+                                        value=[True] if self.points else [],
+                                        id='reg-vs-col-show-points-'+self.name,
+                                        inline=True,
+                                        switch=True),
+                                ]),
                             ], id='reg-vs-col-show-points-div-'+self.name)
-                        ],  md=4), self.hide_points),
+                        ],  md=2), self.hide_points),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label("Categories:", id='reg-vs-col-n-categories-label-'+self.name),
+                                dbc.Tooltip("Maximum number of categories to display", 
+                                            target='reg-vs-col-n-categories-label-'+self.name),
+                                dbc.Input(id='reg-vs-col-n-categories-'+self.name, 
+                                    value=self.cats_topx,
+                                    type="number", min=1, max=50, step=1),
+                            ], id='reg-vs-col-n-categories-div-'+self.name),
+                        ], md=2), self.hide_cats_topx),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                html.Label('Sort categories:', id='reg-vs-col-categories-sort-label-'+self.name),
+                                dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                            "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                            target='reg-vs-col-categories-sort-label-'+self.name),
+                                dbc.Select(id='reg-vs-col-categories-sort-'+self.name,
+                                        options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                    {'label': 'Frequency', 'value': 'freq'},
+                                                    {'label': 'Shap impact', 'value': 'shap'}],
+                                        value=self.cats_sort),
+                            ], id='reg-vs-col-categories-sort-div-'+self.name),
+                        ], md=4), hide=self.hide_cats_sort),                    
                 ])
             ]), hide=self.hide_footer)
         ])
@@ -834,27 +867,34 @@ class RegressionVsColComponent(ExplainerComponent):
     def register_callbacks(self, app):
         @app.callback(
             [Output('reg-vs-col-graph-'+self.name, 'figure'),
-             Output('reg-vs-col-show-points-div-'+self.name, 'style')],
+             Output('reg-vs-col-show-points-div-'+self.name, 'style'),
+             Output('reg-vs-col-n-categories-div-'+self.name, 'style'),
+             Output('reg-vs-col-categories-sort-div-'+self.name, 'style')],
             [Input('reg-vs-col-col-'+self.name, 'value'),
              Input('reg-vs-col-display-type-'+self.name, 'value'),
              Input('reg-vs-col-show-points-'+self.name, 'value'),
-             Input('reg-vs-col-winsor-'+self.name, 'value')],
+             Input('reg-vs-col-winsor-'+self.name, 'value'),
+             Input('reg-vs-col-n-categories-'+self.name, 'value'),
+             Input('reg-vs-col-categories-sort-'+self.name, 'value')],
         )
-        def update_residuals_graph(col, display, points, winsor):
+        def update_residuals_graph(col, display, points, winsor, topx, sort):
             if col in self.explainer.onehot_cols or col in self.explainer.categorical_cols:
                 style = {}
             else:
                 style = dict(display="none")
             if display == 'observed':
                 return self.explainer.plot_y_vs_feature(
-                        col, points=bool(points), winsor=winsor, dropna=True), style
+                        col, points=bool(points), winsor=winsor, dropna=True,
+                        topx=topx, sort=sort), style, style, style
             elif display == 'predicted':
                 return self.explainer.plot_preds_vs_feature(
-                        col, points=bool(points), winsor=winsor, dropna=True), style
+                        col, points=bool(points), winsor=winsor, dropna=True,
+                        topx=topx, sort=sort), style, style, style
             else:
                 return self.explainer.plot_residuals_vs_feature(
                             col, residuals=display, points=bool(points), 
-                            winsor=winsor, dropna=True), style
+                            winsor=winsor, dropna=True,
+                        topx=topx, sort=sort), style, style, style
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):

@@ -4,20 +4,45 @@
 ## 0.3.0:
 
 ### Breaking Changes
-- 
-- 
+- onehot encoded features are now merged by default. This means that the `cats=True`
+    parameter has been removed from all explainer methods, and the `group cats` 
+    toggle has been removed from all `ExplainerComponents`. This saves both
+    on code complexity and memory usage. If you wish to see the see the individual
+    contributions of onehot encoded columns, simply don't pass them to the 
+    `cats` parameter on construction.
+- Naming changes:
+    -`TreeExplainers`:
+        - `self.decision_trees` -> `self.shadow_trees`
+        - `self.decisiontree_df` -> `self.decisionpath_df`
+        - `self.decisiontree_summary_df` -> `self.decisionpath_summary_df`
+        - `self.decision_path_file` -> `self.decision_tree_file`
+        - `self.decision_path` -> `self.decision_tree`
+        - `self.decision_path_encoded` -> `self.decision_tree_encoded`
 
 ### New Features
-- new `memory_usage()` method
+- new `Explainer` parameter `precision`: defaults to `'float64'`. Can be set to
+    `'float32'` to save on memory usage.
+- new `memory_usage()` method to show which internal attributes take the most memory.
+- added `get_index_list()`, `get_X_row(index)`, and `get_y(index)` methods.
+    - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
+        and `.set_y_func()`.
+    - by overriding these functions you can sample observations from a database
+        or other storage.
 - added `max_cat_colors` parameters to `plot_shap_summary` and `plot_shap_dependence` and `plot_shap_interaction`
+    - defaults to 5
+    - can be set as `**kwarg` to `ExplainerDashboard`
+- adds category limits and sorting to `RegressionVsCol` component
 
 ### Bug Fixes
 -
 -
 
 ### Improvements
-- encoding onehot columns with np.int8
-- adds
+- encoding onehot columns as `np.int8` saving memory usage
+- encoding categorical features as `pd.category` saving memory usage
+- added base TreeExplainer class that RandomForestExplainer and XGBExplainer both derive from
+    - will make it easier to extend tree explainers to other models in the future
+        - e.g. catboost and lightgbm
 
 ### Other Changes
 -
