@@ -209,7 +209,6 @@ class BaseExplainer(ABC):
         else:
             self.idxs.name = index_name.capitalize()
             self.index_name = index_name.capitalize()
-
         self.descriptions = {} if descriptions is None else descriptions
         self.target = target if target is not None else self.y.name
         self.n_jobs = n_jobs
@@ -225,6 +224,7 @@ class BaseExplainer(ABC):
             self.interactions_should_work = False
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
+        self.__version__ = "0.3"
 
     @classmethod
     def from_file(cls, filepath):
@@ -586,10 +586,10 @@ class BaseExplainer(ABC):
                 return X[col].value_counts().nlargest(topx).index.tolist()
         elif sort=='shap':
             if topx is None:
-                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.X_cats[col].values)
+                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.get_col(col))
                             .abs().groupby(level=0).mean().sort_values(ascending=False).index.tolist())
             else:
-                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.X_cats[col].values)
+                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.get_col(col))
                             .abs().groupby(level=0).mean().sort_values(ascending=False).nlargest(topx).index.tolist())
         else:
             raise ValueError(f"sort='{sort}', but should be in {{'alphabet', 'freq', 'shap'}}")
@@ -696,7 +696,7 @@ class BaseExplainer(ABC):
         if not hasattr(self, '_shap_base_value'):
             # CatBoost needs shap values calculated before expected value
             if not hasattr(self, "_shap_values"):
-                _ = self.shap_values_df
+                _ = self.shap_values_df()
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
                 # shap library now returns an array instead of float
@@ -1520,7 +1520,8 @@ class ClassifierExplainer(BaseExplainer):
 
         self._params_dict = {**self._params_dict, **dict(
             labels=labels, pos_label=pos_label)}
-        self.y = self.y.astype("int16")
+        
+        self.y = self.y.astype('Int64')
         if self.categorical_cols and model_output == 'probability':
             print("Warning: Models that deal with categorical features directly "
                 f"such as {self.model.__class__.__name__} are incompatible with model_output='probability'"
@@ -1557,7 +1558,7 @@ class ClassifierExplainer(BaseExplainer):
         if label is None or (isinstance(label, int) and label >=0 and label <len(self.labels)):
             self._pos_label = label
         elif isinstance(label, str) and label in self.labels:
-            self._pos_label = pos_label_index(label)
+            self._pos_label = self.pos_label_index(label)
         else:
             raise ValueError(f"'{label}' not in labels")
 
@@ -2273,7 +2274,7 @@ class RegressionExplainer(BaseExplainer):
         if not hasattr(self, '_residuals'):
             print("Calculating residuals...")
             self._residuals =  (self.y-self.preds).astype(self.precision)
-        return self._residuals.ast
+        return self._residuals
 
     @property
     def abs_residuals(self):
@@ -2918,7 +2919,7 @@ class XGBExplainer(TreeExplainer):
             y = self.get_y(index)
             y = 100 * int(y == pos_label) if y is not None else y
             xgboost_preds_df = get_xgboost_preds_df(
-                self.model, self.get_X_Row(index), pos_label=pos_label)
+                self.model, self.get_X_row(index), pos_label=pos_label)
             return plotly_xgboost_trees(xgboost_preds_df, 
                             y=y, 
                             highlight_tree=highlight_tree, 

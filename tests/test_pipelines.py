@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import fetch_openml
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, OrdinalEncoder
@@ -55,34 +54,27 @@ class ClassifierBaseExplainerTestsPipeline(unittest.TestCase):
         self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
 
     def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.permutation_importances, pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
         self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
 
     def test_mean_abs_shap_df(self):
-        self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
     def test_contrib_df(self):
         self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, cats=False), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, sort='high-to-low'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, sort='low-to-high'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, sort='importance'), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X_cats.iloc[[0]]), pd.DataFrame)
 
     def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
+        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values.shape == (len(self.explainer), len(self.explainer.columns)))
+        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
+        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
 
     def test_pdp_df(self):
         self.assertIsInstance(self.explainer.pdp_df("age"), pd.DataFrame)

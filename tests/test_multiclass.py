@@ -30,91 +30,64 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 
     def test_pred_percentiles(self):
-        self.assertIsInstance(self.explainer.pred_percentiles, np.ndarray)
+        self.assertIsInstance(self.explainer.pred_percentiles(), np.ndarray)
 
     def test_columns_ranked_by_shap(self):
         self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
-        self.assertIsInstance(self.explainer.columns_ranked_by_shap(cats=True), list)
-
-    def test_equivalent_col(self):
-        self.assertEqual(self.explainer.equivalent_col("Sex_female"), "Gender")
-        self.assertEqual(self.explainer.equivalent_col("Gender"), "Sex_female")
-        self.assertIsNone(self.explainer.equivalent_col("random"))
-
-    def test_get_col(self):
-        self.assertIsInstance(self.explainer.get_col("Gender"), pd.Series)
-        self.assertEqual(self.explainer.get_col("Gender").dtype, "object")
-
-        self.assertIsInstance(self.explainer.get_col("Age"), pd.Series)
-        self.assertEqual(self.explainer.get_col("Age").dtype, np.float)
 
     def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.permutation_importances, pd.DataFrame)
-        self.assertIsInstance(self.explainer.permutation_importances_cats, pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
         
     def test_X_cats(self):
         self.assertIsInstance(self.explainer.X_cats, pd.DataFrame)
-
-    def test_columns_cats(self):
-        self.assertIsInstance(self.explainer.columns_cats, list)
 
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
         self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
 
     def test_mean_abs_shap_df(self):
-        self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
     def test_top_interactions(self):
         self.assertIsInstance(self.explainer.top_shap_interactions("Age"), list)
         self.assertIsInstance(self.explainer.top_shap_interactions("Age", topx=4), list)
-        self.assertIsInstance(self.explainer.top_shap_interactions("Age", cats=True), list)
-        self.assertIsInstance(self.explainer.top_shap_interactions("Gender", cats=True), list)
 
     def test_permutation_importances_df(self):
-        self.assertIsInstance(self.explainer.permutation_importances_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.permutation_importances_df(topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.permutation_importances_df(cats=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.permutation_importances_df(cutoff=0.01), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(topx=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(cutoff=0.01), pd.DataFrame)
 
     def test_contrib_df(self):
         self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, cats=False), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_df(0, topx=3), pd.DataFrame)
 
     def test_contrib_summary_df(self):
         self.assertIsInstance(self.explainer.contrib_summary_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(0, cats=False), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, topx=3), pd.DataFrame)
         self.assertIsInstance(self.explainer.contrib_summary_df(0, round=3), pd.DataFrame)
 
     def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value, (np.floating, float))
+        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values.shape == (len(self.explainer), len(self.explainer.columns)))
+        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_values_cats, np.ndarray)
+        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
 
     def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values, np.ndarray)
-        self.assertIsInstance(self.explainer.shap_interaction_values_cats, np.ndarray)
+        self.assertIsInstance(self.explainer.shap_interaction_values(), np.ndarray)
 
     def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.mean_abs_shap, pd.DataFrame)
-        self.assertIsInstance(self.explainer.mean_abs_shap_cats, pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
     def test_calculate_properties(self):
         self.explainer.calculate_properties()
 
     def test_shap_interaction_values_by_col(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values_by_col("Age"), np.ndarray)
-        self.assertEqual(self.explainer.shap_interaction_values_by_col("Age").shape, 
-                        self.explainer.shap_values.shape)
-        self.assertEqual(self.explainer.shap_interaction_values_by_col("Age", cats=True).shape, 
-                        self.explainer.shap_values_cats.shape)
+        self.assertIsInstance(self.explainer.shap_interaction_values_for_col("Age"), np.ndarray)
+        self.assertEqual(self.explainer.shap_interaction_values_for_col("Age").shape, 
+                        self.explainer.shap_values_df().shape)
 
     def test_pdp_df(self):
         self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
@@ -122,12 +95,6 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
         self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
         self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
-
-    def test_get_dfs(self):
-        cols_df, shap_df, contribs_df = self.explainer.get_dfs()
-        self.assertIsInstance(cols_df, pd.DataFrame)
-        self.assertIsInstance(shap_df, pd.DataFrame)
-        self.assertIsInstance(contribs_df, pd.DataFrame)
 
     def test_plot_importances(self):
         fig = self.explainer.plot_importances()
@@ -139,14 +106,8 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_importances(topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_importances(cats=True)
-        self.assertIsInstance(fig, go.Figure)
-
     def test_plot_interactions(self):
         fig = self.explainer.plot_interactions_importance("Age")
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_interactions_importance("Sex_female")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_interactions_importance("Age")
@@ -157,9 +118,6 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
 
     def test_plot_contributions(self):
         fig = self.explainer.plot_contributions(0)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_contributions(0, cats=False)
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_contributions(0, topx=3)
@@ -175,9 +133,6 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_shap_detailed(topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_detailed(cats=True)
-        self.assertIsInstance(fig, go.Figure)
-
     def test_plot_interactions_detailed(self):
         fig = self.explainer.plot_interactions_detailed("Age")
         self.assertIsInstance(fig, go.Figure)
@@ -188,9 +143,6 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_interactions_detailed("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions_detailed("Sex_female", topx=3)
-        self.assertIsInstance(fig, go.Figure)
-
         fig = self.explainer.plot_interactions_detailed("Gender")
         self.assertIsInstance(fig, go.Figure)
 
@@ -198,13 +150,7 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         fig = self.explainer.plot_dependence("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_dependence("Sex_female")
-        self.assertIsInstance(fig, go.Figure)
-
         fig = self.explainer.plot_dependence("Age", "Gender")
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_dependence("Sex_female", "Age")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_dependence("Age", highlight_index=0)
@@ -214,19 +160,13 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_interaction(self):
-        fig = self.explainer.plot_dependence("Age", "Sex_female")
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_dependence("Sex_female", "Age")
-        self.assertIsInstance(fig, go.Figure)
-
         fig = self.explainer.plot_dependence("Gender", "Age")
         self.assertIsInstance(fig, go.Figure)
 
         fig = self.explainer.plot_dependence("Age", "Gender")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_dependence("Age", "Sex_female", highlight_index=0)
+        fig = self.explainer.plot_dependence("Age", "Gender", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_pdp(self):
@@ -250,14 +190,8 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
         self.assertEqual(self.explainer.pos_label, 1)
         self.assertEqual(self.explainer.pos_label_str, "Southampton")
 
-    def test_get_prop_for_label(self):
-        self.explainer.pos_label = 1
-        tmp = self.explainer.pred_percentiles
-        self.explainer.pos_label = 0
-        self.assertTrue(np.alltrue(self.explainer.get_prop_for_label("pred_percentiles", 1)==tmp))
-
     def test_pred_probas(self):
-        self.assertIsInstance(self.explainer.pred_probas, np.ndarray)
+        self.assertIsInstance(self.explainer.pred_probas(), np.ndarray)
 
     
     def test_metrics(self):
@@ -271,9 +205,6 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
 
     def test_lift_curve_df(self):
         self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
-
-    def test_prediction_result_markdown(self):
-        self.assertIsInstance(self.explainer.prediction_result_markdown(0), str)
 
     def test_calculate_properties(self):
         self.explainer.calculate_properties()

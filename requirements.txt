@@ -4,7 +4,7 @@ dash-auth
 jupyter_dash
 dtreeviz
 numpy
-pandas
+pandas>=0.24
 scikit-learn
 shap>=0.37
 shortuuid

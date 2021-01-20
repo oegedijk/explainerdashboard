@@ -1,10 +1,9 @@
 import unittest
 
 import pandas as pd
+from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
-
 import plotly.graph_objects as go
 
 from explainerdashboard.explainers import RegressionExplainer
@@ -23,19 +22,13 @@ class RegressionBunchTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = RegressionExplainer(
-                            model, X_test, y_test, r2_score, 
+                            model, X_test, y_test, 
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
                             idxs=test_names)
 
     def test_residuals(self):
         self.assertIsInstance(self.explainer.residuals, pd.Series)
-
-    def test_prediction_result_markdown(self):
-        result_index = self.explainer.prediction_result_markdown(0)
-        self.assertIsInstance(result_index, str)
-        result_name = self.explainer.prediction_result_markdown(self.names[0])
-        self.assertIsInstance(result_name, str)
 
     def test_metrics(self):
         metrics_dict = self.explainer.metrics()

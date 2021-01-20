@@ -4,9 +4,10 @@
 ## Version 0.3:
 - check all register_dependencies()
 - add option drop encoded cols
-- add options drop non-pos label
-- reorder methods
-- remove plot_SHAP_dependence, etc
+- add v03 check
+- add deprecation warnings for old methods
+- update tutorial notebooks
+
 ## Bugs:
 
 
