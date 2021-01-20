@@ -310,7 +310,7 @@ class ShapDependenceComponent(ExplainerComponent):
                             make_hideable(
                                 dbc.Col([
                                         html.Label('Sort categories:', id='shap-dependence-categories-sort-label-'+self.name),
-                                        dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                        dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                     "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                     target='shap-dependence-categories-sort-label-'+self.name),
                                         dbc.Select(id='shap-dependence-categories-sort-'+self.name,
@@ -717,7 +717,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         make_hideable(
                             dbc.Col([
                                     html.Label('Sort categories:', id='interaction-dependence-top-categories-sort-label-'+self.name),
-                                    dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='interaction-dependence-top-categories-sort-label-'+self.name),
                                     dbc.Select(id='interaction-dependence-top-categories-sort-'+self.name,
@@ -754,7 +754,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         make_hideable(
                             dbc.Col([
                                     html.Label('Sort categories:', id='interaction-dependence-bottom-categories-sort-label-'+self.name),
-                                    dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='interaction-dependence-bottom-categories-sort-label-'+self.name),
                                     dbc.Select(id='interaction-dependence-bottom-categories-sort-'+self.name,
@@ -1026,11 +1026,13 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                  *self.feature_input_component._feature_callback_inputs])
             def update_output_div(depth, sort, orientation, pos_label, *inputs):
                 depth = None if depth is None else int(depth)
-                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                plot = self.explainer.plot_shap_contributions(X_row=X_row, 
-                            topx=depth, sort=sort, orientation=orientation, 
-                            pos_label=pos_label, higher_is_better=self.higher_is_better)
-                return plot
+                if not any([i is None for i in inputs]):
+                    X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                    plot = self.explainer.plot_shap_contributions(X_row=X_row, 
+                                topx=depth, sort=sort, orientation=orientation, 
+                                pos_label=pos_label, higher_is_better=self.higher_is_better)
+                    return plot
+                raise PreventUpdate
 
 
 class ShapContributionsTableComponent(ExplainerComponent):
@@ -1190,27 +1192,29 @@ class ShapContributionsTableComponent(ExplainerComponent):
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs])
             def update_output_div(depth, sort, pos_label, *inputs):
-                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                depth = None if depth is None else int(depth)
-                contributions_table = dbc.Table.from_dataframe(
-                    self.explainer.contrib_summary_df(X_row=X_row, topx=depth, 
-                                    sort=sort, pos_label=pos_label))
+                if not any([i is None for i in inputs]):
+                    X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                    depth = None if depth is None else int(depth)
+                    contributions_table = dbc.Table.from_dataframe(
+                        self.explainer.contrib_summary_df(X_row=X_row, topx=depth, 
+                                        sort=sort, pos_label=pos_label))
 
-                tooltip_cols = {}
-                for tr in contributions_table.children[1].children:
-                    # insert tooltip target id's into the table html.Tr() elements:
-                    tds = tr.children
-                    col = tds[0].children.split(" = ")[0]
-                    if self.explainer.description(col) != "":
-                        tr.id = f"contributions-table-hover-{col}-"+self.name
-                        tooltip_cols[col] = self.explainer.description(col)
-                
-                tooltips = [dbc.Tooltip(desc,
-                            target=f"contributions-table-hover-{col}-"+self.name, 
-                            placement="top") for col, desc in tooltip_cols.items()]
+                    tooltip_cols = {}
+                    for tr in contributions_table.children[1].children:
+                        # insert tooltip target id's into the table html.Tr() elements:
+                        tds = tr.children
+                        col = tds[0].children.split(" = ")[0]
+                        if self.explainer.description(col) != "":
+                            tr.id = f"contributions-table-hover-{col}-"+self.name
+                            tooltip_cols[col] = self.explainer.description(col)
+                    
+                    tooltips = [dbc.Tooltip(desc,
+                                target=f"contributions-table-hover-{col}-"+self.name, 
+                                placement="top") for col, desc in tooltip_cols.items()]
 
-                output_div = html.Div([contributions_table, *tooltips])
-                return output_div
+                    output_div = html.Div([contributions_table, *tooltips])
+                    return output_div
+                raise PreventUpdate
 
 
 

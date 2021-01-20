@@ -345,8 +345,8 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
     return fig
 
 
-def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, 
-                                pos_label=1, percentage=False):
+def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
+                                round=2, pos_label=1, percentage=False):
     """Displays bar plots showing label distributions above and below cutoff
     value.
 
@@ -356,6 +356,7 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
             (e.g. [0, 1, 1, 0,...,1])
         labels (List[str], optional): List of labels for classes. Defaults to None.
         cutoff (float, optional): Cutoff pred_proba. Defaults to 0.5.
+        round (int, optional): round float by round number of digits. Defaults to 2.
         pos_label (int, optional): Positive label class. Defaults to 1.
         percentage (bool, optional): Display percentage instead of absolute 
             numbers. Defaults to False.
@@ -374,18 +375,15 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
     
     fig = go.Figure()
     for i, label in enumerate(labels):
-        text = [f"<b>{sum(below_threshold[1]==i)}</b><br>({np.round(100*np.mean(below_threshold[1]==i), 1)}%)",
-                f"<b>{sum(above_threshold[1]==i)}</b><br>({np.round(100*np.mean(above_threshold[1]==i), 1)}%)", 
-                f"<b>{sum(targets==i)}</b><br>({np.round(100*np.mean(targets==i), 1)}%)"]
+        text = [f"<b>{sum(below_threshold[1]==i)}</b><br>({100*np.mean(below_threshold[1]==i):.{round}f}%)",
+                f"<b>{sum(above_threshold[1]==i)}</b><br>({100*np.mean(above_threshold[1]==i):.{round}f}%)", 
+                f"<b>{sum(targets==i)}</b><br>({100*np.mean(targets==i):.{round}f}%)"]
         if percentage:
             fig.add_trace(go.Bar(
                 x=x, 
                 y=[100*np.mean(below_threshold[1]==i),
                     100*np.mean(above_threshold[1]==i), 
                     100*np.mean(targets==i)], 
-                # text=[str(np.round(100*np.mean(below_threshold[1]==i), 2)) + '%',
-                #       str(np.round(100*np.mean(above_threshold[1]==i), 2)) + '%', 
-                #       str(np.round(100*np.mean(targets==i), 2)) + '%'],
                 text=text,
                 textposition='auto',
                 hoverinfo="text",
@@ -397,9 +395,6 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
                 y=[sum(below_threshold[1]==i),
                     sum(above_threshold[1]==i), 
                     sum(targets==i)], 
-                # text = [sum(below_threshold[1]==i),
-                #     sum(above_threshold[1]==i), 
-                #     sum(targets==i)], 
                 text=text,
                 textposition='auto',
                 hoverinfo="text",
@@ -434,30 +429,30 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     """
 
     if percentage:
-        model_text=[f"model selected {np.round(pos, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
-                    + f"precision={np.round(precision, 2)}% positives in sample<br>" \
-                    + f"lift={np.round(pos/exp, 2)}" 
+        model_text=[f"model selected {pos:.{round}f}% of all positives in first {i:.{round}f}% sampled<br>" \
+                    + f"precision={precision:.{round}f}% positives in sample<br>" \
+                    + f"lift={pos/exp:.{round}f}" 
                   for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage, 
                                                       lift_curve_df.cumulative_percentage_pos,
                                                       lift_curve_df.random_cumulative_percentage_pos, 
                                                       lift_curve_df.precision)]
         
-        random_text=[f"random selected {np.round(exp, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
-                     + f"precision={np.round(precision, 2)}% positives in sample"
+        random_text=[f"random selected {exp:.{round}f}% of all positives in first {i:.{round}f}% sampled<br>" \
+                     + f"precision={precision:.{round}f}% positives in sample"
                   for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage,
                                                       lift_curve_df.cumulative_percentage_pos, 
                                                       lift_curve_df.random_cumulative_percentage_pos, 
                                                       lift_curve_df.random_precision)]
     else:
         model_text=[f"model selected {pos} positives out of {i}<br>" \
-                    + f"precision={np.round(precision, 2)}<br>" \
-                    + f"lift={np.round(pos/exp, 2)}" 
+                    + f"precision={precision:.{round}f}<br>" \
+                    + f"lift={pos/exp:.{round}f}" 
                   for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
                                                       lift_curve_df.positives,
                                                       lift_curve_df.random_pos, 
                                                       lift_curve_df.precision)]
-        random_text=[f"random selected {np.round(exp).astype(int)} positives out of {i}<br>" \
-                     + f"precision={np.round(precision, 2)}"
+        random_text=[f"random selected {int(exp)} positives out of {i}<br>" \
+                     + f"precision={precision:.{round}f}"
                   for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
                                                       lift_curve_df.positives, 
                                                       lift_curve_df.random_pos, 
@@ -549,7 +544,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
                                         x=cutoff_x, 
                                         y=5, 
                                         yref='y',
-                                        text=f"cutoff={np.round(cutoff,3)}"),
+                                        text=f"cutoff={cutoff:.{round}f}"),
                                     go.layout.Annotation(x=0.5, y=0.4, 
                                         text=f"Model: {cutoff_pos} out {cutoff_n} ({cutoff_precision}%)",
                                         showarrow=False, align="right", 
@@ -572,13 +567,16 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     return fig
 
 
-def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None, pos_label=1):
+def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None, 
+                            round=2, pos_label=1):
     """Return cumulative precision plot showing the expected label distribution
     if you cumulatively sample a more and more of the highest predicted samples.
 
     Args:
         lift_curve_df (pd.DataFrame): generated with get_liftcurve_df(...)
         labels (List[str], optional): list of labels for classes. Defaults to None.
+        percentile (float, optional): draw line at percentile, defaults to None
+        round (int, optional): round floats to digits. Defaults to 2.
         pos_label (int, optional): Positive class label. Defaults to 1.
 
     Returns:
@@ -587,7 +585,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
     if labels is None:
         labels = ['category ' + str(i) for i in range(lift_curve_df.y.max()+1)]
     fig = go.Figure()
-    text = [f"percentage sampled = top {round(idx_perc,2)}%"
+    text = [f"percentage sampled = top {idx_perc:.{round}f}%"
                 for idx_perc in lift_curve_df['index_percentage'].values]
     fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                    y=np.zeros(len(lift_curve_df)),
@@ -595,7 +593,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
                                    text=text,
                                    hoverinfo="text")) 
 
-    text = [f"percentage {labels[pos_label]}={round(perc, 2)}%" 
+    text = [f"percentage {labels[pos_label]}={perc:.{round}f}%" 
                 for perc in lift_curve_df['precision_' +str(pos_label)].values]
     fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                    y=lift_curve_df['precision_' +str(pos_label)].values, 
@@ -609,7 +607,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
         
         if y_label != pos_label:
             cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
-            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+            text = [f"percentage {labels[y_label]}={perc:.{round}f}%" 
                 for perc in lift_curve_df['precision_' +str(y_label)].values]
             fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                          y=cumulative_y, 
@@ -622,7 +620,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
     for y_label in range(0, pos_label): 
         if y_label != pos_label:
             cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
-            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+            text = [f"percentage {labels[y_label]}={perc:.{round}f}%" 
                 for perc in lift_curve_df['precision_' +str(y_label)].values]
             fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                          y=cumulative_y, 
@@ -652,13 +650,13 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
         fig.update_layout(annotations=[
             go.layout.Annotation(x=100*percentile, y=20, 
                                  yref='y', ax=60, 
-                                 text=f"percentile={np.round(100*percentile, 2)}")])  
+                                 text=f"percentile={100*percentile:.{round}f}")])  
     fig.update_xaxes(nticks=10)
     return fig
 
 
 def plotly_dependence_plot(X_col, shap_values, interact_col=None, 
-                            interaction=False, na_fill=-999, round=2, units="", 
+                            interaction=False, na_fill=-999, round=3, units="", 
                             highlight_index=None, idxs=None):
     """Returns a dependence plot showing the relationship between feature col_name
     and shap values for col_name. Do higher values of col_name increase prediction
@@ -710,11 +708,11 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
     
     
     if interact_col is not None:
-        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={col_col_val}<br>SHAP={shap_val}' 
-                    for index, col_val, col_col_val, shap_val in zip(idxs, X_col, interact_col, np.round(shap_values, round))])
+        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={col_col_val}<br>SHAP={shap_val:.{round}f}' 
+                    for index, col_val, col_col_val, shap_val in zip(idxs, X_col, interact_col, shap_values)])
     else:
-        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>SHAP={shap_val}' 
-                    for index, col_val, shap_val in zip(idxs, X_col, np.round(shap_values, round))])  
+        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>SHAP={shap_val:.{round}f}' 
+                    for index, col_val, shap_val in zip(idxs, X_col, shap_values)])  
         
     data = []
     
@@ -736,11 +734,11 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
                     opacity=0.8,
                     hoverinfo="text",
                     name=onehot_col,
-                    text=[f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={interact_val}<br>SHAP={shap_val}' 
+                    text=[f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={interact_val}<br>SHAP={shap_val:.{round}f}' 
                             for index, col_val, interact_val, shap_val in zip(idxs,
                                 X_col[interact_col==onehot_col], 
                                 interact_col[interact_col==onehot_col], 
-                                np.round(shap_values[interact_col==onehot_col], round))],
+                                shap_values[interact_col==onehot_col])],
                     )
                 )         
     elif interact_col is not None and is_numeric_dtype(interact_col):
@@ -839,7 +837,7 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
 
 
 def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False, 
-        interaction=False, units="", highlight_index=None, idxs=None,
+        interaction=False, units="", highlight_index=None, idxs=None, round=3,
         cats_order=None, max_cat_colors=5):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
@@ -931,7 +929,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                 mode='markers',
                                 showlegend=False,
                                 hoverinfo="text",
-                                text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
+                                text = [f"{idxs.name}: {index}<br>shap: {shap:.{round}f}<br>{X_color_col.name}: {col}" 
                                             for index, shap, col in zip(idxs[X_col==cat], 
                                                                         shap_values[X_col == cat], 
                                                                         X_color_col[X_col==cat])],
@@ -959,7 +957,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                     mode='markers',
                                     showlegend=color_cat in show_legend,
                                     hoverinfo="text",
-                                    text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {color_cat_name}" 
+                                    text = [f"{idxs.name}: {index}<br>shap: {shap:.{round}f}<br>{X_color_col.name}: {color_cat_name}" 
                                                 for index, shap in zip(
                                                                 idxs[(X_col == cat) & (X_color_col == color_cat)], 
                                                                 shap_values[(X_col == cat) & (X_color_col == color_cat)])],
@@ -978,7 +976,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                         mode='markers',
                                         showlegend="Category_Other" in show_legend,
                                         hoverinfo="text",
-                                        text = [f"{idxs.name}: {index}<br>shap: {shap}<br>{X_color_col.name}: {col}" 
+                                        text = [f"{idxs.name}: {index}<br>shap: {shap:.{round}f}<br>{X_color_col.name}: {col}" 
                                                     for index, shap, col in zip(
                                                                     idxs[(X_col == cat) & (~X_color_col.isin(color_cats))], 
                                                                     shap_values[(X_col == cat) & (~X_color_col.isin(color_cats))],
@@ -1004,7 +1002,9 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
                                     opacity=0.6,
                                        color='blue'),
                         ), row=1, col=col+1)
-        if highlight_index is not None and X_col[highlight_idx]==cat:
+        if (highlight_index is not None 
+            and (points or X_color_col is not None) 
+            and X_col[highlight_idx]==cat):
             fig.add_trace(
                 go.Scattergl(
                     x=[0], 
@@ -1168,7 +1168,7 @@ def plotly_pdp(pdp_df,
             go.layout.Annotation(
                 x=pdp_df.columns[int(0.5*len(pdp_df.columns))], 
                 y=index_prediction, 
-                text=f"baseline pred = {str(np.round(index_prediction,round))}")
+                text=f"baseline pred = {index_prediction:.{round}f}")
                 )
 
     fig.update_layout(annotations=annotations)
@@ -1307,13 +1307,14 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
     return fig
 
 
-def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
+def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None, round=2):
     """Plot ROC AUC curve
 
     Args:
         true_y (np.ndarray): array of true labels
         pred_probas (np.ndarray): array of predicted probabilities
         cutoff (float, optional): Cutoff proba to display. Defaults to None.
+        round (int, optional): rounding of floats. Defaults to 2.
 
     Returns:
         Plotly Fig: 
@@ -1323,7 +1324,7 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
     trace0 = go.Scatter(x=fpr, y=tpr,
                     mode='lines',
                     name='ROC AUC CURVE',
-                    text=[f"threshold: {np.round(th,2)} <br> FP: {np.round(fp,2)} <br> TP: {np.round(tp,2)}" 
+                    text=[f"threshold: {th:.{round}f} <br> FP: {fp:.{round}f} <br> TP: {tp:.{round}f}" 
                               for fp, tp, th in zip(fpr, tpr, thresholds)],
                     hoverinfo="text"
                 )
@@ -1366,27 +1367,27 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
                                     output_dict=True)
         
         annotations = [go.layout.Annotation(x=0.6, y=0.45, 
-                            text=f"Cutoff: {np.round(cutoff,3)}",
+                            text=f"Cutoff: {cutoff:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.4, 
-                            text=f"Accuracy: {np.round(rep['accuracy'],3)}",
+                            text=f"Accuracy: {rep['accuracy']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.35, 
-                            text=f"Precision: {np.round(rep['1']['precision'], 3)}",
+                            text=f"Precision: {rep['1']['precision']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.30, 
-                            text=f"Recall: {np.round(rep['1']['recall'], 3)}",
+                            text=f"Recall: {rep['1']['recall']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.25, 
-                            text=f"F1-score: {np.round(rep['1']['f1-score'], 3)}",
+                            text=f"F1-score: {rep['1']['f1-score']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.20, 
-                            text=f"roc-auc-score: {np.round(roc_auc, 3)}",
+                            text=f"roc-auc-score: {roc_auc:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
@@ -1395,13 +1396,14 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
+def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None, round=2):
     """Generate Precision-Recall Area Under Curve plot
 
     Args:
         true_y (np.ndarray): array of tru labels
         pred_probas (np.ndarray): array of predicted probabilities
         cutoff (float, optional): model cutoff to display in graph. Defaults to None.
+        round (int, optional): rounding to apply to floats. Defaults to 2.
 
     Returns:
         Plotly fig: 
@@ -1411,9 +1413,9 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     trace0 = go.Scatter(x=precision, y=recall,
                     mode='lines',
                     name='PR AUC CURVE',
-                    text=[f"threshold: {np.round(th,2)} <br>" +\
-                          f"precision: {np.round(p,2)} <br>" +\
-                          f"recall: {np.round(r,2)}" 
+                    text=[f"threshold: {th:.{round}f} <br>" +\
+                          f"precision: {p:.{round}f} <br>" +\
+                          f"recall: {r:.{round}f}" 
                             for p, r, th in zip(precision, recall, thresholds)],
                     hoverinfo="text"
                 )
@@ -1447,27 +1449,27 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
                     output_dict=True)
         
         annotations = [go.layout.Annotation(x=0.15, y=0.45, 
-                            text=f"Cutoff: {np.round(cutoff,3)}",
+                            text=f"Cutoff: {cutoff:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.4, 
-                            text=f"Accuracy: {np.round(report['accuracy'],3)}",
+                            text=f"Accuracy: {report['accuracy']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.35, 
-                            text=f"Precision: {np.round(report['1']['precision'], 3)}",
+                            text=f"Precision: {report['1']['precision']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.30, 
-                            text=f"Recall: {np.round(report['1']['recall'], 3)}",
+                            text=f"Recall: {report['1']['recall']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.25, 
-                            text=f"F1-score: {np.round(report['1']['f1-score'], 3)}",
+                            text=f"F1-score: {report['1']['f1-score']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.20, 
-                            text=f"pr-auc-score: {np.round(pr_auc_score, 3)}",
+                            text=f"pr-auc-score: {pr_auc_score:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
@@ -1557,7 +1559,7 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
                             showlegend=False,
                             opacity=0.8,
                             hoverinfo="text",
-                            text=[f"{index_name}={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
+                            text=[f"{index_name}={i}<br>{col}={value}<br>shap={shap:.{round}f}" 
                               for i, shap, value in zip(idxs, shap_values_df[col], X[col].replace({na_fill:np.nan}))],
                             ),
                      row=i+1, col=1);
@@ -1583,7 +1585,7 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{index_name}={i}<br>{col}={cat}<br>shap={np.round(shap,3)}" 
+                                text=[f"{index_name}={i}<br>{col}={cat}<br>shap={shap:.{round}f}" 
                                       for i, shap in zip(idxs[X[col]==cat], 
                                             shap_values_df[col][X[col]==cat])],
                                 ),
@@ -1603,7 +1605,7 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{index_name}={i}<br>{col}={col_val}<br>shap={np.round(shap,3)}" 
+                                text=[f"{index_name}={i}<br>{col}={col_val}<br>shap={shap:.{round}f}" 
                                       for i, shap, col_val in zip(idxs[~X[col].isin(color_cats)], 
                                                               shap_values_df[col][~X[col].isin(color_cats)],
                                                               X[col][~X[col].isin(color_cats)])],
@@ -1626,7 +1628,7 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
                     )
                 ),
                 name = f"{index_name} {highlight_index}",
-                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_values_df[col].iloc[highlight_idx]}",
+                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_values_df[col].iloc[highlight_idx]:.{round}f}",
                 hoverinfo="text",
                 showlegend=False,
             ), row=i+1, col=1)
@@ -1676,10 +1678,8 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     else:
         idxs = [str(i) for i in range(len(preds))]
         
-    marker_text=[f"{index_name}: {idx}<br>Observed: {actual}<br>Prediction: {pred}" 
-                  for idx, actual, pred in zip(idxs, 
-                                                np.round(y, round), 
-                                                np.round(preds, round))] 
+    marker_text=[f"{index_name}: {idx}<br>Observed: {actual:.{round}f}<br>Prediction: {pred:.{round}f}" 
+                  for idx, actual, pred in zip(idxs, y, preds)] 
     
     trace0 = go.Scattergl(
         x = y,
@@ -1761,11 +1761,8 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
         
-    residuals_text=[f"{index_name}: {idx}<br>Observed: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
-                  for idx, actual, pred, residual in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round), 
-                                                    np.round(res, round))] 
+    residuals_text=[f"{index_name}: {idx}<br>Observed: {actual:.{round}f}<br>Prediction: {pred:.{round}f}<br>Residual: {residual:.{round}f}" 
+                  for idx, actual, pred, residual in zip(idxs, y, preds, res)] 
     trace0 = go.Scattergl(
         x=y if vs_actual else preds, 
         y=residuals_display, 
@@ -1861,11 +1858,8 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
 
-    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
-                  for idx, actual, pred, residual in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round), 
-                                                    np.round(res, round))] 
+    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual:.{round}f}<br>Prediction: {pred:.{round}f}<br>Residual: {residual:.{round}f}" 
+                  for idx, actual, pred, residual in zip(idxs, y, preds, res)] 
     
     if not is_numeric_dtype(col):
         if cats_order is None:
@@ -1995,10 +1989,8 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         idxs = [str(i) for i in range(len(preds))]
         
 
-    y_text=[f"{index_name}: {idx}<br>Observed {target}: {actual}<br>Prediction: {pred}" 
-                  for idx, actual, pred in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round))] 
+    y_text=[f"{index_name}: {idx}<br>Observed {target}: {actual:.{round}f}<br>Prediction: {pred:.{round}f}" 
+                  for idx, actual, pred in zip(idxs, y, preds)] 
     
     if not is_numeric_dtype(col):
         if cats_order is None:
@@ -2121,8 +2113,8 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         idxs = [str(i) for i in range(len(preds))]
         
 
-    preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
-                  for idx, actual, pred in zip(idxs,np.round(y, round), np.round(preds, round))] 
+    preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred:.{round}f}{units}<br>Observed {target}: {actual:.{round}f}{units}" 
+                  for idx, actual, pred in zip(idxs, y, preds)] 
     
     if not is_numeric_dtype(col):
         if cats_order is None:
@@ -2290,7 +2282,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
     annotations = [go.layout.Annotation(
         x=1.2*preds_df.model.mean(), 
         y=preds_df.prediction.mean(),
-        text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}",
+        text=f"Average prediction = {preds_df.prediction.mean():.{round}f}",
         bgcolor="lightgrey",
         arrowcolor="lightgrey",
         startstandoff=0)]
@@ -2357,10 +2349,10 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
         bases = xgboost_preds_df.pred_proba.values[:-1]
         diffs = xgboost_preds_df.pred_proba_diff.values[1:]
         
-        texts=[f"tree no {t}:<br>change = {np.round(100*d, round)}%<br> click for detailed info"
+        texts=[f"tree no {t}:<br>change = {100*d:.{round}f}%<br> click for detailed info"
                              for (t, d) in zip(trees, diffs)]
-        texts.insert(0, f"Base prediction: <br>proba = {np.round(100*base_prediction, round)}%")
-        texts.append(f"Final Prediction: <br>proba = {np.round(100*final_prediction, round)}%")
+        texts.insert(0, f"Base prediction: <br>proba = {100*base_prediction:.{round}f}%")
+        texts.append(f"Final Prediction: <br>proba = {100*final_prediction:.{round}f}%")
     else:
         final_prediction = xgboost_preds_df.pred.values[-1]
         base_prediction = xgboost_preds_df.pred.values[0]
@@ -2368,10 +2360,10 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
         bases = xgboost_preds_df.pred.values[:-1]
         diffs = xgboost_preds_df.pred_diff.values[1:]
         
-        texts=[f"tree no {t}:<br>change = {np.round(d, round)}<br> click for detailed info"
+        texts=[f"tree no {t}:<br>change = {d:.{round}f}<br> click for detailed info"
                              for (t, d) in zip(trees, diffs)]
-        texts.insert(0, f"Base prediction: <br>pred = {np.round(base_prediction, round)}")
-        texts.append(f"Final Prediction: <br>pred = {np.round(final_prediction, round)}")
+        texts.insert(0, f"Base prediction: <br>pred = {base_prediction:.{round}f}")
+        texts.append(f"Final Prediction: <br>pred = {final_prediction:.{round}f}")
         
     green_fill, green_line =  'rgba(50, 200, 50, 1.0)', 'rgba(40, 160, 50, 1.0)'
     yellow_fill, yellow_line = 'rgba(230, 230, 30, 1.0)', 'rgba(190, 190, 30, 1.0)'

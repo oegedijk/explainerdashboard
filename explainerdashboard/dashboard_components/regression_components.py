@@ -482,7 +482,8 @@ class PredictedVsActualComponent(ExplainerComponent):
                     subtitle="How close is the predicted value to the observed?",
                     hide_title=False, hide_subtitle=False, 
                     hide_log_x=False, hide_log_y=False,
-                    logs=False, log_x=False, log_y=False, description=None,
+                    logs=False, log_x=False, log_y=False, round=3,
+                    description=None,
                     **kwargs):
         """Shows a plot of predictions vs y.
 
@@ -502,6 +503,8 @@ class PredictedVsActualComponent(ExplainerComponent):
             logs (bool, optional): Whether to use log axis. Defaults to False.
             log_x (bool, optional): log only x axis. Defaults to False.
             log_y (bool, optional): log only y axis. Defaults to False.
+            round (int, optional): rounding to apply to float predictions. 
+                Defaults to 3.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -580,7 +583,7 @@ class PredictedVsActualComponent(ExplainerComponent):
              Input('pred-vs-actual-logy-'+self.name, 'checked')],
         )
         def update_predicted_vs_actual_graph(log_x, log_y):
-            return self.explainer.plot_predicted_vs_actual(log_x=log_x, log_y=log_y)
+            return self.explainer.plot_predicted_vs_actual(log_x=log_x, log_y=log_y, round=self.round)
 
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
@@ -588,7 +591,7 @@ class ResidualsComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_pred_or_actual=False, hide_ratio=False,
                     pred_or_actual="vs_pred", residuals="difference",
-                    description=None, **kwargs):
+                    round=3, description=None, **kwargs):
         """Residuals plot component
 
         Args:
@@ -611,6 +614,8 @@ class ResidualsComponent(ExplainerComponent):
                         Defaults to "vs_pred".
             residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
                     How to calcualte residuals. Defaults to 'difference'.
+            round (int, optional): rounding to apply to float predictions. 
+                Defaults to 3.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -691,7 +696,8 @@ class ResidualsComponent(ExplainerComponent):
         )
         def update_residuals_graph(pred_or_actual, residuals):
             vs_actual = pred_or_actual=='vs_actual'
-            return self.explainer.plot_residuals(vs_actual=vs_actual, residuals=residuals)
+            return self.explainer.plot_residuals(vs_actual=vs_actual, 
+                                        residuals=residuals, round=self.round)
 
 
 class RegressionVsColComponent(ExplainerComponent):
@@ -701,7 +707,7 @@ class RegressionVsColComponent(ExplainerComponent):
                     hide_col=False, hide_ratio=False, 
                     hide_points=False, hide_winsor=False, 
                     hide_cats_topx=False, hide_cats_sort=False,
-                    col=None, display='difference', 
+                    col=None, display='difference', round=3,
                     points=True, winsor=0, cats_topx=10, cats_sort='freq', 
                     description=None, **kwargs):
         """Show residuals, observed or preds vs a particular Feature component
@@ -727,6 +733,8 @@ class RegressionVsColComponent(ExplainerComponent):
             col ([type], optional): Initial feature to display. Defaults to None.
             display (str, {'observed', 'predicted', difference', 'ratio', 'log-ratio'} optional): 
                     What to display on y axis. Defaults to 'difference'.
+            round (int, optional): rounding to apply to float predictions. 
+                Defaults to 3.
             points (bool, optional): display point cloud next to violin plot 
                     for categorical cols. Defaults to True
             winsor (int, 0-50, optional): percentage of outliers to winsor out of 
@@ -850,7 +858,7 @@ class RegressionVsColComponent(ExplainerComponent):
                         dbc.Col([
                             html.Div([
                                 html.Label('Sort categories:', id='reg-vs-col-categories-sort-label-'+self.name),
-                                dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                             "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                             target='reg-vs-col-categories-sort-label-'+self.name),
                                 dbc.Select(id='reg-vs-col-categories-sort-'+self.name,
@@ -885,16 +893,16 @@ class RegressionVsColComponent(ExplainerComponent):
             if display == 'observed':
                 return self.explainer.plot_y_vs_feature(
                         col, points=bool(points), winsor=winsor, dropna=True,
-                        topx=topx, sort=sort), style, style, style
+                        topx=topx, sort=sort, round=self.round), style, style, style
             elif display == 'predicted':
                 return self.explainer.plot_preds_vs_feature(
                         col, points=bool(points), winsor=winsor, dropna=True,
-                        topx=topx, sort=sort), style, style, style
+                        topx=topx, sort=sort, round=self.round), style, style, style
             else:
                 return self.explainer.plot_residuals_vs_feature(
                             col, residuals=display, points=bool(points), 
                             winsor=winsor, dropna=True,
-                        topx=topx, sort=sort), style, style, style
+                        topx=topx, sort=sort, round=self.round), style, style, style
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):

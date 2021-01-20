@@ -376,7 +376,7 @@ class PosLabelSelector(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
         if pos_label is not None:
-            self.pos_label = explainer.get_pos_label_index(pos_label)
+            self.pos_label = explainer.pos_label_index(pos_label)
         else:
             self.pos_label = explainer.pos_label
 

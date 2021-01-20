@@ -10,14 +10,23 @@
     on code complexity and memory usage. If you wish to see the see the individual
     contributions of onehot encoded columns, simply don't pass them to the 
     `cats` parameter on construction.
+- Deprecated:
+    - `BaseExplaiener`:
+        - `self.shap_values_cats`
+        - `self.shap_interaction_values_cats`
+
+
 - Naming changes:
+    - `BaseExplainer`:
+        - `self.get_int_idx(index)` -> `self.get_idx(index)`
+        - `self.shap_values` -> `self.shap_values_df`
     -`TreeExplainers`:
         - `self.decision_trees` -> `self.shadow_trees`
         - `self.decisiontree_df` -> `self.decisionpath_df`
         - `self.decisiontree_summary_df` -> `self.decisionpath_summary_df`
-        - `self.decision_path_file` -> `self.decision_tree_file`
-        - `self.decision_path` -> `self.decision_tree`
-        - `self.decision_path_encoded` -> `self.decision_tree_encoded`
+        - `self.decision_path_file` -> `self.decisiontree_file`
+        - `self.decision_path` -> `self.decisiontree`
+        - `self.decision_path_encoded` -> `self.decisiontree_encoded`
 
 ### New Features
 - new `Explainer` parameter `precision`: defaults to `'float64'`. Can be set to
@@ -34,13 +43,14 @@
 - adds category limits and sorting to `RegressionVsCol` component
 
 ### Bug Fixes
--
--
+- shap dependence: when no point cloud, do not highlight!
+- Fixed bug with calculating contributions plot/table for whatif component,
+    when InputFeatures had not fully loaded, resulting in shap error.
 
 ### Improvements
 - encoding onehot columns as `np.int8` saving memory usage
 - encoding categorical features as `pd.category` saving memory usage
-- added base TreeExplainer class that RandomForestExplainer and XGBExplainer both derive from
+- added base `TreeExplainer` class that `RandomForestExplainer` and `XGBExplainer` both derive from
     - will make it easier to extend tree explainers to other models in the future
         - e.g. catboost and lightgbm
 
