@@ -5,6 +5,8 @@
 - check all register_dependencies()
 - add option drop encoded cols
 - add options drop non-pos label
+- reorder methods
+- remove plot_SHAP_dependence, etc
 ## Bugs:
 
 

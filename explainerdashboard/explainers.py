@@ -1504,7 +1504,7 @@ class ClassifierExplainer(BaseExplainer):
                     shap='guess', X_background=None, model_output="probability",
                     cats=None, idxs=None, index_name=None, target=None,
                     descriptions=None, n_jobs=None, permutation_cv=None, na_fill=-999,
-                    precision="float32", labels=None, pos_label=1):
+                    precision="float64", labels=None, pos_label=1):
         """
         Explainer for classification models. Defines the shap values for
         each possible class in the classification.
@@ -1671,22 +1671,6 @@ class ClassifierExplainer(BaseExplainer):
             return self.labels.index(pos_label)
         raise ValueError("pos_label should either be int or str in self.labels!")
 
-    # def get_prop_for_label(self, prop:str, label):
-    #     """return property for a specific pos_label
-
-    #     Args:
-    #       prop: property to get for a certain pos_label
-    #       label: pos_label
-
-    #     Returns:
-    #         property
-    #     """
-    #     tmp = self.pos_label
-    #     self.pos_label = label
-    #     ret = getattr(self, prop)
-    #     self.pos_label = tmp
-    #     return ret
-
     @insert_pos_label
     def y_binary(self, pos_label):
         """for multiclass problems returns one-vs-rest array of [1,0] pos_label"""
@@ -1705,7 +1689,7 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating prediction probabilities...", flush=True)
             assert hasattr(self.model, 'predict_proba'), \
                 "model does not have a predict_proba method!"
-            self._pred_probas =  self.model.predict_proba(self.X)
+            self._pred_probas =  self.model.predict_proba(self.X).astype(self.precision)
         return self._pred_probas
 
     @property
@@ -1741,6 +1725,7 @@ class ClassifierExplainer(BaseExplainer):
                             needs_proba=self.is_classifier,
                             pos_label=label).sort_values("Importance", ascending=False) 
                                 for label in range(len(self.labels))]
+
         return self._perm_imps[pos_label]
 
     @insert_pos_label
@@ -1773,31 +1758,34 @@ class ClassifierExplainer(BaseExplainer):
         """SHAP Values"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
-            self._shap_values = self.shap_explainer.shap_values(self.X)
+            _shap_values = self.shap_explainer.shap_values(self.X)
             
-            if not isinstance(self._shap_values, list) and len(self.labels)==2:
-                    self._shap_values = [-self._shap_values, self._shap_values]
+            if not isinstance(_shap_values, list) and len(self.labels)==2:
+                    _shap_values = [-_shap_values, _shap_values]
 
-            assert len(self._shap_values)==len(self.labels),\
-                f"len(shap_values)={len(self._shap_values)}"\
+            assert len(_shap_values)==len(self.labels),\
+                f"len(shap_values)={len(_shap_values)}"\
                 + f"and len(labels)={len(self.labels)} do not match!"
             if self.model_output == 'probability':
-                for shap_values in self._shap_values:
+                for shap_values in _shap_values:
                     assert np.all(shap_values >= -1.0) , \
                         (f"model_output=='probability but some shap values are < 1.0!"
                          "Try setting model_output='logodds'.")
-                for shap_values in self._shap_values:
+                for shap_values in _shap_values:
                     assert np.all(shap_values <= 1.0) , \
                         (f"model_output=='probability but some shap values are > 1.0!"
                          "Try setting model_output='logodds'.")
 
-            self._shap_values_df = [pd.DataFrame(sv, columns=self.columns) for sv in self._shap_values]
+            self._shap_values_df = [pd.DataFrame(sv, columns=self.columns) for sv in _shap_values]
             self._shap_values_df = [
                 merge_categorical_shap_values(df, self.onehot_dict, 
                         self.merged_cols).astype(self.precision) 
                                 for df in self._shap_values_df]
-            del self._shap_values
-        return self._shap_values_df[pos_label]
+        
+        if isinstance(self._shap_values_df, list):
+            return self._shap_values_df[pos_label]
+        else:
+            return self._shap_values_df
 
     @insert_pos_label
     def shap_interaction_values(self, pos_label=None):
@@ -1827,7 +1815,10 @@ class ClassifierExplainer(BaseExplainer):
             # self._shap_interaction_values = [
             #     normalize_shap_interaction_values(siv, self.shap_values)
             #         for siv, sv in zip(self._shap_interaction_values, self._shap_values_df)]
-        return self._shap_interaction_values[pos_label]
+        if isinstance(self._shap_interaction_values, list):
+            return self._shap_interaction_values[pos_label]
+        else:
+            return self._shap_interaction_values
 
     @insert_pos_label
     def mean_abs_shap_df(self, pos_label=None):
@@ -1839,6 +1830,15 @@ class ClassifierExplainer(BaseExplainer):
                     .to_frame().rename_axis(index="Feature").reset_index()
                     .rename(columns={0:"MEAN_ABS_SHAP"}) for pos_label in self.labels]
         return self._mean_abs_shap_df[pos_label]
+
+    @insert_pos_label
+    def keep_shap_pos_label_only(self, pos_label=None):
+        """drops the shap values and shap_interaction values for all labels 
+        except pos_label in order to save on memory usage"""
+        if hasattr(self, "_shap_values_df"):
+            self._shap_values_df= self.shap_values_df(pos_label)
+        if hasattr(self, "_shap_interaction_values"):
+            self._shap_interaction_values = self.shap_interaction_values(pos_label)
 
     @insert_pos_label
     def cutoff_from_percentile(self, percentile, pos_label=None):
@@ -2251,7 +2251,7 @@ class RegressionExplainer(BaseExplainer):
                     shap="guess", X_background=None, model_output="raw",
                     cats=None, idxs=None, index_name=None, target=None,
                     descriptions=None, n_jobs=None, permutation_cv=None, 
-                    na_fill=-999, precision="float32", units=""):
+                    na_fill=-999, precision="float64", units=""):
         """Explainer for regression models.
 
         In addition to BaseExplainer defines a number of plots specific to 
@@ -2285,15 +2285,15 @@ class RegressionExplainer(BaseExplainer):
         """residuals: y-preds"""
         if not hasattr(self, '_residuals'):
             print("Calculating residuals...")
-            self._residuals =  self.y-self.preds
-        return self._residuals
+            self._residuals =  (self.y-self.preds).astype(self.precision)
+        return self._residuals.ast
 
     @property
     def abs_residuals(self):
         """absolute residuals"""
         if not hasattr(self, '_abs_residuals'):
             print("Calculating absolute residuals...")
-            self._abs_residuals =  np.abs(self.residuals)
+            self._abs_residuals =  np.abs(self.residuals).astype(self.precision)
         return self._abs_residuals
 
     def random_index(self, y_min=None, y_max=None, pred_min=None, pred_max=None, 
