@@ -14,6 +14,8 @@
     - `BaseExplaiener`:
         - `self.shap_values_cats`
         - `self.shap_interaction_values_cats`
+    - `ClassifierExplainer`:
+        - `get_prop_for_label`
 
 
 - Naming changes:
@@ -32,6 +34,9 @@
 - new `Explainer` parameter `precision`: defaults to `'float64'`. Can be set to
     `'float32'` to save on memory usage.
 - new `memory_usage()` method to show which internal attributes take the most memory.
+- net `keep_shap_pos_label_only(pos_label)` method:
+    - drops shap values and shap interactions for all labels except `pos_label`
+    - this should significantly reduce memory usage.
 - added `get_index_list()`, `get_X_row(index)`, and `get_y(index)` methods.
     - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
         and `.set_y_func()`.
