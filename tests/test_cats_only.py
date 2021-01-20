@@ -179,70 +179,70 @@ class CatBoostRegressionTests(unittest.TestCase):
         fig = self.explainer.plot_importances(cats=True)
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_summary(self):
-        fig = self.explainer.plot_shap_summary()
+    def test_plot_shap_detailed(self):
+        fig = self.explainer.plot_shap_detailed()
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_summary(topx=3)
+        fig = self.explainer.plot_shap_detailed(topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_summary(cats=True)
+        fig = self.explainer.plot_shap_detailed(cats=True)
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_dependence(self):
-        fig = self.explainer.plot_shap_dependence("Age")
+    def test_plot_dependence(self):
+        fig = self.explainer.plot_dependence("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex")
+        fig = self.explainer.plot_dependence("Sex")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", "Sex")
+        fig = self.explainer.plot_dependence("Age", "Sex")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
+        fig = self.explainer.plot_dependence("Sex_female", "Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", highlight_index=0)
+        fig = self.explainer.plot_dependence("Age", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex", highlight_index=0)
+        fig = self.explainer.plot_dependence("Sex", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="freq")
+        fig = self.explainer.plot_dependence("Deck", topx=3, sort="freq")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="shap")
+        fig = self.explainer.plot_dependence("Deck", topx=3, sort="shap")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", sort="freq")
+        fig = self.explainer.plot_dependence("Deck", sort="freq")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", sort="shap")
+        fig = self.explainer.plot_dependence("Deck", sort="shap")
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_contributions(self):
-        fig = self.explainer.plot_shap_contributions(0)
+    def test_plot_contributions(self):
+        fig = self.explainer.plot_contributions(0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, cats=False)
+        fig = self.explainer.plot_contributions(0, cats=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, topx=3)
+        fig = self.explainer.plot_contributions(0, topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, sort='high-to-low')
+        fig = self.explainer.plot_contributions(0, sort='high-to-low')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, sort='low-to-high')
+        fig = self.explainer.plot_contributions(0, sort='low-to-high')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, sort='importance')
+        fig = self.explainer.plot_contributions(0, sort='importance')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(X_row=self.explainer.X.iloc[[0]])
+        fig = self.explainer.plot_contributions(X_row=self.explainer.X.iloc[[0]])
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(X_row=self.explainer.X_cats.iloc[[0]])
+        fig = self.explainer.plot_contributions(X_row=self.explainer.X_cats.iloc[[0]])
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_pdp(self):
@@ -528,73 +528,73 @@ class CatBoostClassifierTests(unittest.TestCase):
         fig = self.explainer.plot_importances(cats=True)
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_contributions(self):
-        fig = self.explainer.plot_shap_contributions(0)
+    def test_plot_contributions(self):
+        fig = self.explainer.plot_contributions(0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, cats=False)
+        fig = self.explainer.plot_contributions(0, cats=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, topx=3)
+        fig = self.explainer.plot_contributions(0, topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, cutoff=0.05)
+        fig = self.explainer.plot_contributions(0, cutoff=0.05)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, sort='high-to-low')
+        fig = self.explainer.plot_contributions(0, sort='high-to-low')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, sort='low-to-high')
+        fig = self.explainer.plot_contributions(0, sort='low-to-high')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(0, sort='importance')
+        fig = self.explainer.plot_contributions(0, sort='importance')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(X_row=self.explainer.X.iloc[[0]], sort='importance')
+        fig = self.explainer.plot_contributions(X_row=self.explainer.X.iloc[[0]], sort='importance')
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_contributions(X_row=self.explainer.X_cats.iloc[[0]], sort='importance')
+        fig = self.explainer.plot_contributions(X_row=self.explainer.X_cats.iloc[[0]], sort='importance')
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_summary(self):
-        fig = self.explainer.plot_shap_summary()
+    def test_plot_shap_detailed(self):
+        fig = self.explainer.plot_shap_detailed()
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_summary(topx=3)
+        fig = self.explainer.plot_shap_detailed(topx=3)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_summary(cats=True)
+        fig = self.explainer.plot_shap_detailed(cats=True)
         self.assertIsInstance(fig, go.Figure)
 
-    def test_plot_shap_dependence(self):
-        fig = self.explainer.plot_shap_dependence("Age")
+    def test_plot_dependence(self):
+        fig = self.explainer.plot_dependence("Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex_female")
+        fig = self.explainer.plot_dependence("Sex_female")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", "Sex")
+        fig = self.explainer.plot_dependence("Age", "Sex")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex_female", "Age")
+        fig = self.explainer.plot_dependence("Sex_female", "Age")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Age", highlight_index=0)
+        fig = self.explainer.plot_dependence("Age", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Sex", highlight_index=0)
+        fig = self.explainer.plot_dependence("Sex", highlight_index=0)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="freq")
+        fig = self.explainer.plot_dependence("Deck", topx=3, sort="freq")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", topx=3, sort="shap")
+        fig = self.explainer.plot_dependence("Deck", topx=3, sort="shap")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", sort="freq")
+        fig = self.explainer.plot_dependence("Deck", sort="freq")
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_dependence("Deck", sort="shap")
+        fig = self.explainer.plot_dependence("Deck", sort="shap")
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_pdp(self):

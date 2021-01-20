@@ -158,7 +158,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, pos_label=pos_label)
             elif summary_type == 'detailed':
-                plot = self.explainer.plot_shap_summary(
+                plot = self.explainer.plot_shap_detailed(
                         topx=depth, pos_label=pos_label, index=index, 
                         max_cat_colors=self.max_cat_colors)
             ctx = dash.callback_context
@@ -358,7 +358,7 @@ class ShapDependenceComponent(ExplainerComponent):
             if col is not None:
                 if color_col =="no_color_col": 
                     color_col, index = None, None
-                return self.explainer.plot_shap_dependence(
+                return self.explainer.plot_dependence(
                             col, color_col, topx=topx, sort=sort, 
                             highlight_index=index, max_cat_colors=self.max_cat_colors,
                             pos_label=pos_label)
@@ -558,11 +558,11 @@ class InteractionSummaryComponent(ExplainerComponent):
             if col is not None:
                 depth = None if depth is None else int(depth)
                 if summary_type=='aggregate':
-                    plot = self.explainer.plot_interactions(
+                    plot = self.explainer.plot_interactions_importance(
                         col, topx=depth, pos_label=pos_label)
                     return plot, dict(display="none")
                 elif summary_type=='detailed':
-                    plot = self.explainer.plot_shap_interaction_summary(
+                    plot = self.explainer.plot_interactions_detailed(
                         col, topx=depth, pos_label=pos_label, index=index, 
                         max_cat_colors=self.max_cat_colors)
                 return plot, {}
@@ -797,7 +797,7 @@ class InteractionDependenceComponent(ExplainerComponent):
         def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
             if col is not None and interact_col is not None:
                 style = {} if interact_col in self.explainer.cat_cols else dict(display="none")
-                return (self.explainer.plot_shap_interaction(
+                return (self.explainer.plot_interaction(
                             interact_col, col, highlight_index=index, pos_label=pos_label,
                             topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
                         style)
@@ -815,7 +815,7 @@ class InteractionDependenceComponent(ExplainerComponent):
         def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
             if col is not None and interact_col is not None:
                 style = {} if col in self.explainer.cat_cols else dict(display="none")
-                return (self.explainer.plot_shap_interaction(
+                return (self.explainer.plot_interaction(
                             col, interact_col, highlight_index=index, pos_label=pos_label,
                             topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
                         style)
@@ -1012,7 +1012,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 if index is None:
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
-                plot = self.explainer.plot_shap_contributions(index, topx=depth, 
+                plot = self.explainer.plot_contributions(index, topx=depth, 
                             sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
                 return plot
@@ -1028,7 +1028,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 depth = None if depth is None else int(depth)
                 if not any([i is None for i in inputs]):
                     X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                    plot = self.explainer.plot_shap_contributions(X_row=X_row, 
+                    plot = self.explainer.plot_contributions(X_row=X_row, 
                                 topx=depth, sort=sort, orientation=orientation, 
                                 pos_label=pos_label, higher_is_better=self.higher_is_better)
                     return plot

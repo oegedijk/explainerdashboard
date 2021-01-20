@@ -11,17 +11,21 @@
     contributions of onehot encoded columns, simply don't pass them to the 
     `cats` parameter on construction.
 - Deprecated:
-    - `BaseExplaiener`:
+    - `BaseExplainer`:
         - `self.shap_values_cats`
         - `self.shap_interaction_values_cats`
     - `ClassifierExplainer`:
         - `get_prop_for_label`
-
-
 - Naming changes:
     - `BaseExplainer`:
         - `self.get_int_idx(index)` -> `self.get_idx(index)`
         - `self.shap_values` -> `self.shap_values_df`
+        - `plot_shap_contributions()` -> `plot_contributions()`
+        - `plot_shap_summary()` -> `plot_shap_detailed()`
+        - `plot_shap_dependence()` -> `plot_dependence()`
+        - `plot_shap_interaction()` -> `plot_interaction()`
+        - `plot_shap_interaction_summary()` -> `plot_interactions_detailed()`
+        - `plot_interactions()` -> `plot_interactions_importance()`
     -`TreeExplainers`:
         - `self.decision_trees` -> `self.shadow_trees`
         - `self.decisiontree_df` -> `self.decisionpath_df`
@@ -53,6 +57,7 @@
     when InputFeatures had not fully loaded, resulting in shap error.
 
 ### Improvements
+- saving `X.copy()`, instead of using a reference to `X`
 - encoding onehot columns as `np.int8` saving memory usage
 - encoding categorical features as `pd.category` saving memory usage
 - added base `TreeExplainer` class that `RandomForestExplainer` and `XGBExplainer` both derive from
