@@ -26,8 +26,8 @@ Or you can use it interactively in a notebook to inspect your model
 using the built-in plotting methods, e.g.::
 
     explainer.plot_confusion_matrix()
-    explainer.plot_shap_contributions(index=0)
-    explainer.plot_shap_dependence("Fare", color_col="Sex")
+    explainer.plot_contributions(index=0)
+    explainer.plot_dependence("Fare", color_col="Sex")
 
 .. image:: screenshots/notebook_screenshot.png
 
@@ -93,7 +93,7 @@ And you can also combine the two methods::
 
 
 You can now use these categorical features directly as input for plotting methods, e.g. 
-``explainer.plot_shap_dependence("Deck")``, which will now generate violin plots
+``explainer.plot_dependence("Deck")``, which will now generate violin plots
 instead of the default scatter plots. For other methods you can usually pass
 a parameter ``cats=True``, to indicate that you'd like to group the categorical
 features in your output. 
@@ -249,20 +249,20 @@ or ``RegressionExplainer``, however they both inherit all of these basic methods
 The BaseExplainer already provides a number of convenient plotting methods::
 
     plot_importances(kind='shap', topx=None, cats=False, round=3, pos_label=None)
-    plot_shap_contributions(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
-    plot_shap_summary(topx=None, cats=False, pos_label=None)
-    plot_shap_interaction_summary(col, topx=None, cats=False, pos_label=None)
-    plot_shap_dependence(col, color_col=None, highlight_idx=None,pos_label=None)
-    plot_shap_interaction(col, interact_col, highlight_idx=None, pos_label=None)
+    plot_contributions(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
+    plot_shap_detailed(topx=None, cats=False, pos_label=None)
+    plot_interactions_detailed(col, topx=None, cats=False, pos_label=None)
+    plot_dependence(col, color_col=None, highlight_idx=None,pos_label=None)
+    plot_interaction(interact_col, highlight_idx=None, pos_label=None)
     plot_pdp(col, index=None, drop_na=True, sample=100, num_grid_lines=100, num_grid_points=10, pos_label=None)
 
 example code::
 
     explainer = ClassifierExplainer(model, X, y, cats=['Sex', 'Deck', 'Embarked']) 
     explainer.plot_importances(cats=True)
-    explainer.plot_shap_contributions(index=0, topx=5)
-    explainer.plot_shap_dependence("Fare")
-    explainer.plot_shap_interaction("Fare", "PassengerClass")
+    explainer.plot_contributions(index=0, topx=5)
+    explainer.plot_dependence("Fare")
+    explainer.plot_interaction(", "PassengerClass")
     explainer.plot_pdp("Sex", index=0)
 
 plot_importances
@@ -400,15 +400,15 @@ through a specific decision tree.
 You can also plot the individual predictions of each individual tree for 
 specific row in your data indentified by ``index``::
 
-    explainer.decisiontree_df(tree_idx, index)
-    explainer.decisiontree_summary_df(tree_idx, index)
+    explainer.decisionpath_df(tree_idx, index)
+    explainer.decisionpath_summary_df(tree_idx, index)
     explainer.plot_trees(index)
 
 And for dtreeviz visualization of individual decision trees (svg format)::
 
-    explainer.decision_path(tree_idx, index)
-    explainer.decision_path_file(tree_idx, index)
-    explainer.decision_path_encoded(tree_idx, index)
+    explainer.decisiontree(tree_idx, index)
+    explainer.decisiontree_file(tree_idx, index)
+    explainer.decisiontree_encoded(tree_idx, index)
 
 These methods are part of the ``RandomForestExplainer`` and XGBExplainer`` mixin
 classes that get automatically loaded when you pass either a RandomForest
@@ -423,17 +423,17 @@ plot_trees
 decision_path
 ^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree
 
 decision_path_file
 ^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_file
 
 decision_path_encoded
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_encoded
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_encoded
 
 
 
@@ -575,27 +575,27 @@ with the following additional methods::
 decisiontree_df
 ^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_df
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisionpath_df
 
 decisiontree_summary_df
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_summary_df
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisionpath_summary_df
 
 decision_path_file
 ^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_file
 
 decision_path_encoded
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_encoded
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_encoded
 
 decision_path
 ^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree
 
 
 Calculated Properties
@@ -659,10 +659,10 @@ manually to a specific method, the global ``pos_label`` will be used. You can se
 this directly on the explainer (even us str labels if you've set these)::
 
     explainer.pos_label = 0
-    explainer.plot_shap_dependence("Fare") # will show plot for pos_label=0
+    explainer.plot_dependence("Fare") # will show plot for pos_label=0
     explainer.pos_label = 'Survived' 
-    explainer.plot_shap_dependence("Fare") # will now show plot for pos_label=1
-    explainer.plot_shap_dependence("Fare", pos_label=0) # show plot for label 0, without changing explainer.pos_label
+    explainer.plot_dependence("Fare") # will now show plot for pos_label=1
+    explainer.plot_dependence("Fare", pos_label=0) # show plot for label 0, without changing explainer.pos_label
 
 The ``ExplainerDashboard`` will show a dropdown menu in the header to choose
 a particular ``pos_label``. Changing this will basically update every single

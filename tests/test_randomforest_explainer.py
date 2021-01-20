@@ -39,10 +39,10 @@ class ClassifierBunchTests(unittest.TestCase):
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
     def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+        df = self.explainer.decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_plot_trees(self):
@@ -85,10 +85,10 @@ class RegressionBunchTests(unittest.TestCase):
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
     def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+        df = self.explainer.decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_plot_trees(self):
