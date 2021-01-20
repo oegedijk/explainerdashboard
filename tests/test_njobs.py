@@ -22,8 +22,7 @@ class NJobs5ExplainerTests(unittest.TestCase):
                             model, X_test, y_test, roc_auc_score, n_jobs=5)
 
     def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.permutation_importances, pd.DataFrame)
-        self.assertIsInstance(self.explainer.permutation_importances_cats, pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
 
 
 class NJobsMinusOneExplainerTests(unittest.TestCase):
@@ -38,5 +37,4 @@ class NJobsMinusOneExplainerTests(unittest.TestCase):
                             model, X_test, y_test, roc_auc_score, n_jobs=-1)
 
     def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.permutation_importances, pd.DataFrame)
-        self.assertIsInstance(self.explainer.permutation_importances_cats, pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)

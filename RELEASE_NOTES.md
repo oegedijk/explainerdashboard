@@ -14,8 +14,11 @@
     - `BaseExplainer`:
         - `self.shap_values_cats`
         - `self.shap_interaction_values_cats`
+        - `self.get_dfs()`
+        - `self.to_sql()`
     - `ClassifierExplainer`:
         - `get_prop_for_label`
+
 - Naming changes:
     - `BaseExplainer`:
         - `self.get_int_idx(index)` -> `self.get_idx(index)`
