@@ -31,11 +31,11 @@
         - `plot_interactions()` -> `plot_interactions_importance()`
     -`TreeExplainers`:
         - `self.decision_trees` -> `self.shadow_trees`
-        - `self.decisiontree_df` -> `self.decisionpath_df`
-        - `self.decisiontree_summary_df` -> `self.decisionpath_summary_df`
-        - `self.decision_path_file` -> `self.decisiontree_file`
-        - `self.decision_path` -> `self.decisiontree`
-        - `self.decision_path_encoded` -> `self.decisiontree_encoded`
+        - `self.decisiontree_df()` -> `self.decisionpath_df()`
+        - `self.decisiontree_summary_df()` -> `self.decisionpath_summary_df()`
+        - `self.decision_path_file()` -> `self.decisiontree_file()`
+        - `self.decision_path()` -> `self.decisiontree()`
+        - `self.decision_path_encoded()` -> `self.decisiontree_encoded()`
 
 ### New Features
 - new `Explainer` parameter `precision`: defaults to `'float64'`. Can be set to
