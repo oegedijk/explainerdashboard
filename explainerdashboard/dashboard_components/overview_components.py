@@ -409,7 +409,7 @@ class PdpComponent(ExplainerComponent):
                             html.Div([
                                 dbc.Col([
                                         html.Label('Sort categories:', id='pdp-categories-sort-label-'+self.name),
-                                        dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                        dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                     "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                     target='pdp-categories-sort-label-'+self.name),
                                         dbc.Select(id='pdp-categories-sort-'+self.name,

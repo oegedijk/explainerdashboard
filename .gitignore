@@ -129,11 +129,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-catboost_info/learn_error.tsv
-catboost_info/time_left.tsv
-catboost_info/learn/events.out.tfevents
+catboost_info/*
 .vscode/settings.json
-.vscode/settings.json
+
 scratch_notebook.ipynb
 scratch_import.py
 show_and_tell_draft.md

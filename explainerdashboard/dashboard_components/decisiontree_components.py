@@ -366,5 +366,5 @@ class DecisionPathGraphComponent(ExplainerComponent):
         )
         def update_tree_graph(n_clicks, index, highlight, pos_label):
             if n_clicks is not None and index is not None and highlight is not None:
-                return self.explainer.decision_tree_encoded(int(highlight), index)
+                return self.explainer.decisiontree_encoded(int(highlight), index)
             raise PreventUpdate

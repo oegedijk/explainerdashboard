@@ -3,25 +3,15 @@
 
 ## Version 0.3:
 - check all register_dependencies()
-- rename tree methods
-- regression vs col:
-    - rename cat col names
-    - add cat col sorter
-- use prediction in xgboostexplainer plot_trees method
-
+- add option drop encoded cols
+- add options drop non-pos label
 ## Bugs:
-- dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
-- shap dependence: when no point cloud, do not highlight!
-- /Users/oege/projects/explainerhub/venv/lib/python3.8/site-packages/sklearn/tree/_classes.py:1254: FutureWarning:
 
-the classes_ attribute is to be deprecated from version 0.22 and will be removed in 0.24.
 
 ## Layout:
 - Find a proper frontender to help :)
 
 ## dfs:
-- wrap shap values in pd.DataFrames?
-- wrap predictions in pd.Series?
 
 ## Plots:
 - make plot background transparent?
@@ -32,10 +22,6 @@ the classes_ attribute is to be deprecated from version 0.22 and will be removed
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
 - add some of these:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
-- shap dependence plot, sort categorical features by:
-    - alphabet
-    - number of obs
-    - mean abs shap
 
 ### Classifier plots:
 - move predicted and actual to outer layer of ConfusionMatrixComponent
@@ -49,11 +35,7 @@ the classes_ attribute is to be deprecated from version 0.22 and will be removed
 
 
 ## Explainers:
-- add get_X_row() and get_index_list() methods, and implement it throughout the dashboard.
-- minimize pd.DataFrame and np.array size:
-    - astype(float16), pd.category, etc
 - pass n_jobs to pdp_isolate
-- add option drop non-cats
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
@@ -61,9 +43,6 @@ the classes_ attribute is to be deprecated from version 0.22 and will be removed
         relationship in the plot.
     - Then add an "in words" button to the components, that show a popup with
         the verbal explanation.
-- rename RandomForestExplainer and XGBExplainer methods into something more logical
-    - Breaking change!
-
 
 ## notebooks:
 
@@ -141,7 +120,6 @@ the classes_ attribute is to be deprecated from version 0.22 and will be removed
 ## Library level:
 - Make example heroku deployment repo
 - Make example heroku ExplainerHub repo
-- hide (prefix '_') to non-public API class methods
 - submit pull request to shap with broken test for 
     https://github.com/slundberg/shap/issues/723
 
