@@ -7,7 +7,7 @@
 - add v03 check
 - add deprecation warnings for old methods
 - update tutorial notebooks
-
+- check InlineExplainer 
 ## Bugs:
 
 

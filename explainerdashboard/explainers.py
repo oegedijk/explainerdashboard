@@ -1483,6 +1483,72 @@ class BaseExplainer(ABC):
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
                         round=round, target=self.target, units=units)
 
+    def get_int_idx(*args, **kwargs):
+        raise NotImplementedError("get_int_idx has been deprecated! Use get_idx() instead!")
+
+    @property
+    def shap_values(*args, **kwargs):
+        raise NotImplementedError("shap_values has been deprecated! Use shap_values_df() instead!")
+
+    def get_dfs(*args, **kwargs):
+        raise NotImplementedError("get_dfs() has been deprecated! ")
+
+    def to_sql(*args, **kwargs):
+        raise NotImplementedError("to_sql() has been deprecated!")
+
+    def get_prop_for_label(*args, **kwargs):
+        raise NotImplementedError("get_prop_for_label() has been deprecated!")
+
+    def plot_shap_contributions(*args, **kwargs):
+        raise NotImplementedError("plot_shap_contributions() has been deprecated! "
+                "Use plot_contributions() instead!")
+
+    def plot_shap_summary(*args, **kwargs):
+        raise NotImplementedError("plot_shap_summary() has been deprecated! "
+                "Use plot_shap_detailed() instead!")
+
+    def plot_shap_dependence(*args, **kwargs):
+        raise NotImplementedError("plot_shap_dependence() has been deprecated! "
+                "Use plot_dependence() instead!")
+
+    def plot_shap_interaction(*args, **kwargs):
+        raise NotImplementedError("plot_shap_interaction() has been deprecated! "
+                "Use plot_interaction() instead!")
+
+    def plot_shap_interaction_summary(*args, **kwargs):
+        raise NotImplementedError("plot_shap_interaction_summary() has been deprecated! "
+                "Use plot_interactions_detailed() instead!")
+
+    def plot_interactions(*args, **kwargs):
+        raise NotImplementedError("plot_interactions() has been deprecated! "
+                "Use plot_interactions_importance() instead!")
+
+    @property
+    def decision_trees(*args, **kwargs):
+        raise NotImplementedError(".decision_trees has been deprecated! "
+                "Use .shadow_trees instead!")
+
+    def decisiontree_df(*args, **kwargs):
+        raise NotImplementedError("decisiontree_df() has been deprecated! "
+                "Use decisionpath_df() instead!")
+
+    def decisiontree_summary_df(*args, **kwargs):
+        raise NotImplementedError("decisiontree_summary_df() has been deprecated! "
+                "Use decisionpath_summary_df() instead!")
+
+    def decision_path_file(*args, **kwargs):
+        raise NotImplementedError("decision_path_file() has been deprecated! "
+                "Use decisiontree_file() instead!")
+
+    def decision_path(*args, **kwargs):
+        raise NotImplementedError("decision_path() has been deprecated! "
+                "Use decisiontree() instead!")
+
+    def decision_path_encoded(*args, **kwargs):
+        raise NotImplementedError("decision_path_encoded() has been deprecated! "
+                "Use decisiontree_encoded() instead!")
+
+
 
 class ClassifierExplainer(BaseExplainer):
     """ """
