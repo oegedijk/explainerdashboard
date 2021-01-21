@@ -13,6 +13,7 @@ from abc import ABC
 import base64
 from pathlib import Path
 from typing import List, Union
+from types import MethodType
 
 import numpy as np
 import pandas as pd
@@ -401,7 +402,17 @@ class BaseExplainer(ABC):
         return index_list
 
     def set_index_list_func(self, func):
-        self._get_index_list_func = func
+        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
+        argspec = inspect.getfullargspec(func).args
+        if argspec == ['self']:
+            self._get_index_list_func = MethodType(func, self)
+        elif argspec == []:
+            self._get_index_list_func = func
+        else:
+            raise ValueError(f"Parameter func should either be a function {func.__name__}() "
+                             f"or a method {func.__name__}(self)! Instead you "
+                             f"passed func={func.__name__}{inspect.signature(func)}")
+
 
     def get_X_row(self, index, merge=False):
         if self._get_X_row_func is not None:
@@ -417,7 +428,16 @@ class BaseExplainer(ABC):
         return X_row
 
     def set_X_row_func(self, func):
-        self._get_X_row_func = func
+        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
+        argspec = inspect.getfullargspec(func).args
+        if argspec == ['self', 'index']:
+            self._get_X_row_func = MethodType(func, self)
+        elif argspec == ['index']:
+            self._get_X_row_func = func
+        else:
+            raise ValueError(f"Parameter func should either be a function {func.__name__}(index) "
+                             f"or a method {func.__name__}(self, index)! Instead you "
+                             f"passed func={func.__name__}{inspect.signature(func)}")
 
     def get_y(self, index):
         if self._get_y_func is not None:
@@ -430,7 +450,16 @@ class BaseExplainer(ABC):
         return y
 
     def set_y_func(self, func):
-        self._get_y_func = func
+        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
+        argspec = inspect.getfullargspec(func).args
+        if argspec == ['self', 'index']:
+            self._get_y_func = func = MethodType(func, self)
+        elif argspec == ['index']:
+            self._get_y_func = func = func
+        else:
+            raise ValueError(f"Parameter func should either be a function {func.__name__}(index) "
+                             f"or a method {func.__name__}(self, index)! Instead you "
+                             f"passed func={func.__name__}{inspect.signature(func)}")
 
     def get_row_from_input(self, inputs:List, ranked_by_shap=False, return_merged=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
