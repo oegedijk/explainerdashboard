@@ -3,12 +3,8 @@
 
 ## Version 0.3:
 - check all register_dependencies()
-- add option drop encoded cols
-- add v03 check
-- add deprecation warnings for old methods
-- update tutorial notebooks
 - check InlineExplainer 
-- fix xgboost plot_trees y axis
+
 ## Bugs:
 
 
@@ -35,7 +31,6 @@
     - new method?
 
 ### Regression plots:
-
 
 
 ## Explainers:
