@@ -247,7 +247,7 @@ or ``RegressionExplainer``, however they both inherit all of these basic methods
 
     plot_importances(kind='shap', topx=None, round=3, pos_label=None)
     plot_contributions(index, topx=None, cutoff=None, round=2, pos_label=None)
-    plot_shap_detailed(topx=None, pos_label=None)
+    plot_importance_detailed(topx=None, pos_label=None)
     plot_interactions_detailed(col, topx=None, pos_label=None)
     plot_dependence(col, color_col=None, highlight_idx=None, pos_label=None)
     plot_interaction(interact_col, highlight_idx=None, pos_label=None)
@@ -287,10 +287,10 @@ plot_pdp
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_pdp
 
-plot_shap_detailed
+plot_importance_detailed
 ^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_detailed
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importance_detailed
 
 plot_shap_interactions_importance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -670,7 +670,7 @@ BaseExplainer
 
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
    :members: get_mean_abs_shap_df, get_permutation_importances_df, get_importances_df, contrib_df, 
-            plot_importances, plot_contributions, plot_shap_detailed, 
+            plot_importances, plot_contributions, plot_importance_detailed, 
             plot_interactions_detailed, plot_interactions_importances, plot_dependence, plot_interaction, plot_pdp
    :member-order: bysource
 

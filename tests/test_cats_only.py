@@ -144,10 +144,10 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_detailed(self):
-        fig = self.explainer.plot_shap_detailed()
+        fig = self.explainer.plot_importance_detailed()
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_shap_detailed(topx=3)
+        fig = self.explainer.plot_importance_detailed(topx=3)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_dependence(self):
@@ -422,7 +422,7 @@ class CatBoostClassifierTests(unittest.TestCase):
 
 
     def test_plot_shap_detailed(self):
-        fig = self.explainer.plot_shap_detailed()
+        fig = self.explainer.plot_importance_detailed()
         self.assertIsInstance(fig, go.Figure)
 
 

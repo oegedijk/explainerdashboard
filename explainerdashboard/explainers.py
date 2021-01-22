@@ -1248,7 +1248,7 @@ class BaseExplainer(ABC):
             return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
     @insert_pos_label
-    def plot_shap_detailed(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
+    def plot_importance_detailed(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
@@ -1557,7 +1557,7 @@ class BaseExplainer(ABC):
 
     def plot_shap_summary(*args, **kwargs):
         raise NotImplementedError("plot_shap_summary() has been deprecated! "
-                "Use plot_shap_detailed() instead!")
+                "Use plot_importance_detailed() instead!")
 
     def plot_shap_dependence(*args, **kwargs):
         raise NotImplementedError("plot_shap_dependence() has been deprecated! "
