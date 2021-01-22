@@ -1531,6 +1531,14 @@ class BaseExplainer(ABC):
         raise NotImplementedError("get_int_idx has been deprecated! Use get_idx() instead!")
 
     @property
+    def importances_df(*args, **kwargs):
+        raise NotImplementedError("importances_df has been deprecated! Use get_importances_df() instead!")
+
+    @property
+    def feature_permutations_df(*args, **kwargs):
+        raise NotImplementedError("feature_permutations_df has been deprecated! Use get_feature_permutations_df() instead!")
+
+    @property
     def shap_values(*args, **kwargs):
         raise NotImplementedError("shap_values has been deprecated! Use shap_values_df() instead!")
 

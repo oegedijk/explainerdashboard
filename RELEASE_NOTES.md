@@ -21,7 +21,6 @@
 
 - Naming changes:
     - `BaseExplainer`:
-        
         - `importances_df()` -> `get_importances_df()`
         - `feature_permutations_df()` -> `get_feature_permutations_df()`
         - `self.get_int_idx(index)` -> `self.get_idx(index)`
