@@ -2,6 +2,21 @@
 
 
 ## 0.3.0:
+This is a major release and comes with lots of breaking changes to the lower level 
+explainer API. The higherlevel `ExplainerComponent` and `ExplainerDashboard` API has not been
+changed however, except for the deprecation of the `cats` and `hide_cats` parameters.
+
+Explainers generated with version `explainerdashboard <= 0.2.20.1` will not work 
+with this version, so if you have stored explainers to disk you either have to 
+rebuild them, or downgrade back to `explainerdashboard==0.2.20.1`! (hope you 
+pinned your dependencies in production!)
+
+Main motivation for these breaking changes was to improve memory usage of the
+dashboards, especially in production. This lead to the deprecation of the
+dual cats grouped/not grouped functionality of the dashboard. Once I had committed
+to that breaking change, I decided to clean up the entire API and do all the 
+needed breaking changes at once. 
+
 
 ### Breaking Changes
 - onehot encoded features are now merged by default. This means that the `cats=True`
@@ -9,29 +24,39 @@
     toggle has been removed from all `ExplainerComponents`. This saves both
     on code complexity and memory usage. If you wish to see the see the individual
     contributions of onehot encoded columns, simply don't pass them to the 
-    `cats` parameter on construction.
-- Deprecated:
+    `cats` parameter upon construction.
+- Deprecated explainer attributes:
     - `BaseExplainer`:
         - `self.shap_values_cats`
         - `self.shap_interaction_values_cats`
+        - `permutation_importances_cats`
         - `self.get_dfs()`
+        - `formatted_contrib_df()`
         - `self.to_sql()`
+        - `self.check_cats()` *
+        - `equivalent_col`
     - `ClassifierExplainer`:
         - `get_prop_for_label`
 
-- Naming changes:
+- Naming changes to attributes:
     - `BaseExplainer`:
         - `importances_df()` -> `get_importances_df()`
         - `feature_permutations_df()` -> `get_feature_permutations_df()`
         - `self.get_int_idx(index)` -> `self.get_idx(index)`
+        - `self.importances_df()` -> `self.get_importances_df()`
         - `self.shap_values` -> `self.shap_values_df`
         - `plot_shap_contributions()` -> `plot_contributions()`
-        - `plot_shap_summary()` -> `plot_shap_detailed()`
+        - `plot_shap_summary()` -> `plot_importance_detailed()`
         - `plot_shap_dependence()` -> `plot_dependence()`
         - `plot_shap_interaction()` -> `plot_interaction()`
         - `plot_shap_interaction_summary()` -> `plot_interactions_detailed()`
         - `plot_interactions()` -> `plot_interactions_importance()`
-    -`TreeExplainers`:
+        - `n_features()` -> `n_features`
+        - `shap_top_interaction()` -> `top_shap_interactions` *
+        - `shap_interaction_values_by_col()` -> `shap_interactions_values_for_col()`
+    - `ClassifierExplainer`:
+        - `self.pred_probas` -> `self.pred_probas()`
+    -`RandomForestExplainer`/`XGBExplainer`:
         - `self.decision_trees` -> `self.shadow_trees`
         - `self.decisiontree_df()` -> `self.decisionpath_df()`
         - `self.decisiontree_summary_df()` -> `self.decisionpath_summary_df()`
@@ -49,12 +74,14 @@
 - added `get_index_list()`, `get_X_row(index)`, and `get_y(index)` methods.
     - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
         and `.set_y_func()`.
-    - by overriding these functions you can sample observations from a database
-        or other storage.
+    - by overriding these functions you can for example sample observations 
+        from a database or other storage instead of from `X_test`, `y_test`.
 - added `max_cat_colors` parameters to `plot_shap_summary` and `plot_shap_dependence` and `plot_shap_interaction`
+    - prevents plotting getting slow with categorical features with many categories.
     - defaults to 5
     - can be set as `**kwarg` to `ExplainerDashboard`
 - adds category limits and sorting to `RegressionVsCol` component
+- adds property `X_merged` that gives a dataframe with onehot columns merged.
 
 ### Bug Fixes
 - shap dependence: when no point cloud, do not highlight!
@@ -63,6 +90,8 @@
 
 ### Improvements
 - saving `X.copy()`, instead of using a reference to `X`
+    - this would result in more memory usage in development
+        though, so you can `del X_test` to save memory.
 - encoding onehot columns as `np.int8` saving memory usage
 - encoding categorical features as `pd.category` saving memory usage
 - added base `TreeExplainer` class that `RandomForestExplainer` and `XGBExplainer` both derive from

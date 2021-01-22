@@ -158,7 +158,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, pos_label=pos_label)
             elif summary_type == 'detailed':
-                plot = self.explainer.plot_shap_detailed(
+                plot = self.explainer.plot_importance_detailed(
                         topx=depth, pos_label=pos_label, index=index, 
                         max_cat_colors=self.max_cat_colors)
             ctx = dash.callback_context
