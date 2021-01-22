@@ -21,6 +21,9 @@
 
 - Naming changes:
     - `BaseExplainer`:
+        
+        - `importances_df()` -> `get_importances_df()`
+        - `feature_permutations_df()` -> `get_feature_permutations_df()`
         - `self.get_int_idx(index)` -> `self.get_idx(index)`
         - `self.shap_values` -> `self.shap_values_df`
         - `plot_shap_contributions()` -> `plot_contributions()`

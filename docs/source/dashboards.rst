@@ -37,9 +37,10 @@ switch off individual tabs with their respective booleans
       decision_trees=True
    ).run()
 
-Warning: the interactions tab can take quite some time to compute, 
-so you may want to switch it off if you're not particularly 
-interested in interaction effects between features.
+.. note:: 
+   The interactions tab can take quite some time to compute, 
+   so you would usually switch it off if you're not particularly 
+   interested in interaction effects between features.
 
 Starting a single tab dashboard
 -------------------------------
@@ -100,8 +101,10 @@ jupyterlab pane, or ``mode='external'`` which runs the dashboard in a seperate t
    ExplainerDashboard(explainer, mode='external').run()
 
 The parameters ``width`` and ``height`` determine the size of the output area in pixels.
-(default to ``1000x800``). You can kill a JupyterDash based dashboard with
-``ExplainerDashboard().terminate(port)``.
+(default to ``1000x800``). You can kill a JupyterDash based dashboard with the 
+``classmethod`` ``.terminate(port)``::
+
+   ExplainerDashboard().terminate(8050)
 
 .. image:: screenshots/inline_example.png
 
@@ -118,7 +121,7 @@ a convenient ``themes`` module with urls to the most popular themes, e.g.::
    from dash_bootstrap_components.themes import FLATLY 
 
    ExplainerDashboard(explainer, ["contributions", "model_summary"], 
-                   boostrap=FLATLY, mode='external').run()
+                   bootstrap=FLATLY, mode='external').run()
 
 Example of a nice flat black and white theme called "FLATLY":
 
@@ -134,8 +137,8 @@ For multiclass classification models it is convenient to be able to set the
 positive class for the entire dashboard with the dropdown in the header.
 However if you wish to this dropdown selector you can simply pass ``header_hide_selector=True``.
 
-In order to also hide the title itself pass ``header_hide_title=True``. Or to 
-hide the entire header ``hide_header=True``. 
+In order to hide the title itself pass ``header_hide_title=True``. Or to hide 
+the entire header pass ``hide_header=True``. 
 
 Choosing a port
 ---------------
@@ -153,7 +156,7 @@ Exposing the flask server
 -------------------------
 
 When running a dashboard in production you probably want to run it with some 
-heavier web server like ``gunicorn``. For this you need to expose the flask 
+heavier web server like ``gunicorn`` or ``waitress``. For this you need to expose the flask 
 server. This can be found in ``self.app.server``, or with the ``flask_server()`` method.
 
 If you define your dashboard in dashboard.py then you can expose your dashboard
@@ -166,6 +169,10 @@ server like this::
 You then start the dashboard on the commandline with::
 
    gunicorn dashboard:server
+
+Or if you are on windows::
+
+   waitress-serve dashboard:server
 
 See the deployment section for more info on using explainerdashboard in production.
 

@@ -303,7 +303,6 @@ cats toggle will be hidden on every component that has one:
 ```python
 ExplainerDashboard(explainer, 
                     no_permutations=True, # do not show or calculate permutation importances
-                    hide_cats=True, # hide the group cats toggles
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
                     hide_orientation=True, # hide orientation dropdown in contributions graph/table
@@ -339,9 +338,9 @@ ExplainerDashboard(explainer,
                     col='Fare', # initial feature in shap graphs
                     color_col='Age', # color feature in shap dependence graph
                     interact_col='Age', # interaction feature in shap interaction
-                    cats=False, # do not group categorical onehot features
                     depth=5, # only show top 5 features
                     sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
+                    cats_topx=3, # show only the top 3 categories for categorical features
                     cats_sort='alphabet', # short categorical features alphabetically
                     orientation='horizontal', # horizontal bars in contributions graph
                     index='Rugg, Miss. Emily', # initial index to display
@@ -367,12 +366,12 @@ a few toggles:
 from explainerdashboard.custom import *
 
 class CustomDashboard(ExplainerComponent):
-    def __init__(self, explainer, **kwargs):
+    def __init__(self, explainer, name=None):
         super().__init__(explainer, title="Custom Dashboard")
-        self.confusion = ConfusionMatrixComponent(explainer,
+        self.confusion = ConfusionMatrixComponent(explainer, name=self.name+"cm",
                             hide_selector=True, hide_percentage=True,
                             cutoff=0.75)
-        self.contrib = ShapContributionsGraphComponent(explainer,
+        self.contrib = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
                             hide_selector=True, hide_cats=True, 
                             hide_depth=True, hide_sort=True,
                             index='Rugg, Miss. Emily')

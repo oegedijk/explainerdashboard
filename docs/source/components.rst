@@ -26,8 +26,8 @@ but with no group cats or highlight toggle, and initial feature set to 'Fare'::
 
    class CustomDashboard(ExplainerComponent):
       def __init__(self, explainer, title="Custom Dashboard", name="None"):
-         super().__init__(explainer, title)
-         self.shap_dependence = ShapDependenceComponent(explainer, 
+         super().__init__(explainer, title, name=name)
+         self.shap_dependence = ShapDependenceComponent(explainer, name=self.name+"dep",
                             hide_title=True, hide_cats=True, hide_highlight=True,
                             cats=True, col='Fare')
 
@@ -50,7 +50,7 @@ selectors of all subcomponents.
 ExplainerComponent
 ------------------
 
-.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.ExplainerComponent
+.. autoclass:: explainerdashboard.dashboard_methods.ExplainerComponent
    :members:
 
 
@@ -156,7 +156,7 @@ PdpComponent
 FeatureInputComponent
 ---------------------
 
-.. image:: screenshots/components/feature_inpt.png
+.. image:: screenshots/components/feature_input.png
 
 Using the feature input component you can edit the features for a particular
 observation in order to check what would be the change in prediction if you
@@ -299,7 +299,7 @@ ResidualsComponent
    :members:
 
 RegressionVsColComponent
------------------------
+------------------------
 
 .. image:: screenshots/components/reg_vs_col.png
 
@@ -349,7 +349,7 @@ DecisionPathGraphComponent
 
 
 
-connectors
+Connectors
 ==========
 
 
@@ -364,7 +364,7 @@ PosLabelSelector
 
 .. image:: screenshots/components/poslabel_selector.png
 
-.. autoclass:: explainerdashboard.dashboard_components.dashboard_methods.PosLabelSelector
+.. autoclass:: explainerdashboard.dashboard_methods.PosLabelSelector
    :members:
 
 PosLabelConnector

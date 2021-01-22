@@ -104,13 +104,17 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add memory savings to docs/README:
+    - memory_usage()
+    - keep_shap_pos_label_only()
+    - set_X_row_func, etc
 - add cats_topx cats_sort to docs
 - add hide_wizard and wizard to docs
 - add hide_poweredby to docs
 - add Docker deploy example (from issue)
 - document register_components no longer necessary
 - add new whatif parameters to README and docs
-- add section to README on storing and loading explainer/dashboard from file/config
+- add section to docs and README on storing and loading explainer/dashboard from file/config
 
 - retake screenshots of components as cards
 - Add type hints:

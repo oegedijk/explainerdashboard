@@ -57,6 +57,7 @@ def insert_pos_label(func):
         else:
             kwargs.update(dict(pos_label=self.pos_label))   
         return func(self, **kwargs)
+    inner.__doc__ = func.__doc__
     return inner
 
 class BaseExplainer(ABC):
@@ -2006,6 +2007,17 @@ class ClassifierExplainer(BaseExplainer):
 
     @insert_pos_label
     def metrics_descriptions(self, cutoff=0.5, round=3, pos_label=None):
+        """Returns a metrics dict with the value replaced with a
+        description/interpretation of the value
+
+        Args:
+            cutoff (float, optional): Cutoff for calculating the metrics. Defaults to 0.5.
+            round (int, optional): Round to apply to floats. Defaults to 3.
+            pos_label (None, optional): positive label. Defaults to None.
+
+        Returns:
+            dict
+        """
         metrics_dict = self.metrics(cutoff, pos_label)
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
@@ -2511,6 +2523,12 @@ class RegressionExplainer(BaseExplainer):
         return metrics_dict
 
     def metrics_descriptions(self):
+        """Returns a metrics dict, with the metric values replaced by a descriptive
+        string, explaining/interpreting the value of the metric
+
+        Returns:
+            dict
+        """
         metrics_dict = self.metrics()
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():

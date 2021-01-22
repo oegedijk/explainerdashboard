@@ -62,7 +62,7 @@ With waitress you would call::
 .. highlight:: python
 
 .. warning::
-    If you use multiple workers you must pass the ``--preload`` flag to gunicorn!
+    If you use multiple workers you must pass the `` --preload`` flag to gunicorn!
     (this is also the case for Heroku deployments for example). Otherwise each
     worker builds its own dashboard app, with its own random ``uuid`` strings
     at the end of component ``id``s, and then the various workers will not agree
@@ -77,31 +77,31 @@ a dashboard with two specific tabs and a particular title, you would store the
 explainer and dashboard settings like this::
 
     from explainerdashboard import ClassifierExplainer, ExplainerDashboard
-    from explainerdashboard.dashboard_tabs import ShapDependenceTab, ImportancesTab
+    from explainerdashboard.custom import ShapDependenceComposite, ImportancesComposite
 
     explainer = ClassifierExplainer(model, X, y, labels=['Not Survived', 'Survived'])
-    explainer.dump("explainer.joblib")
+    db = ExplainerDashboard(explainer, [ShapDependenceComposite, ImportancesComposite], title="Custom Title")
 
-    db = ExplainerDashboard(explainer, [ShapDependenceTab, ImportancesTab], title="Custom Title")
-    db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib")
+    db.to_yaml("dashboard.yaml", explainerfile="explainer.joblib", dump_explainer=True)
 
 And then start the ``ExplainerDashboard`` directly from the config file in ``dashboard.py``::
 
     from explainerdashboard import ExplainerDashboard
 
     db = ExplainerDashboard.from_config("dashboard.yaml")
-    app = db.app.server
+    app = db.flask_server()
 
+You can also pass additional config ``**kwargs`` to override the default or
+configured settings when you load from config::
 
-You can also pass additional config ``**kwargs`` when you load from config::
-
-    db = ExplainerDashboard.from_config("dashboard.yaml", higher_is_better=False)
+    db = ExplainerDashboard.from_config("dashboard.yaml", title="Better Title")
 
 
 Or first load the explainer and then the dashboard config::
 
     explainer = ClassifierExplainer.from_file("explainer.joblib")
     db = ExplainerDashboard.from_config(explainer, "dashboard.yaml")
+    app = db.flask_server()
 
 
 .. highlight:: bash
@@ -228,9 +228,10 @@ at `titanicexplainer.herokuapp.com <http://titanicexplainer.herokuapp.com>`_ )
 there are a number of issues to keep in mind.
 
 First of all you need to add ``explainerdashboard`` and ``gunicorn`` to 
-``requirements.txt`` (pinning is recommended)::
+``requirements.txt`` (pinning is recommended to force a new build of your environment
+whenever you update the version)::
 
-    explainerdashboard==0.2.15
+    explainerdashboard==0.2.20.1
     gunicorn
 
 Select a python runtime compatible with the version that you used to pickle
@@ -309,6 +310,11 @@ and prevent random users from accessing the details of your model dashboard::
 
     ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()
 
+Or for a an :ref:`ExplainerHub<ExplainerHub>`:
+
+    hub = ExplainerHub([db1, db2], logins=[['login1', 'password1'], ['login2', 'password2']])
+
 Make sure not to check these login/password pairs into version control though, 
-but store them somewhere safe! 
+but store them somewhere safe! ExplainerHub stores passwords into a hashed 
+format for safety.
 
