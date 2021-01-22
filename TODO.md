@@ -8,6 +8,7 @@
 - add deprecation warnings for old methods
 - update tutorial notebooks
 - check InlineExplainer 
+- fix xgboost plot_trees y axis
 ## Bugs:
 
 

@@ -402,6 +402,11 @@ class BaseExplainer(ABC):
         return index_list
 
     def set_index_list_func(self, func):
+        """Sets an external function all available indexes from an external source.
+
+        func should either be a parameterless function: def func(): ...
+        or a parameterless method: def func(self): ...
+        """
         assert callable(func), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ['self']:
@@ -412,7 +417,6 @@ class BaseExplainer(ABC):
             raise ValueError(f"Parameter func should either be a function {func.__name__}() "
                              f"or a method {func.__name__}(self)! Instead you "
                              f"passed func={func.__name__}{inspect.signature(func)}")
-
 
     def get_X_row(self, index, merge=False):
         if self._get_X_row_func is not None:
@@ -428,6 +432,11 @@ class BaseExplainer(ABC):
         return X_row
 
     def set_X_row_func(self, func):
+        """Sets an external function to retrieve a row of input data a given index.
+
+        func should either be a function that takes a single parameter: def func(index)
+        or a method that takes a single parameter: def func(self, index)
+        """
         assert callable(func), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ['self', 'index']:
@@ -450,6 +459,11 @@ class BaseExplainer(ABC):
         return y
 
     def set_y_func(self, func):
+        """Sets an external function to retrieve an observed label for a given index.
+
+        func should either be a function that takes a single parameter: def func(index)
+        or a method that takes a single parameter: def func(self, index)
+        """
         assert callable(func), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ['self', 'index']:
@@ -2848,7 +2862,7 @@ class RandomForestExplainer(TreeExplainer):
             self._shadow_trees = [
                 ShadowDecTree.get_shadow_tree(decision_tree,
                                         self.X,
-                                        self.y,
+                                        self.y.astype("int32"),
                                         feature_names=self.X.columns.tolist(),
                                         target_name='target',
                                         class_names = self.labels if self.is_classifier else None)
@@ -2919,7 +2933,7 @@ class XGBExplainer(TreeExplainer):
             self._shadow_trees = [
                 ShadowDecTree.get_shadow_tree(self.model.get_booster(),
                                         self.X,
-                                        self.y,
+                                        self.y.astype("int32"),
                                         feature_names=self.X.columns.tolist(),
                                         target_name='target',
                                         class_names = self.labels if self.is_classifier else None,
@@ -2986,7 +3000,7 @@ class XGBExplainer(TreeExplainer):
             if len(self.labels) > 2:
                 tree_idx = tree_idx * len(self.labels) + pos_label
 
-        viz = dtreeviz(self.decision_trees[tree_idx], 
+        viz = dtreeviz(self.shadow_trees[tree_idx], 
                         X=self.get_X_row(index).squeeze(), 
                         fancy=False,
                         show_node_labels = False,
@@ -3012,7 +3026,7 @@ class XGBExplainer(TreeExplainer):
         if self.is_classifier:
             pos_label = self.pos_label_index(pos_label)
             y = self.get_y(index)
-            y = 100 * int(y == pos_label) if y is not None else y
+            y = int(y == pos_label) if y is not None else y
             xgboost_preds_df = get_xgboost_preds_df(
                 self.model, self.get_X_row(index), pos_label=pos_label)
             return plotly_xgboost_trees(xgboost_preds_df, 
