@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='explainerdashboard',
     version='0.3.0',
-    description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.',
+    description='Quickly build Explainable AI dashboards that show the inner workings of so-called "blackbox" machine learning models.',
     long_description="""
 
 This package makes it convenient to quickly deploy a dashboard web app
