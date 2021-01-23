@@ -44,9 +44,12 @@ needed breaking changes at once.
         - `feature_permutations_df()` -> `get_feature_permutations_df()`
         - `self.get_int_idx(index)` -> `self.get_idx(index)`
         - `self.importances_df()` -> `self.get_importances_df()`
-        - `self.shap_values` -> `self.shap_values_df`
+        - `self.contrib_df()` -> `self.get_contrib_df()` *
+        - `self.contrib_summary_df()` -> `self.get_summary_contrib_df()` *
+        - `self.interaction_df()` -> `get_interactions_df()` *
+        - `self.shap_values` -> `self.get_shap_values_df`
         - `plot_shap_contributions()` -> `plot_contributions()`
-        - `plot_shap_summary()` -> `plot_importance_detailed()`
+        - `plot_shap_summary()` -> `plot_importances_detailed()`
         - `plot_shap_dependence()` -> `plot_dependence()`
         - `plot_shap_interaction()` -> `plot_interaction()`
         - `plot_shap_interaction_summary()` -> `plot_interactions_detailed()`
@@ -56,6 +59,8 @@ needed breaking changes at once.
         - `shap_interaction_values_by_col()` -> `shap_interactions_values_for_col()`
     - `ClassifierExplainer`:
         - `self.pred_probas` -> `self.pred_probas()`
+        - `precision_df()` -> `get_precision_df()` *
+        - `lift_curve_df()` -> `get_liftcurve_df()` *
     -`RandomForestExplainer`/`XGBExplainer`:
         - `self.decision_trees` -> `self.shadow_trees`
         - `self.decisiontree_df()` -> `self.decisionpath_df()`

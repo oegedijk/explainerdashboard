@@ -60,17 +60,17 @@ class LinearRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.top_shap_interactions("Age", topx=4), list)
 
     def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, topx=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0, topx=3), pd.DataFrame)
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -121,17 +121,17 @@ class LogisticRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
     def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, topx=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0, topx=3), pd.DataFrame)
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -162,12 +162,12 @@ class LogisticRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
 
     def test_precision_df(self):
-        self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(quantiles=4), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
     def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
 
 class LogisticRegressionKernelTests(unittest.TestCase):
@@ -189,5 +189,5 @@ class LogisticRegressionKernelTests(unittest.TestCase):
 
     def test_shap_values(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)

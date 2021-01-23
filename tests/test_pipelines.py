@@ -64,17 +64,17 @@ class ClassifierBaseExplainerTestsPipeline(unittest.TestCase):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
     def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_pdp_df(self):
         self.assertIsInstance(self.explainer.pdp_df("age"), pd.DataFrame)

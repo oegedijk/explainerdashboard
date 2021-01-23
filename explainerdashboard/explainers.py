@@ -630,10 +630,10 @@ class BaseExplainer(ABC):
                 return X[col].value_counts().nlargest(topx).index.tolist()
         elif sort=='shap':
             if topx is None:
-                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.get_col(col))
+                return (pd.Series(self.get_shap_values_df(pos_label)[col].values, index=self.get_col(col))
                             .abs().groupby(level=0).mean().sort_values(ascending=False).index.tolist())
             else:
-                return (pd.Series(self.shap_values_df(pos_label)[col].values, index=self.get_col(col))
+                return (pd.Series(self.get_shap_values_df(pos_label)[col].values, index=self.get_col(col))
                             .abs().groupby(level=0).mean().sort_values(ascending=False).nlargest(topx).index.tolist())
         else:
             raise ValueError(f"sort='{sort}', but should be in {{'alphabet', 'freq', 'shap'}}")
@@ -740,7 +740,7 @@ class BaseExplainer(ABC):
         if not hasattr(self, '_shap_base_value'):
             # CatBoost needs shap values calculated before expected value
             if not hasattr(self, "_shap_values"):
-                _ = self.shap_values_df()
+                _ = self.get_shap_values_df()
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray):
                 # shap library now returns an array instead of float
@@ -748,7 +748,7 @@ class BaseExplainer(ABC):
         return self._shap_base_value
 
     @insert_pos_label
-    def shap_values_df(self, pos_label=None):
+    def get_shap_values_df(self, pos_label=None):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
@@ -784,7 +784,7 @@ class BaseExplainer(ABC):
     def mean_abs_shap_df(self, pos_label=None):
         """Mean absolute SHAP values per feature."""
         if not hasattr(self, '_mean_abs_shap_df'):
-            self._mean_abs_shap_df = (self.shap_values_df(pos_label)[self.merged_cols].abs().mean()
+            self._mean_abs_shap_df = (self.get_shap_values_df(pos_label)[self.merged_cols].abs().mean()
                     .sort_values(ascending=False)
                     .to_frame().rename_axis(index="Feature").reset_index()
                     .rename(columns={0:"MEAN_ABS_SHAP"}))
@@ -893,10 +893,10 @@ class BaseExplainer(ABC):
 
         """
         _ = (self.preds,  self.pred_percentiles,
-                self.shap_base_value, self.shap_values_df,
-                self.mean_abs_shap_df)
+                self.shap_base_value(), self.get_shap_values_df(),
+                self.get_mean_abs_shap_df())
         if not self.y_missing:
-            _ = self.permutation_importances
+            _ = self.get_permutation_importances_df()
         if self.onehot_cols:
             _ = self.X_cats
         if self.interactions_should_work and include_interactions:
@@ -1016,7 +1016,7 @@ class BaseExplainer(ABC):
             return self.get_mean_abs_shap_df(topx, cutoff, pos_label)
 
     @insert_pos_label
-    def contrib_df(self, index=None, X_row=None, topx=None, cutoff=None, 
+    def get_contrib_df(self, index=None, X_row=None, topx=None, cutoff=None, 
                     sort='abs', pos_label=None):
         """shap value contributions to the prediction for index.
         
@@ -1077,7 +1077,7 @@ class BaseExplainer(ABC):
             raise ValueError("Either index or X_row should be passed!")
 
     @insert_pos_label
-    def contrib_summary_df(self, index=None, X_row=None, topx=None, cutoff=None, 
+    def get_contrib_summary_df(self, index=None, X_row=None, topx=None, cutoff=None, 
                             round=2, sort='abs', pos_label=None):
         """Takes a contrib_df, and formats it to a more human readable format
 
@@ -1097,12 +1097,12 @@ class BaseExplainer(ABC):
         Returns:
           pd.DataFrame
         """
-        contrib_df = self.contrib_df(index, X_row, topx, cutoff, sort, pos_label)
+        contrib_df = self.get_contrib_df(index, X_row, topx, cutoff, sort, pos_label)
         return get_contrib_summary_df(contrib_df, model_output=self.model_output, 
                         round=round, units=self.units, na_fill=self.na_fill)
 
     @insert_pos_label
-    def interactions_df(self, col, topx=None, cutoff=None, 
+    def get_interactions_df(self, col, topx=None, cutoff=None, 
                             pos_label=None):
         """dataframe of mean absolute shap interaction values for col
 
@@ -1248,7 +1248,7 @@ class BaseExplainer(ABC):
             return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
     @insert_pos_label
-    def plot_importance_detailed(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
+    def plot_importances_detailed(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
@@ -1286,7 +1286,7 @@ class BaseExplainer(ABC):
 
         return plotly_shap_scatter_plot(
                                 self.X_merged[cols],
-                                self.shap_values_df(pos_label)[cols],
+                                self.get_shap_values_df(pos_label)[cols],
                                 cols, 
                                 idxs=self.idxs,
                                 highlight_index=index,
@@ -1327,7 +1327,7 @@ class BaseExplainer(ABC):
 
         """
         assert orientation in ['vertical', 'horizontal']
-        contrib_df = self.contrib_df(index, X_row, topx, cutoff, sort, pos_label)
+        contrib_df = self.get_contrib_df(index, X_row, topx, cutoff, sort, pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
@@ -1368,7 +1368,7 @@ class BaseExplainer(ABC):
         if col in self.cat_cols:
             return plotly_shap_violin_plot(
                             self.get_col(col), 
-                            self.shap_values_df(pos_label)[col], 
+                            self.get_shap_values_df(pos_label)[col], 
                             X_color_col, 
                             highlight_index=highlight_index,
                             idxs=self.idxs,
@@ -1378,7 +1378,7 @@ class BaseExplainer(ABC):
         else:
             return plotly_dependence_plot(
                         self.get_col(col), 
-                        self.shap_values_df(pos_label)[col],
+                        self.get_shap_values_df(pos_label)[col],
                         X_color_col, 
                         na_fill=self.na_fill, 
                         units=self.units, 
@@ -1438,7 +1438,7 @@ class BaseExplainer(ABC):
           plotly.fig: fig
 
         """
-        interactions_df = self.interactions_df(col, topx=topx, pos_label=pos_label)
+        interactions_df = self.get_interactions_df(col, topx=topx, pos_label=pos_label)
         title = f"Average interaction shap values for {col}"
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
@@ -1540,7 +1540,7 @@ class BaseExplainer(ABC):
 
     @property
     def shap_values(*args, **kwargs):
-        raise NotImplementedError("shap_values has been deprecated in v0.3! Use shap_values_df() instead!")
+        raise NotImplementedError("shap_values has been deprecated in v0.3! Use get_shap_values_df() instead!")
 
     def get_dfs(*args, **kwargs):
         raise NotImplementedError("get_dfs() has been deprecated in v0.3! ")
@@ -1557,7 +1557,7 @@ class BaseExplainer(ABC):
 
     def plot_shap_summary(*args, **kwargs):
         raise NotImplementedError("plot_shap_summary() has been deprecated in v0.3! "
-                "Use plot_importance_detailed() instead!")
+                "Use plot_importances_detailed() instead!")
 
     def plot_shap_dependence(*args, **kwargs):
         raise NotImplementedError("plot_shap_dependence() has been deprecated in v0.3! "
@@ -1607,6 +1607,17 @@ class BaseExplainer(ABC):
         raise NotImplementedError("decision_path_encoded() has been deprecated in v0.3! "
                 "Use decisiontree_encoded() instead!")
 
+    def contrib_df(*args, **kwargs):
+        raise NotImplementedError("contrib_df() has been deprecated in v0.3! "
+                "Use get_contrib_df() instead!")
+
+    def contrib_summary_df(*args, **kwargs):
+        raise NotImplementedError("contrib_summary_df() has been deprecated in v0.3! "
+                "Use get_contrib_summary_df() instead!")
+
+    def interactions_df(*args, **kwargs):
+        raise NotImplementedError("interactions_df() has been deprecated in v0.3! "
+                "Use get_interactions_df() instead!")
 
 
 class ClassifierExplainer(BaseExplainer):
@@ -1846,7 +1857,7 @@ class ClassifierExplainer(BaseExplainer):
     def shap_base_value(self, pos_label=None):
         """SHAP base value: average outcome of population"""
         if not hasattr(self, '_shap_base_value'):
-            _ = self.shap_values_df() # CatBoost needs to have shap values calculated before expected value for some reason
+            _ = self.get_shap_values_df() # CatBoost needs to have shap values calculated before expected value for some reason
             self._shap_base_value = self.shap_explainer.expected_value
             if isinstance(self._shap_base_value, np.ndarray) and len(self._shap_base_value) == 1:
                 self._shap_base_value = self._shap_base_value[0]
@@ -1868,7 +1879,7 @@ class ClassifierExplainer(BaseExplainer):
         return self._shap_base_value[pos_label]
 
     @insert_pos_label
-    def shap_values_df(self, pos_label=None):
+    def get_shap_values_df(self, pos_label=None):
         """SHAP Values"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
@@ -1905,7 +1916,7 @@ class ClassifierExplainer(BaseExplainer):
     def shap_interaction_values(self, pos_label=None):
         """SHAP interaction values"""
         if not hasattr(self, '_shap_interaction_values'):
-            _ = self.shap_values_df() #make sure shap values have been calculated
+            _ = self.get_shap_values_df() #make sure shap values have been calculated
             print("Calculating shap interaction values...", flush=True)
             if self.shap == 'tree':
                 print("Reminder: TreeShap computational complexity is O(TLD^2), "
@@ -1938,8 +1949,8 @@ class ClassifierExplainer(BaseExplainer):
     def mean_abs_shap_df(self, pos_label=None):
         """mean absolute SHAP values"""
         if not hasattr(self, '_mean_abs_shap_df'):
-            _ = self.shap_values_df()
-            self._mean_abs_shap_df = [self.shap_values_df(pos_label)[self.merged_cols].abs().mean()
+            _ = self.get_shap_values_df()
+            self._mean_abs_shap_df = [self.get_shap_values_df(pos_label)[self.merged_cols].abs().mean()
                     .sort_values(ascending=False)
                     .to_frame().rename_axis(index="Feature").reset_index()
                     .rename(columns={0:"MEAN_ABS_SHAP"}) for pos_label in self.labels]
@@ -1950,7 +1961,7 @@ class ClassifierExplainer(BaseExplainer):
         """drops the shap values and shap_interaction values for all labels 
         except pos_label in order to save on memory usage"""
         if hasattr(self, "_shap_values_df"):
-            self._shap_values_df= self.shap_values_df(pos_label)
+            self._shap_values_df= self.get_shap_values_df(pos_label)
         if hasattr(self, "_shap_interaction_values"):
             self._shap_interaction_values = self.shap_interaction_values(pos_label)
 
@@ -2143,7 +2154,7 @@ class ClassifierExplainer(BaseExplainer):
         return preds_df.round(round)
 
     @insert_pos_label
-    def precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
+    def get_precision_df(self, bin_size=None, quantiles=None, multiclass=False, 
                         round=3, pos_label=None):
         """dataframe with predicted probabilities and precision
 
@@ -2173,7 +2184,7 @@ class ClassifierExplainer(BaseExplainer):
                                     bin_size, quantiles, round=round)
 
     @insert_pos_label
-    def lift_curve_df(self, pos_label=None):
+    def get_liftcurve_df(self, pos_label=None):
         """returns a pd.DataFrame with data needed to build a lift curve
 
         Args:
@@ -2182,7 +2193,7 @@ class ClassifierExplainer(BaseExplainer):
         Returns:
 
         """
-        return get_lift_curve_df(self.pred_probas(pos_label), self.y, pos_label)
+        return get_liftcurve_df(self.pred_probas(pos_label), self.y, pos_label)
 
     @insert_pos_label
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=None, multiclass=False, pos_label=None):
@@ -2208,7 +2219,7 @@ class ClassifierExplainer(BaseExplainer):
         """
         if bin_size is None and quantiles is None:
             bin_size=0.1 # defaults to bin_size=0.1
-        precision_df = self.precision_df(
+        precision_df = self.get_precision_df(
                 bin_size=bin_size, quantiles=quantiles, multiclass=multiclass, pos_label=pos_label)
         return plotly_precision_plot(precision_df,
                     cutoff=cutoff, labels=self.labels, pos_label=pos_label)
@@ -2228,7 +2239,7 @@ class ClassifierExplainer(BaseExplainer):
 
         """
         return plotly_cumulative_precision_plot(
-                    self.lift_curve_df(pos_label=pos_label), labels=self.labels, 
+                    self.get_liftcurve_df(pos_label=pos_label), labels=self.labels, 
                     percentile=percentile, pos_label=pos_label)
 
     @insert_pos_label
@@ -2287,7 +2298,7 @@ class ClassifierExplainer(BaseExplainer):
           plotly fig
 
         """
-        return plotly_lift_curve(self.lift_curve_df(pos_label), cutoff=cutoff, 
+        return plotly_lift_curve(self.get_liftcurve_df(pos_label), cutoff=cutoff, 
                 percentage=percentage, add_wizard=add_wizard, round=round)
 
     @insert_pos_label
@@ -2366,7 +2377,7 @@ class ClassifierExplainer(BaseExplainer):
             None
 
         """
-        _ = self.pred_probas, self.y_binary()
+        _ = self.pred_probas(), self.y_binary()
         super().calculate_properties(include_interactions=include_interactions)
 
 

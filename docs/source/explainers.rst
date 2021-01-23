@@ -63,6 +63,7 @@ give a bit nicer and more convenient output::
             index_name="Passenger", # description of index
             descriptions=feature_descriptions, # show long feature descriptions in hovers
             target='Survival', # the name of the target variable (y)
+            precision='float32', # save memory by setting lower precision. Default is 'float64'
             labels=['Not survived', 'Survived']) # show target labels instead of ['0', '1']
 
 cats
@@ -102,8 +103,8 @@ idxs
 You may have specific identifiers (names, customer id's, etc) for each row in 
 your dataset. By default ``X.index`` will get used
 to identify individual rows/records in the dashboard. And you can index using both the 
-numerical index, e.g. ``explainer.contrib_df(0)`` for the first row, or using the 
-identifier, e.g. ``explainer.contrib_df("Braund, Mr. Owen Harris")``.
+numerical index, e.g. ``explainer.get_contrib_df(0)`` for the first row, or using the 
+identifier, e.g. ``explainer.get_contrib_df("Braund, Mr. Owen Harris")``.
 
 You can override using ``X.index`` by passing a list/array/Series ``idxs``
 to the explainer::
@@ -232,6 +233,13 @@ tree based methods), these can mess with the horizontal axis of your plots.
 In order to filter these out, you need to tell the explainer what the extreme value 
 is that you used to fill. Defaults to ``-999``.
 
+precision
+---------
+
+You can set the precision of the calculated shap values, predictions, etc, in
+order to save on memory usage. Default is ``'float64'``, but ``'float32'`` is probably
+fine, maybe even ``'float16'`` for your application.
+
 Plots
 =====
 
@@ -247,7 +255,7 @@ or ``RegressionExplainer``, however they both inherit all of these basic methods
 
     plot_importances(kind='shap', topx=None, round=3, pos_label=None)
     plot_contributions(index, topx=None, cutoff=None, round=2, pos_label=None)
-    plot_importance_detailed(topx=None, pos_label=None)
+    plot_importances_detailed(topx=None, pos_label=None)
     plot_interactions_detailed(col, topx=None, pos_label=None)
     plot_dependence(col, color_col=None, highlight_idx=None, pos_label=None)
     plot_interaction(interact_col, highlight_idx=None, pos_label=None)
@@ -267,18 +275,23 @@ plot_importances
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importances
 
-plot_shap_contributions
-^^^^^^^^^^^^^^^^^^^^^^^
+plot_importances_detailed
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importances_detailed
+
+plot_contributions
+^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_contributions
 
-plot_shap_dependence
-^^^^^^^^^^^^^^^^^^^^
+plot_dependence
+^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_dependence
 
-plot_shap_interaction
-^^^^^^^^^^^^^^^^^^^^^
+plot_interaction
+^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_interaction
 
@@ -287,18 +300,13 @@ plot_pdp
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_pdp
 
-plot_importance_detailed
-^^^^^^^^^^^^^^^^^^
-
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importance_detailed
-
-plot_shap_interactions_importance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+plot_interactions_importance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_interactions_importance
 
-plot_shap_interactions_detailed
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+plot_interactions_detailed
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_interactions_detailed
 
@@ -438,7 +446,6 @@ decisiontree_encoded
 .. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_encoded
 
 
-
 Other explainer outputs
 =======================
 
@@ -451,9 +458,9 @@ Some other useful tables and outputs you can get out of the explainer::
     get_mean_abs_shap_df(topx=None, cutoff=None, cats=False, pos_label=None)
     get_permutation_importances_df(topx=None, cutoff=None, cats=False, pos_label=None)
     get_importances_df(kind="shap", topx=None, cutoff=None, cats=False, pos_label=None)
-    contrib_df(index, cats=True, topx=None, cutoff=None, pos_label=None)
-    contrib_summary_df(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
-    interactions_df(col, cats=False, topx=None, cutoff=None, pos_label=None)
+    get_contrib_df(index, cats=True, topx=None, cutoff=None, pos_label=None)
+    get_contrib_summary_df(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
+    get_interactions_df(col, cats=False, topx=None, cutoff=None, pos_label=None)
 
 metrics
 ^^^^^^^
@@ -481,20 +488,20 @@ get_importances_df
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.get_importances_df
 
-contrib_df
+get_contrib_df
 ^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.contrib_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_contrib_df
 
-contrib_summary_df
-^^^^^^^^^^^^^^^^^^
+get_contrib_summary_df
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.contrib_summary_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_contrib_summary_df
 
-interactions_df
-^^^^^^^^^^^^^^^
+get_interactions_df
+^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.interactions_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_interactions_df
 
 
 
@@ -507,8 +514,8 @@ For ``ClassifierExplainer`` in addition::
                     pred_percentile_min=None, pred_percentile_max=None, pos_label=None)
     prediction_result_df(index, pos_label=None)
     cutoff_from_percentile(percentile, pos_label=None)
-    precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
-    lift_curve_df(pos_label=None)
+    get_precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
+    get_liftcurve_df(pos_label=None)
 
 
 random_index
@@ -527,15 +534,15 @@ percentile_from_cutoff
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.percentile_from_cutoff
 
-precision_df
-^^^^^^^^^^^^
+get_precision_df
+^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.precision_df
 
-lift_curve_df
-^^^^^^^^^^^^^
+get_liftcurve_df
+^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.ClassifierExplainer.lift_curve_df
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.get_liftcurve_df
 
 
 Regression outputs
@@ -605,9 +612,9 @@ property is calculated once, it is stored for next time. So the first time
 you invoke a plot involving shap values may take a while to calculate. The next
 time will be basically instant. 
 
-You can access these properties directly from the explainer, e.g. ``explainer.shap_values_df()``. 
+You can access these properties directly from the explainer, e.g. ``explainer.get_shap_values_df()``. 
 For classifier models if you want values for a particular ``pos_label`` you can
-pass this label ``explainer.shap_values_df(0)`` would get the shap values for 
+pass this label ``explainer.get_shap_values_df(0)`` would get the shap values for 
 the 0'th class label.
 
 In order to calculate all properties of the explainer at once, you can call
@@ -622,7 +629,7 @@ The various properties are::
     explainer.permutation_importances(pos_label)
     explainer.mean_abs_shap_df(pos_label)
     explainer.shap_base_value(pos_label)
-    explainer.shap_values_df(pos_label)
+    explainer.get_shap_values_df(pos_label)
     explainer.shap_interaction_values
     
 
@@ -670,7 +677,7 @@ BaseExplainer
 
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
    :members: get_mean_abs_shap_df, get_permutation_importances_df, get_importances_df, contrib_df, 
-            plot_importances, plot_contributions, plot_importance_detailed, 
+            plot_importances, plot_contributions, plot_importances_detailed, 
             plot_interactions_detailed, plot_interactions_importances, plot_dependence, plot_interaction, plot_pdp
    :member-order: bysource
 
