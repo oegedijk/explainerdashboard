@@ -646,6 +646,7 @@ class BaseExplainer(ABC):
             self._preds = self.model.predict(self.X).astype(self.precision)
         return self._preds
     
+    @insert_pos_label
     def pred_percentiles(self, pos_label=None):
         """returns percentile rank of model predictions"""
         if not hasattr(self, '_pred_percentiles'):
@@ -892,7 +893,7 @@ class BaseExplainer(ABC):
         Returns:
 
         """
-        _ = (self.preds,  self.pred_percentiles,
+        _ = (self.preds,  self.pred_percentiles(),
                 self.shap_base_value(), self.get_shap_values_df(),
                 self.get_mean_abs_shap_df())
         if not self.y_missing:
