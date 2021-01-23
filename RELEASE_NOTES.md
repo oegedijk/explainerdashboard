@@ -33,7 +33,7 @@ needed breaking changes at once.
         - `self.get_dfs()`
         - `formatted_contrib_df()`
         - `self.to_sql()`
-        - `self.check_cats()` *
+        - `self.check_cats()` 
         - `equivalent_col`
     - `ClassifierExplainer`:
         - `get_prop_for_label`
@@ -52,7 +52,7 @@ needed breaking changes at once.
         - `plot_shap_interaction_summary()` -> `plot_interactions_detailed()`
         - `plot_interactions()` -> `plot_interactions_importance()`
         - `n_features()` -> `n_features`
-        - `shap_top_interaction()` -> `top_shap_interactions` *
+        - `shap_top_interaction()` -> `top_shap_interactions` 
         - `shap_interaction_values_by_col()` -> `shap_interactions_values_for_col()`
     - `ClassifierExplainer`:
         - `self.pred_probas` -> `self.pred_probas()`

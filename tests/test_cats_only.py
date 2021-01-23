@@ -308,7 +308,7 @@ class CatBoostClassifierTests(unittest.TestCase):
                             cats=['Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'])
 
-        X_cats, y_cats = explainer.X_merged, explainer.y
+        X_cats, y_cats = explainer.X_merged, explainer.y.astype("int")
         model = CatBoostClassifier(iterations=5, verbose=0).fit(X_cats, y_cats, cat_features=[8, 9])
         self.explainer = ClassifierExplainer(model, X_cats, y_cats, 
                                 cats=['Sex'], 
