@@ -1528,76 +1528,83 @@ class BaseExplainer(ABC):
                         round=round, target=self.target, units=units)
 
     def get_int_idx(*args, **kwargs):
-        raise NotImplementedError("get_int_idx has been deprecated! Use get_idx() instead!")
+        raise NotImplementedError("get_int_idx has been deprecated in v0.3! Use get_idx() instead!")
 
     @property
     def importances_df(*args, **kwargs):
-        raise NotImplementedError("importances_df has been deprecated! Use get_importances_df() instead!")
+        raise NotImplementedError("importances_df has been deprecated in v0.3! Use get_importances_df() instead!")
 
     @property
     def feature_permutations_df(*args, **kwargs):
-        raise NotImplementedError("feature_permutations_df has been deprecated! Use get_feature_permutations_df() instead!")
+        raise NotImplementedError("feature_permutations_df has been deprecated in v0.3! Use get_feature_permutations_df() instead!")
 
     @property
     def shap_values(*args, **kwargs):
-        raise NotImplementedError("shap_values has been deprecated! Use shap_values_df() instead!")
+        raise NotImplementedError("shap_values has been deprecated in v0.3! Use shap_values_df() instead!")
 
     def get_dfs(*args, **kwargs):
-        raise NotImplementedError("get_dfs() has been deprecated! ")
+        raise NotImplementedError("get_dfs() has been deprecated in v0.3! ")
 
     def to_sql(*args, **kwargs):
-        raise NotImplementedError("to_sql() has been deprecated!")
+        raise NotImplementedError("to_sql() has been deprecated in v0.3!")
 
     def get_prop_for_label(*args, **kwargs):
-        raise NotImplementedError("get_prop_for_label() has been deprecated!")
+        raise NotImplementedError("get_prop_for_label() has been deprecated in v0.3!")
 
     def plot_shap_contributions(*args, **kwargs):
-        raise NotImplementedError("plot_shap_contributions() has been deprecated! "
+        raise NotImplementedError("plot_shap_contributions() has been deprecated in v0.3! "
                 "Use plot_contributions() instead!")
 
     def plot_shap_summary(*args, **kwargs):
-        raise NotImplementedError("plot_shap_summary() has been deprecated! "
+        raise NotImplementedError("plot_shap_summary() has been deprecated in v0.3! "
                 "Use plot_importance_detailed() instead!")
 
     def plot_shap_dependence(*args, **kwargs):
-        raise NotImplementedError("plot_shap_dependence() has been deprecated! "
+        raise NotImplementedError("plot_shap_dependence() has been deprecated in v0.3! "
                 "Use plot_dependence() instead!")
 
     def plot_shap_interaction(*args, **kwargs):
-        raise NotImplementedError("plot_shap_interaction() has been deprecated! "
+        raise NotImplementedError("plot_shap_interaction() has been deprecated in v0.3! "
                 "Use plot_interaction() instead!")
 
     def plot_shap_interaction_summary(*args, **kwargs):
-        raise NotImplementedError("plot_shap_interaction_summary() has been deprecated! "
+        raise NotImplementedError("plot_shap_interaction_summary() has been deprecated in v0.3! "
                 "Use plot_interactions_detailed() instead!")
 
     def plot_interactions(*args, **kwargs):
-        raise NotImplementedError("plot_interactions() has been deprecated! "
+        raise NotImplementedError("plot_interactions() has been deprecated in v0.3! "
                 "Use plot_interactions_importance() instead!")
+
+    def shap_top_interactions(*args, **kwargs):
+        raise NotImplementedError("shap_top_interactions() has been deprecated in v0.3! "
+                "Use top_shap_interactions() instead!")
+
+    def check_cats(*args, **kwargs):
+        raise NotImplementedError("check_cats has been deprecated in v0.3!")
 
     @property
     def decision_trees(*args, **kwargs):
-        raise NotImplementedError(".decision_trees has been deprecated! "
+        raise NotImplementedError(".decision_trees has been deprecated in v0.3! "
                 "Use .shadow_trees instead!")
 
     def decisiontree_df(*args, **kwargs):
-        raise NotImplementedError("decisiontree_df() has been deprecated! "
+        raise NotImplementedError("decisiontree_df() has been deprecated in v0.3! "
                 "Use decisionpath_df() instead!")
 
     def decisiontree_summary_df(*args, **kwargs):
-        raise NotImplementedError("decisiontree_summary_df() has been deprecated! "
+        raise NotImplementedError("decisiontree_summary_df() has been deprecated in v0.3! "
                 "Use decisionpath_summary_df() instead!")
 
     def decision_path_file(*args, **kwargs):
-        raise NotImplementedError("decision_path_file() has been deprecated! "
+        raise NotImplementedError("decision_path_file() has been deprecated in v0.3! "
                 "Use decisiontree_file() instead!")
 
     def decision_path(*args, **kwargs):
-        raise NotImplementedError("decision_path() has been deprecated! "
+        raise NotImplementedError("decision_path() has been deprecated in v0.3! "
                 "Use decisiontree() instead!")
 
     def decision_path_encoded(*args, **kwargs):
-        raise NotImplementedError("decision_path_encoded() has been deprecated! "
+        raise NotImplementedError("decision_path_encoded() has been deprecated in v0.3! "
                 "Use decisiontree_encoded() instead!")
 
 
@@ -1639,7 +1646,8 @@ class ClassifierExplainer(BaseExplainer):
         self._params_dict = {**self._params_dict, **dict(
             labels=labels, pos_label=pos_label)}
         
-        self.y = self.y.astype('Int64')
+        if not self.y_missing:
+            self.y = self.y.astype('int16')
         if self.categorical_cols and model_output == 'probability':
             print("Warning: Models that deal with categorical features directly "
                 f"such as {self.model.__class__.__name__} are incompatible with model_output='probability'"
@@ -2884,11 +2892,10 @@ class RandomForestExplainer(TreeExplainer):
             assert hasattr(self.model, 'estimators_'), \
                 """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
-                
+            y = self.y if self.y_missing else self.y.astype("int16")
             self._shadow_trees = [
                 ShadowDecTree.get_shadow_tree(decision_tree,
-                                        self.X,
-                                        self.y.astype("int32"),
+                                        self.X, y,
                                         feature_names=self.X.columns.tolist(),
                                         target_name='target',
                                         class_names = self.labels if self.is_classifier else None)
