@@ -37,10 +37,10 @@ class XGBRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -81,10 +81,10 @@ class LGBMRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -126,10 +126,10 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -172,16 +172,16 @@ class XGBCLassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_shap_values_all_probabilities(self):
         self.assertTrue(self.explainer.shap_base_value() >= 0)
         self.assertTrue(self.explainer.shap_base_value() <= 1)
-        self.assertTrue(np.all(self.explainer.shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
-        self.assertTrue(np.all(self.explainer.shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
+        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
+        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -201,12 +201,12 @@ class XGBCLassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
 
     def test_precision_df(self):
-        self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(quantiles=4), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
     def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
     def test_prediction_result_df(self):
         self.assertIsInstance(self.explainer.prediction_result_df(0), pd.DataFrame)
@@ -241,16 +241,16 @@ class LGBMClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_shap_values_all_probabilities(self):
         self.assertTrue(self.explainer.shap_base_value() >= 0)
         self.assertTrue(self.explainer.shap_base_value() <= 1)
-        self.assertTrue(np.all(self.explainer.shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
-        self.assertTrue(np.all(self.explainer.shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
+        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
+        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -270,12 +270,12 @@ class LGBMClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
 
     def test_precision_df(self):
-        self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(quantiles=4), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
     def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
     def test_prediction_result_df(self):
         self.assertIsInstance(self.explainer.prediction_result_df(0), pd.DataFrame)
@@ -310,16 +310,16 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_shap_values_all_probabilities(self):
         self.assertTrue(self.explainer.shap_base_value() >= 0)
         self.assertTrue(self.explainer.shap_base_value() <= 1)
-        self.assertTrue(np.all(self.explainer.shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
-        self.assertTrue(np.all(self.explainer.shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
+        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
+        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
 
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
@@ -339,12 +339,12 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
 
     def test_precision_df(self):
-        self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(quantiles=4), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
     def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
     def test_prediction_result_df(self):
         self.assertIsInstance(self.explainer.prediction_result_df(0), pd.DataFrame)

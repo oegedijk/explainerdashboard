@@ -415,7 +415,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     """returns a lift plot for values 
 
     Args:
-        lift_curve_df (pd.DataFrame): generated with get_lift_curve_df(pred_proba, y)
+        lift_curve_df (pd.DataFrame): generated with get_liftcurve_df(pred_proba, y)
         cutoff (float, optional): cutoff above which samples get classified as 
             positive. Defaults to None.
         percentage (bool, optional): Display percentages instead of absolute 

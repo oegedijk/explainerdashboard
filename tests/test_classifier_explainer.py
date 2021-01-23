@@ -45,12 +45,12 @@ class ClassifierExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.metrics_descriptions(cutoff=0.9), dict)
 
     def test_precision_df(self):
-        self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(quantiles=4), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
     def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
     def test_calculate_properties(self):
         self.explainer.calculate_properties()

@@ -158,7 +158,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 plot = self.explainer.plot_importances(
                         kind='shap', topx=depth, pos_label=pos_label)
             elif summary_type == 'detailed':
-                plot = self.explainer.plot_importance_detailed(
+                plot = self.explainer.plot_importances_detailed(
                         topx=depth, pos_label=pos_label, index=index, 
                         max_cat_colors=self.max_cat_colors)
             ctx = dash.callback_context
@@ -1165,7 +1165,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
                 contributions_table = dbc.Table.from_dataframe(
-                    self.explainer.contrib_summary_df(index, topx=depth, 
+                    self.explainer.get_contrib_summary_df(index, topx=depth, 
                                     sort=sort, pos_label=pos_label))
 
                 tooltip_cols = {}
@@ -1196,7 +1196,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
                     depth = None if depth is None else int(depth)
                     contributions_table = dbc.Table.from_dataframe(
-                        self.explainer.contrib_summary_df(X_row=X_row, topx=depth, 
+                        self.explainer.get_contrib_summary_df(X_row=X_row, topx=depth, 
                                         sort=sort, pos_label=pos_label))
 
                     tooltip_cols = {}

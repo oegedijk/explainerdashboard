@@ -24,7 +24,7 @@ class ClassifierBunchTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=['Sex', 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'])
 
     def test_graphviz_available(self):

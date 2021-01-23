@@ -95,30 +95,30 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.get_permutation_importances_df(cutoff=0.01), pd.DataFrame)
 
     def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, sort='high-to-low'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, sort='low-to-high'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(0, sort='importance'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0, topx=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0, sort='high-to-low'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0, sort='low-to-high'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(0, sort='importance'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
 
     def test_contrib_summary_df(self):
-        self.assertIsInstance(self.explainer.contrib_summary_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(0, topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(0, round=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='low-to-high'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='high-to-low'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(0, sort='importance'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.contrib_summary_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(0), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, topx=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, round=3), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, sort='low-to-high'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, sort='high-to-low'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, sort='importance'), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_contrib_summary_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
 
     def test_shap_base_value(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
     def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
 
     def test_shap_values(self):
-        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
 
     def test_shap_interaction_values(self):
         self.assertIsInstance(self.explainer.shap_interaction_values(), np.ndarray)
@@ -132,7 +132,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
     def test_shap_interaction_values_by_col(self):
         self.assertIsInstance(self.explainer.shap_interaction_values_for_col("Age"), np.ndarray)
         self.assertEqual(self.explainer.shap_interaction_values_for_col("Age").shape, 
-                        self.explainer.shap_values_df().shape)
+                        self.explainer.get_shap_values_df().shape)
 
     def test_prediction_result_df(self):
         df = self.explainer.prediction_result_df(0)
@@ -186,10 +186,10 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_shap_detailed(self):
-        fig = self.explainer.plot_importance_detailed()
+        fig = self.explainer.plot_importances_detailed()
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_importance_detailed(topx=3)
+        fig = self.explainer.plot_importances_detailed(topx=3)
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_interactions_detailed(self):

@@ -813,7 +813,7 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None,
     return precision_df
 
 
-def get_lift_curve_df(pred_probas, y, pos_label=1):
+def get_liftcurve_df(pred_probas, y, pos_label=1):
     """returns a pd.DataFrame that can be used to generate a lift curve plot.
 
     Args:
