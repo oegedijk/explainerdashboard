@@ -1,7 +1,20 @@
 # Release Notes
 
+## version 0.3.1:
 
-## 0.3.0:
+### Bug Fixes
+- updates `pandas` version to be compatible with categorical feature operations
+- updates dtreeviz version to make `xgboost` and `pyspark` dependencies optional
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+## version 0.3.0:
 This is a major release and comes with lots of breaking changes to the lower level 
 `ClassifierExplainer` and `RegressionExplainer` API. The higherlevel `ExplainerComponent` and `ExplainerDashboard` API has not been
 changed however, except for the deprecation of the `cats` and `hide_cats` parameters.
