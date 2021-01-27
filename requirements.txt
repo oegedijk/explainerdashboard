@@ -2,9 +2,14 @@ dash
 dash-bootstrap-components
 dash-auth
 jupyter_dash
-dtreeviz
+dtreeviz>=1.0
 numpy
-pandas
+pandas>=0.24
 scikit-learn
 shap>=0.37
 shortuuid
+joblib
+oyaml
+click
+waitress
+flask_simplelogin

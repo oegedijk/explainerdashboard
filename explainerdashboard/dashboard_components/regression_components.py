@@ -92,17 +92,21 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             self.abs_residual_slider = [0.0, 1.0]
 
         if self.pred_slider is None:
-            self.pred_slider = [self.explainer.preds.min(), self.explainer.preds.max()]
+            self.pred_slider = [float(self.explainer.preds.min()), 
+                                float(self.explainer.preds.max())]
 
         if not self.explainer.y_missing:
             if self.y_slider is None:
-                self.y_slider = [self.explainer.y.min(), self.explainer.y.max()]
+                self.y_slider = [float(self.explainer.y.min()), 
+                                 float(self.explainer.y.max())]
 
             if self.residual_slider is None:
-                self.residual_slider = [self.explainer.residuals.min(), self.explainer.residuals.max()]
+                self.residual_slider = [float(self.explainer.residuals.min()), 
+                                        float(self.explainer.residuals.max())]
 
             if self.abs_residual_slider is None:
-                self.abs_residual_slider = [self.explainer.abs_residuals.min(), self.explainer.abs_residuals.max()]
+                self.abs_residual_slider = [float(self.explainer.abs_residuals.min()), 
+                                            float(self.explainer.abs_residuals.max())]
 
             assert (len(self.pred_slider)==2 and self.pred_slider[0]<=self.pred_slider[1]), \
                 "pred_slider should be a list of a [lower_bound, upper_bound]!"
@@ -121,7 +125,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
         self.residual_slider = [float(r) for r in self.residual_slider]
         self.abs_residual_slider = [float(a) for a in self.abs_residual_slider]
 
-        assert self.pred_or_y in ['preds', 'y'], "pred_or_y should be in ['preds', 'y']!"
+        assert self.pred_or_y in {'preds', 'y'}, "pred_or_y should be in ['preds', 'y']!"
 
         if self.description is None: self.description = f"""
         You can select a {self.explainer.index_name} directly by choosing it 
@@ -151,7 +155,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         dbc.Col([
                                 dcc.Dropdown(id='random-index-reg-index-'+self.name,
                                         options = [{'label': str(idx), 'value':idx}
-                                                        for idx in self.explainer.idxs],
+                                                        for idx in self.explainer.get_index_list()],
                                         value=self.index)
                             ], md=8), hide=self.hide_index),
                     make_hideable(
@@ -231,8 +235,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                         id='random-index-reg-residual-slider-'+self.name,
                                         min=float(self.explainer.residuals.min()),
                                         max=float(self.explainer.residuals.max()),
-                                        step=np.float_power(10, -self.round),
-                                        value=[self.residual_slider[0], self.residual_slider[1]],
+                                        step=float(np.float_power(10, -self.round)),
+                                        value=[float(self.residual_slider[0]), float(self.residual_slider[1])],
                                         marks={float(self.explainer.residuals.min()): str(np.round(self.explainer.residuals.min(), self.round)),
                                             float(self.explainer.residuals.max()): str(np.round(self.explainer.residuals.max(), self.round))},
                                         allowCross=False,
@@ -250,8 +254,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                         id='random-index-reg-abs-residual-slider-'+self.name,
                                         min=float(self.explainer.abs_residuals.min()),
                                         max=float(self.explainer.abs_residuals.max()),
-                                        step=np.float_power(10, -self.round),
-                                        value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
+                                        step=float(np.float_power(10, -self.round)),
+                                        value=[float(self.abs_residual_slider[0]), float(self.abs_residual_slider[1])],
                                         marks={float(self.explainer.abs_residuals.min()): str(np.round(self.explainer.abs_residuals.min(), self.round)),
                                             float(self.explainer.abs_residuals.max()): str(np.round(self.explainer.abs_residuals.max(), self.round))},
                                         allowCross=False,
@@ -281,103 +285,6 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                                 target='random-index-reg-abs-residual-label-'+self.name),
                                 ], md=4), hide=self.hide_abs_residuals),
                     ]),
-                    # make_hideable(
-                    #     html.Div([
-                    #     html.Div([
-                    #         dbc.Row([
-                    #             dbc.Col([
-                    #                 html.Div([
-                    #                     dbc.Label("Residuals range:", id='random-index-reg-residual-slider-label-'+self.name,
-                    #                         html_for='random-index-reg-residual-slider-'+self.name),
-                    #                     dbc.Tooltip(f"Only select {self.explainer.index_name} where the "
-                    #                                 f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
-                    #                                 " was within the following range:", 
-                    #                         target='random-index-reg-residual-slider-label-'+self.name),
-                    #                     dcc.RangeSlider(
-                    #                         id='random-index-reg-residual-slider-'+self.name,
-                    #                         min=float(self.explainer.residuals.min()),
-                    #                         max=float(self.explainer.residuals.max()),
-                    #                         step=np.float_power(10, -self.round),
-                    #                         value=[self.residual_slider[0], self.residual_slider[1]],
-                    #                         marks={float(self.explainer.residuals.min()): str(np.round(self.explainer.residuals.min(), self.round)),
-                    #                             float(self.explainer.residuals.max()): str(np.round(self.explainer.residuals.max(), self.round))},
-                    #                         allowCross=False,
-                    #                         tooltip={'always_visible' : False}
-                    #                     )
-                    #                 ], style={'margin-bottom':0})
-                    #             ], md=8)
-                    #         ]),
-                    #     ], id='random-index-reg-residual-slider-div-'+self.name),
-                    #     html.Div([
-                    #         dbc.Row([
-                    #             dbc.Col([
-                    #                 html.Div([
-                    #                     dbc.Label("Absolute residuals", id='random-index-reg-abs-residual-slider-label'+self.name,
-                    #                         html_for='random-index-reg-abs-residual-slider-'+self.name),
-                    #                     dbc.Tooltip(f"Only select {self.explainer.index_name} where the absolute "
-                    #                                 f"residual (difference between observed {self.explainer.target} and predicted {self.explainer.target})"
-                    #                                 " was within the following range:", 
-                    #                         target='random-index-reg-abs-residual-slider-label'+self.name),
-                    #                     dcc.RangeSlider(
-                    #                         id='random-index-reg-abs-residual-slider-'+self.name,
-                    #                         min=float(self.explainer.abs_residuals.min()),
-                    #                         max=float(self.explainer.abs_residuals.max()),
-                    #                         step=np.float_power(10, -self.round),
-                    #                         value=[self.abs_residual_slider[0], self.abs_residual_slider[1]],
-                    #                         marks={float(self.explainer.abs_residuals.min()): str(np.round(self.explainer.abs_residuals.min(), self.round)),
-                    #                             float(self.explainer.abs_residuals.max()): str(np.round(self.explainer.abs_residuals.max(), self.round))},
-                    #                         allowCross=False,
-                    #                         tooltip={'always_visible' : False}
-                    #                     )
-                    #                 ], style={'margin-bottom':0})
-                    #             ], md=8)
-                    #         ])
-                    #     ], id='random-index-reg-abs-residual-slider-div-'+self.name),
-                    # ]), hide=self.hide_residual_slider),
-                    # dbc.Row([
-                    #     make_hideable(
-                    #         dbc.Col([
-                    #             dbc.Label("Residuals:", id='random-index-reg-abs-residual-label-'+self.name,
-                    #                         html_for='random-index-reg-abs-residual-'+self.name),
-                    #             dbc.Select(
-                    #                 id='random-index-reg-abs-residual-'+self.name,
-                    #                 options=[
-                    #                     {'label': 'Residuals', 'value': 'relative'},
-                    #                     {'label': 'Absolute Residuals', 'value': 'absolute'},
-                    #                 ],
-                    #                 value='absolute' if self.abs_residuals else 'relative'),
-                    #             dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
-                    #                         f"from within a certain range of residuals "
-                    #                         f"(difference between observed and predicted {self.explainer.target}), "
-                    #                         f"so for example only {self.explainer.index_name} for whom the prediction "
-                    #                         f"was too high or too low."
-                    #                         f"Or you can select only from a certain absolute residual range. So for "
-                    #                         f"example only select {self.explainer.index_name} for which the prediction was at "
-                    #                         f"least a certain amount of {self.explainer.units} off.",
-                    #             target='random-index-reg-abs-residual-label-'+self.name),
-                    #         ], md=4), hide=self.hide_pred_or_y),
-                    #     make_hideable(
-                    #         dbc.Col([
-                    #             html.Div([
-                    #                 dbc.Select(
-                    #                     id='random-index-reg-abs-residual-'+self.name,
-                    #                     options=[
-                    #                         {'label': 'Use Residuals', 'value': 'relative'},
-                    #                         {'label': 'Use Absolute Residuals', 'value': 'absolute'},
-                    #                     ],
-                    #                     value='absolute' if self.abs_residuals else 'relative'),
-                    #             ], id='random-index-reg-abs-residual-div-'+self.name),
-                    #             dbc.Tooltip(f"You can either only select random a {self.explainer.index_name} "
-                    #                         f"from within a certain range of residuals "
-                    #                         f"(difference between observed and predicted {self.explainer.target}), "
-                    #                         f"so for example only {self.explainer.index_name} for whom the prediction "
-                    #                         f"was too high or too low."
-                    #                         f"Or you can select only from a certain absolute residual range. So for "
-                    #                         f"example only select {self.explainer.index_name} for which the prediction was at "
-                    #                         f"least a certain amount of {self.explainer.units} off.",
-                    #             target='random-index-reg-abs-residual-div-'+self.name),
-
-                    #         ], md=4), hide=self.hide_abs_residuals),
                     ]),
             ])
 
@@ -420,15 +327,15 @@ class RegressionRandomIndexComponent(ExplainerComponent):
              State('random-index-reg-abs-residual-slider-'+self.name, 'value')])
         def update_residual_slider_limits(pred_range, y_range, preds_or_y, residuals_range, abs_residuals_range):
             if preds_or_y=='preds':
-                min_residuals = self.explainer.residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].min()
-                max_residuals = self.explainer.residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].max()
-                min_abs_residuals = self.explainer.abs_residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].min()
-                max_abs_residuals = self.explainer.abs_residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].max()
+                min_residuals = float(self.explainer.residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].min())
+                max_residuals = float(self.explainer.residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].max())
+                min_abs_residuals = float(self.explainer.abs_residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].min())
+                max_abs_residuals = float(self.explainer.abs_residuals[(self.explainer.preds >= pred_range[0]) & (self.explainer.preds <= pred_range[1])].max())
             elif preds_or_y=='y':
-                min_residuals = self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min()
-                max_residuals = self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max()
-                min_abs_residuals = self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min()
-                max_abs_residuals = self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max()
+                min_residuals = float(self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min())
+                max_residuals = float(self.explainer.residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max())
+                min_abs_residuals = float(self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].min())
+                max_abs_residuals = float(self.explainer.abs_residuals[(self.explainer.y >= y_range[0]) & (self.explainer.y <= y_range[1])].max())
 
             new_residuals_range = [max(min_residuals, residuals_range[0]), min(max_residuals, residuals_range[1])]
             new_abs_residuals_range = [max(min_abs_residuals, abs_residuals_range[0]), min(max_abs_residuals, abs_residuals_range[1])]
@@ -534,7 +441,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:"),
                             dcc.Dropdown(id='reg-prediction-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
+                                                    for idx in self.explainer.get_index_list()],
                                     value=self.index)
                         ], md=6), hide=self.hide_index),          
                 ]),
@@ -574,8 +481,9 @@ class PredictedVsActualComponent(ExplainerComponent):
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
                     hide_title=False, hide_subtitle=False, 
-                    hide_log_x=False, hide_log_y=False,
-                    logs=False, log_x=False, log_y=False, description=None,
+                    hide_log_x=False, hide_log_y=False, hide_popout=False, 
+                    logs=False, log_x=False, log_y=False, round=3,
+                    description=None,
                     **kwargs):
         """Shows a plot of predictions vs y.
 
@@ -592,15 +500,20 @@ class PredictedVsActualComponent(ExplainerComponent):
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_log_x (bool, optional): Hide the log_x toggle. Defaults to False.
             hide_log_y (bool, optional): Hide the log_y toggle. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             logs (bool, optional): Whether to use log axis. Defaults to False.
             log_x (bool, optional): log only x axis. Defaults to False.
             log_y (bool, optional): log only y axis. Defaults to False.
+            round (int, optional): rounding to apply to float predictions. 
+                Defaults to 3.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
+
+        
 
         if self.description is None: self.description = f"""
         Plot shows the observed {self.explainer.target} and the predicted 
@@ -609,6 +522,9 @@ class PredictedVsActualComponent(ExplainerComponent):
         away point are from the diagonal the worse the model is in predicting
         {self.explainer.target}.
         """
+
+        self.popout = GraphPopout('pred-vs-actual-'+self.name+'popout', 
+                    'pred-vs-actual-graph-'+self.name, self.title, self.description)
         self.register_dependencies(['preds'])
 
     def layout(self):
@@ -663,6 +579,12 @@ class PredictedVsActualComponent(ExplainerComponent):
                             ], check=True),
                         ], md=2), hide=self.hide_log_x),
                 ], justify="center"),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]), 
         ])
 
@@ -673,15 +595,15 @@ class PredictedVsActualComponent(ExplainerComponent):
              Input('pred-vs-actual-logy-'+self.name, 'checked')],
         )
         def update_predicted_vs_actual_graph(log_x, log_y):
-            return self.explainer.plot_predicted_vs_actual(log_x=log_x, log_y=log_y)
+            return self.explainer.plot_predicted_vs_actual(log_x=log_x, log_y=log_y, round=self.round)
 
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
                     subtitle="How much is the model off?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_pred_or_actual=False, hide_ratio=False,
+                    hide_pred_or_actual=False, hide_ratio=False, hide_popout=False, 
                     pred_or_actual="vs_pred", residuals="difference",
-                    description=None, **kwargs):
+                    round=3, description=None, **kwargs):
         """Residuals plot component
 
         Args:
@@ -699,11 +621,14 @@ class ResidualsComponent(ExplainerComponent):
             hide_pred_or_actual (bool, optional): hide vs predictions or vs 
                         actual for x-axis toggle. Defaults to False.
             hide_ratio (bool, optional): hide residual type dropdown. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pred_or_actual (str, {'vs_actual', 'vs_pred'}, optional): Whether 
                         to plot actual or predictions on the x-axis. 
                         Defaults to "vs_pred".
             residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
                     How to calcualte residuals. Defaults to 'difference'.
+            round (int, optional): rounding to apply to float predictions. 
+                Defaults to 3.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -712,6 +637,7 @@ class ResidualsComponent(ExplainerComponent):
         assert residuals in ['difference', 'ratio', 'log-ratio'], \
             ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
              f" but you passed residuals={residuals}")
+
         if self.description is None: self.description = f"""
         The residuals are the difference between the observed {self.explainer.target}
         and predicted {self.explainer.target}. In this plot you can check if 
@@ -719,6 +645,9 @@ class ResidualsComponent(ExplainerComponent):
         So you can check if the model works better or worse for different {self.explainer.target}
         levels.
         """
+
+        self.popout = GraphPopout('residuals-'+self.name+'popout', 
+                    'residuals-graph-'+self.name, self.title, self.description)
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
@@ -737,7 +666,13 @@ class ResidualsComponent(ExplainerComponent):
                         dcc.Graph(id='residuals-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ])
-                ])
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -776,7 +711,7 @@ class ResidualsComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
-    def register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('residuals-graph-'+self.name, 'figure'),
             [Input('residuals-pred-or-actual-'+self.name, 'value'),
@@ -784,17 +719,20 @@ class ResidualsComponent(ExplainerComponent):
         )
         def update_residuals_graph(pred_or_actual, residuals):
             vs_actual = pred_or_actual=='vs_actual'
-            return self.explainer.plot_residuals(vs_actual=vs_actual, residuals=residuals)
+            return self.explainer.plot_residuals(vs_actual=vs_actual, 
+                                        residuals=residuals, round=self.round)
 
 
 class RegressionVsColComponent(ExplainerComponent):
     def __init__(self, explainer, title="Plot vs feature", name=None,
                     subtitle="Are predictions and residuals correlated with features?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_col=False, hide_ratio=False, hide_cats=False, 
-                    hide_points=False, hide_winsor=False,
-                    col=None, display='difference', cats=True, 
-                    points=True, winsor=0, description=None, **kwargs):
+                    hide_col=False, hide_ratio=False, 
+                    hide_points=False, hide_winsor=False, 
+                    hide_cats_topx=False, hide_cats_sort=False, hide_popout=False, 
+                    col=None, display='difference', round=3,
+                    points=True, winsor=0, cats_topx=10, cats_sort='freq', 
+                    description=None, **kwargs):
         """Show residuals, observed or preds vs a particular Feature component
 
         Args:
@@ -811,24 +749,31 @@ class RegressionVsColComponent(ExplainerComponent):
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_col (bool, optional): Hide de column selector. Defaults to False.
             hide_ratio (bool, optional): Hide the  toggle. Defaults to False.
-            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_points (bool, optional): Hide group points toggle. Defaults to False.
             hide_winsor (bool, optional): Hide winsor input. Defaults to False.
+            hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
+            hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             col ([type], optional): Initial feature to display. Defaults to None.
             display (str, {'observed', 'predicted', difference', 'ratio', 'log-ratio'} optional): 
                     What to display on y axis. Defaults to 'difference'.
-            cats (bool, optional): group categorical columns. Defaults to True.
+            round (int, optional): rounding to apply to float predictions. 
+                Defaults to 3.
             points (bool, optional): display point cloud next to violin plot 
                     for categorical cols. Defaults to True
             winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+            cats_topx (int, optional): maximum number of categories to display
+                for categorical features. Defaults to 10.
+            cats_sort (str, optional): how to sort categories: 'alphabet', 
+                'freq' or 'shap'. Defaults to 'freq'.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
         if self.col is None:
-            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+            self.col = self.explainer.columns_ranked_by_shap()[0]
         
         assert self.display in {'observed', 'predicted', 'difference', 'ratio', 'log-ratio'}, \
             ("parameter display should in {'observed', 'predicted', 'difference', 'ratio', 'log-ratio'}"
@@ -841,6 +786,8 @@ class RegressionVsColComponent(ExplainerComponent):
         This allows you to inspect whether the model is more wrong for particular
         range of feature values than others. 
         """
+        self.popout = GraphPopout('reg-vs-col-'+self.name+'popout', 
+                    'reg-vs-col-graph-'+self.name, self.title, self.description)
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
@@ -862,7 +809,7 @@ class RegressionVsColComponent(ExplainerComponent):
                                         target='reg-vs-col-col-label-'+self.name),
                             dbc.Select(id='reg-vs-col-col-'+self.name,
                                 options=[{'label': col, 'value':col} 
-                                                for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                                for col in self.explainer.columns_ranked_by_shap()],
                                 value=self.col),
                         ], md=4), hide=self.hide_col),
                     make_hideable(
@@ -882,21 +829,6 @@ class RegressionVsColComponent(ExplainerComponent):
                                                     {'label': 'Residuals: Log ratio', 'value': 'log-ratio'}],
                                         value=self.display),
                             ], md=4), hide=self.hide_ratio),
-                    make_hideable(
-                            dbc.Col([
-                                dbc.FormGroup([
-                                    dbc.Label("Grouping:", id='reg-vs-col-group-cats-label-'+self.name),
-                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                                target='reg-vs-col-group-cats-label-'+self.name),
-                                    dbc.Checklist(
-                                        options=[{"label": "Group cats", "value": True}],
-                                        value=[True] if self.cats else [],
-                                        id='reg-vs-col-group-cats-'+self.name,
-                                        inline=True,
-                                        switch=True,
-                                    ),
-                                ]),
-                            ], md=2), self.hide_cats),
                 ]),
                 dbc.Row([
                     dbc.Col([
@@ -904,6 +836,12 @@ class RegressionVsColComponent(ExplainerComponent):
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ]) 
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -918,60 +856,85 @@ class RegressionVsColComponent(ExplainerComponent):
                                 dbc.Input(id='reg-vs-col-winsor-'+self.name, 
                                         value=self.winsor,
                                     type="number", min=0, max=49, step=1),
-                        ], md=4), hide=self.hide_winsor),  
+                        ], md=4), hide=self.hide_winsor), 
+                    
                     make_hideable(
                         dbc.Col([
                             html.Div([
                                 dbc.FormGroup([
-                                        dbc.Label("Scatter:"),
-                                        dbc.Tooltip("For categorical features, display "
-                                                "a point cloud next to the violin plots.", 
-                                                    target='reg-vs-col-show-points-'+self.name),
-                                        dbc.Checklist(
-                                            options=[{"label": "Show point cloud", "value": True}],
-                                            value=[True] if self.points else [],
-                                            id='reg-vs-col-show-points-'+self.name,
-                                            inline=True,
-                                            switch=True,
-                                        ),
-                                    ]),
+                                    dbc.Label("Scatter:"),
+                                    dbc.Tooltip("For categorical features, display "
+                                            "a point cloud next to the violin plots.", 
+                                                target='reg-vs-col-show-points-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label": "Show point cloud", "value": True}],
+                                        value=[True] if self.points else [],
+                                        id='reg-vs-col-show-points-'+self.name,
+                                        inline=True,
+                                        switch=True),
+                                ]),
                             ], id='reg-vs-col-show-points-div-'+self.name)
-                        ],  md=4), self.hide_points),
+                        ],  md=2), self.hide_points),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                dbc.Label("Categories:", id='reg-vs-col-n-categories-label-'+self.name),
+                                dbc.Tooltip("Maximum number of categories to display", 
+                                            target='reg-vs-col-n-categories-label-'+self.name),
+                                dbc.Input(id='reg-vs-col-n-categories-'+self.name, 
+                                    value=self.cats_topx,
+                                    type="number", min=1, max=50, step=1),
+                            ], id='reg-vs-col-n-categories-div-'+self.name),
+                        ], md=2), self.hide_cats_topx),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                html.Label('Sort categories:', id='reg-vs-col-categories-sort-label-'+self.name),
+                                dbc.Tooltip("How to sort the categories: Alphabetically, most common "
+                                            "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                            target='reg-vs-col-categories-sort-label-'+self.name),
+                                dbc.Select(id='reg-vs-col-categories-sort-'+self.name,
+                                        options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                    {'label': 'Frequency', 'value': 'freq'},
+                                                    {'label': 'Shap impact', 'value': 'shap'}],
+                                        value=self.cats_sort),
+                            ], id='reg-vs-col-categories-sort-div-'+self.name),
+                        ], md=4), hide=self.hide_cats_sort),                    
                 ])
             ]), hide=self.hide_footer)
         ])
 
-    def register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('reg-vs-col-graph-'+self.name, 'figure'),
-             Output('reg-vs-col-show-points-div-'+self.name, 'style')],
+             Output('reg-vs-col-show-points-div-'+self.name, 'style'),
+             Output('reg-vs-col-n-categories-div-'+self.name, 'style'),
+             Output('reg-vs-col-categories-sort-div-'+self.name, 'style')],
             [Input('reg-vs-col-col-'+self.name, 'value'),
              Input('reg-vs-col-display-type-'+self.name, 'value'),
              Input('reg-vs-col-show-points-'+self.name, 'value'),
-             Input('reg-vs-col-winsor-'+self.name, 'value')],
+             Input('reg-vs-col-winsor-'+self.name, 'value'),
+             Input('reg-vs-col-n-categories-'+self.name, 'value'),
+             Input('reg-vs-col-categories-sort-'+self.name, 'value')],
         )
-        def update_residuals_graph(col, display, points, winsor):
+        def update_residuals_graph(col, display, points, winsor, topx, sort):
             if col in self.explainer.onehot_cols or col in self.explainer.categorical_cols:
                 style = {}
             else:
                 style = dict(display="none")
             if display == 'observed':
                 return self.explainer.plot_y_vs_feature(
-                        col, points=bool(points), winsor=winsor, dropna=True), style
+                        col, points=bool(points), winsor=winsor, dropna=True,
+                        topx=topx, sort=sort, round=self.round), style, style, style
             elif display == 'predicted':
                 return self.explainer.plot_preds_vs_feature(
-                        col, points=bool(points), winsor=winsor, dropna=True), style
+                        col, points=bool(points), winsor=winsor, dropna=True,
+                        topx=topx, sort=sort, round=self.round), style, style, style
             else:
                 return self.explainer.plot_residuals_vs_feature(
                             col, residuals=display, points=bool(points), 
-                            winsor=winsor, dropna=True), style
-
-        @app.callback(
-            Output('reg-vs-col-col-'+self.name, 'options'),
-            [Input('reg-vs-col-group-cats-'+self.name, 'value')])
-        def update_dependence_shap_scatter_graph(cats):
-            return [{'label': col, 'value': col} 
-                for col in self.explainer.columns_ranked_by_shap(bool(cats))]
+                            winsor=winsor, dropna=True,
+                        topx=topx, sort=sort, round=self.round), style, style, style
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):

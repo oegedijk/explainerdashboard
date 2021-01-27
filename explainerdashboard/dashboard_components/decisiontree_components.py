@@ -24,7 +24,7 @@ class DecisionTreesComponent(ExplainerComponent):
                     subtitle="Displaying individual decision trees",
                     hide_title=False,  hide_subtitle=False,
                     hide_index=False, hide_highlight=False,
-                    hide_selector=False,
+                    hide_selector=False, hide_popout=False,
                     pos_label=None, index=None, highlight=None, 
                     higher_is_better=True, description=None, **kwargs):
         """Show prediction from individual decision trees inside RandomForest component
@@ -43,6 +43,7 @@ class DecisionTreesComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            hide_popout (bool, optional): hide popout button
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
@@ -58,6 +59,7 @@ class DecisionTreesComponent(ExplainerComponent):
         self.highlight_name = 'decisiontrees-highlight-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         
         if isinstance(self.explainer, RandomForestExplainer):
             if self.description is None: self.description = """
@@ -77,6 +79,9 @@ class DecisionTreesComponent(ExplainerComponent):
                 self.subtitle += " inside xgboost model"
         else:
             if self.description is None: self.description = ""
+
+        self.popout = GraphPopout('decisiontrees-'+self.name+'popout', 
+                        "decisiontrees-graph-"+self.name, self.title, self.description)
         self.register_dependencies("preds", "pred_probas")
 
     def layout(self):
@@ -98,7 +103,7 @@ class DecisionTreesComponent(ExplainerComponent):
                                             target='decisiontrees-index-label-'+self.name),
                             dcc.Dropdown(id='decisiontrees-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
+                                                for idx in self.explainer.get_index_list()],
                                 value=self.index)
                         ], md=4), hide=self.hide_index),
                     make_hideable(
@@ -122,6 +127,12 @@ class DecisionTreesComponent(ExplainerComponent):
                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False)),  
                     ])
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ])   
         ])
 
@@ -216,7 +227,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                                             target='decisionpath-table-index-label-'+self.name),
                             dcc.Dropdown(id='decisionpath-table-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
+                                                for idx in self.explainer.get_index_list()],
                                 value=self.index)
                         ], md=4), hide=self.hide_index),
                         make_hideable(
@@ -250,9 +261,9 @@ class DecisionPathTableComponent(ExplainerComponent):
         )
         def update_decisiontree_table(index, highlight, pos_label):
             if index is not None and highlight is not None:
-                decisionpath_df = self.explainer.decisiontree_summary_df(
+                get_decisionpath_df = self.explainer.get_decisionpath_summary_df(
                     int(highlight), index, pos_label=pos_label)
-                return dbc.Table.from_dataframe(decisionpath_df)
+                return dbc.Table.from_dataframe(get_decisionpath_df)
             raise PreventUpdate
 
 
@@ -321,7 +332,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                                             target='decisionpath-index-label-'+self.name),
                             dcc.Dropdown(id='decisionpath-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
+                                                for idx in self.explainer.get_index_list()],
                                 value=self.index)
                         ], md=4), hide=self.hide_index),
                         make_hideable(
@@ -366,5 +377,5 @@ class DecisionPathGraphComponent(ExplainerComponent):
         )
         def update_tree_graph(n_clicks, index, highlight, pos_label):
             if n_clicks is not None and index is not None and highlight is not None:
-                return self.explainer.decision_path_encoded(int(highlight), index)
+                return self.explainer.decisiontree_encoded(int(highlight), index)
             raise PreventUpdate

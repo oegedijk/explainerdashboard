@@ -4,6 +4,7 @@ __all__ = [
     'DummyComponent',
     'ExplainerComponent',
     'PosLabelSelector',
+    'GraphPopout',
     'make_hideable',
     'get_dbc_tooltips',
     'update_params',
@@ -20,6 +21,7 @@ import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
+from dash.dependencies import Input, Output, State
 
 import shortuuid
 
@@ -327,7 +329,9 @@ class ExplainerComponent(ABC):
         compute properties multiple times in parallel."""
         for dep in self.dependencies:
             try:
-                _ = getattr(self.explainer, dep)
+                attribute = getattr(self.explainer, dep)
+                if callable(attribute):
+                    _ = attribute()
             except:
                 ValueError(f"Failed to generate dependency '{dep}': "
                     "Failed to calculate or retrieve explainer property explainer.{dep}...")
@@ -374,7 +378,7 @@ class PosLabelSelector(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
         if pos_label is not None:
-            self.pos_label = explainer.get_pos_label_index(pos_label)
+            self.pos_label = explainer.pos_label_index(pos_label)
         else:
             self.pos_label = explainer.pos_label
 
@@ -396,6 +400,94 @@ class PosLabelSelector(ExplainerComponent):
             ])
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))
+
+
+class GraphPopout(ExplainerComponent):
+    """Provides a way to open a modal popup with the content of a graph figure.
+
+    """
+    def __init__(self, name:str, graph_id:str, title:str="Popout", description:str=None,
+                    button_text:str="Popout", button_size:str="sm", button_outline:bool=True):
+        """
+        Args:
+            name (str): name id for this GraphPopout. Should be unique.
+            graph_id (str): id of of the dcc.Graph component that gets included
+                in the modal.
+            title (str): Title above the modal. Defaults to Popout.
+            description (str): description of the graph to be include in the footer.
+            button_text (str, optional): Text on the Button. Defaults to "Popout".
+            button_size (str, optiona). Size of the button.Defaults to "sm" or small.
+            button_outline (bool, optional). Show outline of button instead with fill color.
+                Defaults to True. 
+        """
+
+        self.title = title
+        self.name = name
+        self.graph_id = graph_id
+        self.description = description
+        self.button_text, self.button_size, self.button_outline = button_text, button_size, button_outline
+
+    def layout(self):
+        return html.Div(
+            [
+                dbc.Button(self.button_text, id=self.name+'modal-open', size=self.button_size, outline=self.button_outline),
+                dbc.Modal([
+                    dbc.ModalHeader(self.title),
+                    dcc.Graph(id=self.name+'-modal-graph'),
+                    dbc.ModalFooter([   
+                        html.Div([
+                            html.Div([
+                                html.Div([
+                                    dbc.Button(html.Small("Description"), 
+                                           id=self.name+'-show-description',
+                                           color='link', className="text-muted ml-auto"),
+                                    dbc.Fade([
+                                            html.Small(self.description, className="text-muted")],
+                                            id=self.name+'-fade',
+                                            is_in=True,
+                                            appear=True), 
+                                ], style=dict(display="none" if not self.description else None))
+                            ], className="text-left"),  
+                            html.Div([
+                                dbc.Button("Close", id=self.name+'-modal-close', className="mr-auto")            
+                            ], className="text-right", style=dict(float='right')),   
+                            
+                        ], style={"display":"flex"}),             
+                    ], className="justify-content-between")       
+                ], id=self.name+'-modal', size="xl")
+            ], style={"display":"flex", "justify-content":"flex-end"})
+    
+    def component_callbacks(self, app):
+        @app.callback(
+            [Output(self.name+'-modal', "is_open"),
+             Output(self.name+'-modal-graph', "figure")],
+            [Input(self.name+'modal-open', "n_clicks"), 
+             Input(self.name+'-modal-close', "n_clicks")],
+            [State(self.name+'-modal', "is_open"),
+             State(self.graph_id, 'figure')],
+        )
+        def toggle_modal(open_modal, close_modal, modal_is_open, fig):
+            print("modal triggered: ", open_modal, close_modal, modal_is_open, flush=True)
+            if open_modal or close_modal: 
+                ctx = dash.callback_context
+                button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+                if button_id == self.name+'modal-open':
+                    return (not modal_is_open, fig)
+                else:
+                    return (not modal_is_open, dash.no_update)
+            return (modal_is_open, dash.no_update)
+        
+        if self.description is not None:
+            @app.callback(
+                Output(self.name+'-fade', "is_in"),
+                [Input(self.name+'-show-description', "n_clicks")],
+                [State(self.name+'-fade', "is_in")],
+            )
+            def toggle_fade(n_clicks, is_in):
+                if not n_clicks:
+                    # Button has never been clicked
+                    return False
+                return not is_in
 
 
 def instantiate_component(component, explainer, name=None, **kwargs):

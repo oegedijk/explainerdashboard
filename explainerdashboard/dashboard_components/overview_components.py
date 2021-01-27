@@ -110,10 +110,10 @@ class PredictionSummaryComponent(ExplainerComponent):
 class ImportancesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
                         subtitle="Which features had the biggest impact?",
-                        hide_type=False, hide_depth=False, hide_cats=False,
+                        hide_type=False, hide_depth=False, hide_popout=False,
                         hide_title=False,  hide_subtitle=False, hide_selector=False,
                         pos_label=None, importance_type="shap", depth=None, 
-                        cats=True, no_permutations=False,
+                        no_permutations=False,
                         description=None, **kwargs):
         """Display features importances component
 
@@ -130,8 +130,7 @@ class ImportancesComponent(ExplainerComponent):
                         Defaults to False.
             hide_depth (bool, optional): Hide number of features toggle. 
                         Defaults to False.
-            hide_cats (bool, optional): Hide group cats toggle. 
-                        Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_title (bool, optional): hide title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
@@ -142,7 +141,6 @@ class ImportancesComponent(ExplainerComponent):
                         initial importance type to display. Defaults to "shap".
             depth (int, optional): Initial number of top features to display. 
                         Defaults to None (=show all).
-            cats (bool, optional): Group categoricals. Defaults to True.
             no_permutations (bool, optional): Do not use the permutation
                 importances for this component. Defaults to False. 
             description (str, optional): Tooltip to display when hover over
@@ -150,14 +148,11 @@ class ImportancesComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        if not self.explainer.onehot_cols:
-            self.hide_cats = True
-
         assert importance_type in ['shap', 'permutation'], \
             "importance type must be either 'shap' or 'permutation'!"
 
         if depth is not None:
-            self.depth = min(depth, len(explainer.columns_ranked_by_shap(cats)))
+            self.depth = min(depth, len(explainer.columns_ranked_by_shap()))
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
@@ -171,9 +166,11 @@ class ImportancesComponent(ExplainerComponent):
         does the model get worse when you shuffle this feature, rendering it
         useless?).
         """
-        self.register_dependencies('shap_values', 'shap_values_cats')
+        self.popout = GraphPopout('importances-'+self.name+'popout', 
+                            'importances-graph-'+self.name, self.title, self.description)
+        self.register_dependencies('shap_values_df')
         if not (self.hide_type and self.importance_type == 'shap'):
-            self.register_dependencies('permutation_importances', 'permutation_importances_cats')
+            self.register_dependencies('permutation_importances')
 
     def layout(self):
         return dbc.Card([
@@ -214,27 +211,10 @@ class ImportancesComponent(ExplainerComponent):
                             html.Label('Depth:', id='importances-depth-label-'+self.name),
                             dbc.Select(id='importances-depth-'+self.name,
                                         options = [{'label': str(i+1), 'value':i+1} 
-                                                    for i in range(self.explainer.n_features(self.cats))],
+                                                    for i in range(self.explainer.n_features)],
                                         value=self.depth),
                             dbc.Tooltip("Select how many features to display", target='importances-depth-label-'+self.name)
-                        ], md=2), self.hide_depth),
-                    make_hideable(
-                        dbc.Col([
-                            dbc.FormGroup([
-                                dbc.Label("Grouping:", id='importances-group-cats-label-'+self.name),
-                                dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                            target='importances-group-cats-label-'+self.name),
-                                dbc.Checklist(
-                                    options=[
-                                        {"label": "Group cats", "value": True},
-                                    ],
-                                    value=[True] if self.cats else [],
-                                    id='importances-group-cats-'+self.name,
-                                    inline=True,
-                                    switch=True,
-                                ),
-                            ]),
-                        ]),  self.hide_cats),    
+                        ], md=2), self.hide_depth),   
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector)    
@@ -246,42 +226,39 @@ class ImportancesComponent(ExplainerComponent):
                                         config=dict(modeBarButtons=[['toImage']], displaylogo=False))),
                     ]),
                 ]), 
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ])         
         ])
         
     def component_callbacks(self, app, **kwargs):
         @app.callback(  
-            [Output('importances-graph-'+self.name, 'figure'),
-             Output('importances-depth-'+self.name, 'options')],
+            Output('importances-graph-'+self.name, 'figure'),
             [Input('importances-depth-'+self.name, 'value'),
-             Input('importances-group-cats-'+self.name, 'value'),
              Input('importances-permutation-or-shap-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
         )
-        def update_importances(depth, cats, permutation_shap, pos_label):
+        def update_importances(depth, permutation_shap, pos_label):
             depth = None if depth is None else int(depth)
             plot =  self.explainer.plot_importances(
-                        kind=permutation_shap, topx=depth, 
-                        cats=bool(cats), pos_label=pos_label)
-            trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-            if trigger == 'importances-group-cats-'+self.name:
-                depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(self.explainer.n_features(bool(cats)))]
-                return (plot, depth_options)
-            else:
-                return (plot, dash.no_update)
+                        kind=permutation_shap, topx=depth, pos_label=pos_label)
+            return plot
 
 
 class PdpComponent(ExplainerComponent):
     def __init__(self, explainer, title="Partial Dependence Plot", name=None,
                     subtitle="How does the prediction change if you change one feature?",
-                    hide_col=False, hide_index=False, hide_cats=False,
+                    hide_col=False, hide_index=False, 
                     hide_title=False,  hide_subtitle=False, 
-                    hide_footer=False, hide_selector=False,
+                    hide_footer=False, hide_selector=False, hide_popout=False, 
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False, hide_cats_sort=False,
                     feature_input_component=None,
-                    pos_label=None, col=None, index=None, cats=True,
+                    pos_label=None, col=None, index=None, 
                     dropna=True, sample=100, gridlines=50, gridpoints=10,
                     cats_sort='freq',
                     description=None, **kwargs):
@@ -298,11 +275,11 @@ class PdpComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_index (bool, optional): Hide index selector. Defaults to False.
-            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_title (bool, optional): Hide title, Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
@@ -315,7 +292,6 @@ class PdpComponent(ExplainerComponent):
                         Defaults to explainer.pos_label
             col (str, optional): Feature to display PDP for. Defaults to None.
             index ({int, str}, optional): Index to add ice line to plot. Defaults to None.
-            cats (bool, optional): Group categoricals for feature selector. Defaults to True.
             dropna (bool, optional): Drop rows where values equal explainer.na_fill (usually -999). Defaults to True.
             sample (int, optional): Sample size to calculate average partial dependence. Defaults to 100.
             gridlines (int, optional): Number of ice lines to display in plot. Defaults to 50.
@@ -330,10 +306,7 @@ class PdpComponent(ExplainerComponent):
         self.index_name = 'pdp-index-'+self.name
 
         if self.col is None:
-            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
-
-        if not self.explainer.onehot_cols:
-            self.hide_cats = True
+            self.col = self.explainer.columns_ranked_by_shap()[0]
             
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -350,6 +323,7 @@ class PdpComponent(ExplainerComponent):
         x-axis to calculate model predictions for (gridpoints).
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.popout = GraphPopout('pdp-'+self.name+'popout', 'pdp-graph-'+self.name, self.title, self.description)
 
     def layout(self):
         return dbc.Card([
@@ -371,7 +345,7 @@ class PdpComponent(ExplainerComponent):
                                             target='pdp-col-label-'+self.name),
                                 dbc.Select(id='pdp-col-'+self.name,       
                                     options=[{'label': col, 'value':col} 
-                                                for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                                for col in self.explainer.columns_ranked_by_shap()],
                                     value=self.col),
                             ], md=4), hide=self.hide_col),
                         make_hideable(
@@ -381,29 +355,12 @@ class PdpComponent(ExplainerComponent):
                                         target='pdp-index-label-'+self.name),
                                 dcc.Dropdown(id='pdp-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
+                                                    for idx in self.explainer.get_index_list()],
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
                         make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
-                        make_hideable(
-                            dbc.Col([
-                                dbc.FormGroup([
-                                    dbc.Label("Grouping:", id='pdp-group-cats-label-'+self.name),
-                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                                target='pdp-group-cats-label-'+self.name),
-                                    dbc.Checklist(
-                                        options=[
-                                            {"label": "Group cats", "value": True},
-                                        ],
-                                        value=[True] if self.cats else [],
-                                        id='pdp-group-cats-'+self.name,
-                                        inline=True,
-                                        switch=True,
-                                    ),
-                                ]),
-                            ], md=2), hide=self.hide_cats),
                     ], form=True),
                     dbc.Row([
                         dbc.Col([
@@ -412,6 +369,12 @@ class PdpComponent(ExplainerComponent):
                                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                         ])
                     ]),
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                self.popout.layout()
+                            ], md=2, align="start"), hide=self.hide_popout),
+                    ], justify="end"),
                 ]),
                 make_hideable(
                 dbc.CardFooter([
@@ -462,7 +425,7 @@ class PdpComponent(ExplainerComponent):
                             html.Div([
                                 dbc.Col([
                                         html.Label('Sort categories:', id='pdp-categories-sort-label-'+self.name),
-                                        dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                        dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                     "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                     target='pdp-categories-sort-label-'+self.name),
                                         dbc.Select(id='pdp-categories-sort-'+self.name,
@@ -486,16 +449,6 @@ class PdpComponent(ExplainerComponent):
         )
         def update_pdp_sort_div(col):
             return {} if col in self.explainer.cat_cols else dict(display="none")
-        
-        @app.callback(
-            Output('pdp-col-'+self.name, 'options'),
-            [Input('pdp-group-cats-'+self.name, 'value')],
-            [State('pos-label-'+self.name, 'value')]
-        )
-        def update_pdp_graph(cats, pos_label):
-            col_options = [{'label': col, 'value':col} 
-                                for col in self.explainer.columns_ranked_by_shap(bool(cats), pos_label=pos_label)]
-            return col_options
         
         if self.feature_input_component is None:
             @app.callback(
@@ -568,7 +521,7 @@ class FeatureInputComponent(ExplainerComponent):
             
         self.index_name = 'feature-input-index-'+self.name
         
-        self._input_features = self.explainer.columns_ranked_by_shap(cats=True)
+        self._input_features = self.explainer.columns_ranked_by_shap()
         self._feature_inputs = [
             self._generate_dash_input(
                 feature, self.explainer.onehot_cols, self.explainer.onehot_dict, self.explainer.categorical_dict) 
@@ -640,7 +593,7 @@ class FeatureInputComponent(ExplainerComponent):
                                 dbc.Label(f"{self.explainer.index_name}:"),
                                 dcc.Dropdown(id='feature-input-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
+                                                    for idx in self.explainer.get_index_list()],
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
                     ], form=True),
@@ -656,13 +609,10 @@ class FeatureInputComponent(ExplainerComponent):
             [Input('feature-input-index-'+self.name, 'value')]
         )
         def update_whatif_inputs(index):
-            idx = self.explainer.get_int_idx(index)
-            if idx is None:
+            if index is None:
                 raise PreventUpdate
-            feature_values = (self.explainer.X_cats
-                                [self.explainer.columns_ranked_by_shap(cats=True)]
-                                .iloc[[idx]].values[0].tolist())
-            return feature_values
+            X_row = self.explainer.get_X_row(index, merge=True)[self.explainer.columns_ranked_by_shap()]
+            return X_row.values[0].tolist()
 
 
 

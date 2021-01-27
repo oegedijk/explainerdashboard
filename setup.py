@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.2.20.1',
-    description='explainerdashboard allows you quickly build an interactive dashboard to explain the inner workings of your machine learning model.',
+    version='0.3.0',
+    description='Quickly build Explainable AI dashboards that show the inner workings of so-called "blackbox" machine learning models.',
     long_description="""
 
 This package makes it convenient to quickly deploy a dashboard web app
@@ -68,8 +68,8 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
-    install_requires=['dash', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
-                    'dtreeviz>=1.0', 'numpy', 'pandas', 'scikit-learn', 
+    install_requires=['dash>=1.19', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
+                    'dtreeviz>=1.0', 'numpy', 'pandas>=0.24', 'scikit-learn', 
                     'shap>=0.37', 'shortuuid', 'joblib', 'oyaml', 'click', 'waitress',
                     'flask_simplelogin'],
     entry_points={

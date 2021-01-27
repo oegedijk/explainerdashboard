@@ -7,12 +7,12 @@ Summary
 ``explainerdashboard`` is a library for quickly building interactive dashboards
 for analyzing and explaining the predictions and workings of 
 (scikit-learn compatible) machine learning models, including
-xgboost, catboost and lightgbm.
+xgboost, catboost and lightgbm. This makes your model transparant and explainable
+with just two lines of code. 
 
 It allows you to investigate SHAP values, permutation importances, 
 interaction effects, partial dependence plots, all kinds of performance plots,
-and even individual trees in a random forest by deploying an interactive 
-dashboard with just two lines of code. With ``explainerdashboard`` any data 
+and even individual decision trees inside a random forest. With ``explainerdashboard`` any data 
 scientist can create an interactive explainable AI web app in minutes, 
 without having to know anything about web development or deployment. 
 
@@ -27,7 +27,21 @@ You then pass this ``explainer`` object to an ``ExplainerDashboard`` and run it:
 
 .. image:: screenshots/screenshot.*
 
+You can host multiple ExplainerDashboard in an ``ExplainerHub`` by passing in a 
+list of dashboards::
 
+    db1 = ExplainerDashboard(explainer1)
+    db2 = ExplainerDashboard(explainer2)
+    hub = ExplainerHub([db1, db2])
+    hub.run()
+
+Each dashboard is hosted on it's own url path (e.g. ``localhost:8050/dashboard1``),
+and a front-end dashboard with links and descriptions for every dashboard is hosted
+at e.g. ``localhost:8050``:
+
+.. image:: screenshots/explainerhub.png
+
+See :ref:`ExplainerHub documentation<ExplainerHub>`
 
 InlineExplainer
 ===============
@@ -101,11 +115,10 @@ component::
     from explainerdashboard.custom import *
 
     class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer):
-            super().__init__(explainer)
-            self.dependence = ShapDependenceComponent(explainer, 
+        def __init__(self, explainer, name=None):
+            super().__init__(explainer, name=name)
+            self.dependence = ShapDependenceComponent(explainer, name=self.name+"dep",
                     hide_selector=True, hide_cats=True, hide_index=True, col="Fare")
-            self.register_components()
 
         def layout(self):
             return html.Div([self.dependence.layout()])
@@ -120,11 +133,11 @@ A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>`
 
 
 More examples of how to start dashboards for different types of models and with 
-different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_ 
+different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/dashboard_examples.ipynb>`_ 
 in the github repo.
 
 For examples on how to interact with and get plots and dataframes out of the explainer
-object check out `explainer_examples notebook  <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+object check out `explainer_examples notebook  <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 in the github repo.
 
 

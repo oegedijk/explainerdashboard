@@ -2,9 +2,9 @@ import unittest
 
 import pandas as pd
 import numpy as np
+from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
 
 import plotly.graph_objects as go
 
@@ -12,7 +12,7 @@ from explainerdashboard.explainers import ClassifierExplainer
 from explainerdashboard.datasets import titanic_survive, titanic_names
 
 
-class ClassifierBunchTests(unittest.TestCase):
+class ClassifierExplainerTests(unittest.TestCase):
     def setUp(self):
         X_train, y_train, X_test, y_test = titanic_survive()
         train_names, test_names = titanic_names()
@@ -34,32 +34,23 @@ class ClassifierBunchTests(unittest.TestCase):
         self.assertEqual(self.explainer.pos_label, 0)
         self.assertEqual(self.explainer.pos_label_str, "Not survived")
 
-    def test_get_prop_for_label(self):
-        self.explainer.pos_label = 1
-        tmp = self.explainer.pred_percentiles
-        self.explainer.pos_label = 0
-        self.assertTrue(np.alltrue(self.explainer.get_prop_for_label("pred_percentiles", 1)==tmp))
-
     def test_pred_probas(self):
-        self.assertIsInstance(self.explainer.pred_probas, np.ndarray)
+        self.assertIsInstance(self.explainer.pred_probas(), np.ndarray)
+        self.assertIsInstance(self.explainer.pred_probas(1), np.ndarray)
+        self.assertIsInstance(self.explainer.pred_probas("Survived"), np.ndarray)
 
-    
     def test_metrics(self):
         self.assertIsInstance(self.explainer.metrics(), dict)
         self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
         self.assertIsInstance(self.explainer.metrics_descriptions(cutoff=0.9), dict)
 
-
     def test_precision_df(self):
-        self.assertIsInstance(self.explainer.precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.precision_df(quantiles=4), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
+        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
     def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.lift_curve_df(), pd.DataFrame)
-
-    def test_prediction_result_markdown(self):
-        self.assertIsInstance(self.explainer.prediction_result_markdown(0), str)
+        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
     def test_calculate_properties(self):
         self.explainer.calculate_properties()
@@ -156,7 +147,6 @@ class ClassifierBunchTests(unittest.TestCase):
     def test_plot_prediction_result(self):
         fig = self.explainer.plot_prediction_result(0)
         self.assertIsInstance(fig, go.Figure)
-
 
 
 if __name__ == '__main__':

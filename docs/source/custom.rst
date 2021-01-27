@@ -84,7 +84,7 @@ cats toggle will be hidden on every component that has one::
 
     ExplainerDashboard(explainer, 
         no_permutations=True, # do not show or calculate permutation importances
-        hide_cats=True, # hide the group cats toggles
+        hide_poweredby=True, # hide the 'powerered by: explainerdashboard' footer
         hide_depth=True, # hide the depth (no of features) dropdown
         hide_sort=True, # hide sort type dropdown in contributions graph/table
         hide_orientation=True, # hide orientation dropdown in contributions graph/table
@@ -111,18 +111,19 @@ Some examples of useful parameters to pass::
 
 
     ExplainerDashboard(explainer, 
-        higher_is_better=False, # flip green and red in contributions graph
+        index='Rugg, Miss. Emily', # initial index to display
         col='Fare', # initial feature in shap graphs
         color_col='Age', # color feature in shap dependence graph
         interact_col='Age', # interaction feature in shap interaction
-        cats=False, # do not group categorical onehot features
+        higher_is_better=False, # flip green and red in contributions graph
         depth=5, # only show top 5 features
         sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
         orientation='horizontal', # horizontal bars in contributions graph
-        index='Rugg, Miss. Emily', # initial index to display
+        cats_topx=3, # show only the top 3 categories 
+        cats_sort='shap', # sort categories by mean abs shap instead of 'freq' or 'alphabet'
         pdp_col='Fare', # initial pdp feature
         cutoff=0.8, # cutoff for classification plots
-        round=2 # rounding to apply to floats
+        round=2 # round floats to 2 digits
         )
 
 
@@ -149,16 +150,15 @@ but you want to hide a few toggles::
     from explainerdashboard.custom import *
 
     class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer, **kwargs):
+        def __init__(self, explainer, name=None):
             super().__init__(explainer, title="Custom Dashboard")
-            self.confusion = ConfusionMatrixComponent(explainer,
+            self.confusion = ConfusionMatrixComponent(explainer, name=self.name+"cm",
                                 hide_selector=True, hide_percentage=True,
                                 cutoff=0.75)
-            self.contrib = ShapContributionsGraphComponent(explainer,
+            self.contrib = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
                                 hide_selector=True, hide_cats=True, 
                                 hide_depth=True, hide_sort=True,
                                 index='Rugg, Miss. Emily')
-            self.register_components()
             
         def layout(self):
             return dbc.Container([
@@ -178,7 +178,8 @@ but you want to hide a few toggles::
                 ])
             ])
 
-    db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True).run()
+    db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True)
+    db.run()
 
 So you need to 
 
@@ -188,36 +189,44 @@ So you need to
 
 2. Derive a child class from ``ExplainerComponent``. 
 
-3. Call the init of the parent class with ``super().__init__(explainer, title)``. 
+3. Include ``explainer, name=None`` in your ``__init__()``.
 
-4. Instantiate the components that you wish to include as attributes in your ``__init__``: 
+4. Call the init of the parent class with ``super().__init__(explainer, title)``. 
+
+5. Instantiate the components that you wish to include as attributes in your ``__init__``: 
    ``self.confusion = ConfusionMatrixComponent(explainer)`` and 
    ``self.contrib = ShapContributionsGraphComponent(explainer)``
 
-5. Register these subcomponents by calling ``self.register_components()``
+6. Pass a unique name to each subcomponent, using the name of your component, 
+   e.g. ``name=self.name+"dep"``.
 
-6. Define a ``layout()`` method that returns a custom layout.
+7. Define a ``layout()`` method that returns a custom layout.
 
-7. Build your layout using ``html`` and bootstrap (``dbc``) elements and 
+8. Build your layout using ``html`` and bootstrap (``dbc``) elements and 
    include your components' layout in this overall layout with ``self.confusion.layout()``
    and ``self.contrib.layout()``.
 
-8. Pass the class to an ``ExplainerDashboard`` and ``run()` it. 
+9. Pass the class to an ``ExplainerDashboard`` and ``run()`` it. 
 
 
 You can find the list of all ``ExplainerComponents`` in the :ref:`documentation<ExplainerComponents>`.
 
 .. note::
-    To save on boilerplate code, parameters in the init will automagically be 
-    stored to attributes by ``super().__init__(explainer)``. So in the example below 
-    you do not have to explicitly call ``self.a = a`` in the init::
+    To save on boilerplate code, parameters in the ``__init__`` will automagically be 
+    stored to attributes by ``super().__init__(explainer, title)``. So in the example 
+    below you do not have to explicitly call ``self.a = a`` in the init::
 
         class CustomDashboard(ExplainerComponent):
-            def __init__(self, explainer, a=1):
+            def __init__(self, explainer, name=None, a=1):
                 super().__init__(explainer)
 
         custom = CustomDashboard(explainer)
         assert custom.a == 1
+
+    This includes the naming of the component itself, by setting ``name=None``, 
+    in the ``__init__``. ``ExplainerDashboard`` will then assign a unique 
+    name of your component to make sure that component `id`'s will not clash,
+    but will be consistent with multi worker or multi node deployments.
 
 Including ExplainerComponents in regular ``dash`` app
 -----------------------------------------------------
@@ -238,7 +247,7 @@ An ``ExplainerComponent`` can easily be included in regular `dash <https://dash.
 
 
 Constructing the layout
--------------------
+-----------------------
 
 You construct the layout using ``dash_bootstrap_components`` and
 ``dash_html_components``:
@@ -274,7 +283,10 @@ A more elaborate example is below where we include three components: the
 precision graph, the shap summary and the shap dependence component, and
 add explanatory text on either side of each component. The ``ShapSummaryDependenceConnector``
 connects a ShapSummaryComponent and a ShapDependenceComponent so that when you 
-select a feature in the summary, it automatically gets selected in the dependence plot::
+select a feature in the summary, it automatically gets selected in the dependence 
+plot. You can find other connectors such :ref:`IndexConnector<IndexConnector>`,
+:ref:`PosLabelConnector<PosLabelConnector>`, :ref:`CutoffConnector<CutoffConnector>`
+and :ref:`HighlightConnector<HighlightConnector>` in the :ref:`Connector documentation<Connectors>`::
 
     import dash_html_components as html
     import dash_bootstrap_components as dbc
@@ -283,26 +295,24 @@ select a feature in the summary, it automatically gets selected in the dependenc
     from explainerdashboard import ExplainerDashboard
 
     class CustomModelTab(ExplainerComponent):
-        def __init__(self, explainer):
+        def __init__(self, explainer, name=None):
             super().__init__(explainer, title="Titanic Explainer")
-            self.precision = PrecisionComponent(explainer, 
+            self.precision = PrecisionComponent(explainer, name=self.name+"precision",
                                     hide_cutoff=True, hide_binsize=True, 
                                     hide_binmethod=True, hide_multiclass=True,
                                     hide_selector=True,
                                     cutoff=None)
-            self.shap_summary = ShapSummaryComponent(explainer, 
+            self.shap_summary = ShapSummaryComponent(explainer, name=self.name+"summary",
                                     hide_title=True, hide_selector=True,
                                     hide_depth=True, depth=8, 
                                     hide_cats=True, cats=True)
-            self.shap_dependence = ShapDependenceComponent(explainer, 
+            self.shap_dependence = ShapDependenceComponent(explainer, name=self.name+"dep",
                                     hide_title=True, hide_selector=True,
                                     hide_cats=True, cats=True, 
                                     hide_index=True,
                                     col='Fare', color_col="PassengerClass")
             self.connector = ShapSummaryDependenceConnector(
                     self.shap_summary, self.shap_dependence)
-            
-            self.register_components()
             
         def layout(self):
             return dbc.Container([
@@ -362,6 +372,21 @@ select a feature in the summary, it automatically gets selected in the dependenc
     
     ExplainerDashboard(explainer, CustomModelTab, hide_header=True).run()
 
+.. note::
+    All subcomponents that are defined as attibutes in the ``__init__``, either
+    explicitly or automagically through the ``super().__init__``, and 
+    hence are added to ``self.__dict__`` also automatically get their callbacks 
+    registered when you call ``.register_callbacks(app)`` on the parent component. 
+    If you would like to exclude that (for example because the subcomponent has 
+    already been initialized elsewhere and you just need to store the reference),
+    then you can exclude it with ``exclude_callbacks(components)``::
+
+        class CustomDashboard(ExplainerComponent):
+            def __init__(self, explainer, name=None, feature_input_component):
+                super().__init__(explainer)
+                self.exclude_callbacks(self.feature_input_component)
+
+
 
 CustomPredictionsTab
 ^^^^^^^^^^^^^^^^^^^^
@@ -375,30 +400,27 @@ custom `dbc theme <https://dash-bootstrap-components.opensource.faculty.ai/docs/
 called FLATLY as a custom css file::
 
     class CustomPredictionsTab(ExplainerComponent):
-        def __init__(self, explainer):
+        def __init__(self, explainer, name=None):
             super().__init__(explainer, title="Predictions")
             
-            self.index = ClassifierRandomIndexComponent(explainer, 
+            self.index = ClassifierRandomIndexComponent(explainer, name=self.name+"index",
                                                         hide_title=True, hide_index=False, 
                                                         hide_slider=True, hide_labels=True, 
                                                         hide_pred_or_perc=True, 
                                                         hide_selector=True, hide_button=False)
             
-            self.contributions = ShapContributionsGraphComponent(explainer, 
+            self.contributions = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
                                                                 hide_title=True, hide_index=True, 
                                                                 hide_depth=True, hide_sort=True, 
                                                                 hide_orientation=True, hide_cats=True, 
                                                                 hide_selector=True,  
                                                                 sort='importance')
             
-            self.trees = DecisionTreesComponent(explainer, 
+            self.trees = DecisionTreesComponent(explainer, name=self.name+"trees",
                                                 hide_title=True, hide_index=True, 
                                                 hide_highlight=True, hide_selector=True)
 
-            
             self.connector = IndexConnector(self.index, [self.contributions, self.trees])
-            
-            self.register_components()
             
         def layout(self):
             return dbc.Container([
@@ -427,7 +449,7 @@ called FLATLY as a custom css file::
     ExplainerDashboard(explainer, [CustomModelTab, CustomPredictionsTab], 
                    title='Titanic Explainer',
                    header_hide_selector=True, 
-                   external_stylesheets=[dbc.themes.FLATLY]).run()
+                   bootstrap=dbc.themes.FLATLY).run()
 
 
 Below you can see the result. (also note how the component title shows up as

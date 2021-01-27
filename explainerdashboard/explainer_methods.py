@@ -17,7 +17,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from joblib import Parallel, delayed
 
-def safe_is_instance(obj, *instance_str):
+def safe_isinstance(obj, *instance_str):
     """Checks instance by comparing str(type(obj)) to one or more
     instance_str. """
     obj_str = str(type(obj))
@@ -122,6 +122,16 @@ def parse_cats(X, cats, sep:str="_"):
     return onehot_cols, onehot_dict
 
 
+def get_encoded_and_regular_cols(cols, onehot_dict):
+    """return a list of onehot encoded cols and a list of remainder cols.
+    """
+    encoded_cols = []
+    for enc_cols in onehot_dict.values():
+        if len(enc_cols) > 1: 
+            encoded_cols.extend(enc_cols)
+    regular_cols = [col for col in cols if col not in encoded_cols]
+    return encoded_cols, regular_cols
+
 
 def split_pipeline(pipeline, X, verbose=1):
     """Returns an X_transformed dataframe and model from a fitted 
@@ -208,10 +218,10 @@ def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
         mapping = {-1: "NOT_ENCODED"}
 
     mapping.update({i: col for i, col in enumerate(onehot_cols)})
-    return pd.Series(feature_value).map(mapping).values
+    return pd.Series(feature_value).map(mapping)
 
 
-def merge_categorical_columns(X, onehot_dict=None, sep="_"):
+def merge_categorical_columns(X, onehot_dict=None, cols=None, sep="_", drop_regular=False):
     """
     Returns a new feature Dataframe X_cats where the onehotencoded
     categorical features have been merged back with the old value retrieved
@@ -222,19 +232,36 @@ def merge_categorical_columns(X, onehot_dict=None, sep="_"):
             columns=['Age', 'Sex_Male', 'Sex_Female"].
         onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
+        cols (list[str]): list of columns to return
         sep (str): separator used in the encoding, e.g. "_" for Sex_Male. 
             Defaults to "_".
     
     Returns:
         pd.DataFrame, with onehot encodings merged back into categorical columns.
     """
-    X_cats = X.copy()
+    X_cats = pd.DataFrame()
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
-            X_cats[col_name] = retrieve_onehot_value(X, col_name, col_list, sep)
-            X_cats.drop(col_list, axis=1, inplace=True)
-    return X_cats
+            X_cats[col_name] = retrieve_onehot_value(X, col_name, col_list, sep).astype("category")
+        else:
+            if not drop_regular:
+                X_cats.loc[:, col_name] = X[col_name].values
+    if cols:
+        return X_cats[cols]
+    else:
+        return X_cats
 
+def matching_cols(cols1, cols2):
+    """returns True if cols1 and cols2 match."""
+    if isinstance(cols1, pd.DataFrame):
+        cols1 = cols1.columns
+    if isinstance(cols2, pd.DataFrame):
+        cols2 = cols2.columns
+    if len(cols1) != len(cols2):
+        return False
+    if (pd.Index(cols1) == pd.Index(cols2)).all():
+        return True
+    return False
 
 def remove_cat_names(X_cats, onehot_dict):
     """removes the leading category names in the onehotencoded columns. 
@@ -270,28 +297,29 @@ def X_cats_to_X(X_cats, onehot_dict, X_columns, sep="_"):
     return X_new[X_columns]
 
 
-def merge_categorical_shap_values(X, shap_values, onehot_dict=None, sep="_"):
+def merge_categorical_shap_values(shap_df, onehot_dict=None, output_cols=None):
     """
     Returns a new feature new shap values np.array
     where the shap values of onehotencoded categorical features have been
     added up.
 
     Args:
-        X (pd.DataFrame): dataframe whose columns correspond to the columns
-            in the shap_values np.ndarray.
-        shap_values (np.ndarray): numpy array of shap values, output of
-            e.g. shap.TreeExplainer(X).shap_values()
+        shap_df(pd.DataFrame): dataframe of shap values with appropriate column names
         onehot_dict (dict): dict of features with lists for onehot-encoded variables,
              e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
-        sep (str): seperator used between variable and category. 
-            Defaults to "_".
+            
+    Returns:
+        pd.DataFrame
     """
-    shap_df = pd.DataFrame(shap_values, columns=X.columns)
+    onehot_cols = []
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
             shap_df[col_name] = shap_df[col_list].sum(axis=1)
-            shap_df.drop(col_list, axis=1, inplace=True)
-    return shap_df.values
+            onehot_cols.append(col_name)
+    if output_cols is not None:
+        return shap_df[output_cols]
+    return shap_df[onehot_cols]
+
 
 
 def merge_categorical_shap_interaction_values(shap_interaction_values, 
@@ -320,23 +348,24 @@ def merge_categorical_shap_interaction_values(shap_interaction_values,
     """
 
     if isinstance(old_columns, pd.DataFrame):
-        old_columns = old_columns.columns.tolist()
+        old_columns = old_columns.columns
     if isinstance(new_columns, pd.DataFrame):
-        new_columns = new_columns.columns.tolist()
+        new_columns = new_columns.columns
+    old_columns = pd.Index(old_columns)
+    new_columns = pd.Index(new_columns)
     
-
     siv = np.zeros((shap_interaction_values.shape[0], 
                         len(new_columns), len(new_columns)))
 
     # note: given the for loops here, this code could probably be optimized.
-    # but only run once anyway
+    #       But only runs once anyway...
     for new_col1 in new_columns:
         for new_col2 in new_columns:
-            newcol_idx1 = new_columns.index(new_col1)
-            newcol_idx2 = new_columns.index(new_col2)
-            oldcol_idxs1 = [old_columns.index(col)
+            newcol_idx1 = new_columns.get_loc(new_col1)
+            newcol_idx2 = new_columns.get_loc(new_col2)
+            oldcol_idxs1 = [old_columns.get_loc(col)
                                 for col in onehot_dict[new_col1]]
-            oldcol_idxs2 = [old_columns.index(col)
+            oldcol_idxs2 = [old_columns.get_loc(col)
                                 for col in onehot_dict[new_col2]]
             siv[:, newcol_idx1, newcol_idx2] = \
                 shap_interaction_values[:, oldcol_idxs1, :][:, :, oldcol_idxs2]\
@@ -494,7 +523,7 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
                         .sort_values('Importance', ascending=False)
 
 
-def mean_absolute_shap_values(columns, shap_values, onehot_dict=None):
+def get_mean_absolute_shap_df(columns, shap_values, onehot_dict=None):
     """
     Returns a dataframe with the mean absolute shap values for each feature.
 
@@ -509,10 +538,11 @@ def mean_absolute_shap_values(columns, shap_values, onehot_dict=None):
     """
     if onehot_dict is None:
         onehot_dict = {col:[col] for col in columns}
+    columns = pd.Index(columns)
     shap_abs_mean_dict = {}
     for col_name, col_list in onehot_dict.items():
         shap_abs_mean_dict[col_name] = np.absolute(
-            shap_values[:, [columns.index(col) for col in col_list]].sum(axis=1)
+            shap_values[:, [columns.get_loc(col) for col in col_list]].sum(axis=1)
         ).mean()
 
     shap_df = pd.DataFrame(
@@ -783,7 +813,7 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None,
     return precision_df
 
 
-def get_lift_curve_df(pred_probas, y, pos_label=1):
+def get_liftcurve_df(pred_probas, y, pos_label=1):
     """returns a pd.DataFrame that can be used to generate a lift curve plot.
 
     Args:
@@ -1006,7 +1036,7 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     return siv
     
 
-def get_decisiontree_df(decision_tree, observation, pos_label=1):
+def get_decisionpath_df(decision_tree, observation, pos_label=1):
     """summarize the path through a DecisionTree for a specific observation.
 
     Args:
@@ -1175,7 +1205,8 @@ def get_xgboost_path_df(xgbmodel, X_row, n_tree=None):
         xgbmodel_treedump = xgbmodel.get_booster().get_dump()[n_tree]
     else:
         raise ValueError("Couldn't extract a treedump. Please pass a fitted xgboost model.")
-        
+    if isinstance(X_row, pd.DataFrame) and len(X_row)==1:
+        X_row = X_row.squeeze()
     node_dict = get_xgboost_node_dict(xgbmodel_treedump)
     
     prediction_path_df = pd.DataFrame(columns = ['node', 'feature', 'cutoff', 'value'])

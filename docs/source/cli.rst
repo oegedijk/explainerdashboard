@@ -1,5 +1,5 @@
-``explainerdashboard`` CLI
-**************************
+explainerdashboard CLI
+**********************
 
 The library comes with a ``explainerdashboard`` command line tool (CLI) that
 you can use to build and run explainerdashboards from your terminal. 
@@ -23,7 +23,8 @@ from the command line by running::
 
     $ explainerdashboard run explainer.joblib
 
-Or to run on specific port, not launch a browser or show help::
+The CLI uses the ``waitress`` web server by default to run your dashboard.
+To run on a specific port, not launch a browser or show help::
 
     $ explainerdashboard run explainer.joblib --port 8051
     $ explainerdashboard run explainer.joblib --no-browser

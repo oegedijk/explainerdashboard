@@ -1,16 +1,10 @@
 
 # TODO:
 
+## Version 0.3:
+- check InlineExplainer 
+
 ## Bugs:
-- dash contributions reload bug: Exception: Additivity check failed in TreeExplainer!
-- shap dependence: when no point cloud, do not highlight!
-
-## Layout:
-- Find a proper frontender to help :)
-
-## dfs:
-- wrap shap values in pd.DataFrames?
-- wrap predictions in pd.Series?
 
 ## Plots:
 - make plot background transparent?
@@ -21,10 +15,6 @@
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
 - add some of these:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
-- shap dependence plot, sort categorical features by:
-    - alphabet
-    - number of obs
-    - mean abs shap
 
 ### Classifier plots:
 - move predicted and actual to outer layer of ConfusionMatrixComponent
@@ -36,13 +26,8 @@
 ### Regression plots:
 
 
-
 ## Explainers:
-- add get_X_row() and get_index_list() methods, and implement it throughout the dashboard.
-- minimize pd.DataFrame and np.array size:
-    - astype(float16), pd.category, etc
 - pass n_jobs to pdp_isolate
-- add option drop non-cats
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
     - could add an parameter to the` explainer.plot_*` function  `in_words=True` in which 
@@ -50,9 +35,6 @@
         relationship in the plot.
     - Then add an "in words" button to the components, that show a popup with
         the verbal explanation.
-- rename RandomForestExplainer and XGBExplainer methods into something more logical
-    - Breaking change!
-
 
 ## notebooks:
 
@@ -85,15 +67,12 @@
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - set equivalent_col when toggling cats in dependence/interactions
-
-- add width/height to components
 - whatif:
     - Add a constraints function to whatif component:
         - tests if current feature input is allowed
         - gives specific feedback when constraint broken
         - could build WhatIfComponentException for this?
     - Add sliders option to what if component
-
 
 ## Methods:
 - add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
@@ -110,13 +89,17 @@
 - write tests for explainer_plots
 
 ## Docs:
+- add memory savings to docs:
+    - memory_usage()
+    - keep_shap_pos_label_only()
+    - set_X_row_func, etc
 - add cats_topx cats_sort to docs
 - add hide_wizard and wizard to docs
 - add hide_poweredby to docs
 - add Docker deploy example (from issue)
 - document register_components no longer necessary
 - add new whatif parameters to README and docs
-- add section to README on storing and loading explainer/dashboard from file/config
+- add section to docs and README on storing and loading explainer/dashboard from file/config
 
 - retake screenshots of components as cards
 - Add type hints:
@@ -130,7 +113,6 @@
 ## Library level:
 - Make example heroku deployment repo
 - Make example heroku ExplainerHub repo
-- hide (prefix '_') to non-public API class methods
 - submit pull request to shap with broken test for 
     https://github.com/slundberg/shap/issues/723
 
