@@ -2,9 +2,9 @@ dash
 dash-bootstrap-components
 dash-auth
 jupyter_dash
-dtreeviz>=1.0
+dtreeviz>=1.1.4
 numpy
-pandas>=0.24
+pandas>=1.2.1
 scikit-learn
 shap>=0.37
 shortuuid
