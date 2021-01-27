@@ -467,7 +467,6 @@ class GraphPopout(ExplainerComponent):
              State(self.graph_id, 'figure')],
         )
         def toggle_modal(open_modal, close_modal, modal_is_open, fig):
-            print("modal triggered: ", open_modal, close_modal, modal_is_open, flush=True)
             if open_modal or close_modal: 
                 ctx = dash.callback_context
                 button_id = ctx.triggered[0]['prop_id'].split('.')[0]
