@@ -1709,8 +1709,8 @@ class ClassifierExplainer(BaseExplainer):
     def pos_label_index(self, pos_label):
         """return int index of pos_label_str"""
         if isinstance(pos_label, int):
-            assert pos_label <= len(self.labels), \
-                f"pos_label {pos_label} is larger than number of labels!"
+            assert pos_label >= 0 and pos_label <= len(self.labels), \
+                f"pos_label={pos_label}, but should be >= 0 and <= {len(self.labels)-1}!"
             return pos_label
         elif isinstance(pos_label, str):
             assert pos_label in self.labels, \
@@ -1889,7 +1889,7 @@ class ClassifierExplainer(BaseExplainer):
             
             if len(self.labels) == 2:
                 if not isinstance(_shap_values, list):
-                    _shap_values = [_shap_values]
+                    assert len(_shap_values.shape) == 2, f"shap_values should be 2d, instead shape={_shap_values.shape}!"
                 elif isinstance(_shap_values, list) and len(_shap_values)==2:
                     # for binary classifier only keep positive class
                     _shap_values = _shap_values[1]
