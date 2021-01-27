@@ -454,7 +454,41 @@ or with waitress (also works on Windows):
     $ waitress-serve dashboard:app
 ```
 
+### Minimizing memory usage
 
+When you deploy a dashboard with a dataset with a large number of rows (`n`) and columns (`m`),
+the memory usage of the dashboard can be substantial. You can check the (approximate)
+memory usage with `explainer.memory_usage()`. In order to reduce the memory
+footprint there are a number of things you can do:
+
+1. Not including shap interaction tab: shap interaction values are shape (`n*m*m`),
+    so can take a subtantial amount of memory.
+2. Setting a lower precision. By default shap values are stored as `'float64'`,
+    but you can store them as `'float32'` instead and save half the space:
+    ```ClassifierExplainer(model, X_test, y_test, precision='float32')```. You 
+    can also set a lower precision on your `X_test` dataset yourself ofcourse.
+3. For multi class classifier, by default `ClassifierExplainer` calculates
+    shap values for all classes. If you're only interested in a single class
+    you can drop the other shap values: `explainer.keep_shap_pos_label_only(pos_label)`
+4. Storing data externally. You can for example only store a subset of 10.000 rows in
+    the explainer itself (enough to generate importance and dependence plots),
+    and store the rest of your millions of rows of input data in an external file 
+    or database:
+    - with `explainer.set_X_row_func()` you can set a function that takes 
+        and `index` as argument and returns a single row dataframe with model
+        compatible input data for that index. This function can include a query
+        to a database or fileread. 
+    - with `explainer.set_y_func()` you can set a function that takes 
+        and `index` as argument and returns the observed outcome `y` for
+        that index.
+    - with `explainer.set_index_list_func()` you can set a function 
+        that returns a list of available indexes that can be queried.
+
+    Important: these function can be called multiple times by multiple independent
+    components, so probably best to implement some kind of caching functionality.
+    The functions you pass can be also methods, so you have access to all of the
+    internals of the explainer.
+    
 
 ## Documentation
 
