@@ -8,8 +8,8 @@ changed however, except for the deprecation of the `cats` and `hide_cats` parame
 
 Explainers generated with version `explainerdashboard <= 0.2.20.1` will not work 
 with this version, so if you have stored explainers to disk you either have to 
-rebuild them with this new version, or downgrade back to `explainerdashboard==0.2.20.1`! (hope you 
-pinned your dependencies in production! ;-)
+rebuild them with this new version, or downgrade back to `explainerdashboard==0.2.20.1`! 
+(hope you pinned your dependencies in production! ;)
 
 Main motivation for these breaking changes was to improve memory usage of the
 dashboards, especially in production. This lead to the deprecation of the
@@ -42,12 +42,12 @@ needed breaking changes at once.
     - `BaseExplainer`:
         - `importances_df()` -> `get_importances_df()`
         - `feature_permutations_df()` -> `get_feature_permutations_df()`
-        - `self.get_int_idx(index)` -> `self.get_idx(index)`
-        - `self.importances_df()` -> `self.get_importances_df()`
-        - `self.contrib_df()` -> `self.get_contrib_df()` *
-        - `self.contrib_summary_df()` -> `self.get_summary_contrib_df()` *
-        - `self.interaction_df()` -> `get_interactions_df()` *
-        - `self.shap_values` -> `self.get_shap_values_df`
+        - `get_int_idx(index)` -> `get_idx(index)`
+        - `importances_df()` -> `get_importances_df()`
+        - `contrib_df()` -> `get_contrib_df()` *
+        - `contrib_summary_df()` -> `self.get_summary_contrib_df()` *
+        - `interaction_df()` -> `get_interactions_df()` *
+        - `shap_values` -> `get_shap_values_df`
         - `plot_shap_contributions()` -> `plot_contributions()`
         - `plot_shap_summary()` -> `plot_importances_detailed()`
         - `plot_shap_dependence()` -> `plot_dependence()`
@@ -61,19 +61,19 @@ needed breaking changes at once.
         - `self.pred_probas` -> `self.pred_probas()`
         - `precision_df()` -> `get_precision_df()` *
         - `lift_curve_df()` -> `get_liftcurve_df()` *
-    -`RandomForestExplainer`/`XGBExplainer`:
-        - `self.decision_trees` -> `self.shadow_trees`
-        - `self.decisiontree_df()` -> `self.get_decisionpath_df()`
-        - `self.decisiontree_summary_df()` -> `self.get_decisionpath_summary_df()`
-        - `self.decision_path_file()` -> `self.decisiontree_file()`
-        - `self.decision_path()` -> `self.decisiontree()`
-        - `self.decision_path_encoded()` -> `self.decisiontree_encoded()`
+    - `RandomForestExplainer`/`XGBExplainer`:
+        - `decision_trees` -> `shadow_trees`
+        - `decisiontree_df()` -> `get_decisionpath_df()`
+        - `decisiontree_summary_df()` -> `get_decisionpath_summary_df()`
+        - `decision_path_file()` -> `decisiontree_file()`
+        - `decision_path()` -> `decisiontree()`
+        - `decision_path_encoded()` -> `decisiontree_encoded()`
 
 ### New Features
 - new `Explainer` parameter `precision`: defaults to `'float64'`. Can be set to
-    `'float32'` to save on memory usage.
+    `'float32'` to save on memory usage: `ClassifierExplainer(model, X, y, precision='float32')`
 - new `memory_usage()` method to show which internal attributes take the most memory.
-- net `keep_shap_pos_label_only(pos_label)` method:
+- for multiclass classifiers: `keep_shap_pos_label_only(pos_label)` method:
     - drops shap values and shap interactions for all labels except `pos_label`
     - this should significantly reduce memory usage for multi class classification
         models.
@@ -82,13 +82,13 @@ needed breaking changes at once.
     - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
         and `.set_y_func()`.
     - by overriding these functions you can for example sample observations 
-        from a database or other storage instead of from `X_test`, `y_test`.
+        from a database or other external storage instead of from `X_test`, `y_test`.
 - added `Popout` buttons to all the major graphs that open a large modal
     showing just the graph. This makes it easier to focus on a particular
     graph without distraction from the rest of the dashboard and all it's toggles.
 - added `max_cat_colors` parameters to `plot_importance_detailed` and `plot_dependence` and `plot_interactions_detailed`
     - prevents plotting getting slow with categorical features with many categories.
-    - defaults to 5
+    - defaults to `5`
     - can be set as `**kwarg` to `ExplainerDashboard`
 - adds category limits and sorting to `RegressionVsCol` component
 - adds property `X_merged` that gives a dataframe with the onehot columns merged.
@@ -103,7 +103,7 @@ needed breaking changes at once.
     - this would result in more memory usage in development
         though, so you can `del X_test` to save memory.
 - `ClassifierExplainer` only stores shap (interaction) values for the positive
-    class: shap values for the negative class can be generated on the fly
+    class: shap values for the negative class are generated on the fly
     by multiplying with `-1`.
 - encoding onehot columns as `np.int8` saving memory usage
 - encoding categorical features as `pd.category` saving memory usage
