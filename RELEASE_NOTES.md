@@ -75,12 +75,17 @@ needed breaking changes at once.
 - new `memory_usage()` method to show which internal attributes take the most memory.
 - net `keep_shap_pos_label_only(pos_label)` method:
     - drops shap values and shap interactions for all labels except `pos_label`
-    - this should significantly reduce memory usage.
+    - this should significantly reduce memory usage for multi class classification
+        models.
+    - not needed for binary classifiers.
 - added `get_index_list()`, `get_X_row(index)`, and `get_y(index)` methods.
     - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
         and `.set_y_func()`.
     - by overriding these functions you can for example sample observations 
         from a database or other storage instead of from `X_test`, `y_test`.
+- added `Popout` buttons to all the major graphs that open a large modal
+    showing just the graph. This makes it easier to focus on a particular
+    graph without distraction from the rest of the dashboard and all it's toggles.
 - added `max_cat_colors` parameters to `plot_importance_detailed` and `plot_dependence` and `plot_interactions_detailed`
     - prevents plotting getting slow with categorical features with many categories.
     - defaults to 5
@@ -97,6 +102,9 @@ needed breaking changes at once.
 - saving `X.copy()`, instead of using a reference to `X`
     - this would result in more memory usage in development
         though, so you can `del X_test` to save memory.
+- `ClassifierExplainer` only stores shap (interaction) values for the positive
+    class: shap values for the negative class can be generated on the fly
+    by multiplying with `-1`.
 - encoding onehot columns as `np.int8` saving memory usage
 - encoding categorical features as `pd.category` saving memory usage
 - added base `TreeExplainer` class that `RandomForestExplainer` and `XGBExplainer` both derive from
