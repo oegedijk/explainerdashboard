@@ -2,16 +2,9 @@
 # TODO:
 
 ## Version 0.3:
-- check all register_dependencies()
 - check InlineExplainer 
 
 ## Bugs:
-
-
-## Layout:
-- Find a proper frontender to help :)
-
-## dfs:
 
 ## Plots:
 - make plot background transparent?
@@ -34,8 +27,6 @@
 
 
 ## Explainers:
-- with binary classifiers only keep shap values of positive class, return -shap
-    for negative class.
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -49,7 +40,6 @@
 
 
 ## Dashboard:
-- add popout button
 - add SimpleClassifierDashboard
 - add SimpleRegressionDashboard
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
@@ -77,15 +67,12 @@
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
 - set equivalent_col when toggling cats in dependence/interactions
-
-- add width/height to components
 - whatif:
     - Add a constraints function to whatif component:
         - tests if current feature input is allowed
         - gives specific feedback when constraint broken
         - could build WhatIfComponentException for this?
     - Add sliders option to what if component
-
 
 ## Methods:
 - add support for SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer
@@ -102,7 +89,7 @@
 - write tests for explainer_plots
 
 ## Docs:
-- add memory savings to docs/README:
+- add memory savings to docs:
     - memory_usage()
     - keep_shap_pos_label_only()
     - set_X_row_func, etc
