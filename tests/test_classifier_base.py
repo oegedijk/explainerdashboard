@@ -152,7 +152,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
 
     def test_keep_shap_pos_label_only(self):
         self.explainer.keep_shap_pos_label_only()
-        self.assertIsInstance(self.shap_values_df(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.shap_values_df(), pd.DataFrame)
 
 
     def test_plot_importances(self):
