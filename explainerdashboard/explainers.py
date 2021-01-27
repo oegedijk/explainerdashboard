@@ -1890,7 +1890,7 @@ class ClassifierExplainer(BaseExplainer):
             if len(self.labels) == 2:
                 if not isinstance(_shap_values, list):
                     _shap_values = [_shap_values]
-                if isinstance(_shap_values, list) and len(_shap_values)==2:
+                elif isinstance(_shap_values, list) and len(_shap_values)==2:
                     # for binary classifier only keep positive class
                     _shap_values = _shap_values[1]
                 else:
@@ -1953,7 +1953,7 @@ class ClassifierExplainer(BaseExplainer):
             if len(self.labels) == 2:
                 if not isinstance(self._shap_interaction_values, list):
                     self._shap_interaction_values = [self._shap_interaction_values]
-                if isinstance(self._shap_interaction_values, list) and len(self._shap_interaction_values)==2:
+                elif isinstance(self._shap_interaction_values, list) and len(self._shap_interaction_values)==2:
                     # for binary classifier only keep positive class
                     self._shap_interaction_values = [self._shap_interaction_values[1]]
                 else:
