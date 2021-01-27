@@ -1887,12 +1887,21 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating shap values...", flush=True)
             _shap_values = self.shap_explainer.shap_values(self.X)
             
-            if not isinstance(_shap_values, list) and len(self.labels)==2:
-                    _shap_values = [-_shap_values, _shap_values]
-
-            assert len(_shap_values)==len(self.labels),\
-                f"len(shap_values)={len(_shap_values)}"\
-                + f"and len(labels)={len(self.labels)} do not match!"
+            if len(self.labels) == 2:
+                if not isinstance(_shap_values, list):
+                    _shap_values = [_shap_values]
+                if isinstance(_shap_values, list) and len(_shap_values)==2:
+                    # for binary classifier only keep positive class
+                    _shap_values = _shap_values[1]
+                else:
+                    raise Exception(f"len(self.label)={len(self.labels)}, but "
+                            f"shap returned shap values for {len(_shap_values)} classes! "
+                            "Adjust the labels parameter accordingly!")
+            else:
+                assert len(_shap_values)==len(self.labels),\
+                    (f"len(self.label)={len(self.labels)}, but "
+                     f"shap returned shap values for {len(_shap_values)} classes! "
+                     "Adjust the labels parameter accordingly!")
             if self.model_output == 'probability':
                 for shap_values in _shap_values:
                     assert np.all(shap_values >= -1.0) , \
@@ -1902,24 +1911,37 @@ class ClassifierExplainer(BaseExplainer):
                     assert np.all(shap_values <= 1.0) , \
                         (f"model_output=='probability but some shap values are > 1.0!"
                          "Try setting model_output='logodds'.")
+            if len(self.labels) > 2:
+                self._shap_values_df = [pd.DataFrame(sv, columns=self.columns) for sv in _shap_values]
+                self._shap_values_df = [
+                    merge_categorical_shap_values(df, self.onehot_dict, 
+                            self.merged_cols).astype(self.precision) 
+                                    for df in self._shap_values_df]
+            else:
+                self._shap_values_df = merge_categorical_shap_values(
+                        pd.DataFrame(_shap_values, columns=self.columns), 
+                        self.onehot_dict, self.merged_cols).astype(self.precision) 
 
-            self._shap_values_df = [pd.DataFrame(sv, columns=self.columns) for sv in _shap_values]
-            self._shap_values_df = [
-                merge_categorical_shap_values(df, self.onehot_dict, 
-                        self.merged_cols).astype(self.precision) 
-                                for df in self._shap_values_df]
-        
-        if isinstance(self._shap_values_df, list):
-            return self._shap_values_df[pos_label]
+        if len(self.labels) > 2:
+            if isinstance(self._shap_values_df, list):
+                return self._shap_values_df[pos_label]
+            else:
+                return self._shap_values_df
         else:
-            return self._shap_values_df
+            if pos_label == 1:
+                return self._shap_values_df
+            elif pos_label == 0:
+                return self._shap_values_df.multiply(-1)
+            else:
+                raise ValueError(f"pos_label={pos_label}, but should be either 1 or 0!")
+
 
     @insert_pos_label
     def shap_interaction_values(self, pos_label=None):
         """SHAP interaction values"""
         if not hasattr(self, '_shap_interaction_values'):
             _ = self.get_shap_values_df() #make sure shap values have been calculated
-            print("Calculating shap interaction values...", flush=True)
+            print("Calculating shap interaction values... (this may take a while)", flush=True)
             if self.shap == 'tree':
                 print("Reminder: TreeShap computational complexity is O(TLD^2), "
                     "where T is the number of trees, L is the maximum number of"
@@ -1928,24 +1950,45 @@ class ClassifierExplainer(BaseExplainer):
                     flush=True)
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(self.X)
             
-            if not isinstance(self._shap_interaction_values, list) and len(self.labels)==2:
-                if self.model_output == "probability":
-                    self._shap_interaction_values = [1-self._shap_interaction_values,
-                                                        self._shap_interaction_values]
-                else: # assume logodds so logodds of negative class is -logodds of positive class
-                    self._shap_interaction_values = [-self._shap_interaction_values,
-                                                        self._shap_interaction_values]
+            if len(self.labels) == 2:
+                if not isinstance(self._shap_interaction_values, list):
+                    self._shap_interaction_values = [self._shap_interaction_values]
+                if isinstance(self._shap_interaction_values, list) and len(self._shap_interaction_values)==2:
+                    # for binary classifier only keep positive class
+                    self._shap_interaction_values = [self._shap_interaction_values[1]]
+                else:
+                    raise Exception(f"len(self.label)={len(self.labels)}, but "
+                            f"shap returned shap interaction values for "
+                            f"{len(self._shap_interaction_values)} classes! "
+                            "Adjust the labels parameter accordingly!")
+            else:
+                assert len(self._shap_interaction_values)==len(self.labels),\
+                    (f"len(self.label)={len(self.labels)}, but "
+                     f"shap returned shap values for {len(_shap_values)} classes! "
+                     "Adjust the labels parameter accordingly!")
+
             self._shap_interaction_values = \
                 [merge_categorical_shap_interaction_values(
                     siv, self.columns, self.merged_cols, 
                     self.onehot_dict).astype(self.precision) for siv in self._shap_interaction_values]
+            if len(self._shap_interaction_values) == 1:
+                 self._shap_interaction_values =  self._shap_interaction_values[0]
+
             # self._shap_interaction_values = [
             #     normalize_shap_interaction_values(siv, self.shap_values)
             #         for siv, sv in zip(self._shap_interaction_values, self._shap_values_df)]
-        if isinstance(self._shap_interaction_values, list):
-            return self._shap_interaction_values[pos_label]
+        if len(self.labels) > 2:
+            if isinstance(self._shap_interaction_values, list):
+                return self._shap_interaction_values[pos_label]
+            else:
+                return self._shap_interaction_values
         else:
-            return self._shap_interaction_values
+            if pos_label == 1:
+                return self._shap_interaction_values
+            elif pos_label == 0:
+                return self._shap_interaction_values * -1
+            else:
+                raise ValueError(f"pos_label={pos_label}, but should be either 1 or 0!")
 
     @insert_pos_label
     def mean_abs_shap_df(self, pos_label=None):
@@ -1961,9 +2004,13 @@ class ClassifierExplainer(BaseExplainer):
     @insert_pos_label
     def keep_shap_pos_label_only(self, pos_label=None):
         """drops the shap values and shap_interaction values for all labels 
-        except pos_label in order to save on memory usage"""
+        except pos_label in order to save on memory usage for multi class classifiers"""
+        assert len(self.labels) > 2, \
+            ("It is not necessary to drop shap values for binary classifiers! "
+            "ClassifierExplainer only store a single label anyway and return "
+            "negative shap_values for the negative class...")
         if hasattr(self, "_shap_values_df"):
-            self._shap_values_df= self.get_shap_values_df(pos_label)
+            self._shap_values_df = self.get_shap_values_df(pos_label)
         if hasattr(self, "_shap_interaction_values"):
             self._shap_interaction_values = self.shap_interaction_values(pos_label)
 
