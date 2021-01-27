@@ -206,6 +206,10 @@ class MultiClassClassifierBunchTests(unittest.TestCase):
     def test_lift_curve_df(self):
         self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
 
+    def test_keep_shap_pos_label_only(self):
+        self.explainer.keep_shap_pos_label_only()
+        self.assertIsInstance(self.shap_values_df(), pd.DataFrame)
+        
     def test_calculate_properties(self):
         self.explainer.calculate_properties()
         

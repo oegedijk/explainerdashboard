@@ -128,6 +128,10 @@ class RegressionBaseExplainerTests(unittest.TestCase):
     def test_mean_abs_shap(self):
         self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
 
+    def test_memory_usage(self):
+        self.assertIsInstance(self.explainer.memory_usage(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.memory_usage(cutoff=1000), pd.DataFrame)
+
     def test_calculate_properties(self):
         self.explainer.calculate_properties()
 

@@ -34,6 +34,8 @@
 
 
 ## Explainers:
+- with binary classifiers only keep shap values of positive class, return -shap
+    for negative class.
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -47,6 +49,7 @@
 
 
 ## Dashboard:
+- add popout button
 - add SimpleClassifierDashboard
 - add SimpleRegressionDashboard
 - Add EDA style feature histograms, bar charts, correlation graphs, etc

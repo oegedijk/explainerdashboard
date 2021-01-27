@@ -63,8 +63,8 @@ needed breaking changes at once.
         - `lift_curve_df()` -> `get_liftcurve_df()` *
     -`RandomForestExplainer`/`XGBExplainer`:
         - `self.decision_trees` -> `self.shadow_trees`
-        - `self.decisiontree_df()` -> `self.decisionpath_df()`
-        - `self.decisiontree_summary_df()` -> `self.decisionpath_summary_df()`
+        - `self.decisiontree_df()` -> `self.get_decisionpath_df()`
+        - `self.decisiontree_summary_df()` -> `self.get_decisionpath_summary_df()`
         - `self.decision_path_file()` -> `self.decisiontree_file()`
         - `self.decision_path()` -> `self.decisiontree()`
         - `self.decision_path_encoded()` -> `self.decisiontree_encoded()`
@@ -81,12 +81,12 @@ needed breaking changes at once.
         and `.set_y_func()`.
     - by overriding these functions you can for example sample observations 
         from a database or other storage instead of from `X_test`, `y_test`.
-- added `max_cat_colors` parameters to `plot_shap_summary` and `plot_shap_dependence` and `plot_shap_interaction`
+- added `max_cat_colors` parameters to `plot_importance_detailed` and `plot_dependence` and `plot_interactions_detailed`
     - prevents plotting getting slow with categorical features with many categories.
     - defaults to 5
     - can be set as `**kwarg` to `ExplainerDashboard`
 - adds category limits and sorting to `RegressionVsCol` component
-- adds property `X_merged` that gives a dataframe with onehot columns merged.
+- adds property `X_merged` that gives a dataframe with the onehot columns merged.
 
 ### Bug Fixes
 - shap dependence: when no point cloud, do not highlight!
@@ -102,6 +102,8 @@ needed breaking changes at once.
 - added base `TreeExplainer` class that `RandomForestExplainer` and `XGBExplainer` both derive from
     - will make it easier to extend tree explainers to other models in the future
         - e.g. catboost and lightgbm
+- got rid of the callable properties (that were their to assure backward compatibility),
+    and replaced them with regular methods.
 
 ### Other Changes
 -

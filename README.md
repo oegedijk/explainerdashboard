@@ -22,7 +22,7 @@ a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.
 
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
- example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+ example notebook on how to launch dashboard for different models [here](notebooks/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](notebooks/explainer_examples.ipynb).
 
  Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm` and others.
 
@@ -460,11 +460,11 @@ or with waitress (also works on Windows):
 
 Documentation can be found at [explainerdashboard.readthedocs.io](https://explainerdashboard.readthedocs.io/en/latest/).
 
-Example notebook on how to launch dashboards for different model types here: [dashboard_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb).
+Example notebook on how to launch dashboards for different model types here: [dashboard_examples.ipynb](notebooks/dashboard_examples.ipynb).
 
-Example notebook on how to interact with the explainer object here: [explainer_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+Example notebook on how to interact with the explainer object here: [explainer_examples.ipynb](notebooks/explainer_examples.ipynb).
 
-Example notebook on how to design a custom dashboard: [custom_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/custom_examples.ipynb).
+Example notebook on how to design a custom dashboard: [custom_examples.ipynb](notebooks/custom_examples.ipynb).
 
 
 

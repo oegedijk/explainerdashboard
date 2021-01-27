@@ -334,7 +334,7 @@ example code::
     explainer.plot_roc_auc(cutoff=0.7)
     explainer.plot_pr_auc(cutoff=0.3)
 
-More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 plot_precision
 ^^^^^^^^^^^^^^
@@ -410,8 +410,8 @@ through a specific decision tree.
 You can also plot the individual predictions of each individual tree for 
 specific row in your data indentified by ``index``::
 
-    explainer.decisionpath_df(tree_idx, index)
-    explainer.decisionpath_summary_df(tree_idx, index)
+    explainer.get_decisionpath_df(tree_idx, index)
+    explainer.get_decisionpath_summary_df(tree_idx, index)
     explainer.plot_trees(index)
 
 And for dtreeviz visualization of individual decision trees (svg format)::
@@ -577,15 +577,15 @@ with the following additional methods::
     decision_path(tree_idx, index)
 
 
-decisionpath_df
+get_decisionpath_df
 ^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisionpath_df
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.get_decisionpath_df
 
-decisionpath_summary_df
+get_decisionpath_summary_df
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisionpath_summary_df
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.get_decisionpath_summary_df
 
 decisiontree_file
 ^^^^^^^^^^^^^^^^^^
@@ -691,7 +691,7 @@ multilabel classifier you can set the positive class with e.g. ``explainer.pos_l
 This will make sure that for example ``explainer.pred_probas`` will return the probability
 of that label. 
 
-More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 
 .. autoclass:: explainerdashboard.explainers.ClassifierExplainer
@@ -709,7 +709,7 @@ For regression models (e.g. ``RandomForestRegressor``) models you use ``Regressi
 
 You can pass ``units`` as an additional parameter for the units of the target variable (e.g. ``units="$"``). 
 
-More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 .. autoclass:: explainerdashboard.explainers.RegressionExplainer
    :members: random_index, residuals, metrics, plot_predicted_vs_actual, 
@@ -729,7 +729,7 @@ the average off. This Mixin class will be automatically included
 whenever you pass a ``RandomForestClassifier`` or ``RandomForestRegressor`` model.
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer
-   :members: decisionpath_df, decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
+   :members: get_decisionpath_df, get_decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
    :member-order: bysource
    :exclude-members: 
    :noindex:
@@ -748,7 +748,7 @@ whenever you pass a ``XGBClassifier`` or ``XGBRegressor`` model.
 
 
 .. autoclass:: explainerdashboard.explainers.XGBExplainer
-   :members: decisionpath_df, decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
+   :members: get_decisionpath_df, get_decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
    :member-order: bysource
    :exclude-members: 
    :noindex:

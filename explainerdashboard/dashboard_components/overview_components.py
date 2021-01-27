@@ -110,7 +110,7 @@ class PredictionSummaryComponent(ExplainerComponent):
 class ImportancesComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
                         subtitle="Which features had the biggest impact?",
-                        hide_type=False, hide_depth=False, 
+                        hide_type=False, hide_depth=False, hide_popout=False,
                         hide_title=False,  hide_subtitle=False, hide_selector=False,
                         pos_label=None, importance_type="shap", depth=None, 
                         no_permutations=False,
@@ -130,7 +130,7 @@ class ImportancesComponent(ExplainerComponent):
                         Defaults to False.
             hide_depth (bool, optional): Hide number of features toggle. 
                         Defaults to False.
-
+            hide_popout (bool, optional): hide popout button
             hide_title (bool, optional): hide title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
@@ -166,6 +166,8 @@ class ImportancesComponent(ExplainerComponent):
         does the model get worse when you shuffle this feature, rendering it
         useless?).
         """
+        self.popout = GraphPopout('importances-'+self.name+'popout', 
+                            'importances-graph-'+self.name, self.title, self.description)
         self.register_dependencies('shap_values_df')
         if not (self.hide_type and self.importance_type == 'shap'):
             self.register_dependencies('permutation_importances')
@@ -224,6 +226,12 @@ class ImportancesComponent(ExplainerComponent):
                                         config=dict(modeBarButtons=[['toImage']], displaylogo=False))),
                     ]),
                 ]), 
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ])         
         ])
         
@@ -246,7 +254,7 @@ class PdpComponent(ExplainerComponent):
                     subtitle="How does the prediction change if you change one feature?",
                     hide_col=False, hide_index=False, 
                     hide_title=False,  hide_subtitle=False, 
-                    hide_footer=False, hide_selector=False,
+                    hide_footer=False, hide_selector=False, hide_popout=False, 
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False, hide_cats_sort=False,
                     feature_input_component=None,
@@ -271,6 +279,7 @@ class PdpComponent(ExplainerComponent):
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_dropna (bool, optional): Hide drop na's toggle Defaults to False.
             hide_sample (bool, optional): Hide sample size input. Defaults to False.
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
@@ -314,6 +323,7 @@ class PdpComponent(ExplainerComponent):
         x-axis to calculate model predictions for (gridpoints).
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.popout = GraphPopout('pdp-'+self.name+'popout', 'pdp-graph-'+self.name, self.title, self.description)
 
     def layout(self):
         return dbc.Card([
@@ -359,6 +369,12 @@ class PdpComponent(ExplainerComponent):
                                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                         ])
                     ]),
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                self.popout.layout()
+                            ], md=2, align="start"), hide=self.hide_popout),
+                    ], justify="end"),
                 ]),
                 make_hideable(
                 dbc.CardFooter([
