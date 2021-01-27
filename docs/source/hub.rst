@@ -1,5 +1,5 @@
-ExplainerHub (beta)
-*******************
+ExplainerHub
+************
 
 
 If you are hosting multiple ``ExplainerDashboards`` it becomes convenient 
@@ -47,11 +47,11 @@ Changing size, theme, etc
 
 By default the hub fills the entire width of the browser, you can make it more slim
 by passing ``fluid=False``. You can also pass other bootstrap themes: 
-``bootstrap=dbc.themes.SKETCHY``. You can adjust the size of the iFrame with e.g. 
+``bootstrap=dbc.themes.SKETCHY``. You can adjust the size of the iFrame with 
 ``min_height=2000``.
 
 You can also build your own front end if you want. If you pass ``no_index=True``,
-the index page and navbars will not get loaded, while the dashboards are still
+the index page and navbars routes will not get loaded, while the dashboards are still
 loaded on their respective routes. E.g.::
 
     hub = ExplainerHub([db1, db2], no_index=True)

@@ -24,7 +24,7 @@ __all__= [
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_string_dtype
+from pandas.api.types import is_numeric_dtype
 
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
@@ -32,6 +32,8 @@ from plotly.subplots import make_subplots
 from sklearn.metrics import (classification_report, confusion_matrix,
                              precision_recall_curve, roc_curve, 
                              roc_auc_score, average_precision_score)
+
+from .explainer_methods import matching_cols, safe_isinstance
 
 
 def plotly_prediction_piechart(predictions_df, showlegend=True, size=250):
@@ -343,8 +345,8 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
     return fig
 
 
-def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5, 
-                                pos_label=1, percentage=False):
+def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
+                                round=2, pos_label=1, percentage=False):
     """Displays bar plots showing label distributions above and below cutoff
     value.
 
@@ -354,6 +356,7 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
             (e.g. [0, 1, 1, 0,...,1])
         labels (List[str], optional): List of labels for classes. Defaults to None.
         cutoff (float, optional): Cutoff pred_proba. Defaults to 0.5.
+        round (int, optional): round float by round number of digits. Defaults to 2.
         pos_label (int, optional): Positive label class. Defaults to 1.
         percentage (bool, optional): Display percentage instead of absolute 
             numbers. Defaults to False.
@@ -372,18 +375,15 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
     
     fig = go.Figure()
     for i, label in enumerate(labels):
-        text = [f"<b>{sum(below_threshold[1]==i)}</b><br>({np.round(100*np.mean(below_threshold[1]==i), 1)}%)",
-                f"<b>{sum(above_threshold[1]==i)}</b><br>({np.round(100*np.mean(above_threshold[1]==i), 1)}%)", 
-                f"<b>{sum(targets==i)}</b><br>({np.round(100*np.mean(targets==i), 1)}%)"]
+        text = [f"<b>{sum(below_threshold[1]==i)}</b><br>({100*np.mean(below_threshold[1]==i):.{round}f}%)",
+                f"<b>{sum(above_threshold[1]==i)}</b><br>({100*np.mean(above_threshold[1]==i):.{round}f}%)", 
+                f"<b>{sum(targets==i)}</b><br>({100*np.mean(targets==i):.{round}f}%)"]
         if percentage:
             fig.add_trace(go.Bar(
                 x=x, 
                 y=[100*np.mean(below_threshold[1]==i),
                     100*np.mean(above_threshold[1]==i), 
                     100*np.mean(targets==i)], 
-                # text=[str(np.round(100*np.mean(below_threshold[1]==i), 2)) + '%',
-                #       str(np.round(100*np.mean(above_threshold[1]==i), 2)) + '%', 
-                #       str(np.round(100*np.mean(targets==i), 2)) + '%'],
                 text=text,
                 textposition='auto',
                 hoverinfo="text",
@@ -395,9 +395,6 @@ def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
                 y=[sum(below_threshold[1]==i),
                     sum(above_threshold[1]==i), 
                     sum(targets==i)], 
-                # text = [sum(below_threshold[1]==i),
-                #     sum(above_threshold[1]==i), 
-                #     sum(targets==i)], 
                 text=text,
                 textposition='auto',
                 hoverinfo="text",
@@ -418,7 +415,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     """returns a lift plot for values 
 
     Args:
-        lift_curve_df (pd.DataFrame): generated with get_lift_curve_df(pred_proba, y)
+        lift_curve_df (pd.DataFrame): generated with get_liftcurve_df(pred_proba, y)
         cutoff (float, optional): cutoff above which samples get classified as 
             positive. Defaults to None.
         percentage (bool, optional): Display percentages instead of absolute 
@@ -432,30 +429,30 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     """
 
     if percentage:
-        model_text=[f"model selected {np.round(pos, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
-                    + f"precision={np.round(precision, 2)}% positives in sample<br>" \
-                    + f"lift={np.round(pos/exp, 2)}" 
+        model_text=[f"model selected {pos:.{round}f}% of all positives in first {i:.{round}f}% sampled<br>" \
+                    + f"precision={precision:.{round}f}% positives in sample<br>" \
+                    + f"lift={pos/exp:.{round}f}" 
                   for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage, 
                                                       lift_curve_df.cumulative_percentage_pos,
                                                       lift_curve_df.random_cumulative_percentage_pos, 
                                                       lift_curve_df.precision)]
         
-        random_text=[f"random selected {np.round(exp, round)}% of all positives in first {np.round(i, round)}% sampled<br>" \
-                     + f"precision={np.round(precision, 2)}% positives in sample"
+        random_text=[f"random selected {exp:.{round}f}% of all positives in first {i:.{round}f}% sampled<br>" \
+                     + f"precision={precision:.{round}f}% positives in sample"
                   for (i, pos, exp, precision) in zip(lift_curve_df.index_percentage,
                                                       lift_curve_df.cumulative_percentage_pos, 
                                                       lift_curve_df.random_cumulative_percentage_pos, 
                                                       lift_curve_df.random_precision)]
     else:
         model_text=[f"model selected {pos} positives out of {i}<br>" \
-                    + f"precision={np.round(precision, 2)}<br>" \
-                    + f"lift={np.round(pos/exp, 2)}" 
+                    + f"precision={precision:.{round}f}<br>" \
+                    + f"lift={pos/exp:.{round}f}" 
                   for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
                                                       lift_curve_df.positives,
                                                       lift_curve_df.random_pos, 
                                                       lift_curve_df.precision)]
-        random_text=[f"random selected {np.round(exp).astype(int)} positives out of {i}<br>" \
-                     + f"precision={np.round(precision, 2)}"
+        random_text=[f"random selected {int(exp)} positives out of {i}<br>" \
+                     + f"precision={precision:.{round}f}"
                   for (i, pos, exp, precision) in zip(lift_curve_df['index'], 
                                                       lift_curve_df.positives, 
                                                       lift_curve_df.random_pos, 
@@ -547,7 +544,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
                                         x=cutoff_x, 
                                         y=5, 
                                         yref='y',
-                                        text=f"cutoff={np.round(cutoff,3)}"),
+                                        text=f"cutoff={cutoff:.{round}f}"),
                                     go.layout.Annotation(x=0.5, y=0.4, 
                                         text=f"Model: {cutoff_pos} out {cutoff_n} ({cutoff_precision}%)",
                                         showarrow=False, align="right", 
@@ -570,13 +567,16 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     return fig
 
 
-def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None, pos_label=1):
+def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None, 
+                            round=2, pos_label=1):
     """Return cumulative precision plot showing the expected label distribution
     if you cumulatively sample a more and more of the highest predicted samples.
 
     Args:
         lift_curve_df (pd.DataFrame): generated with get_liftcurve_df(...)
         labels (List[str], optional): list of labels for classes. Defaults to None.
+        percentile (float, optional): draw line at percentile, defaults to None
+        round (int, optional): round floats to digits. Defaults to 2.
         pos_label (int, optional): Positive class label. Defaults to 1.
 
     Returns:
@@ -585,7 +585,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
     if labels is None:
         labels = ['category ' + str(i) for i in range(lift_curve_df.y.max()+1)]
     fig = go.Figure()
-    text = [f"percentage sampled = top {round(idx_perc,2)}%"
+    text = [f"percentage sampled = top {idx_perc:.{round}f}%"
                 for idx_perc in lift_curve_df['index_percentage'].values]
     fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                    y=np.zeros(len(lift_curve_df)),
@@ -593,7 +593,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
                                    text=text,
                                    hoverinfo="text")) 
 
-    text = [f"percentage {labels[pos_label]}={round(perc, 2)}%" 
+    text = [f"percentage {labels[pos_label]}={perc:.{round}f}%" 
                 for perc in lift_curve_df['precision_' +str(pos_label)].values]
     fig = fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                    y=lift_curve_df['precision_' +str(pos_label)].values, 
@@ -607,7 +607,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
         
         if y_label != pos_label:
             cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
-            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+            text = [f"percentage {labels[y_label]}={perc:.{round}f}%" 
                 for perc in lift_curve_df['precision_' +str(y_label)].values]
             fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                          y=cumulative_y, 
@@ -620,7 +620,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
     for y_label in range(0, pos_label): 
         if y_label != pos_label:
             cumulative_y = cumulative_y + lift_curve_df['precision_' +str(y_label)].values
-            text = [f"percentage {labels[y_label]}={round(perc, 2)}%" 
+            text = [f"percentage {labels[y_label]}={perc:.{round}f}%" 
                 for perc in lift_curve_df['precision_' +str(y_label)].values]
             fig=fig.add_trace(go.Scatter(x=lift_curve_df.index_percentage, 
                                          y=cumulative_y, 
@@ -650,49 +650,43 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
         fig.update_layout(annotations=[
             go.layout.Annotation(x=100*percentile, y=20, 
                                  yref='y', ax=60, 
-                                 text=f"percentile={np.round(100*percentile, 2)}")])  
+                                 text=f"percentile={100*percentile:.{round}f}")])  
     fig.update_xaxes(nticks=10)
     return fig
 
 
-def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None, 
-                            interaction=False, na_fill=-999, round=2, units="", 
-                            highlight_index=None, idxs=None, index_name="index"):
+def plotly_dependence_plot(X_col, shap_values, interact_col=None, 
+                            interaction=False, na_fill=-999, round=3, units="", 
+                            highlight_index=None, idxs=None):
     """Returns a dependence plot showing the relationship between feature col_name
     and shap values for col_name. Do higher values of col_name increase prediction
     or decrease them? Or some kind of U-shape or other?
 
     Args:
-        X (pd.DataFrame): dataframe with rows of input data
-        shap_values (np.ndarray): shap values generated for X
-        col_name (str): column name for which to generate plot
-        interact_col_name (str, optional): Column name by which to color the 
-        markers. Defaults to None.
+        X_col (pd.Series): pd.Series with column values.
+        shap_values (np.ndarray): shap values generated for X_col
+        interact_col (pd.Series): pd.Series with column marker values. Defaults to None.
         interaction (bool, optional): Is this a plot of shap interaction values? 
             Defaults to False.
         na_fill (int, optional): value used for filling missing values. 
             Defaults to -999.
         round (int, optional): Rounding to apply to floats. Defaults to 2.
         units (str, optional): Units of the target variable. Defaults to "".
-        highlight_index (str, int, optional): index row of X to highlight in t
-        he plot. Defaults to None.
-        idxs (list, optional): list of descriptors of the index, e.g. 
+        highlight_index (str, int, optional): index row of X to highlight in 
+            the plot. Defaults to None.
+        idxs (pd.Index, optional): list of descriptors of the index, e.g. 
             names or other identifiers. Defaults to None.
-        index_name (str): identifier for idxs. Defaults to "index".
-
-
+            
     Returns:
         Plotly fig
     """
-    assert col_name in X.columns.tolist(), f'{col_name} not in X.columns'
-    assert (interact_col_name is None and not interaction) or interact_col_name in X.columns.tolist(),\
-            f'{interact_col_name} not in X.columns'
-
+    assert len(X_col) == len(shap_values), \
+        f"Column(len={len(X_col)}) and Shap values(len={len(shap_values)}) and should have the same length!"
     if idxs is not None:
-        assert len(idxs)==X.shape[0]
-        idxs = [str(idx) for idx in idxs]
+        assert len(idxs)==X_col.shape[0]
+        idxs = pd.Index(idxs).astype(str)
     else:
-        idxs = [str(i) for i in range(X.shape[0])]
+        idxs = X_col.index.astype(str)
 
     if highlight_index is not None:
         if isinstance(highlight_index, int):
@@ -700,91 +694,107 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
             highlight_name = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
             assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
-            highlight_idx = np.where(idxs==highlight_index)[0].item()
+            highlight_idx = idxs.get_loc(highlight_index)
             highlight_name = highlight_index
     
-    x = X[col_name].replace({-999:np.nan})
-    if len(shap_values.shape)==2:
-        y = shap_values[:, X.columns.get_loc(col_name)]
-    elif len(shap_values.shape)==3 and interact_col_name is not None:
-        y = shap_values[:, X.columns.get_loc(col_name), X.columns.get_loc(interact_col_name)]
-    else:
-        raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
+    col_name = X_col.name
+ 
+#     if len(shap_values.shape)==2:
+#         y = shap_values[:, X.columns.get_loc(col_name)]
+#     elif len(shap_values.shape)==3 and interact_col_name is not None:
+#         y = shap_values[:, X.columns.get_loc(col_name), X.columns.get_loc(interact_col_name)]
+#     else:
+#         raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
     
-    if interact_col_name is not None:
-        text = np.array([f'{index_name}={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                    for index, col_val, col_col_val, shap_val in zip(idxs, x, X[interact_col_name], np.round(y, round))])
+    
+    if interact_col is not None:
+        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={col_col_val}<br>SHAP={shap_val:.{round}f}' 
+                    for index, col_val, col_col_val, shap_val in zip(idxs, X_col, interact_col, shap_values)])
     else:
-        text = np.array([f'{index_name}={index}<br>{col_name}={col_val}<br>SHAP={shap_val}' 
-                    for index, col_val, shap_val in zip(idxs, x, np.round(y, round))])  
+        text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>SHAP={shap_val:.{round}f}' 
+                    for index, col_val, shap_val in zip(idxs, X_col, shap_values)])  
         
     data = []
     
-    if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
-        for onehot_col in X[interact_col_name].unique().tolist():
-                data.append(
-                    go.Scattergl(
-                        x=X[X[interact_col_name]==onehot_col][col_name].replace({-999:np.nan}),
-                        y=shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)],
-                        mode='markers',
-                        marker=dict(
-                                size=7,
-                                showscale=False,
-                                opacity=0.6,
-                            ),
-                        
-                        showlegend=True,
-                        opacity=0.8,
-                        hoverinfo="text",
-                        name=onehot_col,
-                        text=[f'{index_name}={index}<br>{col_name}={col_val}<br>{interact_col_name}={col_col_val}<br>SHAP={shap_val}' 
-                                for index, col_val, col_col_val, shap_val in zip(idxs,
-                                    X[X[interact_col_name]==onehot_col][col_name], 
-                                    X[X[interact_col_name]==onehot_col][interact_col_name], 
-                                    np.round(shap_values[X[interact_col_name]==onehot_col, X.columns.get_loc(col_name)], round))],
-                        )
+    X_col = X_col.copy().replace({na_fill:np.nan})
+    y = shap_values
+    if interact_col is not None and not is_numeric_dtype(interact_col):
+        for onehot_col in interact_col.unique().tolist():
+            data.append(
+                go.Scattergl(
+                    x=X_col[interact_col==onehot_col].replace({na_fill:np.nan}),
+                    y=shap_values[interact_col==onehot_col],
+                    mode='markers',
+                    marker=dict(
+                            size=7,
+                            showscale=False,
+                            opacity=0.6,
+                        ),
+                    showlegend=True,
+                    opacity=0.8,
+                    hoverinfo="text",
+                    name=onehot_col,
+                    text=[f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={interact_val}<br>SHAP={shap_val:.{round}f}' 
+                            for index, col_val, interact_val, shap_val in zip(idxs,
+                                X_col[interact_col==onehot_col], 
+                                interact_col[interact_col==onehot_col], 
+                                shap_values[interact_col==onehot_col])],
                     )
-                
-    elif interact_col_name is not None and is_numeric_dtype(X[interact_col_name]):
-        data.append(go.Scattergl(
-                        x=x[X[interact_col_name]!=na_fill],
-                        y=y[X[interact_col_name]!=na_fill], 
+                )         
+    elif interact_col is not None and is_numeric_dtype(interact_col):
+        if na_fill in interact_col:
+            data.append(go.Scattergl(
+                    x=X_col[interact_col != na_fill],
+                    y=shap_values[interact_col != na_fill], 
+                    mode='markers',
+                    text=text[interact_col != na_fill],
+                    hoverinfo="text",
+                    marker=dict(size=7, 
+                                opacity=0.6,
+                                color=interact_col[interact_col != na_fill],
+                                colorscale='Bluered',
+                                colorbar=dict(title=interact_col.name),
+                                showscale=True),    
+            ))
+            data.append(go.Scattergl(
+                        x=X_col[interact_col == na_fill],
+                        y=shap_values[interact_col == na_fill], 
                         mode='markers',
-                        text=text[X[interact_col_name]!=na_fill],
-                        hoverinfo="text",
-                        marker=dict(size=7, 
-                                    opacity=0.6,
-                                    color=X[interact_col_name][X[interact_col_name]!=na_fill],
-                                    colorscale='Bluered',
-                                    colorbar=dict(
-                                        title=interact_col_name
-                                        ),
-                                    showscale=True),    
-                ))
-        data.append(go.Scattergl(
-                        x=x[X[interact_col_name]==na_fill],
-                        y=y[X[interact_col_name]==na_fill], 
-                        mode='markers',
-                        text=text[X[interact_col_name]==na_fill],
+                        text=text[interact_col==na_fill],
                         hoverinfo="text",
                         marker=dict(size=7, 
                                     opacity=0.35,
                                     color='grey'),
-                ))
+            ))
+        else:
+            data.append(go.Scattergl(
+                    x=X_col,
+                    y=shap_values, 
+                    mode='markers',
+                    text=text,
+                    hoverinfo="text",
+                    marker=dict(size=7, 
+                                opacity=0.6,
+                                color=interact_col,
+                                colorscale='Bluered',
+                                colorbar=dict(title=interact_col.name),
+                                showscale=True),    
+            ))
+            
     else:
         data.append(go.Scattergl(
-                        x=x, 
-                        y=y, 
+                        x=X_col, 
+                        y=shap_values, 
                         mode='markers',
                         text=text,
                         hoverinfo="text",
-                        marker=dict(size=7, 
-                                    opacity=0.6)  ,                    
+                        marker=dict(size=7, opacity=0.6),                    
                 ))
+        
     if interaction:
-        title = f'Interaction plot for {col_name} and {interact_col_name}'
+        title = f'Interaction plot for {X_col.name} and {interact_col.name}'
     else:
-        title = f'Dependence plot for {col_name}'
+        title = f'Dependence plot for {X_col.name}'
 
     layout = go.Layout(
             title=title,
@@ -798,14 +808,14 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
         
     fig = go.Figure(data, layout)
     
-    if interact_col_name is not None and is_string_dtype(X[interact_col_name]):
+    if interact_col is not None and not is_numeric_dtype(interact_col):
         fig.update_layout(showlegend=True)
                                                       
     if highlight_index is not None:
         fig.add_trace(
             go.Scattergl(
-                x=[x[highlight_idx]], 
-                y=[y[highlight_idx]], 
+                x=[X_col[highlight_idx]], 
+                y=[shap_values[highlight_idx]], 
                 mode='markers',
                 marker=dict(
                     color='LightSkyBlue',
@@ -816,8 +826,8 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
                         width=4
                     )
                 ),
-                name=f"{index_name} {highlight_name}",
-                text=f"{index_name} {highlight_name}",
+                name=f"{idxs.name} {highlight_name}",
+                text=f"{idxs.name} {highlight_name}",
                 hoverinfo="text",
                 showlegend=False,
             ),
@@ -826,14 +836,14 @@ def plotly_dependence_plot(X, shap_values, col_name, interact_col_name=None,
     return fig
 
 
-def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=False, 
-        interaction=False, units="", highlight_index=None, idxs=None, index_name="index",
-        cats_order=None):
+def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False, 
+        interaction=False, units="", highlight_index=None, idxs=None, round=3,
+        cats_order=None, max_cat_colors=5):
     """Generates a violin plot for displaying shap value distributions for
     categorical features.
 
     Args:
-        X (pd.DataFrame): dataframe of input rows
+        X_col (pd.DataFrame): dataframe of input rows
         shap_values (np.ndarray): shap values generated for X
         col_name (str): Column of X to display violin plot for
         color_col (str, optional): Column of X to color plot markers by. 
@@ -846,27 +856,28 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         highlight_index (int, str, optional): Row index to highligh. Defaults to None.
         idxs (List[str], optional): List of identifiers for each row in X, e.g. 
             names or id's. Defaults to None.
-        index_name (str): identifier for idxs. Defaults to "index".
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
+        max_cat_colors (int, optional): maximum number of X_color_col categories
+            to colorize in scatter plot next to violin plot. Defaults to 5.
 
     Returns:
         Plotly fig
     """
     
-    assert is_string_dtype(X[col_name]), \
-        f'{col_name} is not categorical! Can only plot violin plots for categorical features!'
+    assert not is_numeric_dtype(X_col), \
+        f'{X_col.name} is not categorical! Can only plot violin plots for categorical features!'
         
-    x = X[col_name].copy()
-    shaps = shap_values[:, X.columns.get_loc(col_name)]
     if cats_order is None:
-        cats_order = sorted(X[col_name].unique().tolist())
+        cats_order = sorted(X_col.unique().tolist())
 
     n_cats = len(cats_order)
     
     if idxs is not None:
-        assert len(idxs)==X.shape[0]==len(shaps)
-        idxs = np.array([str(idx) for idx in idxs])
+        assert len(idxs)==X_col.shape[0]==len(shap_values)
+        idxs = pd.Index(idxs).astype(str)
     else:
-        idxs = np.array([str(i) for i in range(X.shape[0])])
+        idxs = X_col.index.astype(str)
 
     if highlight_index is not None:
         if isinstance(highlight_index, int):
@@ -874,102 +885,130 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
             highlight_name = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
             assert highlight_index in idxs, f'highlight_index should be int or in idxs, {highlight_index} is neither!'
-            highlight_idx = np.where(idxs==highlight_index)[0].item()
+            highlight_idx = idxs.get_loc(highlight_index)
             highlight_name = highlight_index
 
-    if points or color_col is not None:
+    if points or X_color_col is not None:
         fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
         showscale = True
     else:
         fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
-    shap_range = shaps.max() - shaps.min()
-    fig.update_yaxes(range=[shaps.min()-0.1*shap_range, shaps.max()+0.1*shap_range])  
+    shap_range = shap_values.max() - shap_values.min()
+    fig.update_yaxes(range=[shap_values.min()-0.1*shap_range, shap_values.max()+0.1*shap_range])  
+    
+    if X_color_col is not None:
+        color_cats = list(X_color_col.value_counts().index[:max_cat_colors])
+        n_color_cats = len(color_cats)
+        colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
+                    '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+        colors = colors * (1+int(n_color_cats / len(colors)))
+        colors = colors[:n_color_cats]
+        show_legend = set(color_cats+["Category_Other"])
 
     for i, cat in enumerate(cats_order):
-        col = 1+i*2 if points or color_col is not None else 1+i
+        col = 1+i*2 if points or X_color_col is not None else 1+i
+        if cat.startswith(X_col.name+"_"):
+            cat_name = cat[len(X_col.name)+1:]
+        else:
+            cat_name = cat
         fig.add_trace(go.Violin(
-                            x=x[x == cat],
-                            y=shaps[x == cat],
-                            name=cat,
+                            x=np.repeat(cat_name, len(X_col[X_col == cat])),
+                            y=shap_values[X_col == cat],
+                            name=cat_name,
                             box_visible=True,
                             meanline_visible=True,  
-                            showlegend=False,
-                               ),
+                            showlegend=False),
                      row=1, col=col)
-        if color_col is not None:
-            if is_numeric_dtype(X[color_col]):
+        if X_color_col is not None:
+            if is_numeric_dtype(X_color_col):
                 fig.add_trace(go.Scattergl(
-                                x=np.random.randn(len(x[x == cat])),
-                                y=shaps[x == cat],
-                                name=color_col,
+                                x=np.random.randn((X_col == cat).sum()),
+                                y=shap_values[X_col == cat],
+                                name=X_color_col.name,
                                 mode='markers',
                                 showlegend=False,
                                 hoverinfo="text",
-                                # hovertemplate = 
-                                # "<i>shap</i>: %{y:.2f}<BR>" +
-                                # f"<i>{color_col}" + ": %{marker.color}",
-                                text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
-                                            for index, shap, col in zip(idxs[x==cat], shaps[x == cat], X[color_col][x==cat])],
+                                text = [f"{idxs.name}: {index}<br>shap: {shap:.{round}f}<br>{X_color_col.name}: {col}" 
+                                            for index, shap, col in zip(idxs[X_col==cat], 
+                                                                        shap_values[X_col == cat], 
+                                                                        X_color_col[X_col==cat])],
                                 marker=dict(size=7, 
-                                        opacity=0.6,
-                                        cmin=X[color_col].min(),
-                                        cmax=X[color_col].max(),
-                                        color=X[color_col][x==cat],
+                                        opacity=0.3,
+                                        cmin=X_color_col.min(),
+                                        cmax=X_color_col.max(),
+                                        color=X_color_col[X_col==cat],
                                         colorscale='Bluered',
                                         showscale=showscale,
-                                        colorbar=dict(title=color_col)),              
+                                        colorbar=dict(title=X_color_col.name)),              
                                 ),
                          row=1, col=col+1)
             else:
-                n_color_cats = X[color_col].nunique()
-                colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
-                colors = colors * (1+int(n_color_cats / len(colors)))
-                colors = colors[:n_color_cats]
-                for color_cat, color in zip(X[color_col].unique(), colors):
+                for color_cat, color in zip(color_cats, colors):
+                    if color_cat.startswith(X_color_col.name+"_"):
+                        color_cat_name = color_cat[len(X_color_col.name)+1:]
+                    else:
+                        color_cat_name = color_cat
+            
                     fig.add_trace(go.Scattergl(
-                                    x=np.random.randn(len(x[(x == cat) & (X[color_col] == color_cat)])),
-                                    y=shaps[(x == cat) & (X[color_col] == color_cat)],
-                                    name=color_cat,
-                                   
+                                    x=np.random.randn(((X_col == cat) & (X_color_col == color_cat)).sum()),
+                                    y=shap_values[(X_col == cat) & (X_color_col == color_cat)],
+                                    name=color_cat_name,
                                     mode='markers',
-                                    showlegend=showscale,
+                                    showlegend=color_cat in show_legend,
                                     hoverinfo="text",
-                                    text = [f"{index_name}: {index}<br>shap: {shap}<br>{color_col}: {col}" 
-                                                for index, shap, col in zip(
-                                                                idxs[(x == cat) & (X[color_col] == color_cat)], 
-                                                                shaps[(x == cat) & (X[color_col] == color_cat)], 
-                                                                X[color_col][(x == cat) & (X[color_col] == color_cat)])],
-                                    # hovertemplate = 
-                                    # "<i>shap</i>: %{y:.2f}<BR>" +
-                                    # f"<i>{color_col}: {color_cat}",
+                                    text = [f"{idxs.name}: {index}<br>shap: {shap:.{round}f}<br>{X_color_col.name}: {color_cat_name}" 
+                                                for index, shap in zip(
+                                                                idxs[(X_col == cat) & (X_color_col == color_cat)], 
+                                                                shap_values[(X_col == cat) & (X_color_col == color_cat)])],
                                     marker=dict(size=7, 
-                                                opacity=0.8,
+                                                opacity=0.3,
                                                 color=color)           
                                     ),
                              row=1, col=col+1)
-                
+                    if color_cat in X_color_col[X_col==cat].unique():
+                        show_legend = show_legend - {color_cat}
+                if X_color_col.nunique() > max_cat_colors:
+                    fig.add_trace(go.Scattergl(
+                                        x=np.random.randn(((X_col == cat) & (~X_color_col.isin(color_cats))).sum()),
+                                        y=shap_values[(X_col == cat) & (~X_color_col.isin(color_cats))],
+                                        name="Other",
+                                        mode='markers',
+                                        showlegend="Category_Other" in show_legend,
+                                        hoverinfo="text",
+                                        text = [f"{idxs.name}: {index}<br>shap: {shap:.{round}f}<br>{X_color_col.name}: {col}" 
+                                                    for index, shap, col in zip(
+                                                                    idxs[(X_col == cat) & (~X_color_col.isin(color_cats))], 
+                                                                    shap_values[(X_col == cat) & (~X_color_col.isin(color_cats))],
+                                                                    X_color_col[(X_col == cat) & (~X_color_col.isin(color_cats))])],
+                                        marker=dict(size=7, 
+                                                    opacity=0.3,
+                                                    color="grey")           
+                                        ),
+                                 row=1, col=col+1)
+                    show_legend = show_legend - {"Category_Other"}
+                    
             showscale = False
         elif points:
             fig.add_trace(go.Scattergl(
-                            x=np.random.randn(len(x[x == cat])),
-                            y=shaps[x == cat],
+                            x=np.random.randn((X_col == cat).sum()),
+                            y=shap_values[X_col == cat],
                             mode='markers',
                             showlegend=False,
-                            # hovertemplate = 
-                            # "<i>shap</i>: %{y:.2f}",
                             hoverinfo="text",
-                            text = [f"{index_name}: {index}<br>shap: {shap}" 
-                                        for index, shap in zip(idxs[(x == cat)], shaps[x == cat])],
+                            text = [f"{idxs.name}: {index}<br>shap: {shap}" 
+                                        for index, shap in zip(idxs[(X_col == cat)], shap_values[X_col == cat])],
                             marker=dict(size=7, 
                                     opacity=0.6,
                                        color='blue'),
                         ), row=1, col=col+1)
-        if highlight_index is not None and X[col_name][highlight_idx]==cat:
+        if (highlight_index is not None 
+            and (points or X_color_col is not None) 
+            and X_col[highlight_idx]==cat):
             fig.add_trace(
                 go.Scattergl(
                     x=[0], 
-                    y=[shaps[highlight_idx]], 
+                    y=[shap_values[highlight_idx]], 
                     mode='markers',
                     marker=dict(
                         color='LightSkyBlue',
@@ -980,13 +1019,13 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
                             width=4
                         )
                     ),
-                    name = f"{index_name} {highlight_name}",
-                    text=f"{index_name} {highlight_name}",
+                    name = f"{idxs.name} {highlight_name}",
+                    text=f"{idxs.name} {highlight_name}",
                     hoverinfo="text",
                     showlegend=False,
                 ), row=1, col=col+1)
 
-    if points or color_col is not None:
+    if points or X_color_col is not None:
         for i in range(n_cats):
             fig.update_xaxes(showgrid=False, zeroline=False, visible=False, row=1, col=2+i*2)
             fig.update_yaxes(showgrid=False, zeroline=False, row=1, col=2+i*2)
@@ -995,12 +1034,12 @@ def plotly_shap_violin_plot(X, shap_values, col_name, color_col=None, points=Fal
         yaxis=dict(title=f"SHAP value ({units})" if units !="" else "SHAP value"),
         hovermode='closest')
 
-    if color_col is not None and interaction:
-        fig.update_layout(title=f'Interaction plot for {col_name} and {color_col}')
-    elif color_col is not None:
-        fig.update_layout(title=f'Shap values for {col_name}<br>(colored by {color_col})')
+    if X_color_col is not None and interaction:
+        fig.update_layout(title=f'Interaction plot for {X_col.name} and {X_color_col.name}')
+    elif X_color_col is not None:
+        fig.update_layout(title=f'Shap values for {X_col.name}<br>(colored by {X_color_col.name})')
     else:
-        fig.update_layout(title=f'Shap values for {col_name}')
+        fig.update_layout(title=f'Shap values for {X_col.name}')
     
     return fig
 
@@ -1129,7 +1168,7 @@ def plotly_pdp(pdp_df,
             go.layout.Annotation(
                 x=pdp_df.columns[int(0.5*len(pdp_df.columns))], 
                 y=index_prediction, 
-                text=f"baseline pred = {str(np.round(index_prediction,round))}")
+                text=f"baseline pred = {index_prediction:.{round}f}")
                 )
 
     fig.update_layout(annotations=annotations)
@@ -1268,13 +1307,14 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
     return fig
 
 
-def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
+def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None, round=2):
     """Plot ROC AUC curve
 
     Args:
         true_y (np.ndarray): array of true labels
         pred_probas (np.ndarray): array of predicted probabilities
         cutoff (float, optional): Cutoff proba to display. Defaults to None.
+        round (int, optional): rounding of floats. Defaults to 2.
 
     Returns:
         Plotly Fig: 
@@ -1284,7 +1324,7 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
     trace0 = go.Scatter(x=fpr, y=tpr,
                     mode='lines',
                     name='ROC AUC CURVE',
-                    text=[f"threshold: {np.round(th,2)} <br> FP: {np.round(fp,2)} <br> TP: {np.round(tp,2)}" 
+                    text=[f"threshold: {th:.{round}f} <br> FP: {fp:.{round}f} <br> TP: {tp:.{round}f}" 
                               for fp, tp, th in zip(fpr, tpr, thresholds)],
                     hoverinfo="text"
                 )
@@ -1327,27 +1367,27 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
                                     output_dict=True)
         
         annotations = [go.layout.Annotation(x=0.6, y=0.45, 
-                            text=f"Cutoff: {np.round(cutoff,3)}",
+                            text=f"Cutoff: {cutoff:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.4, 
-                            text=f"Accuracy: {np.round(rep['accuracy'],3)}",
+                            text=f"Accuracy: {rep['accuracy']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.35, 
-                            text=f"Precision: {np.round(rep['1']['precision'], 3)}",
+                            text=f"Precision: {rep['1']['precision']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.30, 
-                            text=f"Recall: {np.round(rep['1']['recall'], 3)}",
+                            text=f"Recall: {rep['1']['recall']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.25, 
-                            text=f"F1-score: {np.round(rep['1']['f1-score'], 3)}",
+                            text=f"F1-score: {rep['1']['f1-score']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.20, 
-                            text=f"roc-auc-score: {np.round(roc_auc, 3)}",
+                            text=f"roc-auc-score: {roc_auc:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
@@ -1356,13 +1396,14 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
+def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None, round=2):
     """Generate Precision-Recall Area Under Curve plot
 
     Args:
         true_y (np.ndarray): array of tru labels
         pred_probas (np.ndarray): array of predicted probabilities
         cutoff (float, optional): model cutoff to display in graph. Defaults to None.
+        round (int, optional): rounding to apply to floats. Defaults to 2.
 
     Returns:
         Plotly fig: 
@@ -1372,9 +1413,9 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     trace0 = go.Scatter(x=precision, y=recall,
                     mode='lines',
                     name='PR AUC CURVE',
-                    text=[f"threshold: {np.round(th,2)} <br>" +\
-                          f"precision: {np.round(p,2)} <br>" +\
-                          f"recall: {np.round(r,2)}" 
+                    text=[f"threshold: {th:.{round}f} <br>" +\
+                          f"precision: {p:.{round}f} <br>" +\
+                          f"recall: {r:.{round}f}" 
                             for p, r, th in zip(precision, recall, thresholds)],
                     hoverinfo="text"
                 )
@@ -1408,27 +1449,27 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
                     output_dict=True)
         
         annotations = [go.layout.Annotation(x=0.15, y=0.45, 
-                            text=f"Cutoff: {np.round(cutoff,3)}",
+                            text=f"Cutoff: {cutoff:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.4, 
-                            text=f"Accuracy: {np.round(report['accuracy'],3)}",
+                            text=f"Accuracy: {report['accuracy']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.35, 
-                            text=f"Precision: {np.round(report['1']['precision'], 3)}",
+                            text=f"Precision: {report['1']['precision']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.30, 
-                            text=f"Recall: {np.round(report['1']['recall'], 3)}",
+                            text=f"Recall: {report['1']['recall']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.25, 
-                            text=f"F1-score: {np.round(report['1']['f1-score'], 3)}",
+                            text=f"F1-score: {report['1']['f1-score']:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.20, 
-                            text=f"pr-auc-score: {np.round(pr_auc_score, 3)}",
+                            text=f"pr-auc-score: {pr_auc_score:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
@@ -1437,15 +1478,16 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None):
     return fig
 
 
-def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap values", 
-                idxs=None, highlight_index=None, na_fill=-999, index_name="index"):
+def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Shap values", 
+                idxs=None, highlight_index=None, na_fill=-999, round=3, max_cat_colors=5):
     """Generate a shap values summary plot where features are ranked from
     highest mean absolute shap value to lowest, with point clouds shown
     for each feature. 
 
     Args:
-        shap_values (np.ndarray): shap_values
+        
         X (pd.DataFrame): dataframe of input features
+        shap_values_df (pd.DataFrame): dataframe shap_values with same columns as X
         display_columns (List[str]): list of feature to be displayed. If None
             default to all columns in X.
         title (str, optional): Title to display above graph. 
@@ -1456,20 +1498,23 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
             Defaults to None.
         na_fill (int, optional): Fill value used to fill missing values, 
             will be colored grey in the graph.. Defaults to -999.
+        round (int, optional): rounding to apply to floats. Defaults to 3.
         index_name (str): identifier for idxs. Defaults to "index".
 
     Returns:
         Plotly fig
     """
-    
+    assert matching_cols(X, shap_values_df), "X and shap_values_df should have matching columns!"
     if display_columns is None:
         display_columns = X.columns.tolist()
     if idxs is not None:
         assert len(idxs)==X.shape[0]
-        idxs = np.array([str(idx) for idx in idxs])
+        idxs = pd.Index(idxs).astype(str)
     else:
-        idxs = np.array([str(i) for i in range(X.shape[0])])
+        idxs = X.index.astype(str)
+    index_name = idxs.name
         
+    length = len(X)
     if highlight_index is not None:
         if isinstance(highlight_index, int):
             assert highlight_index >=0 and highlight_index < len(X), \
@@ -1483,64 +1528,94 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
             raise ValueError("Please pass either int or str highlight_index!")
         
     # make sure that columns are actually in X:
-    display_columns = [col for col in display_columns if col in X.columns.tolist()]    
-    shap_df = pd.DataFrame(shap_values, columns=X.columns, index=X.index)
-    min_shap = np.round(shap_values.min()-0.01, 2)
-    max_shap = np.round(shap_values.max()+0.01, 2)
+    display_columns = [col for col in display_columns if col in X.columns]  
+    min_shap = shap_values_df.min().min()
+    max_shap = shap_values_df.max().max()
+    shap_range = max_shap - min_shap
+    min_shap = min_shap - 0.01 * shap_range
+    max_shap = max_shap + 0.01 * shap_range
 
     fig =  make_subplots(rows=len(display_columns), cols=1, 
                          subplot_titles=display_columns, shared_xaxes=True)
     
     for i, col in enumerate(display_columns):
-        
-        if is_string_dtype(X[col]): 
-            # if str type then categorical variable, 
-            # so plot each category in a different color:
-            for onehot_col in X[col].unique().tolist():
+        if is_numeric_dtype(X[col]):
+            # numerical feature get a single bluered plot
+            fig.add_trace(go.Scattergl(
+                            x=shap_values_df[col],
+                            y=np.random.rand(length),
+                            mode='markers',
+                            marker=dict(
+                              size=5,
+                              color=X[col].replace({na_fill:np.nan}),
+                              colorscale='Bluered',
+                              showscale=True,
+                              opacity=0.3,
+                              colorbar=dict(
+                                title="feature value <br> (red is high)", 
+                                showticklabels=False),
+                            ),
+                            name=col,
+                            showlegend=False,
+                            opacity=0.8,
+                            hoverinfo="text",
+                            text=[f"{index_name}={i}<br>{col}={value}<br>shap={shap:.{round}f}" 
+                              for i, shap, value in zip(idxs, shap_values_df[col], X[col].replace({na_fill:np.nan}))],
+                            ),
+                     row=i+1, col=1);
+        else: 
+            color_cats = list(X[col].value_counts().index[:max_cat_colors])
+            n_color_cats = len(color_cats)
+            colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', 
+                        '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+            colors = colors * (1+int(n_color_cats / len(colors)))
+            colors = colors[:n_color_cats]
+            for cat, color in zip(color_cats, colors):
                 fig.add_trace(go.Scattergl(
-                                x=shap_df[X[col]==onehot_col][col],
-                                y=np.random.rand(len(shap_df[X[col]==onehot_col])),
+                                x=shap_values_df[col][X[col]==cat],
+                                y=np.random.rand((X[col]==cat).sum()),
                                 mode='markers',
                                 marker=dict(
                                       size=5,
                                       showscale=False,
                                       opacity=0.3,
+                                      color=color,
                                   ),
-                                name=onehot_col,
+                                name=cat,
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{index_name}={i}<br>{col}={onehot_col}<br>shap={np.round(shap,3)}" 
-                                      for i, shap in zip(idxs[X[col]==onehot_col], shap_df[X[col]==onehot_col][col])],
+                                text=[f"{index_name}={i}<br>{col}={cat}<br>shap={shap:.{round}f}" 
+                                      for i, shap in zip(idxs[X[col]==cat], 
+                                            shap_values_df[col][X[col]==cat])],
                                 ),
-                     row=i+1, col=1);
-        else:
-            # numerical feature get a single bluered plot
-            fig.add_trace(go.Scattergl(x=shap_df[col],
-                                   y=np.random.rand(len(shap_df)),
-                                  mode='markers',
-                                  marker=dict(
+                     row=i+1, col=1)
+            if X[col].nunique() > max_cat_colors:
+                fig.add_trace(go.Scattergl(
+                                x=shap_values_df[col][~X[col].isin(color_cats)],
+                                y=np.random.rand((~X[col].isin(color_cats)).sum()),
+                                mode='markers',
+                                marker=dict(
                                       size=5,
-                                      color=X[col].replace({na_fill:np.nan}),
-                                      colorscale='Bluered',
-                                      showscale=True,
+                                      showscale=False,
                                       opacity=0.3,
-                                      colorbar=dict(
-                                        title="feature value <br> (red is high)", 
-                                        showticklabels=False),
+                                      color="grey",
                                   ),
-                                name=col,
+                                name="Other",
                                 showlegend=False,
                                 opacity=0.8,
                                 hoverinfo="text",
-                                text=[f"{index_name}={i}<br>{col}={value}<br>shap={np.round(shap,3)}" 
-                                      for i, shap, value in zip(idxs, shap_df[col], X[col].replace({-999:np.nan}))],
+                                text=[f"{index_name}={i}<br>{col}={col_val}<br>shap={shap:.{round}f}" 
+                                      for i, shap, col_val in zip(idxs[~X[col].isin(color_cats)], 
+                                                              shap_values_df[col][~X[col].isin(color_cats)],
+                                                              X[col][~X[col].isin(color_cats)])],
                                 ),
-                     row=i+1, col=1);
+                     row=i+1, col=1)
+                
         if highlight_index is not None:
             fig.add_trace(
             go.Scattergl(
-                x=[shap_df[col].iloc[highlight_idx]], 
+                x=[shap_values_df[col].iloc[highlight_idx]], 
                 y=[0], 
                 mode='markers',
                 marker=dict(
@@ -1553,7 +1628,7 @@ def plotly_shap_scatter_plot(shap_values, X, display_columns=None, title="Shap v
                     )
                 ),
                 name = f"{index_name} {highlight_index}",
-                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_df[col].iloc[highlight_idx]}",
+                text=f"index={highlight_index}<br>{col}={X[col].iloc[highlight_idx]}<br>shap={shap_values_df[col].iloc[highlight_idx]:.{round}f}",
                 hoverinfo="text",
                 showlegend=False,
             ), row=i+1, col=1)
@@ -1603,10 +1678,8 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     else:
         idxs = [str(i) for i in range(len(preds))]
         
-    marker_text=[f"{index_name}: {idx}<br>Observed: {actual}<br>Prediction: {pred}" 
-                  for idx, actual, pred in zip(idxs, 
-                                                np.round(y, round), 
-                                                np.round(preds, round))] 
+    marker_text=[f"{index_name}: {idx}<br>Observed: {actual:.{round}f}<br>Prediction: {pred:.{round}f}" 
+                  for idx, actual, pred in zip(idxs, y, preds)] 
     
     trace0 = go.Scattergl(
         x = y,
@@ -1630,12 +1703,8 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
     
     layout = go.Layout(
         title=f"Predicted {target} vs Observed {target}",
-        yaxis=dict(
-            title=f"Predicted {target}" + f" ({units})" if units else "",
-        ),
-        xaxis=dict(
-            title=f"Observed {target}" + f" ({units})" if units else "",
-        ),
+        yaxis=dict(title=f"Predicted {target}" + (f" ({units})" if units else "")),
+        xaxis=dict(title=f"Observed {target}" + (f" ({units})" if units else "")),
         plot_bgcolor = '#fff',
         hovermode = 'closest',
     )
@@ -1692,11 +1761,8 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
         
-    residuals_text=[f"{index_name}: {idx}<br>Observed: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
-                  for idx, actual, pred, residual in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round), 
-                                                    np.round(res, round))] 
+    residuals_text=[f"{index_name}: {idx}<br>Observed: {actual:.{round}f}<br>Prediction: {pred:.{round}f}<br>Residual: {residual:.{round}f}" 
+                  for idx, actual, pred, residual in zip(idxs, y, preds, res)] 
     trace0 = go.Scattergl(
         x=y if vs_actual else preds, 
         y=residuals_display, 
@@ -1737,7 +1803,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
 
 def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference',
                             idxs=None, round=2, points=True, winsor=0, 
-                            na_fill=-999, index_name="index"):
+                            na_fill=-999, index_name="index", cats_order=None):
     """Generates a residuals plot vs a particular feature column.
 
     Args:
@@ -1757,6 +1823,8 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
         index_name (str): identifier for idxs. Defaults to "index".
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
 
 
     Returns:
@@ -1790,14 +1858,13 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         raise ValueError(f"parameter residuals should be in ['difference', "
                         f"'ratio', 'log-ratio'] but is equal to {residuals}!")
 
-    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual}<br>Prediction: {pred}<br>Residual: {residual}" 
-                  for idx, actual, pred, residual in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round), 
-                                                    np.round(res, round))] 
+    residuals_text=[f"{index_name}: {idx}<br>Actual: {actual:.{round}f}<br>Prediction: {pred:.{round}f}<br>Residual: {residual:.{round}f}" 
+                  for idx, actual, pred, residual in zip(idxs, y, preds, res)] 
     
-    if is_string_dtype(col):
-        n_cats = col.nunique()
+    if not is_numeric_dtype(col):
+        if cats_order is None:
+            cats_order = sorted(col.unique().tolist())
+        n_cats = len(cats_order)
         
         if points:
             fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
@@ -1808,7 +1875,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
                                 np.percentile(residuals_display, 100-winsor)]) 
 
-        for i, cat in enumerate(col.unique()):
+        for i, cat in enumerate(cats_order):
             column = 1+i*2 if points else 1+i
             fig.add_trace(go.Violin(
                                 x=col[col == cat],
@@ -1827,7 +1894,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
                                 text=[t for t, b in zip(residuals_text, col == cat) if b],
                                 hoverinfo="text",
                                 marker=dict(size=7, 
-                                        opacity=0.6,
+                                        opacity=0.3,
                                         color='blue'),
                             ), row=1, col=column+1)
 
@@ -1884,7 +1951,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
 
 def plotly_actual_vs_col(y, preds, col, col_name=None, 
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999,
-                            units="", target="", index_name="index"):
+                            units="", target="", index_name="index", cats_order=None):
     """Generates a residuals plot vs a particular feature column.
 
     Args:
@@ -1902,6 +1969,8 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
         index_name (str): identifier for idxs. Defaults to "index".
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
 
 
     Returns:
@@ -1920,13 +1989,13 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         idxs = [str(i) for i in range(len(preds))]
         
 
-    y_text=[f"{index_name}: {idx}<br>Observed {target}: {actual}<br>Prediction: {pred}" 
-                  for idx, actual, pred in zip(idxs, 
-                                                    np.round(y, round), 
-                                                    np.round(preds, round))] 
+    y_text=[f"{index_name}: {idx}<br>Observed {target}: {actual:.{round}f}<br>Prediction: {pred:.{round}f}" 
+                  for idx, actual, pred in zip(idxs, y, preds)] 
     
-    if is_string_dtype(col):
-        n_cats = col.nunique()
+    if not is_numeric_dtype(col):
+        if cats_order is None:
+            cats_order = sorted(col.unique().tolist())
+        n_cats = len(cats_order)
         
         if points:
             fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
@@ -1937,7 +2006,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         fig.update_yaxes(range=[np.percentile(y, winsor), 
                                 np.percentile(y, 100-winsor)]) 
 
-        for i, cat in enumerate(col.unique()):
+        for i, cat in enumerate(cats_order):
             column = 1+i*2 if points else 1+i
             fig.add_trace(go.Violin(
                                 x=col[col == cat],
@@ -2007,7 +2076,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
 
 def plotly_preds_vs_col(y, preds, col, col_name=None, 
                             idxs=None, round=2, points=True, winsor=0, na_fill=-999,
-                            units="", target="", index_name="index"):
+                            units="", target="", index_name="index", cats_order=None):
     """Generates plot of predictions vs a particular feature column.
 
     Args:
@@ -2025,7 +2094,8 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
             percent highest and lowest values. Defaults to 0.
         na_fill (int, optional): Value used to fill missing values. Defaults to -999.
         index_name (str): identifier for idxs. Defaults to "index".
-
+        cats_order (list, optional): list of categories to display. If None
+            defaults to X_col.unique().tolist() so displays all categories.
 
     Returns:
         Plotly fig
@@ -2043,11 +2113,13 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         idxs = [str(i) for i in range(len(preds))]
         
 
-    preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred}{units}<br>Observed {target}: {actual}{units}" 
-                  for idx, actual, pred in zip(idxs,np.round(y, round), np.round(preds, round))] 
+    preds_text=[f"{index_name}: {idx}<br>Predicted {target}: {pred:.{round}f}{units}<br>Observed {target}: {actual:.{round}f}{units}" 
+                  for idx, actual, pred in zip(idxs, y, preds)] 
     
-    if is_string_dtype(col):
-        n_cats = col.nunique()
+    if not is_numeric_dtype(col):
+        if cats_order is None:
+            cats_order = sorted(col.unique().tolist())
+        n_cats = len(cats_order)
         
         if points:
             fig = make_subplots(rows=1, cols=2*n_cats, column_widths=[3, 1]*n_cats, shared_yaxes=True)
@@ -2058,7 +2130,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         fig.update_yaxes(range=[np.percentile(preds, winsor), 
                                 np.percentile(preds, 100-winsor)]) 
 
-        for i, cat in enumerate(col.unique()):
+        for i, cat in enumerate(cats_order):
             column = 1+i*2 if points else 1+i
             fig.add_trace(go.Violin(
                                 x=col[col == cat],
@@ -2144,8 +2216,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
     Returns:
         Plotly fig
     """
-    assert (str(type(model)).endswith("RandomForestClassifier'>") 
-            or str(type(model)).endswith("RandomForestRegressor'>")), \
+    assert safe_isinstance(model, "RandomForestClassifier", "RandomForestRegressor"), \
         f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
     
     colors = ['blue'] * len(model.estimators_) 
@@ -2154,8 +2225,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
             f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
         colors[highlight_tree] = 'red'
         
-    if (hasattr(model.estimators_[0], "classes_") 
-        and model.estimators_[0].classes_[0] is not None): #if classifier
+    if safe_isinstance(model, "RandomForestClassifier"):
         preds_df = (
             pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
@@ -2212,7 +2282,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
     annotations = [go.layout.Annotation(
         x=1.2*preds_df.model.mean(), 
         y=preds_df.prediction.mean(),
-        text=f"Average prediction = {np.round(preds_df.prediction.mean(),2)}",
+        text=f"Average prediction = {preds_df.prediction.mean():.{round}f}",
         bgcolor="lightgrey",
         arrowcolor="lightgrey",
         startstandoff=0)]
@@ -2279,10 +2349,10 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
         bases = xgboost_preds_df.pred_proba.values[:-1]
         diffs = xgboost_preds_df.pred_proba_diff.values[1:]
         
-        texts=[f"tree no {t}:<br>change = {np.round(100*d, round)}%<br> click for detailed info"
+        texts=[f"tree no {t}:<br>change = {100*d:.{round}f}%<br> click for detailed info"
                              for (t, d) in zip(trees, diffs)]
-        texts.insert(0, f"Base prediction: <br>proba = {np.round(100*base_prediction, round)}%")
-        texts.append(f"Final Prediction: <br>proba = {np.round(100*final_prediction, round)}%")
+        texts.insert(0, f"Base prediction: <br>proba = {100*base_prediction:.{round}f}%")
+        texts.append(f"Final Prediction: <br>proba = {100*final_prediction:.{round}f}%")
     else:
         final_prediction = xgboost_preds_df.pred.values[-1]
         base_prediction = xgboost_preds_df.pred.values[0]
@@ -2290,10 +2360,10 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
         bases = xgboost_preds_df.pred.values[:-1]
         diffs = xgboost_preds_df.pred_diff.values[1:]
         
-        texts=[f"tree no {t}:<br>change = {np.round(d, round)}<br> click for detailed info"
+        texts=[f"tree no {t}:<br>change = {d:.{round}f}<br> click for detailed info"
                              for (t, d) in zip(trees, diffs)]
-        texts.insert(0, f"Base prediction: <br>pred = {np.round(base_prediction, round)}")
-        texts.append(f"Final Prediction: <br>pred = {np.round(final_prediction, round)}")
+        texts.insert(0, f"Base prediction: <br>pred = {base_prediction:.{round}f}")
+        texts.append(f"Final Prediction: <br>pred = {final_prediction:.{round}f}")
         
     green_fill, green_line =  'rgba(50, 200, 50, 1.0)', 'rgba(40, 160, 50, 1.0)'
     yellow_fill, yellow_line = 'rgba(230, 230, 30, 1.0)', 'rgba(190, 190, 30, 1.0)'

@@ -22,7 +22,7 @@ a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.
 
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
- example notebook on how to launch dashboard for different models [here](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+ example notebook on how to launch dashboard for different models [here](notebooks/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](notebooks/explainer_examples.ipynb).
 
  Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm` and others.
 
@@ -300,7 +300,6 @@ cats toggle will be hidden on every component that has one:
 ```python
 ExplainerDashboard(explainer, 
                     no_permutations=True, # do not show or calculate permutation importances
-                    hide_cats=True, # hide the group cats toggles
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
                     hide_orientation=True, # hide orientation dropdown in contributions graph/table
@@ -336,9 +335,9 @@ ExplainerDashboard(explainer,
                     col='Fare', # initial feature in shap graphs
                     color_col='Age', # color feature in shap dependence graph
                     interact_col='Age', # interaction feature in shap interaction
-                    cats=False, # do not group categorical onehot features
                     depth=5, # only show top 5 features
                     sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
+                    cats_topx=3, # show only the top 3 categories for categorical features
                     cats_sort='alphabet', # short categorical features alphabetically
                     orientation='horizontal', # horizontal bars in contributions graph
                     index='Rugg, Miss. Emily', # initial index to display
@@ -364,12 +363,12 @@ a few toggles:
 from explainerdashboard.custom import *
 
 class CustomDashboard(ExplainerComponent):
-    def __init__(self, explainer, **kwargs):
+    def __init__(self, explainer, name=None):
         super().__init__(explainer, title="Custom Dashboard")
-        self.confusion = ConfusionMatrixComponent(explainer,
+        self.confusion = ConfusionMatrixComponent(explainer, name=self.name+"cm",
                             hide_selector=True, hide_percentage=True,
                             cutoff=0.75)
-        self.contrib = ShapContributionsGraphComponent(explainer,
+        self.contrib = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
                             hide_selector=True, hide_cats=True, 
                             hide_depth=True, hide_sort=True,
                             index='Rugg, Miss. Emily')
@@ -452,17 +451,51 @@ or with waitress (also works on Windows):
     $ waitress-serve dashboard:app
 ```
 
+### Minimizing memory usage
 
+When you deploy a dashboard with a dataset with a large number of rows (`n`) and columns (`m`),
+the memory usage of the dashboard can be substantial. You can check the (approximate)
+memory usage with `explainer.memory_usage()`. In order to reduce the memory
+footprint there are a number of things you can do:
+
+1. Not including shap interaction tab: shap interaction values are shape (`n*m*m`),
+    so can take a subtantial amount of memory.
+2. Setting a lower precision. By default shap values are stored as `'float64'`,
+    but you can store them as `'float32'` instead and save half the space:
+    ```ClassifierExplainer(model, X_test, y_test, precision='float32')```. You 
+    can also set a lower precision on your `X_test` dataset yourself ofcourse.
+3. For multi class classifier, by default `ClassifierExplainer` calculates
+    shap values for all classes. If you're only interested in a single class
+    you can drop the other shap values: `explainer.keep_shap_pos_label_only(pos_label)`
+4. Storing data externally. You can for example only store a subset of 10.000 rows in
+    the explainer itself (enough to generate importance and dependence plots),
+    and store the rest of your millions of rows of input data in an external file 
+    or database:
+    - with `explainer.set_X_row_func()` you can set a function that takes 
+        and `index` as argument and returns a single row dataframe with model
+        compatible input data for that index. This function can include a query
+        to a database or fileread. 
+    - with `explainer.set_y_func()` you can set a function that takes 
+        and `index` as argument and returns the observed outcome `y` for
+        that index.
+    - with `explainer.set_index_list_func()` you can set a function 
+        that returns a list of available indexes that can be queried.
+
+    Important: these function can be called multiple times by multiple independent
+    components, so probably best to implement some kind of caching functionality.
+    The functions you pass can be also methods, so you have access to all of the
+    internals of the explainer.
+    
 
 ## Documentation
 
 Documentation can be found at [explainerdashboard.readthedocs.io](https://explainerdashboard.readthedocs.io/en/latest/).
 
-Example notebook on how to launch dashboards for different model types here: [dashboard_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb).
+Example notebook on how to launch dashboards for different model types here: [dashboard_examples.ipynb](notebooks/dashboard_examples.ipynb).
 
-Example notebook on how to interact with the explainer object here: [explainer_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb).
+Example notebook on how to interact with the explainer object here: [explainer_examples.ipynb](notebooks/explainer_examples.ipynb).
 
-Example notebook on how to design a custom dashboard: [custom_examples.ipynb](https://github.com/oegedijk/explainerdashboard/blob/master/custom_examples.ipynb).
+Example notebook on how to design a custom dashboard: [custom_examples.ipynb](notebooks/custom_examples.ipynb).
 
 
 

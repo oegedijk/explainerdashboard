@@ -99,9 +99,9 @@ def get_catboost_classifier():
                         labels=['Not survived', 'Survived'],
                         idxs=test_names)
 
-    X_cats, y_cats = explainer.X_cats, explainer.y
+    X_cats, y_cats = explainer.X_merged, explainer.y.astype("int")
     model = CatBoostClassifier(iterations=5, verbose=0).fit(X_cats, y_cats, cat_features=[5, 6, 7])
-    explainer = ClassifierExplainer(model, X_cats, y_cats)
+    explainer = ClassifierExplainer(model, X_cats, y_cats, idxs=X_test.index)
     explainer.calculate_properties(include_interactions=False)
     return explainer
 
@@ -112,9 +112,9 @@ def get_catboost_regressor():
     model = CatBoostRegressor(iterations=5, verbose=0).fit(X_train, y_train)
     explainer = RegressionExplainer(model, X_test, y_test, 
                                     cats=["Sex", 'Deck', 'Embarked'])
-    X_cats, y_cats = explainer.X_cats, explainer.y
+    X_cats, y_cats = explainer.X_merged, explainer.y
     model = CatBoostRegressor(iterations=5, verbose=0).fit(X_cats, y_cats, cat_features=[5, 6, 7])
-    explainer = RegressionExplainer(model, X_cats, y_cats)
+    explainer = RegressionExplainer(model, X_cats, y_cats, idxs=X_test.index)
     explainer.calculate_properties(include_interactions=False)
     return explainer
 

@@ -1,5 +1,122 @@
 # Release Notes
 
+
+## 0.3.0:
+This is a major release and comes with lots of breaking changes to the lower level 
+`ClassifierExplainer` and `RegressionExplainer` API. The higherlevel `ExplainerComponent` and `ExplainerDashboard` API has not been
+changed however, except for the deprecation of the `cats` and `hide_cats` parameters.
+
+Explainers generated with version `explainerdashboard <= 0.2.20.1` will not work 
+with this version, so if you have stored explainers to disk you either have to 
+rebuild them with this new version, or downgrade back to `explainerdashboard==0.2.20.1`! 
+(hope you pinned your dependencies in production! ;)
+
+Main motivation for these breaking changes was to improve memory usage of the
+dashboards, especially in production. This lead to the deprecation of the
+dual cats grouped/not grouped functionality of the dashboard. Once I had committed
+to that breaking change, I decided to clean up the entire API and do all the 
+needed breaking changes at once. 
+
+
+### Breaking Changes
+- onehot encoded features are now merged by default. This means that the `cats=True`
+    parameter has been removed from all explainer methods, and the `group cats` 
+    toggle has been removed from all `ExplainerComponents`. This saves both
+    on code complexity and memory usage. If you wish to see the see the individual
+    contributions of onehot encoded columns, simply don't pass them to the 
+    `cats` parameter upon construction.
+- Deprecated explainer attributes:
+    - `BaseExplainer`:
+        - `self.shap_values_cats`
+        - `self.shap_interaction_values_cats`
+        - `permutation_importances_cats`
+        - `self.get_dfs()`
+        - `formatted_contrib_df()`
+        - `self.to_sql()`
+        - `self.check_cats()` 
+        - `equivalent_col`
+    - `ClassifierExplainer`:
+        - `get_prop_for_label`
+
+- Naming changes to attributes:
+    - `BaseExplainer`:
+        - `importances_df()` -> `get_importances_df()`
+        - `feature_permutations_df()` -> `get_feature_permutations_df()`
+        - `get_int_idx(index)` -> `get_idx(index)`
+        - `importances_df()` -> `get_importances_df()`
+        - `contrib_df()` -> `get_contrib_df()` *
+        - `contrib_summary_df()` -> `self.get_summary_contrib_df()` *
+        - `interaction_df()` -> `get_interactions_df()` *
+        - `shap_values` -> `get_shap_values_df`
+        - `plot_shap_contributions()` -> `plot_contributions()`
+        - `plot_shap_summary()` -> `plot_importances_detailed()`
+        - `plot_shap_dependence()` -> `plot_dependence()`
+        - `plot_shap_interaction()` -> `plot_interaction()`
+        - `plot_shap_interaction_summary()` -> `plot_interactions_detailed()`
+        - `plot_interactions()` -> `plot_interactions_importance()`
+        - `n_features()` -> `n_features`
+        - `shap_top_interaction()` -> `top_shap_interactions` 
+        - `shap_interaction_values_by_col()` -> `shap_interactions_values_for_col()`
+    - `ClassifierExplainer`:
+        - `self.pred_probas` -> `self.pred_probas()`
+        - `precision_df()` -> `get_precision_df()` *
+        - `lift_curve_df()` -> `get_liftcurve_df()` *
+    - `RandomForestExplainer`/`XGBExplainer`:
+        - `decision_trees` -> `shadow_trees`
+        - `decisiontree_df()` -> `get_decisionpath_df()`
+        - `decisiontree_summary_df()` -> `get_decisionpath_summary_df()`
+        - `decision_path_file()` -> `decisiontree_file()`
+        - `decision_path()` -> `decisiontree()`
+        - `decision_path_encoded()` -> `decisiontree_encoded()`
+
+### New Features
+- new `Explainer` parameter `precision`: defaults to `'float64'`. Can be set to
+    `'float32'` to save on memory usage: `ClassifierExplainer(model, X, y, precision='float32')`
+- new `memory_usage()` method to show which internal attributes take the most memory.
+- for multiclass classifiers: `keep_shap_pos_label_only(pos_label)` method:
+    - drops shap values and shap interactions for all labels except `pos_label`
+    - this should significantly reduce memory usage for multi class classification
+        models.
+    - not needed for binary classifiers.
+- added `get_index_list()`, `get_X_row(index)`, and `get_y(index)` methods.
+    - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
+        and `.set_y_func()`.
+    - by overriding these functions you can for example sample observations 
+        from a database or other external storage instead of from `X_test`, `y_test`.
+- added `Popout` buttons to all the major graphs that open a large modal
+    showing just the graph. This makes it easier to focus on a particular
+    graph without distraction from the rest of the dashboard and all it's toggles.
+- added `max_cat_colors` parameters to `plot_importance_detailed` and `plot_dependence` and `plot_interactions_detailed`
+    - prevents plotting getting slow with categorical features with many categories.
+    - defaults to `5`
+    - can be set as `**kwarg` to `ExplainerDashboard`
+- adds category limits and sorting to `RegressionVsCol` component
+- adds property `X_merged` that gives a dataframe with the onehot columns merged.
+
+### Bug Fixes
+- shap dependence: when no point cloud, do not highlight!
+- Fixed bug with calculating contributions plot/table for whatif component,
+    when InputFeatures had not fully loaded, resulting in shap error.
+
+### Improvements
+- saving `X.copy()`, instead of using a reference to `X`
+    - this would result in more memory usage in development
+        though, so you can `del X_test` to save memory.
+- `ClassifierExplainer` only stores shap (interaction) values for the positive
+    class: shap values for the negative class are generated on the fly
+    by multiplying with `-1`.
+- encoding onehot columns as `np.int8` saving memory usage
+- encoding categorical features as `pd.category` saving memory usage
+- added base `TreeExplainer` class that `RandomForestExplainer` and `XGBExplainer` both derive from
+    - will make it easier to extend tree explainers to other models in the future
+        - e.g. catboost and lightgbm
+- got rid of the callable properties (that were their to assure backward compatibility),
+    and replaced them with regular methods.
+
+### Other Changes
+-
+-
+
 ## 0.2.20.1:
 
 

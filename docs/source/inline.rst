@@ -55,14 +55,14 @@ the component in a separate tab ('external'), or running on a different port::
 
     InlineExplainer(explainer, mode='external', port=8051, width=1000, height=800).importances()
 
-Note:
-    You can run a component without instantiating the InlineExplainer first,
-    like for example ``InlineExplainer(explainer).importances()``, but then you
-    cannot inspect the kwargs and docstring of that particular component. 
-    So to inspect kwargs and docstring you would run::
+.. note::
+   You can run a component without instantiating the InlineExplainer first,
+   like for example ``InlineExplainer(explainer).importances()``, but then you
+   cannot inspect the kwargs and docstring of that particular component. 
+   So to inspect kwargs and docstring you would run::
 
-        ie = InlineExplainer(explainer)
-        ?ie.importances
+      ie = InlineExplainer(explainer)
+      ?ie.importances
 
 
 (or alternatively hit shift-tab in jupyter of course)

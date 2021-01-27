@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.metrics import r2_score, roc_auc_score
 
 import plotly.graph_objects as go
 import dtreeviz 
@@ -24,25 +23,23 @@ class ClassifierBunchTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, roc_auc_score, 
-                            shap='tree',
-                            cats=['Sex', 'Cabin', 'Embarked'],
-                            idxs=test_names, 
+                            model, X_test, y_test, 
+                            cats=['Sex', 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'])
 
     def test_graphviz_available(self):
         self.assertIsInstance(self.explainer.graphviz_available, bool)
 
-    def test_decision_trees(self):
-        dt = self.explainer.decision_trees
+    def test_shadow_trees(self):
+        dt = self.explainer.shadow_trees
         self.assertIsInstance(dt, list)
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-    def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+    def test_decisionpath_df(self):
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_plot_trees(self):
@@ -71,7 +68,7 @@ class RegressionBunchTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = RegressionExplainer(
-                            model, X_test, y_test, r2_score, 
+                            model, X_test, y_test,
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
                             idxs=test_names)
@@ -79,16 +76,16 @@ class RegressionBunchTests(unittest.TestCase):
     def test_graphviz_available(self):
         self.assertIsInstance(self.explainer.graphviz_available, bool)
 
-    def test_decision_trees(self):
-        dt = self.explainer.decision_trees
+    def test_shadow_trees(self):
+        dt = self.explainer.shadow_trees
         self.assertIsInstance(dt, list)
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-    def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+    def test_decisionpath_df(self):
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_plot_trees(self):

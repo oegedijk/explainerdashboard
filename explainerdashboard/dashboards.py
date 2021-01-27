@@ -361,6 +361,15 @@ class ExplainerDashboard:
 
         self._store_params(no_param=['explainer', 'tabs', 'server'])
         self._stored_params['tabs'] = self._tabs_to_yaml(tabs)
+        if not hasattr(explainer, "__version__"):
+            raise ValueError(f"The {explainer.__class__.__name__} was generated "
+                    "with a version of explainerdashboard<0.3 and therefore not "
+                    "compatible with this version of ExplainerDashboard due to "
+                    "breaking changes in between major versions! Please rebuild "
+                    f"your {explainer.__class__.__name__} with this version, or "
+                    "downgrade back to explainerdashboard==0.2.20.1!")
+
+        from packaging.version import parse as parse_version
 
         if self.description is None:
             self.description = """This dashboard shows the workings of a fitted
@@ -395,7 +404,7 @@ class ExplainerDashboard:
                 self.external_stylesheets.append(bootstrap_theme)
 
         if not hasattr(self.explainer, "onehot_dict"):
-            # explainerdashboard < v0.2.20
+            # explainer generated with explainerdashboard < v0.2.20
             self.explainer.onehot_dict = self.explainer.cats_dict
             self.explainer.onehot_cols = self.explainer.cats
             self.explainer.cat_cols = self.explainer.cats

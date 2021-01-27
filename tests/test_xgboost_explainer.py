@@ -24,23 +24,23 @@ class XGBClassifierExplainerTests(unittest.TestCase):
 
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, 
-                            cats=['Sex', 'Cabin', 'Embarked'],
+                            cats=['Sex', 'Deck', 'Embarked'],
                             idxs=test_names, 
                             labels=['Not survived', 'Survived'])
 
     def test_graphviz_available(self):
         self.assertIsInstance(self.explainer.graphviz_available, bool)
 
-    def test_decision_trees(self):
-        dt = self.explainer.decision_trees
+    def test_shadow_trees(self):
+        dt = self.explainer.shadow_trees
         self.assertIsInstance(dt, list)
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-    def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+    def test_decisionpath_df(self):
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_plot_trees(self):
@@ -68,26 +68,26 @@ class XGBMultiClassifierExplainerTests(unittest.TestCase):
         self.explainer = ClassifierExplainer(
                             model, X_test, y_test, model_output='raw',
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
+                                                'Deck'],
                             idxs=test_names, 
                             labels=['Queenstown', 'Southampton', 'Cherbourg'])
 
     def test_graphviz_available(self):
         self.assertIsInstance(self.explainer.graphviz_available, bool)
 
-    def test_decision_trees(self):
-        dt = self.explainer.decision_trees
+    def test_shadow_trees(self):
+        dt = self.explainer.shadow_trees
         self.assertIsInstance(dt, list)
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-    def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+    def test_decisionpath_df(self):
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0], pos_label=0)
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0], pos_label=0)
         self.assertIsInstance(df, pd.DataFrame)
 
 
@@ -128,16 +128,16 @@ class XGBRegressionExplainerTests(unittest.TestCase):
     def test_graphviz_available(self):
         self.assertIsInstance(self.explainer.graphviz_available, bool)
 
-    def test_decision_trees(self):
-        dt = self.explainer.decision_trees
+    def test_shadow_trees(self):
+        dt = self.explainer.shadow_trees
         self.assertIsInstance(dt, list)
         self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-    def test_decisiontree_df(self):
-        df = self.explainer.decisiontree_df(tree_idx=0, index=0)
+    def test_decisionpath_df(self):
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
         self.assertIsInstance(df, pd.DataFrame)
 
-        df = self.explainer.decisiontree_df(tree_idx=0, index=self.names[0])
+        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_plot_trees(self):

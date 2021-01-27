@@ -22,9 +22,9 @@ class ShapSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Summary', name=None,
                     subtitle="Ordering features by shap value",
                     hide_title=False, hide_subtitle=False, hide_depth=False, 
-                    hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
-                    pos_label=None, depth=None, 
-                    summary_type="aggregate", cats=True, index=None,
+                    hide_type=False, hide_index=False, hide_selector=False,
+                    hide_popout=False, pos_label=None, depth=None, 
+                    summary_type="aggregate", max_cat_colors=5, index=None,
                     description=None, **kwargs):
         """Shows shap summary component
 
@@ -43,34 +43,36 @@ class ShapSummaryComponent(ExplainerComponent):
                         Defaults to False.
             hide_type (bool, optional): hide the summary type toggle 
                         (aggregated, detailed). Defaults to False.
-            hide_cats (bool, optional): hide the group cats toggle. Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             depth (int, optional): initial number of features to show. Defaults to None.
             summary_type (str, {'aggregate', 'detailed'}. optional): type of 
                         summary graph to show. Defaults to "aggregate".
-            cats (bool, optional): group cats. Defaults to True.
+            max_cat_colors (int, optional): for categorical features, maximum number
+                of categories to label with own color. Defaults to 5. 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
-        if not self.explainer.onehot_cols:
-            self.hide_cats = True
-        
         if self.depth is not None:
-            self.depth = min(self.depth, self.explainer.n_features(cats))
+            self.depth = min(self.depth, self.explainer.n_features)
 
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         The shap summary summarizes the shap values per feature.
         You can either select an aggregates display that shows mean absolute shap value
         per feature. Or get a more detailed look at the spread of shap values per
         feature and how they correlate the the feature value (red is high).
         """
-        self.register_dependencies('shap_values', 'shap_values_cats')
+
+        self.popout = GraphPopout('shap-summary-'+self.name+'popout', 
+                            'shap-summary-graph-'+self.name, self.title, self.description)
+        self.register_dependencies('shap_values_df')
              
     def layout(self):
         return dbc.Card([
@@ -91,7 +93,7 @@ class ShapSummaryComponent(ExplainerComponent):
                                         target='shap-summary-depth-label-'+self.name),
                             dbc.Select(id='shap-summary-depth-'+self.name,
                                 options=[{'label': str(i+1), 'value': i+1} for i in 
-                                            range(self.explainer.n_features(self.cats))],
+                                            range(self.explainer.n_features)],
                                 value=self.depth)
                         ], md=2), self.hide_depth),
                     make_hideable(
@@ -115,21 +117,6 @@ class ShapSummaryComponent(ExplainerComponent):
                         ]), self.hide_type),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
-                                    dbc.Label("Grouping:", id='shap-summary-group-cats-label-'+self.name),
-                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                                target='shap-summary-group-cats-label-'+self.name),
-                                    dbc.Checklist(
-                                        options=[{"label": "Group cats", "value": True}],
-                                        value=[True] if self.cats else [],
-                                        id='shap-summary-group-cats-'+self.name,
-                                        inline=True,
-                                        switch=True,
-                                    ),
-                                ]),
-                        ], md=3), self.hide_cats),
-                    make_hideable(
-                        dbc.Col([
                             html.Div([
                                 dbc.Label(f"{self.explainer.index_name}:", id='shap-summary-index-label-'+self.name),
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
@@ -143,11 +130,18 @@ class ShapSummaryComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_index),  
                     make_hideable(
                             dbc.Col([self.selector.layout()
-                        ], width=2), hide=self.hide_selector)
+                        ], width=2), hide=self.hide_selector),
+                    
                     ], form=True),
                 dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
                         children=[dcc.Graph(id="shap-summary-graph-"+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
         ])
     
@@ -165,47 +159,41 @@ class ShapSummaryComponent(ExplainerComponent):
 
         @app.callback(
             [Output('shap-summary-graph-'+self.name, 'figure'),
-             Output('shap-summary-depth-'+self.name, 'options'),
              Output('shap-summary-index-col-'+self.name, 'style')],
             [Input('shap-summary-type-'+self.name, 'value'),
-             Input('shap-summary-group-cats-'+self.name, 'value'),
              Input('shap-summary-depth-'+self.name, 'value'),
              Input('shap-summary-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
-        def update_shap_summary_graph(summary_type, cats, depth, index, pos_label):
-            cats = bool(cats)
+        def update_shap_summary_graph(summary_type, depth, index, pos_label):
             depth = None if depth is None else int(depth)
             if summary_type == 'aggregate':
                 plot = self.explainer.plot_importances(
-                        kind='shap', topx=depth, cats=cats, pos_label=pos_label)
+                        kind='shap', topx=depth, pos_label=pos_label)
             elif summary_type == 'detailed':
-                plot = self.explainer.plot_shap_summary(
-                        topx=depth, cats=cats, pos_label=pos_label, index=index)
+                plot = self.explainer.plot_importances_detailed(
+                        topx=depth, pos_label=pos_label, index=index, 
+                        max_cat_colors=self.max_cat_colors)
             ctx = dash.callback_context
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-            if trigger == 'shap-summary-group-cats-'+self.name:
-                depth_options = [{'label': str(i+1), 'value': i+1} 
-                                        for i in range(self.explainer.n_features(cats))]
-                return (plot, depth_options, dash.no_update)
-            elif trigger == 'shap-summary-type-'+self.name:
+            if trigger == 'shap-summary-type-'+self.name:
                 if summary_type == 'aggregate':
-                    return (plot, dash.no_update, dict(display="none"))
+                    return (plot, dict(display="none"))
                 elif summary_type == 'detailed':
-                    return (plot, dash.no_update, {})
+                    return (plot, {})
             else:
-                return (plot, dash.no_update, dash.no_update)
+                return (plot, dash.no_update)
 
 
 class ShapDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title='Shap Dependence', name=None,
                     subtitle="Relationship between feature value and SHAP value",
-                    hide_title=False, hide_subtitle=False, hide_cats=False, hide_col=False, 
+                    hide_title=False, hide_subtitle=False, hide_col=False, 
                     hide_color_col=False, hide_index=False,
                     hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
-                    hide_footer=False,
-                    pos_label=None, cats=True, 
+                    hide_popout=False, hide_footer=False,
+                    pos_label=None, 
                     col=None, color_col=None, index=None, 
-                    cats_topx=10, cats_sort='freq',
+                    cats_topx=10, cats_sort='freq', max_cat_colors=5,
                     description=None, **kwargs):
         """Show shap dependence graph
 
@@ -220,48 +208,51 @@ class ShapDependenceComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): hide component title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
-            hide_cats (bool, optional): hide group cats toggle. Defaults to False.
             hide_col (bool, optional): hide feature selector. Defaults to False.
             hide_color_col (bool, optional): hide color feature selector Defaults to False.
             hide_index (bool, optional): hide index selector Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
             hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             hide_footer (bool, optional): hide the footer.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
-            cats (bool, optional): group cats. Defaults to True.
             col (str, optional): Feature to display. Defaults to None.
             color_col (str, optional): Color plot by values of this Feature. 
                         Defaults to None.
             index (int, optional): Highlight a particular index. Defaults to None.
-            cats_topx (int, optional): number of categories to display for 
-                categorical features.
+            cats_topx (int, optional): maximum number of categories to display
+                for categorical features. Defaults to 10.
             cats_sort (str, optional): how to sort categories: 'alphabet', 
                 'freq' or 'shap'. Defaults to 'freq'.
+            max_cat_colors (int, optional): for categorical features, maximum number
+                of categories to label with own color. Defaults to 5. 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
         if self.col is None:
-            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+            self.col = self.explainer.columns_ranked_by_shap()[0]
         if self.color_col is None:
-            self.color_col = self.explainer.shap_top_interactions(self.col, cats=cats)[1]
+            self.color_col = self.explainer.top_shap_interactions(self.col)[1]
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         self.index_name = 'shap-dependence-index-'+self.name
 
         if self.description is None: self.description = """
         This plot shows the relation between feature values and shap values.
         This allows you to investigate the general relationship between feature
-        value and impact on the prediction, i.e. "older passengers were predicted
-        to be less likely to survive the titanic". You can check whether the mode
+        value and impact on the prediction. You can check whether the model
         uses features in line with your intuitions, or use the plots to learn
         about the relationships that the model has learned between the input features
         and the predicted outcome.
         """
-        self.register_dependencies('shap_values', 'shap_values_cats')
+        self.popout = GraphPopout('shap-dependence-'+self.name+'popout', 
+                            'shap-dependence-graph-'+self.name, self.title, self.description)
+        self.register_dependencies('shap_values_df')
              
     def layout(self):
         return dbc.Card([
@@ -277,25 +268,9 @@ class ShapDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                             dbc.Col([self.selector.layout()
-                        ], width=2), hide=self.hide_selector),    
+                        ], width=2), hide=self.hide_selector),  
                 ]),
                 dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            dbc.FormGroup([
-                                    dbc.Label("Grouping:", id='shap-dependence-group-cats-label-'+self.name),
-                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                                target='shap-dependence-group-cats-label-'+self.name),
-                                    dbc.Checklist(
-                                        options=[{"label": "Group cats", "value": True}],
-                                        value=[True] if self.cats else [],
-                                        id='shap-dependence-group-cats-'+self.name,
-                                        inline=True,
-                                        switch=True,
-                                    ),
-                                ]),
-                            
-                        ],  md=2), self.hide_cats),
                     make_hideable(
                         dbc.Col([
                             dbc.Label('Feature:', id='shap-dependence-col-label-'+self.name),
@@ -303,7 +278,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                         target='shap-dependence-col-label-'+self.name),
                             dbc.Select(id='shap-dependence-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
-                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                            for col in self.explainer.columns_ranked_by_shap()],
                                 value=self.col)
                         ], md=3), self.hide_col),
                     make_hideable(dbc.Col([
@@ -313,7 +288,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                         target='shap-dependence-color-col-label-'+self.name),
                             dbc.Select(id='shap-dependence-color-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
-                                            for col in self.explainer.columns_ranked_by_shap(self.cats)]+[dict(label="None", value="no_color_col")],
+                                            for col in self.explainer.columns_ranked_by_shap()]+[dict(label="None", value="no_color_col")],
                                 value=self.color_col),   
                     ], md=3), self.hide_color_col),
                     make_hideable(
@@ -327,12 +302,18 @@ class ShapDependenceComponent(ExplainerComponent):
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
-                        ], md=4), hide=self.hide_index),         
+                        ], md=4), hide=self.hide_index),          
                 ], form=True),
                 dcc.Loading(id="loading-dependence-graph-"+self.name, 
                             children=[
                                 dcc.Graph(id='shap-dependence-graph-'+self.name,
                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]), 
             make_hideable(
                 dbc.CardFooter([
@@ -341,7 +322,7 @@ class ShapDependenceComponent(ExplainerComponent):
                             make_hideable(
                                 dbc.Col([
                                     dbc.Label("Categories:", id='shap-dependence-n-categories-label-'+self.name),
-                                    dbc.Tooltip("Number of categories to display", 
+                                    dbc.Tooltip("Maximum number of categories to display", 
                                                 target='shap-dependence-n-categories-label-'+self.name),
                                     dbc.Input(id='shap-dependence-n-categories-'+self.name, 
                                         value=self.cats_topx,
@@ -350,7 +331,7 @@ class ShapDependenceComponent(ExplainerComponent):
                             make_hideable(
                                 dbc.Col([
                                         html.Label('Sort categories:', id='shap-dependence-categories-sort-label-'+self.name),
-                                        dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                        dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                     "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                     target='shap-dependence-categories-sort-label-'+self.name),
                                         dbc.Select(id='shap-dependence-categories-sort-'+self.name,
@@ -371,11 +352,10 @@ class ShapDependenceComponent(ExplainerComponent):
              Output('shap-dependence-color-col-'+self.name, 'value'),
              Output('shap-dependence-categories-div-'+self.name, 'style')],
             [Input('shap-dependence-col-'+self.name, 'value')],
-            [State('shap-dependence-group-cats-'+self.name, 'value'),
-             State('pos-label-'+self.name, 'value')])
-        def set_color_col_dropdown(col, cats, pos_label):
-            sorted_interact_cols = self.explainer.shap_top_interactions(
-                                    col, cats=bool(cats), pos_label=pos_label)
+            [State('pos-label-'+self.name, 'value')])
+        def set_color_col_dropdown(col, pos_label):
+            sorted_interact_cols = self.explainer.top_shap_interactions(
+                                    col, pos_label=pos_label)
             options = ([{'label': col, 'value':col} 
                             for col in sorted_interact_cols] 
                             + [dict(label="None", value="no_color_col")])
@@ -399,26 +379,17 @@ class ShapDependenceComponent(ExplainerComponent):
             if col is not None:
                 if color_col =="no_color_col": 
                     color_col, index = None, None
-                return self.explainer.plot_shap_dependence(
+                return self.explainer.plot_dependence(
                             col, color_col, topx=topx, sort=sort, 
-                            highlight_index=index, pos_label=pos_label)
+                            highlight_index=index, max_cat_colors=self.max_cat_colors,
+                            pos_label=pos_label)
             raise PreventUpdate
-
-        @app.callback(
-            Output('shap-dependence-col-'+self.name, 'options'),
-            [Input('shap-dependence-group-cats-'+self.name, 'value')],
-            [State('shap-dependence-col-'+self.name, 'value')])
-        def update_dependence_shap_scatter_graph(cats, old_col):
-            options = [{'label': col, 'value': col} 
-                                    for col in self.explainer.columns_ranked_by_shap(bool(cats))]
-            return options
             
 
 class ShapSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, shap_summary_component, shap_dependence_component):
         """Connects a ShapSummaryComponent with a ShapDependence Component:
 
-        - When group cats in ShapSummary, then group cats in ShapDependence
         - When clicking on feature in ShapSummary, then select that feature in ShapDependence
 
         Args:
@@ -429,12 +400,6 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
         self.dep_name = shap_dependence_component.name
 
     def component_callbacks(self, app):
-        @app.callback(
-            Output('shap-dependence-group-cats-'+self.dep_name, 'value'),
-            [Input('shap-summary-group-cats-'+self.sum_name, 'value')])
-        def update_dependence_shap_scatter_graph(cats):
-            return cats
-
         @app.callback(
             [Output('shap-dependence-index-'+self.dep_name, 'value'),
              Output('shap-dependence-col-'+self.dep_name, 'value')],
@@ -456,9 +421,10 @@ class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary", name=None,
                     subtitle="Ordering features by shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_col=False, hide_depth=False, 
-                    hide_type=False, hide_cats=False, hide_index=False, hide_selector=False,
+                    hide_type=False, hide_index=False, hide_popout=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
-                    summary_type="aggregate", cats=True, index=None, description=None,
+                    summary_type="aggregate", max_cat_colors=5,
+                    index=None, description=None,
                     **kwargs):
         """Show SHAP Interaciton values summary component
 
@@ -476,15 +442,19 @@ class InteractionSummaryComponent(ExplainerComponent):
             hide_col (bool, optional): Hide the feature selector. Defaults to False.
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_type (bool, optional): Hide summary type toggle. Defaults to False.
-            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_index (bool, optional): Hide the index selector. Defaults to False
+            hide_popout (bool, optional): hide popout button
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
-            col (str, optional): Feature to show interaction summary for. Defaults to None.
-            depth (int, optional): Number of interaction features to display. Defaults to None.
-            summary_type (str, {'aggregate', 'detailed'}, optional): type of summary graph to display. Defaults to "aggregate".
-            cats (bool, optional): Group categorical features. Defaults to True.
+            col (str, optional): Feature to show interaction summary for. 
+                Defaults to None.
+            depth (int, optional): Number of interaction features to display. 
+                Defaults to None.
+            summary_type (str, {'aggregate', 'detailed'}, optional): type of 
+                summary graph to display. Defaults to "aggregate".
+            max_cat_colors (int, optional): for categorical features, maximum number
+                of categories to label with own color. Defaults to 5. 
             index (str):    Default index. Defaults to None.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
@@ -492,13 +462,12 @@ class InteractionSummaryComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
     
         if self.col is None:
-            self.col = self.explainer.columns_ranked_by_shap(self.cats)[0]
+            self.col = self.explainer.columns_ranked_by_shap()[0]
         if self.depth is not None:
-            self.depth = min(self.depth, self.explainer.n_features(self.cats)-1)
-        if not self.explainer.onehot_cols:
-            self.hide_cats = True
+            self.depth = min(self.depth, self.explainer.n_features-1)
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         Shows shap interaction values. Each shap value can be decomposed into a direct
         effect and indirect effects. The indirect effects are due to interactions
@@ -508,7 +477,9 @@ class InteractionSummaryComponent(ExplainerComponent):
         for example passenger class (first class women more likely to survive than
         average woman, third class women less likely).
         """
-        self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
+        self.popout = GraphPopout('interaction-summary-'+self.name+'popout', 
+                            'interaction-summary-graph-'+self.name, self.title, self.description)
+        self.register_dependencies("shap_interaction_values")
 
     def layout(self):
         return dbc.Card([
@@ -529,7 +500,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                                     target='interaction-summary-col-label-'+self.name),
                             dbc.Select(id='interaction-summary-col-'+self.name, 
                                 options=[{'label': col, 'value': col} 
-                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                            for col in self.explainer.columns_ranked_by_shap()],
                                 value=self.col),
                         ], md=2), self.hide_col),
                     make_hideable(
@@ -540,7 +511,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                                     target='interaction-summary-depth-label-'+self.name),
                             dbc.Select(id='interaction-summary-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
-                                                for i in range(self.explainer.n_features(self.cats)-1)],
+                                                for i in range(self.explainer.n_features-1)],
                                 value=self.depth)
                         ], md=2), self.hide_depth),
                     make_hideable(
@@ -564,21 +535,6 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], md=3), self.hide_type),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
-                                    dbc.Label("Grouping:", id='interaction-summary-group-cats-label-'+self.name),
-                                    dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                                target='interaction-summary-group-cats-label-'+self.name),
-                                    dbc.Checklist(
-                                        options=[{"label": "Group cats", "value": True}],
-                                        value=[True] if self.cats else [],
-                                        id='interaction-summary-group-cats-'+self.name,
-                                        inline=True,
-                                        switch=True,
-                                    ),
-                                ]),
-                        ],md=2), self.hide_cats),
-                    make_hideable(
-                        dbc.Col([
                             html.Div([
                                 dbc.Label(f"{self.explainer.index_name}:", id='interaction-summary-index-label-'+self.name),
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
@@ -600,7 +556,13 @@ class InteractionSummaryComponent(ExplainerComponent):
                             children=[dcc.Graph(id='interaction-summary-graph-'+self.name, 
                                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
                     ])
-                ]), 
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"), 
             ]),
         ])
 
@@ -616,36 +578,24 @@ class InteractionSummaryComponent(ExplainerComponent):
             raise PreventUpdate
 
         @app.callback(
-            [Output('interaction-summary-depth-'+self.name, 'options'),
-             Output('interaction-summary-col-'+self.name, 'options')],
-            [Input('interaction-summary-group-cats-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')])
-        def update_interaction_scatter_graph(cats, pos_label):
-            depth_options = [{'label': str(i+1), 'value': i+1} 
-                                    for i in range(self.explainer.n_features(bool(cats)))]
-            new_cols = self.explainer.columns_ranked_by_shap(bool(cats), pos_label=pos_label)
-            new_col_options = [{'label': col, 'value':col} for col in new_cols]
-            return depth_options, new_col_options
-
-        @app.callback(
             [Output('interaction-summary-graph-'+self.name, 'figure'),
              Output('interaction-summary-index-col-'+self.name, 'style')],
             [Input('interaction-summary-col-'+self.name, 'value'),
              Input('interaction-summary-depth-'+self.name, 'value'),
              Input('interaction-summary-type-'+self.name, 'value'),
              Input('interaction-summary-index-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value'),
-             Input('interaction-summary-group-cats-'+self.name, 'value')])
-        def update_interaction_scatter_graph(col, depth, summary_type, index, pos_label, cats):
+             Input('pos-label-'+self.name, 'value')])
+        def update_interaction_scatter_graph(col, depth, summary_type, index, pos_label):
             if col is not None:
                 depth = None if depth is None else int(depth)
                 if summary_type=='aggregate':
-                    plot = self.explainer.plot_interactions(
-                        col, topx=depth, cats=bool(cats), pos_label=pos_label)
+                    plot = self.explainer.plot_interactions_importance(
+                        col, topx=depth, pos_label=pos_label)
                     return plot, dict(display="none")
                 elif summary_type=='detailed':
-                    plot = self.explainer.plot_shap_interaction_summary(
-                        col, topx=depth, cats=bool(cats), pos_label=pos_label, index=index)
+                    plot = self.explainer.plot_interactions_detailed(
+                        col, topx=depth, pos_label=pos_label, index=index, 
+                        max_cat_colors=self.max_cat_colors)
                 return plot, {}
             raise PreventUpdate
 
@@ -653,12 +603,12 @@ class InteractionSummaryComponent(ExplainerComponent):
 class InteractionDependenceComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interaction Dependence", name=None,
                     subtitle="Relation between feature value and shap interaction value",
-                    hide_title=False, hide_subtitle=False, hide_cats=False, hide_col=False, 
+                    hide_title=False, hide_subtitle=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
-                    hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
-                    hide_top=False, hide_bottom=False,
-                    pos_label=None, cats=True, col=None, interact_col=None,
-                    cats_topx=10, cats_sort='freq',
+                    hide_popout=False, hide_selector=False, hide_cats_topx=False, 
+                    hide_cats_sort=False, hide_top=False, hide_bottom=False,
+                    pos_label=None, col=None, interact_col=None,
+                    cats_topx=10, cats_sort='freq', max_cat_colors=5,
                     description=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
@@ -677,7 +627,6 @@ class InteractionDependenceComponent(ExplainerComponent):
             subtitle (str): subtitle
             hide_title (bool, optional): Hide component title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
-            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_col (bool, optional): Hide feature selector. Defaults to False.
             hide_interact_col (bool, optional): Hide interaction 
                         feature selector. Defaults to False.
@@ -685,6 +634,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         Defaults to False.
             hide_selector (bool, optional): hide pos label selector. 
                         Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_cats_topx (bool, optional): hide the categories topx input. 
                         Defaults to False.
             hide_cats_sort (bool, optional): hide the categories sort selector.
@@ -695,7 +645,6 @@ class InteractionDependenceComponent(ExplainerComponent):
                         (interact_col vs col). Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
-            cats (bool, optional): group categorical features. Defaults to True.
             col (str, optional): Feature to find interactions for. Defaults to None.
             interact_col (str, optional): Feature to interact with. Defaults to None.
             highlight (int, optional): Index row to highlight Defaults to None.
@@ -703,24 +652,31 @@ class InteractionDependenceComponent(ExplainerComponent):
                 categorical features.
             cats_sort (str, optional): how to sort categories: 'alphabet', 
                 'freq' or 'shap'. Defaults to 'freq'.
+            max_cat_colors (int, optional): for categorical features, maximum number
+                of categories to label with own color. Defaults to 5. 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
         super().__init__(explainer, title, name)
 
         if self.col is None:
-            self.col = explainer.columns_ranked_by_shap(cats)[0]
+            self.col = explainer.columns_ranked_by_shap()[0]
         if self.interact_col is None:
-            self.interact_col = explainer.shap_top_interactions(self.col, cats=cats)[1]
+            self.interact_col = explainer.top_shap_interactions(self.col)[1]
         
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.popout_top = GraphPopout(self.name+'popout-top', 
+                'interaction-dependence-top-graph-'+self.name, self.title)
+        
         if self.description is None: self.description = """
         This plot shows the relation between feature values and shap interaction values.
         This allows you to investigate interactions between features in determining
         the prediction of the model.
         """
-        self.register_dependencies("shap_interaction_values", "shap_interaction_values_cats")
+        self.popout_bottom = GraphPopout(self.name+'popout-bottom', 
+                'interaction-dependence-bottom-graph-'+self.name, self.title, self.description)
+        self.register_dependencies("shap_interaction_values")
 
     def layout(self):
         return dbc.Card([
@@ -741,27 +697,12 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
-                                dbc.Label("Grouping:", id='interaction-dependence-group-cats-label-'+self.name),
-                                dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                            target='interaction-dependence-group-cats-label-'+self.name),
-                                dbc.Checklist(
-                                    options=[{"label": "Group cats", "value": True}],
-                                    value=[True] if self.cats else [],
-                                    id='interaction-dependence-group-cats-'+self.name,
-                                    inline=True,
-                                    switch=True,
-                                ),
-                            ]),
-                        ], md=2), hide=self.hide_cats),
-                    make_hideable(
-                        dbc.Col([
                             dbc.Label('Feature:', id='interaction-dependence-col-label-'+self.name),
                                 dbc.Tooltip("Select feature to display shap interactions for", 
                                             target='interaction-dependence-col-label-'+self.name),
                             dbc.Select(id='interaction-dependence-col-'+self.name,
                                 options=[{'label': col, 'value':col} 
-                                            for col in self.explainer.columns_ranked_by_shap(self.cats)],
+                                            for col in self.explainer.columns_ranked_by_shap()],
                                 value=self.col
                             ),
                         ], md=3), hide=self.hide_col), 
@@ -773,7 +714,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                                             target='interaction-dependence-interact-col-label-'+self.name),
                             dbc.Select(id='interaction-dependence-interact-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
-                                            for col in self.explainer.shap_top_interactions(col=self.col, cats=self.cats)],
+                                            for col in self.explainer.top_shap_interactions(col=self.col)],
                                 value=self.interact_col
                             ),
                         ], md=3), hide=self.hide_interact_col), 
@@ -799,12 +740,18 @@ class InteractionDependenceComponent(ExplainerComponent):
                                 hide=self.hide_top),
                     ]),
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout_top.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
                 html.Div([
                     dbc.Row([
                         make_hideable(
                             dbc.Col([
                                 dbc.Label("Categories:", id='interaction-dependence-top-n-categories-label-'+self.name),
-                                dbc.Tooltip("Number of categories to display", 
+                                dbc.Tooltip("Maximum number of categories to display", 
                                             target='interaction-dependence-top-n-categories-label-'+self.name),
                                 dbc.Input(id='interaction-dependence-top-n-categories-'+self.name, 
                                     value=self.cats_topx,
@@ -813,7 +760,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         make_hideable(
                             dbc.Col([
                                     html.Label('Sort categories:', id='interaction-dependence-top-categories-sort-label-'+self.name),
-                                    dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='interaction-dependence-top-categories-sort-label-'+self.name),
                                     dbc.Select(id='interaction-dependence-top-categories-sort-'+self.name,
@@ -835,13 +782,18 @@ class InteractionDependenceComponent(ExplainerComponent):
                                 hide=self.hide_bottom),
                     ]),
                 ]),
-
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout_bottom.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
                 html.Div([
                     dbc.Row([
                         make_hideable(
                             dbc.Col([
                                 dbc.Label("Categories:", id='interaction-dependence-bottom-n-categories-label-'+self.name),
-                                dbc.Tooltip("Number of categories to display", 
+                                dbc.Tooltip("Maximum number of categories to display", 
                                             target='interaction-dependence-bottom-n-categories-label-'+self.name),
                                 dbc.Input(id='interaction-dependence-bottom-n-categories-'+self.name, 
                                     value=self.cats_topx,
@@ -850,7 +802,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         make_hideable(
                             dbc.Col([
                                     html.Label('Sort categories:', id='interaction-dependence-bottom-categories-sort-label-'+self.name),
-                                    dbc.Tooltip("How to sort the categories: alphabetically, most common "
+                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='interaction-dependence-bottom-categories-sort-label-'+self.name),
                                     dbc.Select(id='interaction-dependence-bottom-categories-sort-'+self.name,
@@ -867,25 +819,16 @@ class InteractionDependenceComponent(ExplainerComponent):
         ])
 
     def component_callbacks(self, app):
-        @app.callback(
-            Output('interaction-dependence-col-'+self.name, 'options'), 
-            [Input('interaction-dependence-group-cats-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')])
-        def update_interaction_dependence_interact_col(cats, pos_label):
-            new_cols = self.explainer.columns_ranked_by_shap(bool(cats), pos_label=pos_label)
-            new_col_options = [{'label': col, 'value':col} for col in new_cols]
-            return new_col_options
 
         @app.callback(
             Output('interaction-dependence-interact-col-'+self.name, 'options'),
             [Input('interaction-dependence-col-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
-            [State('interaction-dependence-group-cats-'+self.name, 'value'),
-             State('interaction-dependence-interact-col-'+self.name, 'value')])
-        def update_interaction_dependence_interact_col(col, pos_label, cats, old_interact_col):
+            [State('interaction-dependence-interact-col-'+self.name, 'value')])
+        def update_interaction_dependence_interact_col(col, pos_label, old_interact_col):
             if col is not None:
-                new_interact_cols = self.explainer.shap_top_interactions(
-                    col, cats=bool(cats), pos_label=pos_label)
+                new_interact_cols = self.explainer.top_shap_interactions(
+                    col, pos_label=pos_label)
                 new_interact_options = [{'label': col, 'value':col} for col in new_interact_cols]
                 return new_interact_options
             raise PreventUpdate
@@ -902,9 +845,9 @@ class InteractionDependenceComponent(ExplainerComponent):
         def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
             if col is not None and interact_col is not None:
                 style = {} if interact_col in self.explainer.cat_cols else dict(display="none")
-                return (self.explainer.plot_shap_interaction(
-                            col, interact_col, highlight_index=index, pos_label=pos_label,
-                            topx=topx, sort=sort),
+                return (self.explainer.plot_interaction(
+                            interact_col, col, highlight_index=index, pos_label=pos_label,
+                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
                         style)
             raise PreventUpdate
 
@@ -920,9 +863,9 @@ class InteractionDependenceComponent(ExplainerComponent):
         def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
             if col is not None and interact_col is not None:
                 style = {} if col in self.explainer.cat_cols else dict(display="none")
-                return (self.explainer.plot_shap_interaction(
-                            interact_col, col, highlight_index=index, pos_label=pos_label,
-                            topx=topx, sort=sort),
+                return (self.explainer.plot_interaction(
+                            col, interact_col, highlight_index=index, pos_label=pos_label,
+                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
                         style)
             raise PreventUpdate
 
@@ -931,7 +874,6 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
     def __init__(self, interaction_summary_component, interaction_dependence_component):
         """Connects a InteractionSummaryComponent with an InteractionDependenceComponent:
 
-        - When group cats in Summary, then group cats in Dependence
         - When select feature in summary, then select col in Dependence
         - When clicking on interaction feature in Summary, then select that interaction 
             feature in Dependence.
@@ -944,12 +886,6 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
         self.dep_name = interaction_dependence_component.name
 
     def component_callbacks(self, app):
-        @app.callback(
-            Output('interaction-dependence-group-cats-'+self.dep_name, 'value'),
-            [Input('interaction-summary-group-cats-'+self.sum_name, 'value')])
-        def update_dependence_shap_scatter_graph(cats):
-            return cats
-
         @app.callback(
             [Output('interaction-dependence-col-'+self.dep_name, 'value'),
              Output('interaction-dependence-index-'+self.dep_name, 'value'),
@@ -975,10 +911,10 @@ class ShapContributionsGraphComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Plot", name=None,
                     subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_subtitle=False, hide_index=False, hide_depth=False, 
-                    hide_sort=False, hide_orientation=True, hide_cats=False, 
-                    hide_selector=False, feature_input_component=None,
+                    hide_sort=False, hide_orientation=True, 
+                    hide_selector=False, hide_popout=False, feature_input_component=None, 
                     pos_label=None, index=None, depth=None, sort='high-to-low', 
-                    orientation='vertical', cats=True, higher_is_better=True,
+                    orientation='vertical', higher_is_better=True,
                     description=None, **kwargs):
         """Display Shap contributions to prediction graph component
 
@@ -998,8 +934,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_sort (bool, optional): Hide the sorting dropdown. Defaults to False.
             hide_orientation (bool, optional): Hide the orientation dropdown. 
                     Defaults to True.
-            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
@@ -1011,7 +947,6 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         Defaults to 'high-to-low'.
             orientation ({'vertical', 'horizontal'}, optional): orientation of bar chart.
                         Defaults to 'vertical'.
-            cats (bool, optional): Group cats. Defaults to True.
             higher_is_better (bool, optional): Color positive shap values green and
                 negative shap values red, or the reverse. 
             description (str, optional): Tooltip to display when hover over
@@ -1022,10 +957,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         self.index_name = 'contributions-graph-index-'+self.name
 
         if self.depth is not None:
-            self.depth = min(self.depth, self.explainer.n_features(self.cats))
-
-        if not self.explainer.onehot_cols:
-            self.hide_cats = True
+            self.depth = min(self.depth, self.explainer.n_features)
         
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -1040,7 +972,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.register_dependencies('shap_values', 'shap_values_cats')
+        self.popout = GraphPopout('contributions-graph-'+self.name+'popout', 
+                            'contributions-graph-'+self.name, self.title, self.description)
+        self.register_dependencies('shap_values_df')
 
     def layout(self):
         return dbc.Card([
@@ -1066,7 +1000,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                         target='contributions-graph-index-label-'+self.name),
                             dcc.Dropdown(id='contributions-graph-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
+                                                for idx in self.explainer.get_index_list()],
                                 value=self.index)
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
@@ -1076,7 +1010,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                     target='contributions-graph-depth-label-'+self.name),
                             dbc.Select(id='contributions-graph-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
-                                                for i in range(self.explainer.n_features(self.cats))],
+                                                for i in range(self.explainer.n_features)],
                                 value=None if self.depth is None else str(self.depth))
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
@@ -1104,23 +1038,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                             {'label': 'Horizontal', 'value': 'horizontal'}],
                                 value=self.orientation)
                         ], md=2), hide=self.hide_orientation),
-                    make_hideable(
-                        dbc.Col([
-                            dbc.FormGroup([
-                                dbc.Label("Grouping:", id='contributions-graph-group-cats-label-'+self.name),
-                                dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                            target='contributions-graph-group-cats-label-'+self.name),
-                                dbc.Checklist(
-                                    options=[{"label": "Group cats", "value": True}],
-                                    value=[True] if self.cats else [],
-                                    id='contributions-graph-group-cats-'+self.name,
-                                    inline=True,
-                                    switch=True,
-                                ),
-                            ]),
-                        ], md=2), hide=self.hide_cats),
                     ], form=True),
-                    
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-contributions-graph-'+self.name, 
@@ -1128,6 +1046,12 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ]),
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
         ])
         
@@ -1135,64 +1059,46 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         
         if self.feature_input_component is None:
             @app.callback(
-                [Output('contributions-graph-'+self.name, 'figure'),
-                 Output('contributions-graph-depth-'+self.name, 'options')],
+                Output('contributions-graph-'+self.name, 'figure'),
                 [Input('contributions-graph-index-'+self.name, 'value'),
                  Input('contributions-graph-depth-'+self.name, 'value'),
                  Input('contributions-graph-sorting-'+self.name, 'value'),
                  Input('contributions-graph-orientation-'+self.name, 'value'),
-                 Input('contributions-graph-group-cats-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value')])
-            def update_output_div(index, depth, sort, orientation, cats, pos_label):
+            def update_output_div(index, depth, sort, orientation, pos_label):
                 if index is None:
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
-                plot = self.explainer.plot_shap_contributions(index, topx=depth, 
-                            cats=bool(cats), sort=sort, orientation=orientation, 
+                plot = self.explainer.plot_contributions(index, topx=depth, 
+                            sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
-
-                ctx = dash.callback_context
-                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-                if trigger == 'contributions-graph-group-cats-'+self.name:
-                    depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(bool(cats)))]
-                    return (plot, depth_options)
-                else:
-                    return (plot, dash.no_update)
+                return plot
         else:
             @app.callback(
-                [Output('contributions-graph-'+self.name, 'figure'),
-                 Output('contributions-graph-depth-'+self.name, 'options')],
+                Output('contributions-graph-'+self.name, 'figure'),
                 [Input('contributions-graph-depth-'+self.name, 'value'),
                  Input('contributions-graph-sorting-'+self.name, 'value'),
                  Input('contributions-graph-orientation-'+self.name, 'value'),
-                 Input('contributions-graph-group-cats-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs])
-            def update_output_div(depth, sort, orientation, cats, pos_label, *inputs):
+            def update_output_div(depth, sort, orientation, pos_label, *inputs):
                 depth = None if depth is None else int(depth)
-                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                plot = self.explainer.plot_shap_contributions(X_row=X_row, 
-                            topx=depth, cats=bool(cats), sort=sort, orientation=orientation, 
-                            pos_label=pos_label, higher_is_better=self.higher_is_better)
-
-                ctx = dash.callback_context
-                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-                if trigger == 'contributions-graph-group-cats-'+self.name:
-                    depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(bool(cats)))]
-                    return (plot, depth_options)
-                else:
-                    return (plot, dash.no_update)
+                if not any([i is None for i in inputs]):
+                    X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                    plot = self.explainer.plot_contributions(X_row=X_row, 
+                                topx=depth, sort=sort, orientation=orientation, 
+                                pos_label=pos_label, higher_is_better=self.higher_is_better)
+                    return plot
+                raise PreventUpdate
 
 
 class ShapContributionsTableComponent(ExplainerComponent):
     def __init__(self, explainer, title="Contributions Table", name=None,
                     subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_subtitle=False, hide_index=False, 
-                    hide_depth=False, hide_sort=False, hide_cats=False, 
+                    hide_depth=False, hide_sort=False,
                     hide_selector=False, feature_input_component=None,
-                    pos_label=None, index=None, depth=None, sort='abs', cats=True, 
+                    pos_label=None, index=None, depth=None, sort='abs', 
                     description=None, **kwargs):
         """Show SHAP values contributions to prediction in a table component
 
@@ -1210,7 +1116,6 @@ class ShapContributionsTableComponent(ExplainerComponent):
             hide_index (bool, optional): Hide index selector. Defaults to False.
             hide_depth (bool, optional): Hide depth selector. Defaults to False.
             hide_sort (bool, optional): Hide sorting dropdown. Default to False.
-            hide_cats (bool, optional): Hide group cats toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
@@ -1221,7 +1126,6 @@ class ShapContributionsTableComponent(ExplainerComponent):
             depth ([type], optional): Initial number of features to display. Defaults to None.
             sort ({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sorting of shap values. 
                         Defaults to 'high-to-low'.
-            cats (bool, optional): Group categoricals. Defaults to True.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -1230,10 +1134,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         self.index_name = 'contributions-table-index-'+self.name
 
         if self.depth is not None:
-            self.depth = min(self.depth, self.explainer.n_features(self.cats))
-        
-        if not self.explainer.onehot_cols:
-            self.hide_cats = True
+            self.depth = min(self.depth, self.explainer.n_features)
 
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -1247,7 +1148,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         from all the individual ingredients in the model.
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.register_dependencies('shap_values', 'shap_values_cats')
+        self.register_dependencies('shap_values_df')
 
     def layout(self):
         return dbc.Card([
@@ -1268,7 +1169,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                                         target='contributions-table-index-label-'+self.name),
                             dcc.Dropdown(id='contributions-table-index-'+self.name, 
                                 options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
+                                                for idx in self.explainer.get_index_list()],
                                 value=self.index)
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
@@ -1278,7 +1179,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                                     target='contributions-table-depth-label-'+self.name),
                             dbc.Select(id='contributions-table-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
-                                                for i in range(self.explainer.n_features(self.cats))],
+                                                for i in range(self.explainer.n_features)],
                                 value=self.depth)
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
@@ -1299,21 +1200,6 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
-                    make_hideable(
-                        dbc.Col([
-                            dbc.FormGroup([
-                                dbc.Label("Grouping:", id='contributions-table-group-cats-label-'+self.name),
-                                dbc.Tooltip("Group onehot encoded categorical variables together", 
-                                            target='contributions-table-group-cats-label-'+self.name),
-                                dbc.Checklist(
-                                    options=[{"label": "Group cats", "value": True}],
-                                    value=[True] if self.cats else [],
-                                    id='contributions-table-group-cats-'+self.name,
-                                    inline=True,
-                                    switch=True,
-                                ),
-                            ]),
-                        ], md=3), hide=self.hide_cats),
                 ], form=True),
                 dbc.Row([
                     dbc.Col([
@@ -1326,19 +1212,17 @@ class ShapContributionsTableComponent(ExplainerComponent):
     def component_callbacks(self, app):
         if self.feature_input_component is None:
             @app.callback(
-                [Output('contributions-table-'+self.name, 'children'),
-                Output('contributions-table-depth-'+self.name, 'options')],
+                Output('contributions-table-'+self.name, 'children'),
                 [Input('contributions-table-index-'+self.name, 'value'),
                 Input('contributions-table-depth-'+self.name, 'value'),
                 Input('contributions-table-sorting-'+self.name, 'value'),
-                Input('contributions-table-group-cats-'+self.name, 'value'),
                 Input('pos-label-'+self.name, 'value')])
-            def update_output_div(index, depth, sort, cats, pos_label):
+            def update_output_div(index, depth, sort, pos_label):
                 if index is None:
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
                 contributions_table = dbc.Table.from_dataframe(
-                    self.explainer.contrib_summary_df(index, cats=bool(cats), topx=depth, 
+                    self.explainer.get_contrib_summary_df(index, topx=depth, 
                                     sort=sort, pos_label=pos_label))
 
                 tooltip_cols = {}
@@ -1355,53 +1239,39 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             placement="top") for col, desc in tooltip_cols.items()]
 
                 output_div = html.Div([contributions_table, *tooltips])
+                return output_div
 
-                ctx = dash.callback_context
-                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-                if trigger == 'contributions-table-group-cats-'+self.name:
-                    depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(bool(cats)))]
-                    return (output_div, depth_options)
-                else:
-                    return (output_div, dash.no_update) 
         else:
             @app.callback(
-                [Output('contributions-table-'+self.name, 'children'),
-                 Output('contributions-table-depth-'+self.name, 'options')],
+                Output('contributions-table-'+self.name, 'children'),
                 [Input('contributions-table-depth-'+self.name, 'value'),
                  Input('contributions-table-sorting-'+self.name, 'value'),
-                 Input('contributions-table-group-cats-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value'),
                  *self.feature_input_component._feature_callback_inputs])
-            def update_output_div(depth, sort, cats, pos_label, *inputs):
-                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                depth = None if depth is None else int(depth)
-                contributions_table = dbc.Table.from_dataframe(
-                    self.explainer.contrib_summary_df(X_row=X_row, cats=bool(cats), topx=depth, 
-                                    sort=sort, pos_label=pos_label))
+            def update_output_div(depth, sort, pos_label, *inputs):
+                if not any([i is None for i in inputs]):
+                    X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                    depth = None if depth is None else int(depth)
+                    contributions_table = dbc.Table.from_dataframe(
+                        self.explainer.get_contrib_summary_df(X_row=X_row, topx=depth, 
+                                        sort=sort, pos_label=pos_label))
 
-                tooltip_cols = {}
-                for tr in contributions_table.children[1].children:
-                    # insert tooltip target id's into the table html.Tr() elements:
-                    tds = tr.children
-                    col = tds[0].children.split(" = ")[0]
-                    if self.explainer.description(col) != "":
-                        tr.id = f"contributions-table-hover-{col}-"+self.name
-                        tooltip_cols[col] = self.explainer.description(col)
-                
-                tooltips = [dbc.Tooltip(desc,
-                            target=f"contributions-table-hover-{col}-"+self.name, 
-                            placement="top") for col, desc in tooltip_cols.items()]
+                    tooltip_cols = {}
+                    for tr in contributions_table.children[1].children:
+                        # insert tooltip target id's into the table html.Tr() elements:
+                        tds = tr.children
+                        col = tds[0].children.split(" = ")[0]
+                        if self.explainer.description(col) != "":
+                            tr.id = f"contributions-table-hover-{col}-"+self.name
+                            tooltip_cols[col] = self.explainer.description(col)
+                    
+                    tooltips = [dbc.Tooltip(desc,
+                                target=f"contributions-table-hover-{col}-"+self.name, 
+                                placement="top") for col, desc in tooltip_cols.items()]
 
-                output_div = html.Div([contributions_table, *tooltips])
+                    output_div = html.Div([contributions_table, *tooltips])
+                    return output_div
+                raise PreventUpdate
 
-                ctx = dash.callback_context
-                trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-                if trigger == 'contributions-table-group-cats-'+self.name:
-                    depth_options = [{'label': str(i+1), 'value': i+1} 
-                                            for i in range(self.explainer.n_features(bool(cats)))]
-                    return (output_div, depth_options)
-                else:
-                    return (output_div, dash.no_update) 
 
 

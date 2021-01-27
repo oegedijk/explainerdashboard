@@ -26,8 +26,8 @@ Or you can use it interactively in a notebook to inspect your model
 using the built-in plotting methods, e.g.::
 
     explainer.plot_confusion_matrix()
-    explainer.plot_shap_contributions(index=0)
-    explainer.plot_shap_dependence("Fare", color_col="Sex")
+    explainer.plot_contributions(index=0)
+    explainer.plot_dependence("Fare", color_col="Sex")
 
 .. image:: screenshots/notebook_screenshot.png
 
@@ -63,6 +63,7 @@ give a bit nicer and more convenient output::
             index_name="Passenger", # description of index
             descriptions=feature_descriptions, # show long feature descriptions in hovers
             target='Survival', # the name of the target variable (y)
+            precision='float32', # save memory by setting lower precision. Default is 'float64'
             labels=['Not survived', 'Survived']) # show target labels instead of ['0', '1']
 
 cats
@@ -93,10 +94,8 @@ And you can also combine the two methods::
 
 
 You can now use these categorical features directly as input for plotting methods, e.g. 
-``explainer.plot_shap_dependence("Deck")``, which will now generate violin plots
-instead of the default scatter plots. For other methods you can usually pass
-a parameter ``cats=True``, to indicate that you'd like to group the categorical
-features in your output. 
+``explainer.plot_dependence("Deck")``, which will now generate violin plots
+instead of the default scatter plots. 
 
 idxs
 ----
@@ -104,8 +103,8 @@ idxs
 You may have specific identifiers (names, customer id's, etc) for each row in 
 your dataset. By default ``X.index`` will get used
 to identify individual rows/records in the dashboard. And you can index using both the 
-numerical index, e.g. ``explainer.contrib_df(0)`` for the first row, or using the 
-identifier, e.g. ``explainer.contrib_df("Braund, Mr. Owen Harris")``.
+numerical index, e.g. ``explainer.get_contrib_df(0)`` for the first row, or using the 
+identifier, e.g. ``explainer.get_contrib_df("Braund, Mr. Owen Harris")``.
 
 You can override using ``X.index`` by passing a list/array/Series ``idxs``
 to the explainer::
@@ -140,28 +139,28 @@ the ``cats`` parameter, you can also give descriptions of these groups, e.g::
         })
 
 
-
 target
 ------
 
-Name of the target variable. By default the name of the pd.Series ``y`` is used.
-Can be overriden::
+Name of the target variable. By default the name of the ``y`` (``y.name``) is used 
+if ``y`` is a ``pd.Series``, else it defaults to ``'target'``, bu this can be overriden::
 
     ClassifierExplainer(model, X, y, target="Survival")
 
 labels
 ------
-For ``ClassifierExplainer``: The outcome variables for a classification  ``y`` are assumed to 
+For ``ClassifierExplainer`` only: The outcome variables for a classification  ``y`` are assumed to 
 be encoded ``0, 1 (, 2, 3, ...)`` You can assign string labels by passing e.g.
- ``labels=['Not survived', 'Survived']``::
+``labels=['Not survived', 'Survived']``::
 
     ClassifierExplainer(model, X, y, labels=['Not survived', 'Survived'])
 
 units
 -----
 
-For ``RegressionExplainer``: the units of the ``y`` variable. E.g. if the model is predicting
-house prices in dollars you can set ``units='$'``. This will be displayed along
+For ``RegressionExplainer`` only: the units of the ``y`` variable. E.g. if the model is predicting
+house prices in dollars you can set ``units='$'``. If it is predicting maintenance
+time you can set ``units='hours'``, etc. This will then be displayed along
 the axis of various plots::
 
     RegressionExplainer(model, X, y, units="$")
@@ -170,12 +169,12 @@ the axis of various plots::
 X_background
 ------------
 
-Some models like sklearn ``LogisticRegression`` (as well as certain gradienst boosting 
+Some models like sklearn ``LogisticRegression`` (as well as certain gradient boosting 
 algorithms such as `xgboost` in probability space) need a background dataset to calculate shap values. 
 These can be passed as ``X_background``. If you don't pass an X_background, Explainer 
-uses X instead but gives off a warning. (you want to limit the size of X_background
-in order to keep the SHAP calculations from getting too slow). Usually a representative 
-background dataset of a couple of hunderd rows should be enough to get decent shap values.
+uses X instead but gives off a warning. (You want to limit the size of X_background
+in order to keep the SHAP calculations from getting too slow. Usually a representative 
+background dataset of a couple of hunderd rows should be enough to get decent shap values.)
 
 model_output
 ------------
@@ -183,8 +182,8 @@ model_output
 By default ``model_output`` for classifiers is set to ``"probability"``, as this 
 is more intuitively explainable to non data scientist stakeholders.
 However certain models (e.g. ``XGBClassifier``, ``LGBMCLassifier``, ``CatBoostClassifier``), 
-need a background dataset X_background to calculate shap values in probability 
-space, and are not able to calculate shap interaction values in probability space.
+need a background dataset ``X_background`` to calculate SHAP values in probability 
+space, and are not able to calculate shap interaction values in probability space at all.
 Therefore you can also pass model_output='logodds', in which case shap values 
 get calculated faster and interaction effects can be studied. Now you just need
 to explain to your stakeholders what logodds are :)
@@ -197,7 +196,8 @@ based on the model what kind of shap explainer it needs: e.g.
 ``shap.TreeExplainer(...)``, ``shap.LinearExplainer(...)``, etc.
 
 In case the guess fails or you'd like to override it, you can set it manually:
-e.g. ``shap='tree'``, ``shap='linear'``, ``shap='kernel'``, ``shap='deep'``, etc.
+e.g. ``shap='tree'`` for ``shap.TreeExplainer``, ``shap='linear'`` for ``shap.LinearExplainer``, 
+``shap='kernel'`` for ``shap.KernelExplainer``, ``shap='deep'`` for ``shap.DeepExplainer``, etc.
 
 model_output, X_background example
 ----------------------------------
@@ -233,6 +233,13 @@ tree based methods), these can mess with the horizontal axis of your plots.
 In order to filter these out, you need to tell the explainer what the extreme value 
 is that you used to fill. Defaults to ``-999``.
 
+precision
+---------
+
+You can set the precision of the calculated shap values, predictions, etc, in
+order to save on memory usage. Default is ``'float64'``, but ``'float32'`` is probably
+fine, maybe even ``'float16'`` for your application.
+
 Plots
 =====
 
@@ -243,26 +250,24 @@ The abstract base class ``BaseExplainer`` defines most of the functionality
 such as feature importances (both SHAP and permutation based), SHAP values, SHAP interaction values
 partial dependences, individual contributions, etc. Along with a number of convenient
 plotting methods. In practice you will use ``ClassifierExplainer`` 
-or ``RegressionExplainer``, however they both inherit all of these basic methods.
+or ``RegressionExplainer``, however they both inherit all of these basic methods::
 
 
-The BaseExplainer already provides a number of convenient plotting methods::
-
-    plot_importances(kind='shap', topx=None, cats=False, round=3, pos_label=None)
-    plot_shap_contributions(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
-    plot_shap_summary(topx=None, cats=False, pos_label=None)
-    plot_shap_interaction_summary(col, topx=None, cats=False, pos_label=None)
-    plot_shap_dependence(col, color_col=None, highlight_idx=None,pos_label=None)
-    plot_shap_interaction(col, interact_col, highlight_idx=None, pos_label=None)
+    plot_importances(kind='shap', topx=None, round=3, pos_label=None)
+    plot_contributions(index, topx=None, cutoff=None, round=2, pos_label=None)
+    plot_importances_detailed(topx=None, pos_label=None)
+    plot_interactions_detailed(col, topx=None, pos_label=None)
+    plot_dependence(col, color_col=None, highlight_idx=None, pos_label=None)
+    plot_interaction(interact_col, highlight_idx=None, pos_label=None)
     plot_pdp(col, index=None, drop_na=True, sample=100, num_grid_lines=100, num_grid_points=10, pos_label=None)
 
 example code::
 
     explainer = ClassifierExplainer(model, X, y, cats=['Sex', 'Deck', 'Embarked']) 
-    explainer.plot_importances(cats=True)
-    explainer.plot_shap_contributions(index=0, topx=5)
-    explainer.plot_shap_dependence("Fare")
-    explainer.plot_shap_interaction("Fare", "PassengerClass")
+    explainer.plot_importances()
+    explainer.plot_contributions(index=0, topx=5)
+    explainer.plot_dependence("Fare")
+    explainer.plot_interaction("Embarked", "PassengerClass")
     explainer.plot_pdp("Sex", index=0)
 
 plot_importances
@@ -270,36 +275,40 @@ plot_importances
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importances
 
-plot_shap_contributions
-^^^^^^^^^^^^^^^^^^^^^^^
+plot_importances_detailed
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_contributions
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_importances_detailed
 
-plot_shap_dependence
-^^^^^^^^^^^^^^^^^^^^
+plot_contributions
+^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_dependence
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_contributions
 
-plot_shap_interaction
-^^^^^^^^^^^^^^^^^^^^^
+plot_dependence
+^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_interaction
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_dependence
+
+plot_interaction
+^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_interaction
 
 plot_pdp
 ^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.plot_pdp
 
-plot_shap_summary
-^^^^^^^^^^^^^^^^^
+plot_interactions_importance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_summary
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_interactions_importance
 
-plot_shap_interaction_summary
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+plot_interactions_detailed
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_shap_interaction_summary
-
+.. automethod:: explainerdashboard.explainers.BaseExplainer.plot_interactions_detailed
 
 
 Classifier Plots
@@ -325,12 +334,13 @@ example code::
     explainer.plot_roc_auc(cutoff=0.7)
     explainer.plot_pr_auc(cutoff=0.3)
 
-More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 plot_precision
 ^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_precision
+
 
 plot_cumulative_precision
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -400,15 +410,15 @@ through a specific decision tree.
 You can also plot the individual predictions of each individual tree for 
 specific row in your data indentified by ``index``::
 
-    explainer.decisiontree_df(tree_idx, index)
-    explainer.decisiontree_summary_df(tree_idx, index)
+    explainer.get_decisionpath_df(tree_idx, index)
+    explainer.get_decisionpath_summary_df(tree_idx, index)
     explainer.plot_trees(index)
 
 And for dtreeviz visualization of individual decision trees (svg format)::
 
-    explainer.decision_path(tree_idx, index)
-    explainer.decision_path_file(tree_idx, index)
-    explainer.decision_path_encoded(tree_idx, index)
+    explainer.decisiontree(tree_idx, index)
+    explainer.decisiontree_file(tree_idx, index)
+    explainer.decisiontree_encoded(tree_idx, index)
 
 These methods are part of the ``RandomForestExplainer`` and XGBExplainer`` mixin
 classes that get automatically loaded when you pass either a RandomForest
@@ -420,21 +430,20 @@ plot_trees
 
 .. automethod:: explainerdashboard.explainers.RandomForestExplainer.plot_trees
 
-decision_path
-^^^^^^^^^^^^^
+decisiontree
+^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree
 
-decision_path_file
-^^^^^^^^^^^^^^^^^^
+decisiontree_file
+^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_file
 
-decision_path_encoded
-^^^^^^^^^^^^^^^^^^^^^
+decisiontree_encoded
+^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_encoded
-
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_encoded
 
 
 Other explainer outputs
@@ -446,12 +455,12 @@ Base outputs
 Some other useful tables and outputs you can get out of the explainer::
 
     metrics()
-    mean_abs_shap_df(topx=None, cutoff=None, cats=False, pos_label=None)
-    permutation_importances_df(topx=None, cutoff=None, cats=False, pos_label=None)
-    importances_df(kind="shap", topx=None, cutoff=None, cats=False, pos_label=None)
-    contrib_df(index, cats=True, topx=None, cutoff=None, pos_label=None)
-    contrib_summary_df(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
-    interactions_df(col, cats=False, topx=None, cutoff=None, pos_label=None)
+    get_mean_abs_shap_df(topx=None, cutoff=None, cats=False, pos_label=None)
+    get_permutation_importances_df(topx=None, cutoff=None, cats=False, pos_label=None)
+    get_importances_df(kind="shap", topx=None, cutoff=None, cats=False, pos_label=None)
+    get_contrib_df(index, cats=True, topx=None, cutoff=None, pos_label=None)
+    get_contrib_summary_df(index, cats=True, topx=None, cutoff=None, round=2, pos_label=None)
+    get_interactions_df(col, cats=False, topx=None, cutoff=None, pos_label=None)
 
 metrics
 ^^^^^^^
@@ -459,40 +468,40 @@ metrics
 .. automethod:: explainerdashboard.explainers.BaseExplainer.metrics
 
 metrics_descriptions
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.metrics_descriptions
 .. automethod:: explainerdashboard.explainers.RegressionExplainer.metrics_descriptions
 
-mean_abs_shap_df
-^^^^^^^^^^^^^^^^
+get_mean_abs_shap_df
+^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.mean_abs_shap_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_mean_abs_shap_df
 
-permutation_importances_df
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+get_permutation_importances_df
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.permutation_importances_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_permutation_importances_df
 
-importances_df
-^^^^^^^^^^^^^^
-
-.. automethod:: explainerdashboard.explainers.BaseExplainer.importances_df
-
-contrib_df
-^^^^^^^^^^
-
-.. automethod:: explainerdashboard.explainers.BaseExplainer.contrib_df
-
-contrib_summary_df
+get_importances_df
 ^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.contrib_summary_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_importances_df
 
-interactions_df
-^^^^^^^^^^^^^^^
+get_contrib_df
+^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.BaseExplainer.interactions_df
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_contrib_df
+
+get_contrib_summary_df
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_contrib_summary_df
+
+get_interactions_df
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.BaseExplainer.get_interactions_df
 
 
 
@@ -503,10 +512,10 @@ For ``ClassifierExplainer`` in addition::
 
     random_index(y_values=None, return_str=False,pred_proba_min=None, pred_proba_max=None,
                     pred_percentile_min=None, pred_percentile_max=None, pos_label=None)
-    prediction_result_markdown(index, include_percentile=True, round=2, pos_label=None)
+    prediction_result_df(index, pos_label=None)
     cutoff_from_percentile(percentile, pos_label=None)
-    precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
-    lift_curve_df(pos_label=None)
+    get_precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
+    get_liftcurve_df(pos_label=None)
 
 
 random_index
@@ -514,25 +523,26 @@ random_index
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.random_index
 
-prediction_result_markdown
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: explainerdashboard.explainers.ClassifierExplainer.prediction_result_markdown
 
 cutoff_from_percentile
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.cutoff_from_percentile
 
-precision_df
-^^^^^^^^^^^^
+percentile_from_cutoff
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.percentile_from_cutoff
+
+get_precision_df
+^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.precision_df
 
-lift_curve_df
-^^^^^^^^^^^^^
+get_liftcurve_df
+^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.ClassifierExplainer.lift_curve_df
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.get_liftcurve_df
 
 
 Regression outputs
@@ -541,16 +551,11 @@ Regression outputs
 
 For ``RegressionExplainer``::
 
-    prediction_result_markdown(index, round=2)
     random_index(y_min=None, y_max=None, pred_min=None, pred_max=None, 
                     residuals_min=None, residuals_max=None,
                     abs_residuals_min=None, abs_residuals_max=None,
                     return_str=False)
 
-prediction_result_markdown
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: explainerdashboard.explainers.RegressionExplainer.prediction_result_markdown
 
 random_index
 ^^^^^^^^^^^^
@@ -572,30 +577,30 @@ with the following additional methods::
     decision_path(tree_idx, index)
 
 
-decisiontree_df
+get_decisionpath_df
 ^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_df
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.get_decisionpath_df
 
-decisiontree_summary_df
+get_decisionpath_summary_df
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_summary_df
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.get_decisionpath_summary_df
 
-decision_path_file
+decisiontree_file
 ^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_file
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_file
 
-decision_path_encoded
+decisiontree_encoded
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path_encoded
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree_encoded
 
-decision_path
+decisiontree
 ^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decision_path
+.. automethod:: explainerdashboard.explainers.RandomForestExplainer.decisiontree
 
 
 Calculated Properties
@@ -607,9 +612,10 @@ property is calculated once, it is stored for next time. So the first time
 you invoke a plot involving shap values may take a while to calculate. The next
 time will be basically instant. 
 
-You can access these properties directly from the explainer, e.g. ``explainer.shap_values``. 
+You can access these properties directly from the explainer, e.g. ``explainer.get_shap_values_df()``. 
 For classifier models if you want values for a particular ``pos_label`` you can
-pass this (int) label ``explainer.shap_values(0)`` would get the shap values for the 0'th class.
+pass this label ``explainer.get_shap_values_df(0)`` would get the shap values for 
+the 0'th class label.
 
 In order to calculate all properties of the explainer at once, you can call
 ``explainer.calculate_properties()``. (``ExplainerComponents`` have a similar method
@@ -620,22 +626,19 @@ The various properties are::
 
     explainer.preds
     explainer.pred_percentiles
-    explainer.permutation_importances
-    explainer.permutation_importances_cats
-    explainer.shap_base_value
-    explainer.shap_values
-    explainer.shap_values_cats
+    explainer.permutation_importances(pos_label)
+    explainer.mean_abs_shap_df(pos_label)
+    explainer.shap_base_value(pos_label)
+    explainer.get_shap_values_df(pos_label)
     explainer.shap_interaction_values
-    explainer.shap_interaction_values_cats
-    explainer.mean_abs_shap
-    explainer.mean_abs_shap_cats
+    
 
 For ``ClassifierExplainer``::
 
     explainer.y_binary
     explainer.pred_probas_raw
     explainer.pred_percentiles_raw
-    explainer.pred_probas
+    explainer.pred_probas(pos_label)
 
 For ``RegressionExplainer``::
 
@@ -655,14 +658,14 @@ the various classes.
 
 You can pass a parameter ``pos_label`` to almost every property or method, to get
 the output for that specific positive label. If you don't pass a ``pos_label`` 
-manually to a specific method, the global ``pos_label`` will be used. You can set
-this directly on the explainer (even us str labels if you've set these)::
+manually to a specific method, the global ``self.pos_label`` will be used. You can set
+this directly on the explainer (even us str labels if you have set these)::
 
     explainer.pos_label = 0
-    explainer.plot_shap_dependence("Fare") # will show plot for pos_label=0
+    explainer.plot_dependence("Fare") # will show plot for pos_label=0
     explainer.pos_label = 'Survived' 
-    explainer.plot_shap_dependence("Fare") # will now show plot for pos_label=1
-    explainer.plot_shap_dependence("Fare", pos_label=0) # show plot for label 0, without changing explainer.pos_label
+    explainer.plot_dependence("Fare") # will now show plot for pos_label=1
+    explainer.plot_dependence("Fare", pos_label=0) # show plot for label 0, without changing explainer.pos_label
 
 The ``ExplainerDashboard`` will show a dropdown menu in the header to choose
 a particular ``pos_label``. Changing this will basically update every single
@@ -673,9 +676,9 @@ BaseExplainer
 =============
 
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
-   :members: mean_abs_shap_df, permutation_importances_df, importances_df, contrib_df, to_sql,
-            plot_importances, plot_shap_contributions, plot_shap_summary, 
-            plot_shap_interaction_summary, plot_shap_dependence, plot_shap_interaction, plot_pdp
+   :members: get_mean_abs_shap_df, get_permutation_importances_df, get_importances_df, contrib_df, 
+            plot_importances, plot_contributions, plot_importances_detailed, 
+            plot_interactions_detailed, plot_interactions_importances, plot_dependence, plot_interaction, plot_pdp
    :member-order: bysource
 
 ClassifierExplainer
@@ -688,7 +691,7 @@ multilabel classifier you can set the positive class with e.g. ``explainer.pos_l
 This will make sure that for example ``explainer.pred_probas`` will return the probability
 of that label. 
 
-More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 
 .. autoclass:: explainerdashboard.explainers.ClassifierExplainer
@@ -706,11 +709,11 @@ For regression models (e.g. ``RandomForestRegressor``) models you use ``Regressi
 
 You can pass ``units`` as an additional parameter for the units of the target variable (e.g. ``units="$"``). 
 
-More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 .. autoclass:: explainerdashboard.explainers.RegressionExplainer
-   :members: random_index, residuals, metrics, prediction_result_markdown,
-            plot_predicted_vs_actual, plot_residuals,  plot_residuals_vs_feature
+   :members: random_index, residuals, metrics, plot_predicted_vs_actual, 
+                plot_residuals,  plot_residuals_vs_feature
    :member-order: bysource
    :noindex:
 
@@ -726,11 +729,10 @@ the average off. This Mixin class will be automatically included
 whenever you pass a ``RandomForestClassifier`` or ``RandomForestRegressor`` model.
 
 .. autoclass:: explainerdashboard.explainers.RandomForestExplainer
-   :members: decisiontree_df, decisiontree_summary_df, plot_trees, decision_path
+   :members: get_decisionpath_df, get_decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
    :member-order: bysource
    :exclude-members: 
    :noindex:
-
 
 
 
@@ -746,7 +748,7 @@ whenever you pass a ``XGBClassifier`` or ``XGBRegressor`` model.
 
 
 .. autoclass:: explainerdashboard.explainers.XGBExplainer
-   :members: decisiontree_df, decisiontree_summary_df, plot_trees, decision_path
+   :members: get_decisionpath_df, get_decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
    :member-order: bysource
    :exclude-members: 
    :noindex:
