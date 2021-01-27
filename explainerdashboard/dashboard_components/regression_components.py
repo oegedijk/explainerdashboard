@@ -481,7 +481,7 @@ class PredictedVsActualComponent(ExplainerComponent):
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
                     hide_title=False, hide_subtitle=False, 
-                    hide_log_x=False, hide_log_y=False,
+                    hide_log_x=False, hide_log_y=False, hide_popout=False, 
                     logs=False, log_x=False, log_y=False, round=3,
                     description=None,
                     **kwargs):
@@ -500,6 +500,7 @@ class PredictedVsActualComponent(ExplainerComponent):
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_log_x (bool, optional): Hide the log_x toggle. Defaults to False.
             hide_log_y (bool, optional): Hide the log_y toggle. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             logs (bool, optional): Whether to use log axis. Defaults to False.
             log_x (bool, optional): log only x axis. Defaults to False.
             log_y (bool, optional): log only y axis. Defaults to False.
@@ -512,6 +513,8 @@ class PredictedVsActualComponent(ExplainerComponent):
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
 
+        
+
         if self.description is None: self.description = f"""
         Plot shows the observed {self.explainer.target} and the predicted 
         {self.explainer.target} in the same plot. A perfect model would have
@@ -519,6 +522,9 @@ class PredictedVsActualComponent(ExplainerComponent):
         away point are from the diagonal the worse the model is in predicting
         {self.explainer.target}.
         """
+
+        self.popout = GraphPopout('pred-vs-actual-'+self.name+'popout', 
+                    'pred-vs-actual-graph-'+self.name, self.title, self.description)
         self.register_dependencies(['preds'])
 
     def layout(self):
@@ -573,6 +579,12 @@ class PredictedVsActualComponent(ExplainerComponent):
                             ], check=True),
                         ], md=2), hide=self.hide_log_x),
                 ], justify="center"),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]), 
         ])
 
@@ -589,7 +601,7 @@ class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
                     subtitle="How much is the model off?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_pred_or_actual=False, hide_ratio=False,
+                    hide_pred_or_actual=False, hide_ratio=False, hide_popout=False, 
                     pred_or_actual="vs_pred", residuals="difference",
                     round=3, description=None, **kwargs):
         """Residuals plot component
@@ -609,6 +621,7 @@ class ResidualsComponent(ExplainerComponent):
             hide_pred_or_actual (bool, optional): hide vs predictions or vs 
                         actual for x-axis toggle. Defaults to False.
             hide_ratio (bool, optional): hide residual type dropdown. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pred_or_actual (str, {'vs_actual', 'vs_pred'}, optional): Whether 
                         to plot actual or predictions on the x-axis. 
                         Defaults to "vs_pred".
@@ -624,6 +637,7 @@ class ResidualsComponent(ExplainerComponent):
         assert residuals in ['difference', 'ratio', 'log-ratio'], \
             ("parameter residuals should in ['difference', 'ratio', 'log-ratio']"
              f" but you passed residuals={residuals}")
+
         if self.description is None: self.description = f"""
         The residuals are the difference between the observed {self.explainer.target}
         and predicted {self.explainer.target}. In this plot you can check if 
@@ -631,6 +645,9 @@ class ResidualsComponent(ExplainerComponent):
         So you can check if the model works better or worse for different {self.explainer.target}
         levels.
         """
+
+        self.popout = GraphPopout('residuals-'+self.name+'popout', 
+                    'residuals-graph-'+self.name, self.title, self.description)
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
@@ -649,7 +666,13 @@ class ResidualsComponent(ExplainerComponent):
                         dcc.Graph(id='residuals-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ])
-                ])
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -688,7 +711,7 @@ class ResidualsComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
-    def register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             Output('residuals-graph-'+self.name, 'figure'),
             [Input('residuals-pred-or-actual-'+self.name, 'value'),
@@ -706,7 +729,7 @@ class RegressionVsColComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_col=False, hide_ratio=False, 
                     hide_points=False, hide_winsor=False, 
-                    hide_cats_topx=False, hide_cats_sort=False,
+                    hide_cats_topx=False, hide_cats_sort=False, hide_popout=False, 
                     col=None, display='difference', round=3,
                     points=True, winsor=0, cats_topx=10, cats_sort='freq', 
                     description=None, **kwargs):
@@ -730,6 +753,7 @@ class RegressionVsColComponent(ExplainerComponent):
             hide_winsor (bool, optional): Hide winsor input. Defaults to False.
             hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
             hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             col ([type], optional): Initial feature to display. Defaults to None.
             display (str, {'observed', 'predicted', difference', 'ratio', 'log-ratio'} optional): 
                     What to display on y axis. Defaults to 'difference'.
@@ -762,6 +786,8 @@ class RegressionVsColComponent(ExplainerComponent):
         This allows you to inspect whether the model is more wrong for particular
         range of feature values than others. 
         """
+        self.popout = GraphPopout('reg-vs-col-'+self.name+'popout', 
+                    'reg-vs-col-graph-'+self.name, self.title, self.description)
         self.register_dependencies(['preds', 'residuals'])
 
     def layout(self):
@@ -810,6 +836,12 @@ class RegressionVsColComponent(ExplainerComponent):
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                     ]) 
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -872,7 +904,7 @@ class RegressionVsColComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
-    def register_callbacks(self, app):
+    def component_callbacks(self, app):
         @app.callback(
             [Output('reg-vs-col-graph-'+self.name, 'figure'),
              Output('reg-vs-col-show-points-div-'+self.name, 'style'),

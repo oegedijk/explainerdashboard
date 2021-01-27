@@ -133,11 +133,11 @@ A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>`
 
 
 More examples of how to start dashboards for different types of models and with 
-different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/dashboard_examples.ipynb>`_ 
+different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/dashboard_examples.ipynb>`_ 
 in the github repo.
 
 For examples on how to interact with and get plots and dataframes out of the explainer
-object check out `explainer_examples notebook  <https://github.com/oegedijk/explainerdashboard/blob/master/explainer_examples.ipynb>`_
+object check out `explainer_examples notebook  <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 in the github repo.
 
 

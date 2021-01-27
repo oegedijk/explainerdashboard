@@ -146,6 +146,15 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
         self.assertIsInstance(self.explainer.pdp_df("Age", X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
 
+    def test_memory_usage(self):
+        self.assertIsInstance(self.explainer.memory_usage(), pd.DataFrame)
+        self.assertIsInstance(self.explainer.memory_usage(cutoff=1000), pd.DataFrame)
+
+    def test_keep_shap_pos_label_only(self):
+        self.explainer.keep_shap_pos_label_only()
+        self.assertIsInstance(self.shap_values_df(), pd.DataFrame)
+
+
     def test_plot_importances(self):
         fig = self.explainer.plot_importances()
         self.assertIsInstance(fig, go.Figure)

@@ -23,7 +23,7 @@ class ShapSummaryComponent(ExplainerComponent):
                     subtitle="Ordering features by shap value",
                     hide_title=False, hide_subtitle=False, hide_depth=False, 
                     hide_type=False, hide_index=False, hide_selector=False,
-                    pos_label=None, depth=None, 
+                    hide_popout=False, pos_label=None, depth=None, 
                     summary_type="aggregate", max_cat_colors=5, index=None,
                     description=None, **kwargs):
         """Shows shap summary component
@@ -43,6 +43,7 @@ class ShapSummaryComponent(ExplainerComponent):
                         Defaults to False.
             hide_type (bool, optional): hide the summary type toggle 
                         (aggregated, detailed). Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
@@ -61,12 +62,16 @@ class ShapSummaryComponent(ExplainerComponent):
 
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         The shap summary summarizes the shap values per feature.
         You can either select an aggregates display that shows mean absolute shap value
         per feature. Or get a more detailed look at the spread of shap values per
         feature and how they correlate the the feature value (red is high).
         """
+
+        self.popout = GraphPopout('shap-summary-'+self.name+'popout', 
+                            'shap-summary-graph-'+self.name, self.title, self.description)
         self.register_dependencies('shap_values_df')
              
     def layout(self):
@@ -125,11 +130,18 @@ class ShapSummaryComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_index),  
                     make_hideable(
                             dbc.Col([self.selector.layout()
-                        ], width=2), hide=self.hide_selector)
+                        ], width=2), hide=self.hide_selector),
+                    
                     ], form=True),
                 dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
                         children=[dcc.Graph(id="shap-summary-graph-"+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
         ])
     
@@ -178,7 +190,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_col=False, 
                     hide_color_col=False, hide_index=False,
                     hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
-                    hide_footer=False,
+                    hide_popout=False, hide_footer=False,
                     pos_label=None, 
                     col=None, color_col=None, index=None, 
                     cats_topx=10, cats_sort='freq', max_cat_colors=5,
@@ -202,6 +214,7 @@ class ShapDependenceComponent(ExplainerComponent):
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
             hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             hide_footer (bool, optional): hide the footer.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
@@ -226,17 +239,19 @@ class ShapDependenceComponent(ExplainerComponent):
             self.color_col = self.explainer.top_shap_interactions(self.col)[1]
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         self.index_name = 'shap-dependence-index-'+self.name
 
         if self.description is None: self.description = """
         This plot shows the relation between feature values and shap values.
         This allows you to investigate the general relationship between feature
-        value and impact on the prediction, i.e. "older passengers were predicted
-        to be less likely to survive the titanic". You can check whether the mode
+        value and impact on the prediction. You can check whether the model
         uses features in line with your intuitions, or use the plots to learn
         about the relationships that the model has learned between the input features
         and the predicted outcome.
         """
+        self.popout = GraphPopout('shap-dependence-'+self.name+'popout', 
+                            'shap-dependence-graph-'+self.name, self.title, self.description)
         self.register_dependencies('shap_values_df')
              
     def layout(self):
@@ -253,7 +268,7 @@ class ShapDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                             dbc.Col([self.selector.layout()
-                        ], width=2), hide=self.hide_selector),    
+                        ], width=2), hide=self.hide_selector),  
                 ]),
                 dbc.Row([
                     make_hideable(
@@ -287,12 +302,18 @@ class ShapDependenceComponent(ExplainerComponent):
                                 options = [{'label': str(idx), 'value':idx} 
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
-                        ], md=4), hide=self.hide_index),         
+                        ], md=4), hide=self.hide_index),          
                 ], form=True),
                 dcc.Loading(id="loading-dependence-graph-"+self.name, 
                             children=[
                                 dcc.Graph(id='shap-dependence-graph-'+self.name,
                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]), 
             make_hideable(
                 dbc.CardFooter([
@@ -400,7 +421,7 @@ class InteractionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Interactions Summary", name=None,
                     subtitle="Ordering features by shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_col=False, hide_depth=False, 
-                    hide_type=False, hide_index=False, hide_selector=False,
+                    hide_type=False, hide_index=False, hide_popout=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
                     summary_type="aggregate", max_cat_colors=5,
                     index=None, description=None,
@@ -422,6 +443,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             hide_depth (bool, optional): Hide depth toggle. Defaults to False.
             hide_type (bool, optional): Hide summary type toggle. Defaults to False.
             hide_index (bool, optional): Hide the index selector. Defaults to False
+            hide_popout (bool, optional): hide popout button
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
@@ -445,6 +467,7 @@ class InteractionSummaryComponent(ExplainerComponent):
             self.depth = min(self.depth, self.explainer.n_features-1)
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         Shows shap interaction values. Each shap value can be decomposed into a direct
         effect and indirect effects. The indirect effects are due to interactions
@@ -454,6 +477,8 @@ class InteractionSummaryComponent(ExplainerComponent):
         for example passenger class (first class women more likely to survive than
         average woman, third class women less likely).
         """
+        self.popout = GraphPopout('interaction-summary-'+self.name+'popout', 
+                            'interaction-summary-graph-'+self.name, self.title, self.description)
         self.register_dependencies("shap_interaction_values")
 
     def layout(self):
@@ -531,7 +556,13 @@ class InteractionSummaryComponent(ExplainerComponent):
                             children=[dcc.Graph(id='interaction-summary-graph-'+self.name, 
                                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False))])
                     ])
-                ]), 
+                ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"), 
             ]),
         ])
 
@@ -574,8 +605,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                     subtitle="Relation between feature value and shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
-                    hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
-                    hide_top=False, hide_bottom=False,
+                    hide_popout=False, hide_selector=False, hide_cats_topx=False, 
+                    hide_cats_sort=False, hide_top=False, hide_bottom=False,
                     pos_label=None, col=None, interact_col=None,
                     cats_topx=10, cats_sort='freq', max_cat_colors=5,
                     description=None, index=None, **kwargs):
@@ -603,6 +634,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         Defaults to False.
             hide_selector (bool, optional): hide pos label selector. 
                         Defaults to False.
+            hide_popout (bool, optional): hide popout button
             hide_cats_topx (bool, optional): hide the categories topx input. 
                         Defaults to False.
             hide_cats_sort (bool, optional): hide the categories sort selector.
@@ -634,11 +666,16 @@ class InteractionDependenceComponent(ExplainerComponent):
         
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.popout_top = GraphPopout(self.name+'popout-top', 
+                'interaction-dependence-top-graph-'+self.name, self.title)
+        
         if self.description is None: self.description = """
         This plot shows the relation between feature values and shap interaction values.
         This allows you to investigate interactions between features in determining
         the prediction of the model.
         """
+        self.popout_bottom = GraphPopout(self.name+'popout-bottom', 
+                'interaction-dependence-bottom-graph-'+self.name, self.title, self.description)
         self.register_dependencies("shap_interaction_values")
 
     def layout(self):
@@ -703,6 +740,12 @@ class InteractionDependenceComponent(ExplainerComponent):
                                 hide=self.hide_top),
                     ]),
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout_top.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
                 html.Div([
                     dbc.Row([
                         make_hideable(
@@ -739,7 +782,12 @@ class InteractionDependenceComponent(ExplainerComponent):
                                 hide=self.hide_bottom),
                     ]),
                 ]),
-
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout_bottom.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
                 html.Div([
                     dbc.Row([
                         make_hideable(
@@ -864,7 +912,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_subtitle=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=True, 
-                    hide_selector=False, feature_input_component=None,
+                    hide_selector=False, hide_popout=False, feature_input_component=None, 
                     pos_label=None, index=None, depth=None, sort='high-to-low', 
                     orientation='vertical', higher_is_better=True,
                     description=None, **kwargs):
@@ -887,6 +935,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             hide_orientation (bool, optional): Hide the orientation dropdown. 
                     Defaults to True.
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
@@ -923,6 +972,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.popout = GraphPopout('contributions-graph-'+self.name+'popout', 
+                            'contributions-graph-'+self.name, self.title, self.description)
         self.register_dependencies('shap_values_df')
 
     def layout(self):
@@ -995,6 +1046,12 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                     config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
                     ]),
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
         ])
         

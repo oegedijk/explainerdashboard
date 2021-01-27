@@ -388,7 +388,8 @@ class PrecisionComponent(ExplainerComponent):
                     subtitle="Does fraction positive increase with predicted probability?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_binsize=False, hide_binmethod=False,
-                    hide_multiclass=False, hide_selector=False, pos_label=None,
+                    hide_multiclass=False, hide_selector=False, hide_popout=False, 
+                    pos_label=None,
                     bin_size=0.1, quantiles=10, cutoff=0.5,
                     quantiles_or_binsize='bin_size', multiclass=False, description=None, 
                     **kwargs):
@@ -412,6 +413,7 @@ class PrecisionComponent(ExplainerComponent):
             hide_binmethod (bool, optional): Hide binsize/quantiles toggle. Defaults to False.
             hide_multiclass (bool, optional): Hide multiclass toggle. Defaults to False.
             hide_selector (bool, optional): Hide pos label selector. Default to True.
+            hide_popout (bool, optional): hide popout button
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             bin_size (float, optional): Size of bins in probability space. Defaults to 0.1.
             quantiles (int, optional): Number of quantiles to divide plot. Defaults to 10.
@@ -426,6 +428,8 @@ class PrecisionComponent(ExplainerComponent):
         self.cutoff_name = 'precision-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
+
         if self.description is None: self.description = f"""
         On this plot you can see the relation between the predicted probability
         that a {self.explainer.index_name} belongs to the positive class, and
@@ -436,6 +440,8 @@ class PrecisionComponent(ExplainerComponent):
         from the bottom left corner to the top right corner. A strong model would
         classify most observations correctly and close to 0% or 100% probability.
         """
+        self.popout = GraphPopout('precision-'+self.name+'popout', 'precision-graph-'+self.name, 
+                            self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -461,6 +467,12 @@ class PrecisionComponent(ExplainerComponent):
                         ], style={'margin': 0}),
                     ])
                 ]),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -597,7 +609,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     subtitle="How many false positives and false negatives?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
-                    hide_selector=False, pos_label=None,
+                    hide_selector=False, hide_popout=False, pos_label=None,
                     cutoff=0.5, percentage=True, binary=True, description=None,
                     **kwargs):
         """Display confusion matrix component
@@ -618,6 +630,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_binary (bool, optional): Hide binary toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Default cutoff. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
@@ -644,6 +657,8 @@ class ConfusionMatrixComponent(ExplainerComponent):
         """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.popout = GraphPopout('confusionmatrix-'+self.name+'popout', 'confusionmatrix-graph-'+self.name, 
+                            self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -662,7 +677,13 @@ class ConfusionMatrixComponent(ExplainerComponent):
                         dbc.Col([self.selector.layout()], width=3), hide=self.hide_selector)
                 ], justify="end"),
                 dcc.Graph(id='confusionmatrix-graph-'+self.name,
-                                            config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                                config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -736,7 +757,8 @@ class LiftCurveComponent(ExplainerComponent):
                     subtitle="Performance how much better than random?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_wizard=False,
-                    hide_selector=False, pos_label=None, cutoff=0.5, percentage=True, 
+                    hide_selector=False, hide_popout=False, pos_label=None, 
+                    cutoff=0.5, percentage=True, 
                     wizard=True, description=None,
                     **kwargs):
         """Show liftcurve component
@@ -757,6 +779,7 @@ class LiftCurveComponent(ExplainerComponent):
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_wizard (bool, optional): hide the wizard toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Cutoff for lift curve. Defaults to 0.5.
             percentage (bool, optional): Display percentages instead of counts. Defaults to True.
@@ -769,11 +792,15 @@ class LiftCurveComponent(ExplainerComponent):
         self.cutoff_name = 'liftcurve-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         The lift curve shows you the percentage of positive classes when you only
         select observations with a score above cutoff vs selecting observations
         randomly. This shows you how much better the model is than random (the lift).
         """
+
+        self.popout = GraphPopout('liftcurve-'+self.name+'popout', 'liftcurve-graph-'+self.name, 
+                        self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -795,6 +822,12 @@ class LiftCurveComponent(ExplainerComponent):
                     dcc.Graph(id='liftcurve-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], style={'margin': 0}),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -866,7 +899,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
     def __init__(self, explainer, title="Cumulative Precision", name=None,
                     subtitle="Expected distribution for highest scores",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_selector=False, pos_label=None,
+                    hide_selector=False, hide_popout=False, pos_label=None,
                     hide_cutoff=False, cutoff=None,
                     hide_percentile=False, percentile=None, description=None,
                     **kwargs):
@@ -885,6 +918,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             
         """
@@ -897,6 +931,9 @@ class CumulativePrecisionComponent(ExplainerComponent):
         This plot shows the percentage of each label that you can expect when you
         only sample the top x% highest scores. 
         """
+        self.popout = GraphPopout('cumulative-precision-'+self.name+'popout', 
+                        'cumulative-precision-graph-'+self.name, 
+                        self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -914,6 +951,12 @@ class CumulativePrecisionComponent(ExplainerComponent):
                     dcc.Graph(id='cumulative-precision-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], style={'margin': 0}),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -987,6 +1030,7 @@ class ClassificationComponent(ExplainerComponent):
                     subtitle="Distribution of labels above and below cutoff",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_selector=False,
+                    hide_popout=False, 
                     pos_label=None, cutoff=0.5, percentage=True, description=None,
                     **kwargs):
         """Shows a barchart of the number of classes above the cutoff and below
@@ -1007,6 +1051,7 @@ class ClassificationComponent(ExplainerComponent):
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_percentage (bool, optional): Hide percentage toggle. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): Cutoff for prediction. Defaults to 0.5.
             percentage (bool, optional): Show percentage instead of counts. Defaults to True.
@@ -1018,9 +1063,14 @@ class ClassificationComponent(ExplainerComponent):
         self.cutoff_name = 'classification-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
+
         if self.description is None: self.description = """
         Plot showing the fraction of each class above and below the cutoff.
         """
+
+        self.popout = GraphPopout('classification-'+self.name+'popout', 
+                            'classification-graph-'+self.name, self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -1042,6 +1092,12 @@ class ClassificationComponent(ExplainerComponent):
                     dcc.Graph(id='classification-graph-'+self.name,
                                 config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
                 ], style={'margin': 0}),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -1095,7 +1151,7 @@ class RocAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
                     subtitle="Trade-off between False positives and false negatives",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_cutoff=False, hide_selector=False,
+                    hide_cutoff=False, hide_selector=False, hide_popout=False, 
                     pos_label=None, cutoff=0.5, description=None,
                     **kwargs):
         """Show ROC AUC curve component
@@ -1114,6 +1170,7 @@ class RocAucComponent(ExplainerComponent):
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): Hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
 
@@ -1123,8 +1180,11 @@ class RocAucComponent(ExplainerComponent):
         self.cutoff_name = 'rocauc-cutoff-' + self.name
         
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         """
+        self.popout = GraphPopout('rocauc-'+self.name+'popout', 
+                            'rocauc-graph-'+self.name, self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -1144,6 +1204,12 @@ class RocAucComponent(ExplainerComponent):
                     ], justify="end"),
                 dcc.Graph(id='rocauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([
@@ -1180,7 +1246,7 @@ class PrAucComponent(ExplainerComponent):
     def __init__(self, explainer, title="PR AUC Plot", name=None,
                     subtitle="Trade-off between Precision and Recall",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
-                    hide_cutoff=False, hide_selector=False,
+                    hide_cutoff=False, hide_selector=False, hide_popout=False, 
                     pos_label=None, cutoff=0.5, description=None,
                     **kwargs):
         """Display PR AUC plot component
@@ -1199,6 +1265,7 @@ class PrAucComponent(ExplainerComponent):
             hide_footer (bool, optional): hide the footer at the bottom of the component
             hide_cutoff (bool, optional): hide cutoff slider. Defaults to False.
             hide_selector(bool, optional): hide pos label selector. Defaults to False.
+            hide_popout (bool, optional): hide popout button. Defaults to False.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
             description (str, optional): Tooltip to display when hover over
@@ -1209,9 +1276,12 @@ class PrAucComponent(ExplainerComponent):
         self.cutoff_name = 'prauc-cutoff-' + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        
         if self.description is None: self.description = """
         Show the trade-off between Precision and Recall in one plot.
         """
+        self.popout = GraphPopout('prauc-'+self.name+'popout', 
+                    'prauc-graph-'+self.name, self.title, self.description)
         self.register_dependencies("preds", "pred_probas", "pred_percentiles")
 
     def layout(self):
@@ -1231,6 +1301,12 @@ class PrAucComponent(ExplainerComponent):
                     ], justify="end"),
                 dcc.Graph(id='prauc-graph-'+self.name,
                         config=dict(modeBarButtons=[['toImage']], displaylogo=False)),
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
             ]),
             make_hideable(
             dbc.CardFooter([

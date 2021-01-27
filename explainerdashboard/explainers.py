@@ -31,7 +31,6 @@ from sklearn.metrics import average_precision_score
 
 from .explainer_methods import *
 from .explainer_plots import *
-from .make_callables import make_callable, default_list, default_2darray
 
 import plotly.io as pio
 pio.templates.default = "none"
@@ -1590,11 +1589,11 @@ class BaseExplainer(ABC):
 
     def decisiontree_df(*args, **kwargs):
         raise NotImplementedError("decisiontree_df() has been deprecated in v0.3! "
-                "Use decisionpath_df() instead!")
+                "Use get_decisionpath_df() instead!")
 
     def decisiontree_summary_df(*args, **kwargs):
         raise NotImplementedError("decisiontree_summary_df() has been deprecated in v0.3! "
-                "Use decisionpath_summary_df() instead!")
+                "Use get_decisionpath_summary_df() instead!")
 
     def decision_path_file(*args, **kwargs):
         raise NotImplementedError("decision_path_file() has been deprecated in v0.3! "
@@ -2746,7 +2745,7 @@ class TreeExplainer(BaseExplainer):
         raise NotImplementedError
 
     @insert_pos_label
-    def decisionpath_df(self, tree_idx, index, pos_label=None):
+    def get_decisionpath_df(self, tree_idx, index, pos_label=None):
         """dataframe with all decision nodes of a particular decision tree
         for a particular observation.
 
@@ -2769,7 +2768,7 @@ class TreeExplainer(BaseExplainer):
             return get_decisionpath_df(self.shadow_trees[tree_idx], X_row.squeeze())
 
     @insert_pos_label
-    def decisionpath_summary_df(self, tree_idx, index, round=2, pos_label=None):
+    def get_decisionpath_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
 
         Args:
@@ -2783,7 +2782,7 @@ class TreeExplainer(BaseExplainer):
 
         """
         return get_decisiontree_summary_df(
-                self.decisionpath_df(tree_idx, index, pos_label=pos_label),
+                self.get_decisionpath_df(tree_idx, index, pos_label=pos_label),
                     classifier=self.is_classifier, round=round, units=self.units)
 
     def decisiontree_file(self, tree_idx, index, show_just_path=False):
@@ -2987,7 +2986,7 @@ class XGBExplainer(TreeExplainer):
         return self._shadow_trees
 
     @insert_pos_label
-    def decisionpath_df(self, tree_idx, index, pos_label=None):
+    def get_decisionpath_df(self, tree_idx, index, pos_label=None):
         """dataframe with all decision nodes of a particular decision tree
 
         Args:
@@ -3010,7 +3009,7 @@ class XGBExplainer(TreeExplainer):
                 tree_idx = tree_idx * len(self.labels) + pos_label
         return get_xgboost_path_df(self.model_dump_list[tree_idx], self.get_X_row(index))
 
-    def decisionpath_summary_df(self, tree_idx, index, round=2, pos_label=None):
+    def get_decisionpath_summary_df(self, tree_idx, index, round=2, pos_label=None):
         """formats decisiontree_df in a slightly more human readable format.
         Args:
           tree_idx: the n'th tree in the random forest
@@ -3020,7 +3019,7 @@ class XGBExplainer(TreeExplainer):
         Returns:
           dataframe with summary of the decision tree path
         """
-        return get_xgboost_path_summary_df(self.decisionpath_df(tree_idx, index, pos_label=pos_label))
+        return get_xgboost_path_summary_df(self.get_decisionpath_df(tree_idx, index, pos_label=pos_label))
 
     @insert_pos_label
     def decisiontree_file(self, tree_idx, index, show_just_path=False, pos_label=None):
