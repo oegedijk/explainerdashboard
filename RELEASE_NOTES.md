@@ -3,13 +3,13 @@
 
 ## 0.3.0:
 This is a major release and comes with lots of breaking changes to the lower level 
-explainer API. The higherlevel `ExplainerComponent` and `ExplainerDashboard` API has not been
+`ClassifierExplainer` and `RegressionExplainer` API. The higherlevel `ExplainerComponent` and `ExplainerDashboard` API has not been
 changed however, except for the deprecation of the `cats` and `hide_cats` parameters.
 
 Explainers generated with version `explainerdashboard <= 0.2.20.1` will not work 
 with this version, so if you have stored explainers to disk you either have to 
-rebuild them, or downgrade back to `explainerdashboard==0.2.20.1`! (hope you 
-pinned your dependencies in production!)
+rebuild them with this new version, or downgrade back to `explainerdashboard==0.2.20.1`! (hope you 
+pinned your dependencies in production! ;-)
 
 Main motivation for these breaking changes was to improve memory usage of the
 dashboards, especially in production. This lead to the deprecation of the
