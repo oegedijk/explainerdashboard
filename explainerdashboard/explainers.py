@@ -42,9 +42,11 @@ def insert_pos_label(func):
             return func(self, *args, **kwargs)
         if 'pos_label' in kwargs:
             if kwargs['pos_label'] is not None:
+                # ensure that pos_label is int
                 kwargs.update(dict(pos_label=self.pos_label_index(kwargs['pos_label'])))
                 return func(self, *args, **kwargs)
-            else:   
+            else:  
+                # insert self.pos_label 
                 kwargs.update(dict(pos_label=self.pos_label))
                 return func(self, *args, **kwargs)
         kwargs.update(dict(zip(inspect.getfullargspec(func).args[1:1+len(args)], args)))
