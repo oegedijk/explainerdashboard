@@ -1,7 +1,31 @@
 # Release Notes
 
-## version 0.3.1:
+## Version 0.3.1:
+### Breaking Changes
+- 
+- 
 
+### New Features
+-
+-
+
+### Bug Fixes
+- categorical mappings now updateablke with pandas<=1.2 and python==3.6
+- title now overridable for `RegressionRandomIndexComponent`
+- added assert check on `summary_type` for `ShapSummaryComponent`
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+## version 0.3.0.1:
+
+### Breaking Changes
+- new dependency requirements `pandas>=1.2` also implies `python>=3.7`
 ### Bug Fixes
 - updates `pandas` version to be compatible with categorical feature operations
 - updates dtreeviz version to make `xgboost` and `pyspark` dependencies optional

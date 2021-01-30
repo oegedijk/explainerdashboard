@@ -270,7 +270,7 @@ def remove_cat_names(X_cats, onehot_dict):
     for cat, cols in onehot_dict.items():
         if len(cols) > 1:
             mapping = {c:c[len(cat)+1:] for c in cols if c.startswith(cat+'_')}
-            X_cats.loc[:, cat] = X_cats.loc[:, cat].map(mapping, na_action='ignore').values
+            X_cats[cat] = X_cats[cat].map(mapping, na_action='ignore')
     return X_cats
 
 

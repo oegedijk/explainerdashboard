@@ -62,7 +62,7 @@ class ShapSummaryComponent(ExplainerComponent):
 
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        
+        assert self.summary_type in {'aggregate', 'detailed'}
         if self.description is None: self.description = """
         The shap summary summarizes the shap values per feature.
         You can either select an aggregates display that shows mean absolute shap value
@@ -146,7 +146,6 @@ class ShapSummaryComponent(ExplainerComponent):
         ])
     
     def component_callbacks(self, app):
-
         @app.callback(
             Output('shap-summary-index-'+self.name, 'value'),
             [Input('shap-summary-graph-'+self.name, 'clickData')])
@@ -165,6 +164,7 @@ class ShapSummaryComponent(ExplainerComponent):
              Input('shap-summary-index-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_shap_summary_graph(summary_type, depth, index, pos_label):
+
             depth = None if depth is None else int(depth)
             if summary_type == 'aggregate':
                 plot = self.explainer.plot_importances(
@@ -173,6 +173,9 @@ class ShapSummaryComponent(ExplainerComponent):
                 plot = self.explainer.plot_importances_detailed(
                         topx=depth, pos_label=pos_label, index=index, 
                         max_cat_colors=self.max_cat_colors)
+            else:
+                raise PreventUpdate
+
             ctx = dash.callback_context
             trigger = ctx.triggered[0]['prop_id'].split('.')[0]
             if trigger == 'shap-summary-type-'+self.name:
