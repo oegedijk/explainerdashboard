@@ -1090,13 +1090,6 @@ class ExplainerHub:
         filepath = Path(filepath)
         
         self._dump_all_users_to_file(filepath.parent / str(self.users_file))
-#         for login in self.logins.values():
-#             self._add_user_to_file(self.users_file, 
-#                                    login['username'], login['password'], 
-#                                    already_hashed=True)
-#         for dashboard, users in self.db_users.items():
-#             for user in users:
-#                 self._add_user_to_dashboard_file(self.users_file, dashboard, user)
             
         if filepath is None or return_dict or integrate_dashboard_yamls:
             hub_config = dict(
@@ -1314,7 +1307,6 @@ class ExplainerHub:
             output_users_file = self.users_file
         ExplainerHub._dump_users_db(users_db, output_users_file)
         
-    
     @staticmethod
     def _add_user_to_file(users_file:Path, username:str, password:str, already_hashed=False):
         """Add a user to a user_json .json file.

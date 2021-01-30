@@ -841,7 +841,8 @@ def get_liftcurve_df(pred_probas, y, pos_label=1, n_rows=100):
     lift_df['random_cumulative_percentage_pos'] = (100 * (lift_df['random_pos'] / (lift_df.y==pos_label).astype(int).sum())).astype("float32")
     for y_label in range(y.nunique()):
         lift_df['precision_' + str(y_label)] = 100*(lift_df.y==y_label).astype(int).cumsum() / lift_df['index']
-    lift_df = lift_df.iloc[np.linspace(0, len(lift_df), num=n_rows, dtype=int, endpoint=False)]
+    if len(lift_df) > 100:
+        lift_df = lift_df.iloc[np.linspace(0, len(lift_df), num=n_rows, dtype=int, endpoint=False)]
     return lift_df
     
 
