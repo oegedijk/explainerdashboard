@@ -813,7 +813,7 @@ def get_precision_df(pred_probas, y_true, bin_size=None, quantiles=None,
     return precision_df
 
 
-def get_liftcurve_df(pred_probas, y, pos_label=1):
+def get_liftcurve_df(pred_probas, y, pos_label=1, n_rows=100):
     """returns a pd.DataFrame that can be used to generate a lift curve plot.
 
     Args:
@@ -829,18 +829,19 @@ def get_liftcurve_df(pred_probas, y, pos_label=1):
     lift_df = pd.DataFrame(
         {
             'pred_proba' : pred_probas, 
-             'y' : y
+             'y' : y.astype("int32")
         }).sort_values('pred_proba', ascending=False).reset_index(drop=True)
-    lift_df['index'] = lift_df.index + 1
-    lift_df['index_percentage'] = 100*lift_df['index'] / len(lift_df)
+    lift_df['index'] = (lift_df.index + 1).astype("int32")
+    lift_df['index_percentage'] = (100*lift_df['index'] / len(lift_df)).astype("float32")
     lift_df['positives'] = (lift_df.y==pos_label).astype(int).cumsum()
-    lift_df['precision'] = 100 * (lift_df['positives'] /  lift_df['index'])
-    lift_df['cumulative_percentage_pos'] = 100 * (lift_df['positives'] / (lift_df.y==pos_label).astype(int).sum())
-    lift_df['random_pos'] = (lift_df.y==pos_label).astype(int).mean() * lift_df['index']
-    lift_df['random_precision'] = 100 * (lift_df['random_pos'] /  lift_df['index'])
-    lift_df['random_cumulative_percentage_pos'] = 100 * (lift_df['random_pos'] / (lift_df.y==pos_label).astype(int).sum())
+    lift_df['precision'] = (100 * (lift_df['positives'] /  lift_df['index'])).astype("float32")
+    lift_df['cumulative_percentage_pos'] = (100 * (lift_df['positives'] / (lift_df.y==pos_label).astype(int).sum())).astype("float32")
+    lift_df['random_pos'] = ((lift_df.y==pos_label).astype(int).mean() * lift_df['index']).astype("float32")
+    lift_df['random_precision'] = (100 * (lift_df['random_pos'] /  lift_df['index'])).astype("float32")
+    lift_df['random_cumulative_percentage_pos'] = (100 * (lift_df['random_pos'] / (lift_df.y==pos_label).astype(int).sum())).astype("float32")
     for y_label in range(y.nunique()):
         lift_df['precision_' + str(y_label)] = 100*(lift_df.y==y_label).astype(int).cumsum() / lift_df['index']
+    lift_df = lift_df.iloc[np.linspace(0, len(lift_df), num=n_rows, dtype=int, endpoint=False)]
     return lift_df
     
 

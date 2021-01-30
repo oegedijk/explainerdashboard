@@ -801,7 +801,7 @@ class LiftCurveComponent(ExplainerComponent):
 
         self.popout = GraphPopout('liftcurve-'+self.name+'popout', 'liftcurve-graph-'+self.name, 
                         self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("get_liftcurve_df")
 
     def layout(self):
         return dbc.Card([
@@ -934,7 +934,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
         self.popout = GraphPopout('cumulative-precision-'+self.name+'popout', 
                         'cumulative-precision-graph-'+self.name, 
                         self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("get_liftcurve_df")
 
     def layout(self):
         return dbc.Card([
@@ -1185,7 +1185,7 @@ class RocAucComponent(ExplainerComponent):
         """
         self.popout = GraphPopout('rocauc-'+self.name+'popout', 
                             'rocauc-graph-'+self.name, self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("preds", "pred_probas", "pred_percentiles", "roc_auc_curve")
 
     def layout(self):
         return dbc.Card([
@@ -1282,7 +1282,7 @@ class PrAucComponent(ExplainerComponent):
         """
         self.popout = GraphPopout('prauc-'+self.name+'popout', 
                     'prauc-graph-'+self.name, self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("preds", "pred_probas", "pred_percentiles", "pr_auc_curve")
 
     def layout(self):
         return dbc.Card([
