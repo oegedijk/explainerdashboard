@@ -433,7 +433,7 @@ class GraphPopout(ExplainerComponent):
                 dbc.Button(self.button_text, id=self.name+'modal-open', size=self.button_size, outline=self.button_outline),
                 dbc.Modal([
                     dbc.ModalHeader(self.title),
-                    dcc.Graph(id=self.name+'-modal-graph'),
+                    dcc.Graph(id=self.name+'-modal-graph', style={"max-height": "none", "height": "80%"}),
                     dbc.ModalFooter([   
                         html.Div([
                             html.Div([
@@ -454,7 +454,7 @@ class GraphPopout(ExplainerComponent):
                             
                         ], style={"display":"flex"}),             
                     ], className="justify-content-between")       
-                ], id=self.name+'-modal', size="xl")
+                ], id=self.name+'-modal', style={"max-width": "none", "width": "80%"}) 
             ], style={"display":"flex", "justify-content":"flex-end"})
     
     def component_callbacks(self, app):

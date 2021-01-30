@@ -40,6 +40,7 @@
 
 
 ## Dashboard:
+- add TablePopout
 - add SimpleClassifierDashboard
 - add SimpleRegressionDashboard
 - Add EDA style feature histograms, bar charts, correlation graphs, etc

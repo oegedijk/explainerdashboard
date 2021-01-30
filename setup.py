@@ -69,10 +69,9 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
     install_requires=['dash>=1.19', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
-                    'dtreeviz>=1.1.4', 'numpy', 'pandas>=1.2', 'scikit-learn', 
+                    'dtreeviz>=1.1.4', 'numpy', 'pandas', 'scikit-learn', 
                     'shap>=0.37', 'shortuuid', 'joblib', 'oyaml', 'click', 'waitress',
                     'flask_simplelogin'],
-    python_requires='>=3.7',
     entry_points={
         'console_scripts': [
             'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',

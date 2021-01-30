@@ -22,7 +22,7 @@ from ..dashboard_methods import *
 
 
 class RegressionRandomIndexComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Select Random Index", name=None,
+    def __init__(self, explainer, title=None, name=None,
                         subtitle="Select from list or pick at random",
                         hide_title=False,   hide_subtitle=False,
                         hide_index=False, hide_pred_slider=False,
@@ -79,6 +79,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
         assert self.explainer.is_regression, \
             ("explainer is not a RegressionExplainer so the RegressionRandomIndexComponent "
              "will not work. Try using the ClassifierRandomIndexComponent instead.")
+
+        if self.title is None:
+            self.title = f"Select {self.explainer.index_name}"
 
         self.index_name = 'random-index-reg-index-'+self.name
 
@@ -144,7 +147,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             make_hideable(
                 dbc.CardHeader([
                     html.Div([
-                        html.H3(f"Select {self.explainer.index_name}", id='random-index-reg-title-'+self.name),
+                        html.H3(self.title, id='random-index-reg-title-'+self.name),
                         make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
                         dbc.Tooltip(self.description, target='random-index-reg-title-'+self.name),
                     ]), 
@@ -153,11 +156,11 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                                dcc.Dropdown(id='random-index-reg-index-'+self.name,
-                                        options = [{'label': str(idx), 'value':idx}
-                                                        for idx in self.explainer.get_index_list()],
-                                        value=self.index)
-                            ], md=8), hide=self.hide_index),
+                            dcc.Dropdown(id='random-index-reg-index-'+self.name,
+                                    options = [{'label': str(idx), 'value':idx}
+                                                    for idx in self.explainer.get_index_list()],
+                                    value=self.index)
+                        ], md=8), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
                             dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name, block=True),
