@@ -489,8 +489,9 @@ class FeatureInputComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Input", name=None,
                     subtitle="Adjust the feature values to change the prediction",
                     hide_title=False,  hide_subtitle=False, hide_index=False, 
-                    hide_range=False,
-                    index=None, n_input_cols=2, description=None,  **kwargs):
+                    hide_range=False, 
+                    index=None, n_input_cols=4, sort_features='shap', 
+                    fill_row_first=True, description=None,  **kwargs):
         """Interaction Dependence Component.
 
         Args:
@@ -507,8 +508,12 @@ class FeatureInputComponent(ExplainerComponent):
             hide_index (bool, optional): hide the index selector
             hide_range (bool, optional): hide the range label under the inputs
             index (str, int, optional): default index
-            n_input_cols (int): number of columns to split features inputs in. 
-                Defaults to 2. 
+            n_input_cols (int, optional): number of columns to split features inputs in. 
+                Defaults to 4. 
+            sort_features(str, optional): how to sort the features. For now only options
+                is 'shap' to sort by mean absolute shap value.
+            fill_row_first (bool, optional): if True most important features will
+                be on top row, if False they will be in most left column.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
             
@@ -521,13 +526,27 @@ class FeatureInputComponent(ExplainerComponent):
             
         self.index_name = 'feature-input-index-'+self.name
         
-        self._input_features = self.explainer.columns_ranked_by_shap()
+        
+        self._feature_callback_inputs = [
+                Input('feature-input-'+feature+'-input-'+self.name, 'value') 
+                        for feature in self.explainer.columns_ranked_by_shap()]
+        self._feature_callback_outputs = [
+                Output('feature-input-'+feature+'-input-'+self.name, 'value') 
+                        for feature in self.explainer.columns_ranked_by_shap()] 
+        
+        if self.sort_features == 'shap':
+            self._input_features = self.explainer.columns_ranked_by_shap()
+        elif self.sort_features == 'alphabet':
+            self._input_features = sorted(self.explainer.merged_cols.tolist())
+        else:
+            raise ValueError(f"parameter sort_features should be either 'shap', "
+                    "or 'alphabet', but you passed sort_features='{self.sort_features}'")
+
         self._feature_inputs = [
             self._generate_dash_input(
                 feature, self.explainer.onehot_cols, self.explainer.onehot_dict, self.explainer.categorical_dict) 
                                 for feature in self._input_features]
-        self._feature_callback_inputs = [Input('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features]
-        self._feature_callback_outputs = [Output('feature-input-'+feature+'-input-'+self.name, 'value') for feature in self._input_features] 
+
         if self.description is None: self.description = """
         Adjust the input values to see predictions for what if scenarios."""
 
@@ -563,8 +582,9 @@ class FeatureInputComponent(ExplainerComponent):
                     dbc.FormText(f"Range: {min_range}-{max_range}") if not self.hide_range else None
                 ])
         
-    def get_slices(self, n_inputs, n_cols=2):
-        """returns a list of slices to divide n inputs into n_cols columns"""
+    def get_slices_cols_first(self, n_inputs, n_cols=2):
+        """returns a list of slices to divide n inputs into n_cols columns,
+            filling columns first"""
         if n_inputs < n_cols:
             n_cols = n_inputs
         rows_per_col = ceil(n_inputs / n_cols)
@@ -576,7 +596,25 @@ class FeatureInputComponent(ExplainerComponent):
                 slices.append(slice(col*rows_per_col, col*rows_per_col+rows_per_col))
         return slices
 
+    def get_slices_rows_first(self, n_inputs, n_cols=3):
+        """returns a list of slices to divide n inputs into n_cols columns,
+            filling columns first"""
+        if n_inputs < n_cols:
+            slices = [slice(i, i+1, 1) for i in range(n_inputs)]
+        else:
+            slices =  [slice(i, 1+i+(ceil(n_inputs/n_cols)-1)*n_cols, n_cols) 
+                        if i+n_cols*(ceil(n_inputs/n_cols)-1) < n_inputs else 
+                            slice(i, 1+i+(int(n_inputs/n_cols)-1)*n_cols, n_cols)
+                            for i in range(n_cols)]
+        return slices
+
     def layout(self):
+        if self.fill_row_first:
+            input_row = dbc.Row([dbc.Col(self._feature_inputs[slicer]) 
+                            for slicer in self.get_slices_rows_first(len(self._feature_inputs), self.n_input_cols)])
+        else:
+            input_row = dbc.Row([dbc.Col(self._feature_inputs[slicer]) 
+                            for slicer in self.get_slices_cols_first(len(self._feature_inputs), self.n_input_cols)])
         return dbc.Card([
             make_hideable(
                 dbc.CardHeader([
@@ -597,13 +635,11 @@ class FeatureInputComponent(ExplainerComponent):
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
                     ], form=True),
-                dbc.Row([dbc.Col(self._feature_inputs[slicer]) 
-                            for slicer in self.get_slices(len(self._feature_inputs), self.n_input_cols)]),
+                input_row,
             ])
         ])
 
     def component_callbacks(self, app):
-        
         @app.callback(
             [*self._feature_callback_outputs],
             [Input('feature-input-index-'+self.name, 'value')]

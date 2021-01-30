@@ -1,12 +1,10 @@
 
 # TODO:
 
-## Version 0.3:
-- check InlineExplainer 
-
 ## Bugs:
 
 ## Plots:
+- give shap_sample parameter for shap dependence plot with large dataset
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
@@ -17,8 +15,6 @@
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 
 ### Classifier plots:
-- move predicted and actual to outer layer of ConfusionMatrixComponent
-    - move predicted below graph?
 - pdp: add multiclass option
     - no icelines just mean and index with different thickness
     - new method?

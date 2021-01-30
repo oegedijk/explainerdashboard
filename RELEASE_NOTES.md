@@ -1,14 +1,19 @@
 # Release Notes
 
 ## Version 0.3.1:
-### Breaking Changes
-- 
-- 
+
 
 ### New Features
 - new methods `roc_auc_curve(pos_label)` and `pr_auc_curve(pos_label)`
-- new method `get_classification_df(...)` to get dataframe with number of label
+- new method `get_classification_df(...)` to get dataframe with number of labels
     above and below a given cutoff.
+    - this now gets used by `plot_classification(..)`
+- added parameters `sort_features` to `FeatureInputComponent`:
+    - defaults to `'shap'`: order features by mean absolute shap
+    - if set to `'alphabet'` features are sorted alphabetically
+- added parameter `fill_row_first` to `FeatureInputComponent`:
+    - defaults to `True`: fill first row first, then next row, etc
+    - if False: fill first column first, then second column, etc
 
 ### Bug Fixes
 - categorical mappings now updateable with pandas<=1.2 and python==3.6
