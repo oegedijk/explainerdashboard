@@ -6,17 +6,22 @@
 - 
 
 ### New Features
--
--
+- new methods `roc_auc_curve(pos_label)` and `pr_auc_curve(pos_label)`
+- new method `get_classification_df(...)` to get dataframe with number of label
+    above and below a given cutoff.
 
 ### Bug Fixes
-- categorical mappings now updateablke with pandas<=1.2 and python==3.6
+- categorical mappings now updateable with pandas<=1.2 and python==3.6
 - title now overridable for `RegressionRandomIndexComponent`
 - added assert check on `summary_type` for `ShapSummaryComponent`
 
 ### Improvements
--
--
+- pre-Calculating lift_curve_df only once and then storing for each pos_label
+    - plus: storing only 100 evenly spaced rows of lift_curve_df
+    - should be much faster for large datasets
+- pre-calculating roc_auc_curve and pr_auc_curve
+    - should be much faster for large datasets
+- confusion matrix: added axis title, moved predicted labels to bottom of graph
 
 ### Other Changes
 -

@@ -24,10 +24,10 @@ import shap
 from dtreeviz.trees import ShadowDecTree, dtreeviz
 
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
-from sklearn.metrics import precision_score, recall_score, log_loss
+from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, roc_curve
+from sklearn.metrics import precision_recall_curve, precision_score, recall_score, log_loss
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score 
 
 from .explainer_methods import *
 from .explainer_plots import *
@@ -59,6 +59,7 @@ def insert_pos_label(func):
             kwargs.update(dict(pos_label=self.pos_label))   
         return func(self, **kwargs)
     inner.__doc__ = func.__doc__
+    inner.__signature__ = inspect.signature(func)
     return inner
 
 class BaseExplainer(ABC):
@@ -2232,6 +2233,8 @@ class ClassifierExplainer(BaseExplainer):
             return get_precision_df(self.pred_probas(pos_label), self.y_binary(pos_label), 
                                     bin_size, quantiles, round=round)
 
+    
+
     @insert_pos_label
     def get_liftcurve_df(self, pos_label=None):
         """returns a pd.DataFrame with data needed to build a lift curve
@@ -2242,7 +2245,63 @@ class ClassifierExplainer(BaseExplainer):
         Returns:
 
         """
-        return get_liftcurve_df(self.pred_probas(pos_label), self.y, pos_label)
+        if not hasattr(self, "_liftcurve_dfs"):
+            print("Calculating liftcurve_dfs...", flush=True)
+            self._liftcurve_dfs = [
+                get_liftcurve_df(self.pred_probas(label), self.y, label) 
+                        for label in range(len(self.labels))]
+        return self._liftcurve_dfs[pos_label]
+
+    @insert_pos_label
+    def get_classification_df(self, cutoff=0.5, percentage=False, pos_label=None):
+        """Returns a dataframe with number of observations in each class above
+        and below the cutoff.
+
+        Args:
+            cutoff (float, optional): Cutoff to split on. Defaults to 0.5.
+            percentage (bool, optional): Normalize results. Defaults to False.
+            pos_label (int, optional): Pos label to generate dataframe for. 
+                Defaults to self.pos_label.
+
+        Returns:
+            pd.DataFrame
+        """
+        clas_df = pd.DataFrame(index=pd.RangeIndex(0, len(self.labels)))
+        clas_df['below'] = self.y[self.pred_probas(pos_label) < cutoff].value_counts(normalize=percentage)
+        clas_df['above'] = self.y[self.pred_probas(pos_label) >= cutoff].value_counts(normalize=percentage)
+        clas_df = clas_df.fillna(0)
+        clas_df['total'] = clas_df.sum(axis=1)
+        clas_df.index = self.labels
+        return clas_df
+
+    @insert_pos_label
+    def roc_auc_curve(self, pos_label=None):
+        """Returns a dict with output from sklearn.metrics.roc_curve() for pos_label:
+            fpr, tpr, thresholds, score"""
+
+        if not hasattr(self, "_roc_auc_curves"):
+            print("Calculating roc auc curves...", flush=True)
+            self._roc_auc_curves = []
+            for i in range(len(self.labels)):
+                fpr, tpr, thresholds = roc_curve(self.y_binary(i), self.pred_probas(i))
+                score = roc_auc_score(self.y_binary(i), self.pred_probas(i))
+                self._roc_auc_curves.append(dict(fpr=fpr, tpr=tpr,thresholds=thresholds, score=score))
+        return self._roc_auc_curves[pos_label]
+
+    @insert_pos_label
+    def pr_auc_curve(self, pos_label=None):
+        """Returns a dict with output from sklearn.metrics.precision_recall_curve() for pos_label:
+            fpr, tpr, thresholds, score"""
+
+        if not hasattr(self, "_pr_auc_curves"):
+            print("Calculating pr auc curves...", flush=True)
+            self._pr_auc_curves = []
+            for i in range(len(self.labels)):
+                precision, recall, thresholds = precision_recall_curve(self.y_binary(i), self.pred_probas(i))
+                score = average_precision_score(self.y_binary(i), self.pred_probas(i))
+                self._pr_auc_curves.append(dict(
+                    precision=precision, recall=recall, thresholds=thresholds, score=score))
+        return self._pr_auc_curves[pos_label]
 
     @insert_pos_label
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=None, multiclass=False, pos_label=None):
@@ -2365,7 +2424,7 @@ class ClassifierExplainer(BaseExplainer):
           plotly fig
 
         """
-        return plotly_classification_plot(self.pred_probas(pos_label), self.y, self.labels, cutoff, percentage=percentage)
+        return plotly_classification_plot(self.get_classification_df(cutoff=cutoff, pos_label=pos_label), percentage=percentage)
 
     @insert_pos_label
     def plot_roc_auc(self, cutoff=0.5, pos_label=None):
@@ -2382,7 +2441,9 @@ class ClassifierExplainer(BaseExplainer):
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot roc auc!")
-        return plotly_roc_auc_curve(self.y_binary(pos_label), self.pred_probas(pos_label), cutoff=cutoff)
+        roc_dict = self.roc_auc_curve(pos_label)
+        return plotly_roc_auc_curve(roc_dict['fpr'], roc_dict['tpr'], 
+                    roc_dict['thresholds'], roc_dict['score'], cutoff=cutoff)
 
     @insert_pos_label
     def plot_pr_auc(self, cutoff=0.5, pos_label=None):
@@ -2399,7 +2460,9 @@ class ClassifierExplainer(BaseExplainer):
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot PR AUC!")
-        return plotly_pr_auc_curve(self.y_binary(pos_label), self.pred_probas(pos_label), cutoff=cutoff)
+        pr_dict = self.pr_auc_curve(pos_label)
+        return plotly_pr_auc_curve(pr_dict['precision'], pr_dict['recall'], 
+                    pr_dict['thresholds'], pr_dict['score'], cutoff=cutoff)
 
     def plot_prediction_result(self, index=None, X_row=None, showlegend=True):
         """Returns a piechart with the predicted probabilities distribution

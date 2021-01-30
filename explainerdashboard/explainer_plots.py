@@ -345,69 +345,60 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
     return fig
 
 
-def plotly_classification_plot(pred_probas, targets, labels=None, cutoff=0.5,
-                                round=2, pos_label=1, percentage=False):
+def plotly_classification_plot(classification_df:pd.DataFrame, round:int=2, percentage:bool=False):
     """Displays bar plots showing label distributions above and below cutoff
     value.
 
     Args:
-        pred_probas (np.ndarray): array of predicted probabilities
-        targets (np.ndarray): array of actual target labels 
-            (e.g. [0, 1, 1, 0,...,1])
-        labels (List[str], optional): List of labels for classes. Defaults to None.
-        cutoff (float, optional): Cutoff pred_proba. Defaults to 0.5.
+        classification_df (pd.DataFrame): generated with explainer.get_classification_df()
         round (int, optional): round float by round number of digits. Defaults to 2.
-        pos_label (int, optional): Positive label class. Defaults to 1.
         percentage (bool, optional): Display percentage instead of absolute 
             numbers. Defaults to False.
 
     Returns:
         Plotly fig
     """
-    if len(pred_probas.shape) == 2:
-        below = (pred_probas[:, pos_label] < cutoff)
-    else:
-        below = pred_probas < cutoff
-
-    below_threshold = (pred_probas[below], targets[below])
-    above_threshold = (pred_probas[~below], targets[~below])
-    x = ['below cutoff', 'above cutoff', 'all']
+    
+    x = ['below cutoff', 'above cutoff', 'total']
     
     fig = go.Figure()
-    for i, label in enumerate(labels):
-        text = [f"<b>{sum(below_threshold[1]==i)}</b><br>({100*np.mean(below_threshold[1]==i):.{round}f}%)",
-                f"<b>{sum(above_threshold[1]==i)}</b><br>({100*np.mean(above_threshold[1]==i):.{round}f}%)", 
-                f"<b>{sum(targets==i)}</b><br>({100*np.mean(targets==i):.{round}f}%)"]
+    col_sums = classification_df.sum(axis=0)
+    
+    for label, below, above, total in classification_df.itertuples():
+        below_perc = 100*below/col_sums['below']
+        above_perc = 100*above/col_sums['above']
+        total_perc = 100*total/col_sums['total']
         if percentage:
             fig.add_trace(go.Bar(
                 x=x, 
-                y=[100*np.mean(below_threshold[1]==i),
-                    100*np.mean(above_threshold[1]==i), 
-                    100*np.mean(targets==i)], 
-                text=text,
+                y=[below_perc, above_perc, total_perc], 
+                text=[f"<b>{below}</b> ({below_perc:.{round}f}%)", 
+                      f"<b>{above}</b> ({above_perc:.{round}f}%)",
+                      f"<b>{total}</b> ({total_perc:.{round}f}%)"],
                 textposition='auto',
                 hoverinfo="text",
                 name=label))
-            fig.update_layout(title='Percentage above and below cutoff')
         else:
             fig.add_trace(go.Bar(
                 x=x, 
-                y=[sum(below_threshold[1]==i),
-                    sum(above_threshold[1]==i), 
-                    sum(targets==i)], 
-                text=text,
+                y=[below, above, total], 
+                text=[f"<b>{below}</b> ({below_perc:.{round}f}%)", 
+                      f"<b>{above}</b> ({above_perc:.{round}f}%)",
+                      f"<b>{total}</b> ({total_perc:.{round}f}%)"],
                 textposition='auto',
                 hoverinfo="text",
                 name=label))
-            fig.update_layout(title='Total above and below cutoff')
-
+    if percentage:
+        fig.update_layout(title='Percentage above and below cutoff')
+    else:
+        fig.update_layout(title='Total above and below cutoff')
+        
     fig.update_layout(barmode='stack')
 
     fig.update_layout(legend=dict(orientation="h",
                                     xanchor="center",
                                     y=-0.2,
                                     x=0.5))
-
     return fig
 
 
@@ -481,14 +472,14 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
             trace2 = go.Scatter(
                 x=[0.0, lift_curve_df.random_precision[0], 100],
                 y=[0.0, 100, 100],
-                text=["0%, 0%", f"{lift_curve_df.random_precision.round(2)[0]}%, 100%", "100, 100%"],
+                text=["0%, 0%", f"{lift_curve_df.random_precision[0]:.2f}%, 100%", "100, 100%"],
                 name='perfect',
                 hoverinfo="text",
             )
         else:
             trace2 = go.Scatter(
-                x=[0.0, 0.01*lift_curve_df.random_precision[0]*len(lift_curve_df), len(lift_curve_df)],
-                y=[0.0, lift_curve_df.random_pos.values[-1], lift_curve_df.random_pos.values[-1]],
+                x=[0.0, lift_curve_df['positives'].max(), lift_curve_df['index'].max()],
+                y=[0.0, lift_curve_df['positives'].max(), lift_curve_df['positives'].max()],
                 name='perfect',
             )
 
@@ -512,7 +503,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
     if percentage:
         fig.update_layout(xaxis=dict(range=[0, 100]))
     else:
-        fig.update_layout(xaxis=dict(range=[0, len(lift_curve_df)]))
+        fig.update_layout(xaxis=dict(range=[0, lift_curve_df['index'].max()]))
     
     if cutoff is not None:
         #cutoff_idx = max(0, (np.abs(lift_curve_df.pred_proba - cutoff)).argmin() - 1)
@@ -546,13 +537,13 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
                                         yref='y',
                                         text=f"cutoff={cutoff:.{round}f}"),
                                     go.layout.Annotation(x=0.5, y=0.4, 
-                                        text=f"Model: {cutoff_pos} out {cutoff_n} ({cutoff_precision}%)",
+                                        text=f"Model: {cutoff_pos} out {cutoff_n} ({cutoff_precision:.{round}f}%)",
                                         showarrow=False, align="right", 
                                         xref='paper', yref='paper',
                                         xanchor='left', yanchor='top'
                                         ),
                                     go.layout.Annotation(x=0.5, y=0.33, 
-                                        text=f"Random: {cutoff_random_pos} out {cutoff_n} ({cutoff_random_precision}%)",
+                                        text=f"Random: {cutoff_random_pos} out {cutoff_n} ({cutoff_random_precision:.{round}f}%)",
                                         showarrow=False, align="right", 
                                         xref='paper', yref='paper',
                                         xanchor='left', yanchor='top'
@@ -698,15 +689,7 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
             highlight_name = highlight_index
     
     col_name = X_col.name
- 
-#     if len(shap_values.shape)==2:
-#         y = shap_values[:, X.columns.get_loc(col_name)]
-#     elif len(shap_values.shape)==3 and interact_col_name is not None:
-#         y = shap_values[:, X.columns.get_loc(col_name), X.columns.get_loc(interact_col_name)]
-#     else:
-#         raise Exception('Either provide shap_values or shap_interaction_values with an interact_col_name')
-    
-    
+
     if interact_col is not None:
         text = np.array([f'{idxs.name}={index}<br>{X_col.name}={col_val}<br>{interact_col.name}={col_col_val}<br>SHAP={shap_val:.{round}f}' 
                     for index, col_val, col_col_val, shap_val in zip(idxs, X_col, interact_col, shap_values)])
@@ -1241,7 +1224,6 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3,
                             ))
     return fig
 
-
 def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
     """Generates Plotly fig confusion matrix
 
@@ -1265,18 +1247,23 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
     zmax = len(y_true)
         
     data=[go.Heatmap(
-                        z=cm,
-                        x=[f'predicted {lab}' if len(lab) < 5 else f'predicted<br>{lab}' for lab in labels],
-                        y=[f'actual {lab}' if len(lab) < 5 else f'actual<br>{lab}' for lab in labels],
-                        hoverinfo="skip",
-                        zmin=0, zmax=zmax, colorscale='Blues',
-                        showscale=False,
-                    )]
+        z=cm,
+        x=[f" {lab}" for lab in labels],
+        y=[f" {lab}" for lab in labels],
+        hoverinfo="skip",
+        zmin=0, zmax=zmax, colorscale='Blues',
+        showscale=False,
+    )]
+    
     layout = go.Layout(
             title="Confusion Matrix",
-            xaxis=dict(side='top', constrain="domain"),
-            yaxis=dict(autorange="reversed", side='left',
-                        scaleanchor='x', scaleratio=1),
+            xaxis=dict(title='predicted',
+                       constrain="domain"),
+            yaxis=dict(title=dict(text='observed',standoff=20),
+                       autorange="reversed", 
+                       side='left',
+                       scaleanchor='x', 
+                       scaleratio=1),
             plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
@@ -1302,25 +1289,24 @@ def plotly_confusion_matrix(y_true, y_preds, labels = None, percentage=True):
                 )]
             )
                 
-
-    fig.update_layout(annotations=annotations)  
+    fig.update_layout(annotations=annotations)
     return fig
 
 
-def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None, round=2):
+def plotly_roc_auc_curve(fpr, tpr, thresholds, score, cutoff=None, round=2):
     """Plot ROC AUC curve
 
     Args:
-        true_y (np.ndarray): array of true labels
-        pred_probas (np.ndarray): array of predicted probabilities
+        fpr
+        tpr
+        thresholds
         cutoff (float, optional): Cutoff proba to display. Defaults to None.
         round (int, optional): rounding of floats. Defaults to 2.
 
     Returns:
         Plotly Fig: 
     """
-    fpr, tpr, thresholds = roc_curve(true_y, pred_probas)
-    roc_auc = roc_auc_score(true_y, pred_probas)
+    
     trace0 = go.Scatter(x=fpr, y=tpr,
                     mode='lines',
                     name='ROC AUC CURVE',
@@ -1363,31 +1349,12 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None, round=2):
                  x0=fpr[threshold_idx], x1=fpr[threshold_idx], y0=0, y1=1,
                  line=dict(color="lightslategray", width=1)))
         
-        rep = classification_report(true_y, np.where(pred_probas >= cutoff, 1,0), 
-                                    output_dict=True)
-        
-        annotations = [go.layout.Annotation(x=0.6, y=0.45, 
+        annotations = [go.layout.Annotation(x=0.6, y=0.3, 
                             text=f"Cutoff: {cutoff:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.4, 
-                            text=f"Accuracy: {rep['accuracy']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.35, 
-                            text=f"Precision: {rep['1']['precision']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.30, 
-                            text=f"Recall: {rep['1']['recall']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.25, 
-                            text=f"F1-score: {rep['1']['f1-score']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.6, y=0.20, 
-                            text=f"roc-auc-score: {roc_auc:.{round}f}",
+                            text=f"roc-auc-score: {score:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
@@ -1396,7 +1363,7 @@ def plotly_roc_auc_curve(true_y, pred_probas, cutoff=None, round=2):
     return fig
 
 
-def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None, round=2):
+def plotly_pr_auc_curve(precision, recall, thresholds, score, cutoff=None, round=2):
     """Generate Precision-Recall Area Under Curve plot
 
     Args:
@@ -1408,8 +1375,7 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None, round=2):
     Returns:
         Plotly fig: 
     """
-    precision, recall, thresholds = precision_recall_curve(true_y, pred_probas)
-    pr_auc_score = average_precision_score(true_y, pred_probas)
+
     trace0 = go.Scatter(x=precision, y=recall,
                     mode='lines',
                     name='PR AUC CURVE',
@@ -1444,32 +1410,12 @@ def plotly_pr_auc_curve(true_y, pred_probas, cutoff=None, round=2):
                  y0=0, y1=1,
                  line=dict(color="lightslategray", width=1)))
         
-        report = classification_report(
-                    true_y, np.where(pred_probas > cutoff, 1,0), 
-                    output_dict=True)
-        
-        annotations = [go.layout.Annotation(x=0.15, y=0.45, 
+        annotations = [go.layout.Annotation(x=0.15, y=0.3, 
                             text=f"Cutoff: {cutoff:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.15, y=0.4, 
-                            text=f"Accuracy: {report['accuracy']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.15, y=0.35, 
-                            text=f"Precision: {report['1']['precision']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.15, y=0.30, 
-                            text=f"Recall: {report['1']['recall']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.15, y=0.25, 
-                            text=f"F1-score: {report['1']['f1-score']:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
                        go.layout.Annotation(x=0.15, y=0.20, 
-                            text=f"pr-auc-score: {pr_auc_score:.{round}f}",
+                            text=f"pr-auc-score: {score:.{round}f}",
                             showarrow=False, align="right", 
                             xanchor='left', yanchor='top'),]
         fig.update_layout(annotations=annotations)
