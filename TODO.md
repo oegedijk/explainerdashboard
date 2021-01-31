@@ -4,7 +4,7 @@
 ## Bugs:
 
 ## Plots:
-- give shap_sample parameter for shap dependence plot with large dataset
+- add sample_size parameter for shap dependence plot with large dataset
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
@@ -20,7 +20,7 @@
     - new method?
 
 ### Regression plots:
-
+- add sample_size parameter
 
 ## Explainers:
 - pass n_jobs to pdp_isolate

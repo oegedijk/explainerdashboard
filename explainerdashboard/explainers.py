@@ -24,7 +24,7 @@ import shap
 from dtreeviz.trees import ShadowDecTree, dtreeviz
 
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, roc_curve
+from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, roc_curve, confusion_matrix
 from sklearn.metrics import precision_recall_curve, precision_score, recall_score, log_loss
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.metrics import average_precision_score 
@@ -2304,6 +2304,29 @@ class ClassifierExplainer(BaseExplainer):
         return self._pr_auc_curves[pos_label]
 
     @insert_pos_label
+    def confusion_matrix(self, cutoff=0.5, binary=True, pos_label=None):
+        def get_binary_cm(y, pred_probas, cutoff, pos_label):
+                return confusion_matrix(np.where(y==pos_label, 1, 0), 
+                                        np.where(pred_probas[:, pos_label] >= cutoff, 1, 0))
+        if not hasattr(self, "_confusion_matrices"):
+            print("Calculating confusion matrices...", flush=True)
+            self._confusion_matrices = dict()
+            self._confusion_matrices['binary'] = dict()
+            for label in range(len(self.labels)):
+                self._confusion_matrices['binary'][label] = dict()
+                for cutoff in np.linspace(0.01, 0.99, 99):
+                    self._confusion_matrices['binary'][label][np.round(cutoff, 2)] = \
+                        get_binary_cm(self.y, self.pred_probas_raw, cutoff, label)
+            self._confusion_matrices['multi'] = confusion_matrix(self.y, self.pred_probas_raw.argmax(axis=1))
+        if binary:
+            if cutoff in self._confusion_matrices['binary'][pos_label]:
+                return self._confusion_matrices['binary'][pos_label][cutoff]
+            else:
+                return get_binary_cm(self.y, self.pred_probas_raw, cutoff, pos_label)
+        else:
+            return self._confusion_matrices['multi']
+
+    @insert_pos_label
     def plot_precision(self, bin_size=None, quantiles=None, cutoff=None, multiclass=False, pos_label=None):
         """plot precision vs predicted probability
         
@@ -2380,11 +2403,11 @@ class ClassifierExplainer(BaseExplainer):
                 labels = ['Not ' + pos_label_str, pos_label_str]
 
             return plotly_confusion_matrix(
-                    self.y_binary(pos_label), np.where(self.pred_probas(pos_label) > cutoff, 1, 0),
+                    self.confusion_matrix(cutoff, binary, pos_label),
                     percentage=normalized, labels=labels)
         else:
             return plotly_confusion_matrix(
-                self.y, self.pred_probas_raw.argmax(axis=1),
+                self.confusion_matrix(cutoff, binary, pos_label),
                 percentage=normalized, labels=self.labels)
 
     @insert_pos_label
