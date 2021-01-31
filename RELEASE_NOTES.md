@@ -1,7 +1,8 @@
 # Release Notes
 
 ## Version 0.3.1:
-
+This version is mostly about pre-calculating and optimizing the classifier statistics
+components. Those components should now be much more responsive with large datasets.
 
 ### New Features
 - new methods `roc_auc_curve(pos_label)` and `pr_auc_curve(pos_label)`
@@ -29,7 +30,11 @@
     - dashboard should be more responsive for large datasets
 - pre-calculating confusion matrices
     - dashboard should be more responsive for large datasets
+- pre-calculating classification_dfs
+    - dashboard should be more responsive for large datasets
 - confusion matrix: added axis title, moved predicted labels to bottom of graph
+- precision plot: when only adjusting cutoff, simply updating the cutoff
+    line, without recalculating the plot.
 
 ### Other Changes
 -

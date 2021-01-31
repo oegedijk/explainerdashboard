@@ -297,6 +297,8 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
         Shows the predicted probability for each {self.explainer.target} label.
         """
 
+        self.register_dependencies("metrics")
+
     def layout(self):
         return dbc.Card([
             make_hideable(
@@ -590,9 +592,18 @@ class PrecisionComponent(ExplainerComponent):
              Input('precision-cutoff-'+self.name, 'value'),
              Input('precision-multiclass-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
-            #[State('tabs', 'value')],
+            [State('precision-graph-'+self.name, 'figure')],
         )
-        def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label):
+        def update_precision_graph(bin_size, quantiles, bins, cutoff, multiclass, pos_label, fig):
+            ctx = dash.callback_context
+            trigger = ctx.triggered[0]['prop_id'].split('.')[0]
+            if trigger == 'precision-cutoff-'+self.name and fig is not None:
+                return go.Figure(fig).update_shapes(dict(
+                    type='line',
+                    xref='x', yref='y2',
+                    x0=cutoff, x1=cutoff,
+                    y0=0, y1=1.0,
+                 ))
             if bins == 'bin_size':
                 return self.explainer.plot_precision(
                     bin_size=bin_size, cutoff=cutoff, 
