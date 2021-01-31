@@ -8,6 +8,7 @@
 - new method `get_classification_df(...)` to get dataframe with number of labels
     above and below a given cutoff.
     - this now gets used by `plot_classification(..)`
+- new method `confusion_matrix(cutoff, binary, pos_label)`
 - added parameters `sort_features` to `FeatureInputComponent`:
     - defaults to `'shap'`: order features by mean absolute shap
     - if set to `'alphabet'` features are sorted alphabetically
@@ -23,9 +24,11 @@
 ### Improvements
 - pre-Calculating lift_curve_df only once and then storing for each pos_label
     - plus: storing only 100 evenly spaced rows of lift_curve_df
-    - should be much faster for large datasets
+    - dashboard should be more responsive for large datasets
 - pre-calculating roc_auc_curve and pr_auc_curve
-    - should be much faster for large datasets
+    - dashboard should be more responsive for large datasets
+- pre-calculating confusion matrices
+    - dashboard should be more responsive for large datasets
 - confusion matrix: added axis title, moved predicted labels to bottom of graph
 
 ### Other Changes

@@ -659,7 +659,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.popout = GraphPopout('confusionmatrix-'+self.name+'popout', 'confusionmatrix-graph-'+self.name, 
                             self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("preds", "pred_probas", "pred_percentiles", "confusion_matrix")
 
     def layout(self):
         return dbc.Card([
