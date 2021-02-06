@@ -267,7 +267,7 @@ class ExplainerDashboard:
                  server:bool=True,
                  url_base_pathname:str=None,
                  responsive:bool=True,
-                 logins:List[List[str, str]]=None,
+                 logins:List[List[str]]=None,
                  port:int=8050,
                  importances:bool=True,
                  model_summary:bool=True,
