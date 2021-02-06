@@ -1444,7 +1444,6 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                                                    metrics_dict, 
                                                    "clas-model-summary-div-hover", 
                                                    self.name)
-
             return html.Div([
                 metrics_table,
                 *tooltips

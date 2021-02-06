@@ -472,7 +472,7 @@ footprint there are a number of things you can do:
     and store the rest of your millions of rows of input data in an external file 
     or database:
     - with `explainer.set_X_row_func()` you can set a function that takes 
-        and `index` as argument and returns a single row dataframe with model
+        an `index` as argument and returns a single row dataframe with model
         compatible input data for that index. This function can include a query
         to a database or fileread. 
     - with `explainer.set_y_func()` you can set a function that takes 

@@ -537,12 +537,32 @@ percentile_from_cutoff
 get_precision_df
 ^^^^^^^^^^^^^^^^
 
-.. automethod:: explainerdashboard.explainers.ClassifierExplainer.precision_df
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.get_precision_df
 
 get_liftcurve_df
 ^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.get_liftcurve_df
+
+get_classification_df
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.get_classification_df
+
+roc_auc_curve
+^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.roc_auc_curve
+
+pr_auc_curve
+^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.pr_auc_curve
+
+confusion_matrix
+^^^^^^^^^^^^^^^^
+
+.. automethod:: explainerdashboard.explainers.ClassifierExplainer.confusion_matrix
 
 
 Regression outputs
@@ -639,6 +659,11 @@ For ``ClassifierExplainer``::
     explainer.pred_probas_raw
     explainer.pred_percentiles_raw
     explainer.pred_probas(pos_label)
+    explainer.roc_auc_curve(pos_label)
+    explainer.pr_auc_curve(pos_label)
+    explainer.get_classification_df(cutoff, pos_label)
+    explainer.get_liftcurve_df(pos_label)
+    explainer.confusion_matrix(cutoff, binary, pos_label)
 
 For ``RegressionExplainer``::
 
@@ -695,7 +720,7 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
 
 
 .. autoclass:: explainerdashboard.explainers.ClassifierExplainer
-   :members: random_index, precision_df, 
+   :members: random_index, get_precision_df, get_classification_df, get_liftcurve_df,
         plot_precision, plot_cumulative_precision, plot_classification, 
         plot_lift_curve, plot_confusion_matrix, plot_roc_auc, plot_pr_auc
    :member-order: bysource

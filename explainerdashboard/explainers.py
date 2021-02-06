@@ -12,7 +12,7 @@ import inspect
 from abc import ABC
 import base64
 from pathlib import Path
-from typing import List, Union
+from typing import List, Dict, Union, Callable
 from types import MethodType
 
 import numpy as np
@@ -64,12 +64,12 @@ def insert_pos_label(func):
 
 class BaseExplainer(ABC):
     """ """
-    def __init__(self, model, X, y=None, permutation_metric=r2_score, 
-                    shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, index_name=None, target=None,
-                    descriptions=None, 
-                    n_jobs=None, permutation_cv=None, na_fill=-999,
-                    precision="float64"):
+    def __init__(self, model, X:pd.DataFrame, y:pd.Series=None, permutation_metric:Callable=r2_score, 
+                    shap:str="guess", X_background:pd.DataFrame=None, model_output:str="raw",
+                    cats:bool=None, idxs:pd.Index=None, index_name:str=None, target:str=None,
+                    descriptions:dict=None, 
+                    n_jobs:int=None, permutation_cv:int=None, na_fill:float=-999,
+                    precision:str="float64"):
         """Defines the basic functionality that is shared by both
         ClassifierExplainer and RegressionExplainer. 
 
@@ -1625,11 +1625,15 @@ class BaseExplainer(ABC):
 
 class ClassifierExplainer(BaseExplainer):
     """ """
-    def __init__(self, model,  X, y=None,  permutation_metric=roc_auc_score, 
-                    shap='guess', X_background=None, model_output="probability",
-                    cats=None, idxs=None, index_name=None, target=None,
-                    descriptions=None, n_jobs=None, permutation_cv=None, na_fill=-999,
-                    precision="float64", labels=None, pos_label=1):
+    def __init__(self, model,  X:pd.DataFrame, y:pd.Series=None,  
+                    permutation_metric:Callable=roc_auc_score, 
+                    shap:str='guess', X_background:pd.DataFrame=None, 
+                    model_output:str="probability",
+                    cats:Union[List, Dict]=None, idxs:pd.Index=None, 
+                    index_name:str=None, target:str=None,
+                    descriptions:Dict=None, n_jobs:int=None, 
+                    permutation_cv:int=None, na_fill:float=-999,
+                    precision:str="float64", labels:List=None, pos_label:int=1):
         """
         Explainer for classification models. Defines the shap values for
         each possible class in the classification.
@@ -2550,11 +2554,14 @@ class ClassifierExplainer(BaseExplainer):
 
 class RegressionExplainer(BaseExplainer):
     """ """
-    def __init__(self, model,  X, y=None, permutation_metric=r2_score, 
-                    shap="guess", X_background=None, model_output="raw",
-                    cats=None, idxs=None, index_name=None, target=None,
-                    descriptions=None, n_jobs=None, permutation_cv=None, 
-                    na_fill=-999, precision="float64", units=""):
+    def __init__(self, model, X:pd.DataFrame, y:pd.Series=None, 
+                    permutation_metric:Callable=r2_score, 
+                    shap:str="guess", X_background:pd.DataFrame=None, 
+                    model_output:str="raw",
+                    cats:Union[List, Dict]=None, idxs:pd.Index=None, 
+                    index_name:str=None, target:str=None,
+                    descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
+                    na_fill:float=-999, precision:str="float64", units:str=""):
         """Explainer for regression models.
 
         In addition to BaseExplainer defines a number of plots specific to 

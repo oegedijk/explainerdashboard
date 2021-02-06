@@ -80,31 +80,31 @@ def update_kwargs(kwargs, **params):
 
 
 def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):
-                """Return a dbc.Table and a list of dbc.Tooltips.
+    """Return a dbc.Table and a list of dbc.Tooltips.
 
-                Args:
-                    dbc_table (dbc.Table): Table with first column consisting of label
-                    desc_dict (dict): dict that map labels to a description (str)
-                    hover_id (str): dash component_id base: tooltips will have 
-                        component_id=f"{hover_id}-{label}-{name}"
-                    name (str): name to be used in hover_id
+    Args:
+        dbc_table (dbc.Table): Table with first column consisting of label
+        desc_dict (dict): dict that map labels to a description (str)
+        hover_id (str): dash component_id base: tooltips will have 
+            component_id=f"{hover_id}-{label}-{name}"
+        name (str): name to be used in hover_id
 
-                Returns:
-                    dbc.Table, List[dbc.Tooltip]
-                """
-                tooltips_dict = {}
-                for tr in dbc_table.children[1].children:
-                    tds = tr.children
-                    label = tds[0].children
-                    if label in desc_dict:
-                        tr.id = f'{hover_id}-{label}-'+name
-                        tooltips_dict[label] = desc_dict[label]
+    Returns:
+        dbc.Table, List[dbc.Tooltip]
+    """
+    tooltips_dict = {}
+    for tr in dbc_table.children[1].children:
+        tds = tr.children
+        label = tds[0].children
+        if label in desc_dict:
+            tr.id = f'{hover_id}-{label}-'+name
+            tooltips_dict[label] = desc_dict[label]
 
-                tooltips = [dbc.Tooltip(desc,
-                    target=f'{hover_id}-{label}-'+name, 
-                    placement="top") for label, desc in tooltips_dict.items()]
+    tooltips = [dbc.Tooltip(desc,
+        target=f'{hover_id}-{label}-'+name, 
+        placement="top") for label, desc in tooltips_dict.items()]
 
-                return dbc_table, tooltips
+    return dbc_table, tooltips
 
 
 def make_hideable(element, hide=False):

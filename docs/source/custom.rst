@@ -100,6 +100,7 @@ cats toggle will be hidden on every component that has one::
         hide_ratio=True, # hide the residuals type dropdown
         hide_points=True, # hide the show violin scatter markers toggle
         hide_winsor=True, # hide the winsorize input
+        hide_wizard=True, # hide the wizard from the lift curve
     )
 
 Setting default values
@@ -119,8 +120,8 @@ Some examples of useful parameters to pass::
         depth=5, # only show top 5 features
         sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
         orientation='horizontal', # horizontal bars in contributions graph
-        cats_topx=3, # show only the top 3 categories 
-        cats_sort='shap', # sort categories by mean abs shap instead of 'freq' or 'alphabet'
+        cats_topx = 3, # show only the top 3 categories 
+        cats_sort = 'shap', # sort categories by mean abs shap instead of 'freq' or 'alphabet'
         pdp_col='Fare', # initial pdp feature
         cutoff=0.8, # cutoff for classification plots
         round=2 # round floats to 2 digits

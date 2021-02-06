@@ -1,5 +1,5 @@
 
-# TODO:
+# TODO
 
 ## Bugs:
 
@@ -20,9 +20,10 @@
     - new method?
 
 ### Regression plots:
-- add sample_size parameter
+- add plot_sample parameter
 
 ## Explainers:
+- add metrics, classification_df, roc_auc_cruve, pr_auc_curve, etc to calculate_properties()
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -36,6 +37,8 @@
 
 
 ## Dashboard:
+- more flexible instantiate_component:
+    - no explainer needed (if explainer component detected, pass otherwise ignore)
 - add TablePopout
 - add SimpleClassifierDashboard
 - add SimpleRegressionDashboard
@@ -86,21 +89,8 @@
 - write tests for explainer_plots
 
 ## Docs:
-- add memory savings to docs:
-    - memory_usage()
-    - keep_shap_pos_label_only()
-    - set_X_row_func, etc
-- add cats_topx cats_sort to docs
-- add hide_wizard and wizard to docs
-- add hide_poweredby to docs
-- add Docker deploy example (from issue)
-- document register_components no longer necessary
-- add new whatif parameters to README and docs
-- add section to docs and README on storing and loading explainer/dashboard from file/config
-
 - retake screenshots of components as cards
 - Add type hints:
-    - to explainers
     - to explainer class methods
     - to explainer_methods
     - to explainer_plots
