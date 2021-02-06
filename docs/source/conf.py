@@ -51,10 +51,10 @@ master_doc = 'index'
 # ones.
 extensions = [
     'sphinx.ext.autodoc', 
-    'sphinx_autodoc_typehints',
     'sphinx.ext.autosectionlabel',
     "sphinx_rtd_theme",
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints'
 ]
 
 autodoc_mock_imports = ['matplotlib', 'np', 'dash', 'dash_bootstrap_components',
