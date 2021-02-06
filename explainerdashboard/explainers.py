@@ -160,6 +160,12 @@ class BaseExplainer(ABC):
             self.interactions_should_work = False
 
         if y is not None:
+            if isinstance(y, pd.DataFrame):
+                if len(y.columns) == 1:
+                    y = y.squeeze()
+                else:
+                    raise ValueError('y should be a pd.Series or np.ndarray not a pd.DataFrame!')
+
             self.y = pd.Series(y).astype(precision)
             self.y_missing = False
         else:
@@ -186,7 +192,8 @@ class BaseExplainer(ABC):
                     "e.g. shap='tree', shap='linear', etc.")
         else:
             assert shap in ['tree', 'linear', 'deep', 'kernel'], \
-                "Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' allowed."
+                ("Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' are "
+                 " supported for now!.")
             self.shap = shap
 
         self.model_output = model_output
@@ -228,7 +235,7 @@ class BaseExplainer(ABC):
             self.interactions_should_work = False
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
-        self.__version__ = "0.3"
+        self.__version__ = "0.3.1"
 
     @classmethod
     def from_file(cls, filepath):

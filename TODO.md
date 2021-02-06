@@ -23,6 +23,7 @@
 - add plot_sample parameter
 
 ## Explainers:
+- add show_metrics parameter to ``metrics`` and ``ModelSummaryComponent``.
 - add metrics, classification_df, roc_auc_cruve, pr_auc_curve, etc to calculate_properties()
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers

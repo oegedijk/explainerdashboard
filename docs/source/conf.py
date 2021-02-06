@@ -51,7 +51,7 @@ master_doc = 'index'
 # ones.
 extensions = [
     'sphinx.ext.autodoc', 
-    #'sphinxcontrib.fulltoc',
+    'sphinx_autodoc_typehints',
     'sphinx.ext.autosectionlabel',
     "sphinx_rtd_theme",
     'sphinx.ext.napoleon'
@@ -63,8 +63,6 @@ autodoc_mock_imports = ['matplotlib', 'np', 'dash', 'dash_bootstrap_components',
                     'sklearn', 'shap',  'plotly', 'shortuuid', 
                     'joblib', 'dash_auth', 'jupyter_dash', 'oyaml', 'click',
                     'flask', 'flask_simplelogin', 'werkzeug']
-
-
 
 autoclass_content = "both"
 
