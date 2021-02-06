@@ -1646,6 +1646,41 @@ class ClassifierExplainer(BaseExplainer):
         Compared to BaseExplainer defines two additional parameters
 
         Args:
+            model: a model with a scikit-learn compatible .fit and .predict methods
+            X (pd.DataFrame): a pd.DataFrame with your model features
+            y (pd.Series): Dependent variable of your model, defaults to None
+            permutation_metric (function or str): is a scikit-learn compatible 
+                metric function (or string). Defaults to r2_score
+            shap (str): type of shap_explainer to fit: 'tree', 'linear', 'kernel'. 
+                Defaults to 'guess'.
+            X_background (pd.DataFrame): background X to be used by shap 
+                explainers that need a background dataset (e.g. shap.KernelExplainer
+                or shap.TreeExplainer with boosting models and 
+                model_output='probability').
+            model_output (str): model_output of shap values, either 'raw', 
+                'logodds' or 'probability'. Defaults to 'raw' for regression and
+                'probability' for classification.
+            cats ({dict, list}): dict of features that have been 
+                onehotencoded. e.g. cats={'Sex':['Sex_male', 'Sex_female']}. 
+                If all encoded columns are underscore-seperated (as above), can simply
+                pass a list of prefixes: cats=['Sex']. Allows to 
+                group onehot encoded categorical variables together in 
+                various plots. Defaults to None.
+            idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
+                Defaults to X.index.
+            index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
+                Defaults to X.index.name or idxs.name.
+            target: name of the predicted target, e.g. "Survival", 
+                "Ticket price", etc. Defaults to y.name.
+            n_jobs (int): for jobs that can be parallelized using joblib,
+                how many processes to split the job in. For now only used
+                for calculating permutation importances. Defaults to None.
+            permutation_cv (int): If not None then permutation importances 
+                will get calculated using cross validation across X. 
+                This is for calculating permutation importances against
+                X_train. Defaults to None
+            na_fill (int): The filler used for missing values, defaults to -999.
+            precision: precision with which to store values. Defaults to "float64".
             labels(list): list of str labels for the different classes, 
                         defaults to e.g. ['0', '1'] for a binary classification
             pos_label: class that should be used as the positive class, 
@@ -2570,7 +2605,42 @@ class RegressionExplainer(BaseExplainer):
         Combared to BaseExplainerBunch defines two additional parameters.
 
         Args:
-          units(str): units to display for regression quantity
+            model: a model with a scikit-learn compatible .fit and .predict methods
+            X (pd.DataFrame): a pd.DataFrame with your model features
+            y (pd.Series): Dependent variable of your model, defaults to None
+            permutation_metric (function or str): is a scikit-learn compatible 
+                metric function (or string). Defaults to r2_score
+            shap (str): type of shap_explainer to fit: 'tree', 'linear', 'kernel'. 
+                Defaults to 'guess'.
+            X_background (pd.DataFrame): background X to be used by shap 
+                explainers that need a background dataset (e.g. shap.KernelExplainer
+                or shap.TreeExplainer with boosting models and 
+                model_output='probability').
+            model_output (str): model_output of shap values, either 'raw', 
+                'logodds' or 'probability'. Defaults to 'raw' for regression and
+                'probability' for classification.
+            cats ({dict, list}): dict of features that have been 
+                onehotencoded. e.g. cats={'Sex':['Sex_male', 'Sex_female']}. 
+                If all encoded columns are underscore-seperated (as above), can simply
+                pass a list of prefixes: cats=['Sex']. Allows to 
+                group onehot encoded categorical variables together in 
+                various plots. Defaults to None.
+            idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
+                Defaults to X.index.
+            index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
+                Defaults to X.index.name or idxs.name.
+            target: name of the predicted target, e.g. "Survival", 
+                "Ticket price", etc. Defaults to y.name.
+            n_jobs (int): for jobs that can be parallelized using joblib,
+                how many processes to split the job in. For now only used
+                for calculating permutation importances. Defaults to None.
+            permutation_cv (int): If not None then permutation importances 
+                will get calculated using cross validation across X. 
+                This is for calculating permutation importances against
+                X_train. Defaults to None
+            na_fill (int): The filler used for missing values, defaults to -999.
+            precision: precision with which to store values. Defaults to "float64".
+            units(str): units to display for regression quantity
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
