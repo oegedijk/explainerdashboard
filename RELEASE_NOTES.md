@@ -1,5 +1,33 @@
 # Release Notes
 
+## Version 0.3.2:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- new parameter `show_metrics` for both `explainer.metrics()`, `ClassifierModelSummaryComponent`
+    and `RegressionModelSummaryComponent`:
+    - pass a list of metrics and only display those metrics in that order
+    - you can also pass custom scoring functions as long as they
+        are of the form `func(y_true, y_pred)`
+        - custom functions are also stored to and recovered from `dashboard.yaml` 
+- adds mean absolute percentage error to the regression metrics. If it is too
+    large a warning will be printed. Can be excluded with the new `show_metrics`
+    parameter.
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- accepting single column dataframe for `y`, and converting it to a `pd.Series`
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.3.1:
 This version is mostly about pre-calculating and optimizing the classifier statistics
 components. Those components should now be much more responsive with large datasets.

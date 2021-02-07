@@ -33,8 +33,8 @@ class RegressionBunchTests(unittest.TestCase):
     def test_metrics(self):
         metrics_dict = self.explainer.metrics()
         self.assertIsInstance(metrics_dict, dict)
-        self.assertTrue('root_mean_squared_error' in metrics_dict)
-        self.assertTrue('mean_absolute_error' in metrics_dict)
+        self.assertTrue('root-mean-squared-error' in metrics_dict)
+        self.assertTrue('mean-absolute-error' in metrics_dict)
         self.assertTrue('R-squared' in metrics_dict)
         self.assertIsInstance(self.explainer.metrics_descriptions(), dict) 
 
