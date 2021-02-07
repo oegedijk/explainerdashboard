@@ -2099,13 +2099,15 @@ class ClassifierExplainer(BaseExplainer):
         return 1-(self.pred_probas(pos_label) < cutoff).mean()
 
     @insert_pos_label
-    def metrics(self, cutoff=0.5, pos_label=None):
+    def metrics(self, cutoff:float=0.5, show_metrics:List[Union[str, Callable]]=None, pos_label:int=None):
         """returns a dict with useful metrics for your classifier:
         
         accuracy, precision, recall, f1, roc auc, pr auc, log loss
 
         Args:
           cutoff(float): cutoff used to calculate metrics (Default value = 0.5)
+          show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -2140,9 +2142,23 @@ class ClassifierExplainer(BaseExplainer):
                     self._metrics[label][np.round(cut, 2)] = \
                         get_metrics(cut, label)
         if cutoff in self._metrics[pos_label]:
-            return self._metrics[pos_label][cutoff]
+            metrics_dict =  self._metrics[pos_label][cutoff]
         else:
-            return get_metrics(cutoff, pos_label)
+            metrics_dict = get_metrics(cutoff, pos_label)
+        
+        if not show_metrics:
+            return metrics_dict
+
+        show_metrics_dict = {}
+        for m in show_metrics:
+            if callable(m):
+                show_metrics_dict[m.__name__] = m(
+                        self.y_binary(pos_label), 
+                        np.where(self.pred_probas(pos_label) > cutoff, 1, 0)
+                    )
+            elif m in metrics_dict:
+                show_metrics_dict[m] = metrics_dict[m]
+        return show_metrics_dict
 
     @insert_pos_label
     def metrics_descriptions(self, cutoff=0.5, round=3, pos_label=None):
@@ -2157,7 +2173,7 @@ class ClassifierExplainer(BaseExplainer):
         Returns:
             dict
         """
-        metrics_dict = self.metrics(cutoff, pos_label)
+        metrics_dict = self.metrics(cutoff=cutoff, pos_label=pos_label)
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
             if k == 'accuracy':
@@ -2788,17 +2804,31 @@ class RegressionExplainer(BaseExplainer):
                         index=preds_df.columns), ignore_index=True)
         return preds_df
 
-    def metrics(self):
-        """dict of performance metrics: rmse, mae and R^2"""
+    def metrics(self, show_metrics:List[str]=None):
+        """dict of performance metrics: root_mean_squared_error, mean_absolute_error and R-squared
+        
+        Args:
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
+        """
 
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
         metrics_dict = {
+            'mean_squared_error' : mean_squared_error(self.y, self.preds),
             'root_mean_squared_error' : np.sqrt(mean_squared_error(self.y, self.preds)),
             'mean_absolute_error' : mean_absolute_error(self.y, self.preds),
             'R-squared' : r2_score(self.y, self.preds),
         }
-        return metrics_dict
+        if not show_metrics:
+            return metrics_dict
+        show_metrics_dict = {}
+        for m in show_metrics:
+            if callable(m):
+                show_metrics_dict[m.__name__] = m(self.y, self.preds)
+            elif m in metrics_dict:
+                show_metrics_dict[m] = metrics_dict[m]
+        return show_metrics_dict
 
     def metrics_descriptions(self):
         """Returns a metrics dict, with the metric values replaced by a descriptive
@@ -2810,12 +2840,23 @@ class RegressionExplainer(BaseExplainer):
         metrics_dict = self.metrics()
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
+            if k == 'mean_squared_error':
+                metrics_descriptions_dict[k] = (f"A measure of how close "
+                    "predicted value fits true values, where large deviations "
+                    "are punished more heavily. So the lower this number the "
+                    "better the model.")
             if k == 'root_mean_squared_error':
-                metrics_descriptions_dict[k] = f"A measure of how close predicted value fits true values, where large deviations are punished more heavily. So the lower this number the better the model."
+                metrics_descriptions_dict[k] = (f"A measure of how close "
+                    "predicted value fits true values, where large deviations "
+                    "are punished more heavily. So the lower this number the "
+                    "better the model.")
             if k == 'mean_absolute_error':
-                metrics_descriptions_dict[k] = f"On average predictions deviate {round(v, 2)} {self.units} off the observed value of {self.target} (can be both above or below)"
+                metrics_descriptions_dict[k] = (f"On average predictions deviate "
+                    f"{round(v, 2)} {self.units} off the observed value of "
+                    f"{self.target} (can be both above or below)")
             if k == 'R-squared':
-                metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of all variation in {self.target} was explained by the model."
+                metrics_descriptions_dict[k] = (f"{round(100*v, 2)}% of all "
+                    f"variation in {self.target} was explained by the model.")
         return metrics_descriptions_dict
 
     def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, **kwargs):

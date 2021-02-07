@@ -9,6 +9,8 @@ __all__ = [
     'get_dbc_tooltips',
     'update_params',
     'update_kwargs',
+    'encode_callables',
+    'decode_callables',
     'instantiate_component'
 ]
 
@@ -16,6 +18,7 @@ import sys
 from abc import ABC
 import inspect
 import types
+from importlib import import_module
 
 import dash
 import dash_core_components as dcc
@@ -77,6 +80,32 @@ def update_params(kwargs, **params):
 def update_kwargs(kwargs, **params):
     """params override kwargs"""
     return dict(kwargs, **params)
+
+
+def encode_callables(obj):
+    """replaces all callables (functions) in obj with a dict specifying module and name
+    
+    Works recursively through sub-list and sub-dicts"""
+    if callable(obj):
+        return dict(__callable__=dict(module=obj.__module__, name=obj.__name__))  
+    if isinstance(obj, dict):
+        return {k:encode_callables(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [encode_callables(o) for o in obj]     
+    return obj
+
+
+def decode_callables(obj):
+    """replaces all dict-encoded callables in obj with the appropriate function
+    
+    Works recursively through sub-list and sub-dicts"""
+    if isinstance(obj, dict) and '__callable__' in obj:
+        return getattr(import_module(obj['__callable__']['module']), obj['__callable__']['name'])
+    if isinstance(obj, dict):
+        return {k:decode_callables(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [decode_callables(o) for o in obj]     
+    return obj
 
 
 def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):
@@ -212,6 +241,8 @@ class ExplainerComponent(ABC):
                 setattr(self, name, value)
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
+        
+        self._stored_params = encode_callables(self._stored_params)
 
     def exclude_callbacks(self, *components):
         """exclude certain subcomponents from the register_components scan

@@ -944,7 +944,7 @@ class RegressionModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary", name=None, 
                     subtitle="Quantitative metrics for model performance",
                     hide_title=False, hide_subtitle=False, 
-                    round=3, description=None, **kwargs):
+                    round=3, show_metrics=None, description=None, **kwargs):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -959,6 +959,8 @@ class RegressionModelSummaryComponent(ExplainerComponent):
             hide_title (bool, optional): hide title
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             round (int): rounding to perform to metric floats.
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -972,7 +974,7 @@ class RegressionModelSummaryComponent(ExplainerComponent):
 
     def layout(self):
         metrics_dict = self.explainer.metrics_descriptions()
-        metrics_df = (pd.DataFrame(self.explainer.metrics(), index=["Score"]).T
+        metrics_df = (pd.DataFrame(self.explainer.metrics(show_metrics=self.show_metrics), index=["Score"]).T
                         .rename_axis(index="metric").reset_index().round(self.round))
         metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)      
         metrics_table, tooltips = get_dbc_tooltips(metrics_table, 

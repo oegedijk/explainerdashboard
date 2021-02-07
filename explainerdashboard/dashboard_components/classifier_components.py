@@ -1354,7 +1354,8 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model performance metrics", name=None,
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5, round=3, description=None,
+                    pos_label=None, cutoff=0.5, round=3, show_metrics=None,
+                    description=None,
                     **kwargs):
         """Show model summary statistics (accuracy, precision, recall,  
             f1, roc_auc, pr_auc, log_loss) component.
@@ -1375,6 +1376,8 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
             round (int): round floats. Defaults to 3.
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -1435,7 +1438,8 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
         def update_classifier_summary(cutoff, pos_label):
             metrics_dict = self.explainer.metrics_descriptions(cutoff, pos_label)
             metrics_df = (pd.DataFrame(
-                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label), 
+                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label, 
+                                                        show_metrics=self.show_metrics), 
                                 index=["Score"])
                               .T.rename_axis(index="metric").reset_index()
                               .round(self.round))
