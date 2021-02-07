@@ -34,7 +34,7 @@ from jupyter_dash import JupyterDash
 
 import plotly.io as pio
 
-from .dashboard_methods import instantiate_component
+from .dashboard_methods import instantiate_component, encode_callables, decode_callables
 from .dashboard_components import *
 from .dashboard_tabs import *
 from .explainers import BaseExplainer
@@ -363,6 +363,7 @@ class ExplainerDashboard:
 
         self._store_params(no_param=['explainer', 'tabs', 'server'])
         self._stored_params['tabs'] = self._tabs_to_yaml(tabs)
+
         if not hasattr(explainer, "__version__"):
             raise ValueError(f"The {explainer.__class__.__name__} was generated "
                     "with a version of explainerdashboard<0.3 and therefore not "
@@ -565,7 +566,7 @@ class ExplainerDashboard:
                     "When passing two arguments to ExplainerDashboard.from_config(arg1, arg2), "
                     "arg2 should be a .yaml file or a dict!")
 
-        dashboard_params = config['dashboard']['params']
+        dashboard_params = decode_callables(config['dashboard']['params'])
 
         for k, v in update_params.items():
             if k in dashboard_params:
@@ -674,6 +675,8 @@ class ExplainerDashboard:
                 setattr(self, name, value)
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
+                
+        self._stored_params = encode_callables(self._stored_params)
 
     def _convert_str_tabs(self, component):
         if isinstance(component, str):
@@ -749,6 +752,8 @@ class ExplainerDashboard:
                 else:
                     if not 'name' in tab['params'] or tab['params']['name'] is None:
                         tab['params']['name'] = name
+
+                    tab['params'] = decode_callables(tab['params'])
                     tab_instance = tab_class(explainer, **tab['params'])
                     return tab_instance
             else:
