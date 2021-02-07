@@ -2815,11 +2815,16 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
         metrics_dict = {
-            'mean_squared_error' : mean_squared_error(self.y, self.preds),
-            'root_mean_squared_error' : np.sqrt(mean_squared_error(self.y, self.preds)),
-            'mean_absolute_error' : mean_absolute_error(self.y, self.preds),
+            'mean-squared-error' : mean_squared_error(self.y, self.preds),
+            'root-mean-squared-error' : np.sqrt(mean_squared_error(self.y, self.preds)),
+            'mean-absolute-error' : mean_absolute_error(self.y, self.preds),
+            'mean-absolute-percentage-error': mape_score(self.y, self.preds),
             'R-squared' : r2_score(self.y, self.preds),
         }
+        if metrics_dict['mean-absolute-percentage-error'] > 2:
+            print("Warning: mean-absolute-percentage-error is very large "
+                f"({metrics_dict['mean-absolute-percentage-error']}), you can hide "
+                 "it from the metrics by passing parameter show_metrics...", flush=True)
         if not show_metrics:
             return metrics_dict
         show_metrics_dict = {}
@@ -2830,7 +2835,7 @@ class RegressionExplainer(BaseExplainer):
                 show_metrics_dict[m] = metrics_dict[m]
         return show_metrics_dict
 
-    def metrics_descriptions(self):
+    def metrics_descriptions(self, round=2):
         """Returns a metrics dict, with the metric values replaced by a descriptive
         string, explaining/interpreting the value of the metric
 
@@ -2840,22 +2845,26 @@ class RegressionExplainer(BaseExplainer):
         metrics_dict = self.metrics()
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
-            if k == 'mean_squared_error':
+            if k == 'mean-squared-error':
                 metrics_descriptions_dict[k] = (f"A measure of how close "
                     "predicted value fits true values, where large deviations "
                     "are punished more heavily. So the lower this number the "
                     "better the model.")
-            if k == 'root_mean_squared_error':
+            if k == 'root-mean-squared-error':
                 metrics_descriptions_dict[k] = (f"A measure of how close "
                     "predicted value fits true values, where large deviations "
                     "are punished more heavily. So the lower this number the "
                     "better the model.")
-            if k == 'mean_absolute_error':
+            if k == 'mean-absolute-error':
                 metrics_descriptions_dict[k] = (f"On average predictions deviate "
-                    f"{round(v, 2)} {self.units} off the observed value of "
+                    f"{v:.{round}f} {self.units} off the observed value of "
+                    f"{self.target} (can be both above or below)")
+            if k == 'mean-absolute-percentage-error':
+                metrics_descriptions_dict[k] = (f"On average predictions deviate "
+                    f"{100*v:.{round}f}% off the observed value of "
                     f"{self.target} (can be both above or below)")
             if k == 'R-squared':
-                metrics_descriptions_dict[k] = (f"{round(100*v, 2)}% of all "
+                metrics_descriptions_dict[k] = (f"{100*v:.{round}f}% of all "
                     f"variation in {self.target} was explained by the model.")
         return metrics_descriptions_dict
 

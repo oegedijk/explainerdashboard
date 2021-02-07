@@ -69,6 +69,14 @@ def guess_shap(model):
     return None
 
 
+def mape_score(y_true, y_pred):
+    """returns Mean Absolute Percentage Error"""
+    epsilon = np.finfo(np.float64).eps
+    absolute_percentage_errors = np.abs(y_pred - y_true) / np.maximum(np.abs(y_true), epsilon)
+    mape = np.average(absolute_percentage_errors)
+    return mape
+
+
 def parse_cats(X, cats, sep:str="_"):
     """parse onehot encoded columns to a onehot_dict.
     - cats can be a dict where you enumerate each individual onehot encoded column belonging to 
