@@ -153,7 +153,14 @@ class BaseExplainer(ABC):
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
 
         self.onehot_missing = {col:"NOT_ENCODED" for col in self.onehot_cols}
-        self.onehot_missing.update(cats_missing)
+        if cats_missing is not None:
+            assert isinstance(cats_missing, dict), \
+                ("cats_missing should be a dict mapping a onehot col to a "
+                " missing value, e.g. cats_missing={'Deck': 'Unknown Deck'}...!")
+            assert set(cats_missing.keys()).issubset(self.onehot_cols), \
+                ("The following keys in cats_missing are not in cats:"
+                f"{list(set(cats_missing.keys()) - set(self.onehot_cols))}!")
+            self.onehot_missing.update(cats_missing)
 
         if self.encoded_cols:
             self.X[self.encoded_cols] = self.X[self.encoded_cols].astype(np.int8)
