@@ -37,6 +37,8 @@ class ImportancesTab(ExplainerComponent):
             depth (int, optional): Number of features to display by default. Defaults to None.
             cats (bool, optional): Group categoricals together. Defaults to True.
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the ImportancesComposite instead!")
         super().__init__(explainer, title, name)
 
         self.importances = ImportancesComponent(
@@ -79,6 +81,10 @@ class ModelSummaryTab(ExplainerComponent):
             col ([type], optional): Feature to show residuals against. Defaults to None.
 
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the ClassifierModelStatsComposite or "
+                    "RegressionModelStatsComposite instead!")
+
         super().__init__(explainer, title, name)
         
         if self.explainer.is_classifier:
@@ -113,6 +119,8 @@ class ContributionsTab(ExplainerComponent):
             higher_is_better (bool, optional): in contributions plot, up is green
                 and down is red. (set to False to flip)
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the IndividualPredictionsComposite instead!")
         super().__init__(explainer, title, name)
         self.tab_id = "contributions"
         self.contribs = IndividualPredictionsComposite(explainer, 
@@ -140,6 +148,8 @@ class WhatIfTab(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the WhatIfComposite instead!")
         super().__init__(explainer, title, name)
         self.tab_id = "whatif"
         self.whatif = WhatIfComposite(explainer, **kwargs)
@@ -167,6 +177,8 @@ class ShapDependenceTab(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the ShapDependenceComposite instead!")
         super().__init__(explainer, title, name)
 
         self.shap_overview = ShapDependenceComposite(
@@ -195,6 +207,8 @@ class ShapInteractionsTab(ExplainerComponent):
             depth (int, optional): default number of feature to display. Defaults to None.
             cats (bool, optional): default grouping of cats. Defaults to True.
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the ShapInteractionsComposite instead!")
         super().__init__(explainer, title, name)
         self.interaction_overview = ShapInteractionsComposite(
                     explainer, depth=depth, cats=cats, **kwargs)
@@ -220,6 +234,8 @@ class DecisionTreesTab(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
         """
+        raise DeprecationWarning("This component has been deprecated. "
+                    "Use the DecisionTreesComposite instead!")
         super().__init__(explainer, title, name)
 
         self.trees = DecisionTreesComposite(explainer, **kwargs)
