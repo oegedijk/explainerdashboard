@@ -200,7 +200,7 @@ def split_pipeline(pipeline, X, verbose=1):
     return X_transformed, model
 
 
-def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
+def retrieve_onehot_value(X, encoded_col, onehot_cols, not_encoded="NOT_ENCODED", sep="_"):
     """
     Reverses a onehot encoding. 
 
@@ -221,15 +221,15 @@ def retrieve_onehot_value(X, encoded_col, onehot_cols, sep="_"):
     # if not a single 1 then encoded feature must have been dropped
     feature_value[np.max(X[onehot_cols].values, axis=1) == 0] = -1
     if all([col.startswith(col+"_") for col in onehot_cols]):
-        mapping = {-1: encoded_col+"_NOT_ENCODED"}
+        mapping = {-1: encoded_col+not_encoded}
     else:
-        mapping = {-1: "NOT_ENCODED"}
+        mapping = {-1: not_encoded}
 
     mapping.update({i: col for i, col in enumerate(onehot_cols)})
     return pd.Series(feature_value).map(mapping)
 
 
-def merge_categorical_columns(X, onehot_dict=None, cols=None, sep="_", drop_regular=False):
+def merge_categorical_columns(X, onehot_dict=None, cols=None, not_encoded_dict=None, sep="_", drop_regular=False):
     """
     Returns a new feature Dataframe X_cats where the onehotencoded
     categorical features have been merged back with the old value retrieved
@@ -248,9 +248,13 @@ def merge_categorical_columns(X, onehot_dict=None, cols=None, sep="_", drop_regu
         pd.DataFrame, with onehot encodings merged back into categorical columns.
     """
     X_cats = pd.DataFrame()
+    not_encoded_dict = not_encoded_dict or {}
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
-            X_cats[col_name] = retrieve_onehot_value(X, col_name, col_list, sep).astype("category")
+            X_cats[col_name] = retrieve_onehot_value(X, 
+                                    col_name, col_list, 
+                                    not_encoded_dict.get(col_name, "NOT_ENCODED"), 
+                                    sep).astype("category")
         else:
             if not drop_regular:
                 X_cats.loc[:, col_name] = X[col_name].values
@@ -271,13 +275,15 @@ def matching_cols(cols1, cols2):
         return True
     return False
 
-def remove_cat_names(X_cats, onehot_dict):
+def remove_cat_names(X_cats, onehot_dict, onehot_missing_dict=None):
     """removes the leading category names in the onehotencoded columns. 
     Turning e.g 'Sex_male' into 'male', etc"""
     X_cats = X_cats.copy()
     for cat, cols in onehot_dict.items():
         if len(cols) > 1:
-            mapping = {c:c[len(cat)+1:] for c in cols if c.startswith(cat+'_')}
+            mapping = {c:(c[len(cat)+1:] if c.startswith(cat+'_') else c) for c in cols}
+            if onehot_missing_dict:
+                mapping.update({onehot_missing_dict[cat]:onehot_missing_dict[cat]})
             X_cats[cat] = X_cats[cat].map(mapping, na_action='ignore')
     return X_cats
 
@@ -645,10 +651,11 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
     for grid_value in grid_values:
         dtemp = X_sample.copy()
         if isinstance(feature, list):
-            assert set(X_sample[grid_value].unique()).issubset({0, 1}),\
-                (f"{grid_values} When passing a list of features these have to be onehotencoded!"
-                 f"But X_sample['{grid_value}'].unique()=={list(set(X_sample[grid_value].unique()))}")
-            dtemp.loc[:, grid_values] = [1 if g==grid_value else 0 for g in grid_values]
+            if grid_value in X_sample.columns:
+                assert set(X_sample[grid_value].unique()).issubset({0, 1}),\
+                    (f"{grid_values} When passing a list of features these have to be onehotencoded!"
+                    f"But X_sample['{grid_value}'].unique()=={list(set(X_sample[grid_value].unique()))}")
+            dtemp.loc[:, feature] = [1 if col==grid_value else 0 for col in feature]
         else:
             dtemp.loc[:, feature] = grid_value
         if hasattr(model, "predict_proba"):

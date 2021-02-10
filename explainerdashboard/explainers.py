@@ -66,7 +66,8 @@ class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X:pd.DataFrame, y:pd.Series=None, permutation_metric:Callable=r2_score, 
                     shap:str="guess", X_background:pd.DataFrame=None, model_output:str="raw",
-                    cats:bool=None, idxs:pd.Index=None, index_name:str=None, target:str=None,
+                    cats:bool=None, cats_missing:Dict=None, 
+                    idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:dict=None, 
                     n_jobs:int=None, permutation_cv:int=None, na_fill:float=-999,
                     precision:str="float64"):
@@ -94,6 +95,9 @@ class BaseExplainer(ABC):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
+            cats_missing (dict): value to display when all onehot encoded
+                columns are equal to zero. Defaults to 'NOT_ENCODED' for each
+                onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
                 Defaults to X.index.
             index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
@@ -147,6 +151,9 @@ class BaseExplainer(ABC):
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
+
+        self.onehot_missing = {col:"NOT_ENCODED" for col in self.onehot_cols}
+        self.onehot_missing.update(cats_missing)
 
         if self.encoded_cols:
             self.X[self.encoded_cols] = self.X[self.encoded_cols].astype(np.int8)
@@ -385,7 +392,8 @@ class BaseExplainer(ABC):
     def X_cats(self):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
-            self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, drop_regular=True)
+            self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, 
+                not_encoded_dict=self.onehot_missing, drop_regular=True)
         return self._X_cats
 
     @property
@@ -438,7 +446,8 @@ class BaseExplainer(ABC):
             raise ValueError(f"columns do not match! Got {X_row.columns}, but was"
                     f"expecting {self.columns}")
         if merge:
-            X_row = merge_categorical_columns(X_row, self.onehot_dict)[self.merged_cols]
+            X_row = merge_categorical_columns(X_row, self.onehot_dict, 
+                        not_encoded_dict=self.onehot_missing)[self.merged_cols]
         return X_row
 
     def set_X_row_func(self, func):
@@ -562,7 +571,7 @@ class BaseExplainer(ABC):
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
                 if col in self.onehot_cols:
-                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col]).item()
+                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_missing).item()
                 else:
                     col_value = X_row[col].item()
 
@@ -1068,7 +1077,8 @@ class BaseExplainer(ABC):
             else:
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as self.X or self.merged_cols!"
-                X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, drop_regular=False)[self.merged_cols]
+                X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, 
+                    not_encoded_dict=self.onehot_missing, drop_regular=False)[self.merged_cols]
 
             shap_values = self.shap_explainer.shap_values(X_row)
             if self.is_classifier:
@@ -1080,7 +1090,7 @@ class BaseExplainer(ABC):
             shap_values_df = merge_categorical_shap_values(shap_values_df, 
                                     self.onehot_dict, self.merged_cols)
             return get_contrib_df(self.shap_base_value(pos_label), shap_values_df.values[0], 
-                        remove_cat_names(X_row_merged, self.onehot_dict), 
+                        remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_missing), 
                         topx, cutoff, sort, cols)   
 
         else:
@@ -1158,12 +1168,12 @@ class BaseExplainer(ABC):
         assert col in self.X.columns or col in self.onehot_cols, \
             f"{col} not in columns of dataset"
         if col in self.onehot_cols:
-            features = self.ordered_cats(col, n_grid_points, sort)
+            grid_values = self.ordered_cats(col, n_grid_points, sort)
             if index is not None or X_row is not None:
                 val, pred = self.get_col_value_plus_prediction(col, index, X_row)
-                if val not in features:
-                    features[-1] = val
-            grid_values = None
+                if val not in grid_values:
+                    grid_values[-1] = val
+            features = self.onehot_dict[col]
         elif col in self.categorical_cols:
             features = col
             grid_values = self.ordered_cats(col, n_grid_points, sort)
@@ -1197,14 +1207,12 @@ class BaseExplainer(ABC):
                 sampleX = pd.concat([
                     X_row,
                     self.X[(self.X[features] != self.na_fill)]\
-                            .sample(sample_size)],
-                    ignore_index=True, axis=0)
+                            .sample(sample_size)], ignore_index=True, axis=0)
             else:
                 sample_size = min(sample, len(self.X)-1)
                 sampleX = pd.concat([
                     X_row,
-                    self.X.sample(sample_size)],
-                    ignore_index=True, axis=0)
+                    self.X.sample(sample_size)], ignore_index=True, axis=0)
         else:
             if isinstance(features, str) and drop_na: # regular col, not onehotencoded
                 sample_size=min(sample, len(self.X[(self.X[features] != self.na_fill)])-1)
@@ -1212,7 +1220,7 @@ class BaseExplainer(ABC):
                                 .sample(sample_size)
             else:
                 sampleX = self.X.sample(min(sample, len(self.X)))
-
+        print("pdp: ", features, sampleX.columns)
         pdp_df = get_pdp_df(
                 model=self.model, X_sample=sampleX,
                 feature=features, n_grid_points=n_grid_points, 
@@ -1636,7 +1644,8 @@ class ClassifierExplainer(BaseExplainer):
                     permutation_metric:Callable=roc_auc_score, 
                     shap:str='guess', X_background:pd.DataFrame=None, 
                     model_output:str="probability",
-                    cats:Union[List, Dict]=None, idxs:pd.Index=None, 
+                    cats:Union[List, Dict]=None, cats_missing:Dict=None, 
+                    idxs:pd.Index=None, 
                     index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, 
                     permutation_cv:int=None, na_fill:float=-999,
@@ -1673,6 +1682,9 @@ class ClassifierExplainer(BaseExplainer):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
+            cats_missing (dict): value to display when all onehot encoded
+                columns are equal to zero. Defaults to 'NOT_ENCODED' for each
+                onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
                 Defaults to X.index.
             index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
@@ -1695,8 +1707,9 @@ class ClassifierExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
-                            cats, idxs, index_name, target, descriptions, 
-                            n_jobs, permutation_cv, na_fill, precision)
+                            cats, cats_missing, idxs, index_name, target, 
+                            descriptions, n_jobs, permutation_cv, na_fill, 
+                            precision)
 
         assert hasattr(model, "predict_proba"), \
                 ("for ClassifierExplainer, model should be a scikit-learn "
@@ -2616,8 +2629,8 @@ class RegressionExplainer(BaseExplainer):
                     permutation_metric:Callable=r2_score, 
                     shap:str="guess", X_background:pd.DataFrame=None, 
                     model_output:str="raw",
-                    cats:Union[List, Dict]=None, idxs:pd.Index=None, 
-                    index_name:str=None, target:str=None,
+                    cats:Union[List, Dict]=None, cats_missing:Dict=None, 
+                    idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
                     na_fill:float=-999, precision:str="float64", units:str=""):
         """Explainer for regression models.
@@ -2648,6 +2661,9 @@ class RegressionExplainer(BaseExplainer):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
+            cats_missing (dict): value to display when all onehot encoded
+                columns are equal to zero. Defaults to 'NOT_ENCODED' for each
+                onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
                 Defaults to X.index.
             index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
@@ -2667,8 +2683,9 @@ class RegressionExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
-                            cats, idxs, index_name, target, descriptions,
-                            n_jobs, permutation_cv, na_fill, precision)
+                            cats, cats_missing, idxs, index_name, target, 
+                            descriptions, n_jobs, permutation_cv, na_fill, 
+                            precision)
 
         self._params_dict = {**self._params_dict, **dict(units=units)}
         self.units = units

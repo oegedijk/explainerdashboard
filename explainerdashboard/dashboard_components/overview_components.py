@@ -561,10 +561,13 @@ class FeatureInputComponent(ExplainerComponent):
                     dbc.FormText(f"Select any {col}") if not self.hide_range else None,
                 ])   
         elif col in onehot_cols:
-            col_values = onehot_dict[col]
+            col_values = [c for c in onehot_dict[col]]
             display_values = [
                 col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
                     for col_val in col_values]
+            if any(self.explainer.X[self.explainer.onehot_dict[col]].sum(axis=1) == 0):
+                col_values.append(self.explainer.onehot_missing[col])
+                display_values.append(self.explainer.onehot_missing[col])
             return dbc.FormGroup([
                     dbc.Label(col),
                     dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
