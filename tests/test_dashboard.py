@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.datasets import titanic_survive, titanic_names
-from explainerdashboard.dashboard_tabs import ShapDependenceTab
+from explainerdashboard.custom import ShapDependenceComposite
 
 
 class DashboardTests(unittest.TestCase):
@@ -24,8 +24,8 @@ class DashboardTests(unittest.TestCase):
 
         self.dashboard = ExplainerDashboard(self.explainer, 
             [
-                ShapDependenceTab(self.explainer, title="Test Tab!"),
-                ShapDependenceTab, 
+                ShapDependenceComposite(self.explainer, title="Test Tab!"),
+                ShapDependenceComposite, 
                 "importances"
             ], title="Test Title!")
 

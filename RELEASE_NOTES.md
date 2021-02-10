@@ -12,9 +12,14 @@
     - you can also pass custom scoring functions as long as they
         are of the form `func(y_true, y_pred)`
         - custom functions are also stored to and recovered from `dashboard.yaml` 
+- new parameter `cats_missing`: a dict to indicate how to name the value 
+    of a onehotencoded features when all onehot columns equal 0. Defaults
+    to `'NOT_ENCODED'`, but can be adjusted with this parameter. E.g. 
+    `cats_missing=dict(Deck="Deck Unknown")`.
 - adds mean absolute percentage error to the regression metrics. If it is too
     large a warning will be printed. Can be excluded with the new `show_metrics`
     parameter.
+
 
 ### Bug Fixes
 -
@@ -22,7 +27,9 @@
 
 ### Improvements
 - accepting single column dataframe for `y`, and converting it to a `pd.Series`
--
+- if WhatIf FeatureInputComponent detects the presence of missing onehot features
+    (i.e. rows where all columns of the onehotencoded feature equal 0), then
+    adds `'NOT_ENCODED'` to the dropdown options.
 
 ### Other Changes
 -
