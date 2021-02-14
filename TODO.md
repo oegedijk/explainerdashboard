@@ -1,6 +1,7 @@
 
 # TODO
-
+- add tests for cats_missing
+- add some zeros into X_test te test cats_missing
 ## Bugs:
 
 ## Plots:

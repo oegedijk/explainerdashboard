@@ -1072,7 +1072,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 if index is None:
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
-                plot = self.explainer.plot_contributions(index, topx=depth, 
+                plot = self.explainer.plot_contributions(str(index), topx=depth, 
                             sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
                 return plot
@@ -1225,7 +1225,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
                 contributions_table = dbc.Table.from_dataframe(
-                    self.explainer.get_contrib_summary_df(index, topx=depth, 
+                    self.explainer.get_contrib_summary_df(str(index), topx=depth, 
                                     sort=sort, pos_label=pos_label))
 
                 tooltip_cols = {}
