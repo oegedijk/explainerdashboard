@@ -11,6 +11,8 @@ __all__ = [
     'update_kwargs',
     'encode_callables',
     'decode_callables',
+    'reset_id_generator',
+    'yield_id',
     'instantiate_component'
 ]
 
@@ -107,6 +109,26 @@ def decode_callables(obj):
         return [decode_callables(o) for o in obj]     
     return obj
 
+def id_generator():
+    """generator that generatores unique consecutive id's starting with 'id' + number
+    
+    Can be reset with reset_id_generator()"""
+    i = 1
+    while True:
+        yield 'id'+str(i)
+        i += 1
+
+def reset_id_generator():
+    """resets the global id generator"""
+    global id_gen
+    id_gen = id_generator()
+
+def yield_id():
+    """yields the next unique consecutive id. Reset using reset_id_generator()"""
+    global id_gen
+    return next(id_gen)
+
+reset_id_generator()
 
 def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):
     """Return a dbc.Table and a list of dbc.Tooltips.
@@ -206,7 +228,7 @@ class ExplainerComponent(ABC):
         """
         self._store_child_params(no_param=['explainer'])
         if not hasattr(self, "name") or self.name is None:
-            self.name = name or "uuid"+shortuuid.ShortUUID().random(length=5)
+            self.name = name or yield_id()
         if not hasattr(self, "title") or self.title is None:
             self.title = title or "Custom"
 

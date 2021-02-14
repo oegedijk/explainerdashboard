@@ -472,7 +472,8 @@ class ExplainerDashboard:
 
         if isinstance(tabs, list) and len(tabs)==1:
             tabs = tabs[0]
-        print("Generating layout...")  
+        print("Generating layout...") 
+        reset_id_generator() 
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             self.explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
@@ -675,7 +676,7 @@ class ExplainerDashboard:
                 setattr(self, name, value)
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
-                
+
         self._stored_params = encode_callables(self._stored_params)
 
     def _convert_str_tabs(self, component):
