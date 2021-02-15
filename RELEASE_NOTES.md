@@ -26,10 +26,15 @@
 -
 
 ### Improvements
-- accepting single column dataframe for `y`, and converting it to a `pd.Series`
-- if WhatIf FeatureInputComponent detects the presence of missing onehot features
+- accepting single column `pd.Dataframe` for `y`, and automatically converting 
+    it to a `pd.Series`
+- if WhatIf `FeatureInputComponent` detects the presence of missing onehot features
     (i.e. rows where all columns of the onehotencoded feature equal 0), then
     adds `'NOT_ENCODED'` to the dropdown options.
+- Generating `name` for parameters for `ExplainerComponents` for which no
+    name is given is now done with a determinative process instead of a random
+    `uuid`. This should help with scaling custom dashboards across cluster
+    deployments. Also drops `shortuuid` dependency.
 
 ### Other Changes
 -
