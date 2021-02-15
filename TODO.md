@@ -39,6 +39,7 @@
 
 
 ## Dashboard:
+- make poweredby rght align
 - more flexible instantiate_component:
     - no explainer needed (if explainer component detected, pass otherwise ignore)
 - add TablePopout
