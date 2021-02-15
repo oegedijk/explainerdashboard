@@ -28,8 +28,6 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
-import shortuuid
-
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
 # then extended to deal with multiple inheritance
 def delegates_kwargs(to=None, keep=False):
