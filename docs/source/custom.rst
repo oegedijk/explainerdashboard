@@ -84,6 +84,7 @@ cats toggle will be hidden on every component that has one::
 
     ExplainerDashboard(explainer, 
         no_permutations=True, # do not show or calculate permutation importances
+        hide_popout=True, # hide the 'popout' button for each graph
         hide_poweredby=True, # hide the 'powerered by: explainerdashboard' footer
         hide_depth=True, # hide the depth (no of features) dropdown
         hide_sort=True, # hide sort type dropdown in contributions graph/table

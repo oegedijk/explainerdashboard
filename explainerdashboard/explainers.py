@@ -1227,7 +1227,6 @@ class BaseExplainer(ABC):
                                 .sample(sample_size)
             else:
                 sampleX = self.X.sample(min(sample, len(self.X)))
-        print("pdp: ", features, sampleX.columns)
         pdp_df = get_pdp_df(
                 model=self.model, X_sample=sampleX,
                 feature=features, n_grid_points=n_grid_points, 
@@ -1273,24 +1272,30 @@ class BaseExplainer(ABC):
             return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
     @insert_pos_label
-    def plot_importances_detailed(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
+    def plot_importances_detailed(self, highlight_index=None, topx=None, max_cat_colors=5, 
+                plot_sample=None, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
         scatter chart in descending order by mean absolute shap value.
 
         Args:
-          index (str or int): index to highlight
+          highlight_index (str or int): index to highlight
           topx(int, optional): Only display topx most important features, 
             defaults to None
           max_cat_colors (int, optional): for categorical features, maximum number
             of categories to label with own color. Defaults to 5. 
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label: positive class (Default value = None)
 
         Returns:
           plotly.Fig
 
         """
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         if self.is_classifier:
             pos_label_str = self.labels[pos_label]
             if self.model_output == 'probability':
@@ -1310,11 +1315,11 @@ class BaseExplainer(ABC):
                                         ['Feature'].values.tolist()
 
         return plotly_shap_scatter_plot(
-                                self.X_merged[cols],
-                                self.get_shap_values_df(pos_label)[cols],
+                                self.X_merged[cols].iloc[plot_idxs],
+                                self.get_shap_values_df(pos_label)[cols].iloc[plot_idxs],
                                 cols, 
-                                idxs=self.idxs,
-                                highlight_index=index,
+                                idxs=self.idxs[plot_idxs],
+                                highlight_index=highlight_index,
                                 title=title,
                                 na_fill=self.na_fill,
                                 max_cat_colors=max_cat_colors)
@@ -1357,10 +1362,28 @@ class BaseExplainer(ABC):
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
 
+    def get_idx_sample(self, sample_size=None, include_index=None):
+        """returns a random sample of integer indexes, making sure that
+        include_index is included"""
+        if sample_size is None:
+            idx_sample = self.X.index
+            return idx_sample
+        else:
+            assert sample_size >= 0, "sample_size should be a positive integer!"
+            idx_sample = self.X.sample(min(sample_size, len(self))).index
+            if include_index is not None:
+                if isinstance(include_index, str):
+                    if include_index not in self.idxs:
+                        raise ValueError(f"{include_index} could not be found in idxs!")
+                    include_index = self.idxs.get_loc(include_index)
+                if include_index not in idx_sample and include_index < len(self):
+                    idx_sample = idx_sample.append(pd.Index([include_index]))
+            return idx_sample
+
     @insert_pos_label
     def plot_dependence(self, col, color_col=None, highlight_index=None, 
                                 topx=None, sort='alphabet', max_cat_colors=5, 
-                                round=3, pos_label=None):
+                                round=3, plot_sample=None, pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1380,41 +1403,47 @@ class BaseExplainer(ABC):
                 highest mean absolute value first 'shap'. Defaults to 'alphabet'.
           max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+          round (int, optional): rounding to apply to floats. Defaults to 3.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label: positive class (Default value = None)
 
         Returns:
 
         """
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         if color_col is None:
             X_color_col = None
         else:
-            X_color_col = self.get_col(color_col)
+            X_color_col = self.get_col(color_col).iloc[plot_idxs]
 
         if col in self.cat_cols:
             return plotly_shap_violin_plot(
-                            self.get_col(col), 
-                            self.get_shap_values_df(pos_label)[col], 
+                            self.get_col(col).iloc[plot_idxs], 
+                            self.get_shap_values_df(pos_label)[col].iloc[plot_idxs].values, 
                             X_color_col, 
                             highlight_index=highlight_index,
-                            idxs=self.idxs,
+                            idxs=self.idxs[plot_idxs],
                             round=round,
                             cats_order=self.ordered_cats(col, topx, sort),
                             max_cat_colors=max_cat_colors)
         else:
             return plotly_dependence_plot(
-                        self.get_col(col), 
-                        self.get_shap_values_df(pos_label)[col],
+                        self.get_col(col).iloc[plot_idxs], 
+                        self.get_shap_values_df(pos_label)[col].iloc[plot_idxs].values,
                         X_color_col, 
                         na_fill=self.na_fill, 
                         units=self.units, 
                         highlight_index=highlight_index,
-                        idxs=self.idxs,
+                        idxs=self.idxs[plot_idxs],
                         round=round)
 
     @insert_pos_label
     def plot_interaction(self, col, interact_col, highlight_index=None, 
                                 topx=10, sort='alphabet', max_cat_colors=5, 
-                                pos_label=None):
+                                plot_sample=None, pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         Args:
@@ -1426,29 +1455,33 @@ class BaseExplainer(ABC):
                 Should be in {'alphabet', 'freq', 'shap'}.
           max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label:  (Default value = None)
 
         Returns:
           plotly.Fig: Plotly Fig
 
         """
-        
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         if col in self.cat_cols:
             return plotly_shap_violin_plot(
-                self.get_col(col), 
-                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label),
-                self.get_col(interact_col), 
+                self.get_col(col).iloc[plot_idxs], 
+                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label)[plot_idxs],
+                self.get_col(interact_col).iloc[plot_idxs], 
                 interaction=True, units=self.units, 
-                highlight_index=highlight_index, idxs=self.idxs,
+                highlight_index=highlight_index, idxs=self.idxs[plot_idxs],
                 cats_order=self.ordered_cats(col, topx, sort),
                 max_cat_colors=max_cat_colors)
         else:
             return plotly_dependence_plot(
-                self.get_col(col),
-                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label),
-                self.get_col(interact_col), 
+                self.get_col(col).iloc[plot_idxs],
+                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label)[plot_idxs],
+                self.get_col(interact_col).iloc[plot_idxs], 
                 interaction=True, units=self.units,
-                highlight_index=highlight_index, idxs=self.idxs)
+                highlight_index=highlight_index, idxs=self.idxs[plot_idxs])
 
     @insert_pos_label
     def plot_interactions_importance(self, col, topx=None, pos_label=None):
@@ -1468,8 +1501,8 @@ class BaseExplainer(ABC):
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
     @insert_pos_label
-    def plot_interactions_detailed(self, col, index=None, topx=None, 
-                                        max_cat_colors=5, pos_label=None):
+    def plot_interactions_detailed(self, col, highlight_index=None, topx=None, 
+                                        max_cat_colors=5, plot_sample=None, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
         
         Displays all individual shap interaction values for each feature in a
@@ -1477,23 +1510,28 @@ class BaseExplainer(ABC):
 
         Args:
           col(type]): feature for which to show interactions summary
-          index (str or int): index to highlight
+          highlight_index (str or int): index to highlight
           topx(int, optional): only show topx most important features, defaults to None
           max_cat_colors (int, optional): for categorical features, maximum number
             of categories to label with own color. Defaults to 5. 
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label: positive class (Default value = None)
 
         Returns:
           fig
         """
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         interact_cols = self.top_shap_interactions(col, pos_label=pos_label)
         shap_df = pd.DataFrame(self.shap_interaction_values_for_col(col, pos_label=pos_label),
-                            columns=self.merged_cols)                            
+                            columns=self.merged_cols).iloc[plot_idxs]                         
         if topx is None: topx = len(interact_cols)
         title = f"Shap interaction values for {col}"
         return plotly_shap_scatter_plot(
-                self.X_merged, shap_df, interact_cols[:topx], title=title, 
-                idxs=self.idxs, highlight_index=index, na_fill=self.na_fill,
+                self.X_merged.iloc[plot_idxs], shap_df, interact_cols[:topx], title=title, 
+                idxs=self.idxs[plot_idxs], highlight_index=highlight_index, na_fill=self.na_fill,
                 max_cat_colors=max_cat_colors)
 
     @insert_pos_label
@@ -2892,7 +2930,8 @@ class RegressionExplainer(BaseExplainer):
                     f"variation in {self.target} was explained by the model.")
         return metrics_descriptions_dict
 
-    def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, **kwargs):
+    def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, 
+                                    plot_sample=None, **kwargs):
         """plot with predicted value on x-axis and actual value on y axis.
 
         Args:
@@ -2900,20 +2939,24 @@ class RegressionExplainer(BaseExplainer):
           logs (bool, optional): log both x and y axis, defaults to False
           log_y (bool, optional): only log x axis. Defaults to False.
           log_x (bool, optional): only log y axis. Defaults to False.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           **kwargs: 
 
         Returns:
           Plotly fig
 
         """
+        plot_idxs = self.get_idx_sample(plot_sample)
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot predicted vs actual!")
-        return plotly_predicted_vs_actual(self.y, self.preds, 
-                target=self.target, units=self.units, idxs=self.idxs, 
+        return plotly_predicted_vs_actual(self.y[plot_idxs], self.preds[plot_idxs], 
+                target=self.target, units=self.units, idxs=self.idxs[plot_idxs], 
                 logs=logs, log_x=log_x, log_y=log_y, round=round, 
                 index_name=self.index_name)
     
-    def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
+    def plot_residuals(self, vs_actual=False, round=2, residuals='difference',
+                        plot_sample=None):
         """plot of residuals. x-axis is the predicted outcome by default
 
         Args:
@@ -2922,19 +2965,26 @@ class RegressionExplainer(BaseExplainer):
           round(int, optional): rounding to perform on values, defaults to 2
           residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
                     How to calcualte residuals. Defaults to 'difference'.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
+
         Returns:
           Plotly fig
 
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot residuals!")
-        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        return plotly_plot_residuals(self.y[plot_idxs], self.preds[plot_idxs], 
+                                     idxs=self.idxs[plot_idxs],
                                      vs_actual=vs_actual, target=self.target, 
                                      units=self.units, residuals=residuals, 
                                      round=round, index_name=self.index_name)
     
     def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
+                dropna=True, points=True, winsor=0, topx=None, sort='alphabet',
+                plot_sample=None):
         """Plot residuals vs individual features
 
         Args:
@@ -2947,6 +2997,8 @@ class RegressionExplainer(BaseExplainer):
                     Defaults to True.
           winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
 
         Returns:
           plotly fig
@@ -2954,23 +3006,28 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot residuals!")
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
-        col_vals = self.get_col(col)
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        col_vals = self.get_col(col).iloc[plot_idxs]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         if col in self.cat_cols:
             return plotly_residuals_vs_col(
-                self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
-                round=round, winsor=winsor, index_name=self.index_name,
+                self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                col_vals[plot_idxs][na_mask], 
+                residuals=residuals, idxs=self.idxs[plot_idxs].values[na_mask], 
+                points=points, round=round, winsor=winsor, index_name=self.index_name,
                 cats_order=self.ordered_cats(col, topx, sort))
         else:
             return plotly_residuals_vs_col(
-                self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
-                round=round, winsor=winsor, index_name=self.index_name)
+                self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                col_vals[plot_idxs][na_mask], 
+                residuals=residuals, idxs=self.idxs[plot_idxs].values[na_mask], 
+                points=points, round=round, winsor=winsor, index_name=self.index_name)
 
 
     def plot_y_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
+                            dropna=True, points=True, winsor=0, topx=None, 
+                            sort='alphabet', plot_sample=None):
         """Plot y vs individual features
 
         Args:
@@ -2981,6 +3038,8 @@ class RegressionExplainer(BaseExplainer):
                     Defaults to True.
           winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
 
         Returns:
           plotly fig
@@ -2988,21 +3047,28 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot y vs feature!")
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
-        col_vals = self.get_col(col)
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        col_vals = self.get_col(col).iloc[plot_idxs]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         if col in self.cat_cols:
-            return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_actual_vs_col(
+                    self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                    col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, 
+                    round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name,
                     cats_order=self.ordered_cats(col, topx, sort))
         else:
-            return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_actual_vs_col(self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                    col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name)
 
 
     def plot_preds_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
+                dropna=True, points=True, winsor=0, topx=None, 
+                sort='alphabet', plot_sample=None):
         """Plot y vs individual features
 
         Args:
@@ -3013,21 +3079,27 @@ class RegressionExplainer(BaseExplainer):
                     Defaults to True.
           winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
 
         Returns:
           plotly fig
         """
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
-        col_vals = self.get_col(col)
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        col_vals = self.get_col(col).iloc[plot_idxs]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         if col in self.cat_cols:
-            return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_preds_vs_col(
+                    self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name,
                     cats_order=self.ordered_cats(col, topx, sort))
         else:
-            return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_preds_vs_col(
+                    self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name)
 
 

@@ -711,8 +711,7 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
                     marker=dict(
                             size=7,
                             showscale=False,
-                            opacity=0.6,
-                        ),
+                            opacity=0.6),
                     showlegend=True,
                     opacity=0.8,
                     hoverinfo="text",
@@ -797,7 +796,7 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
     if highlight_index is not None:
         fig.add_trace(
             go.Scattergl(
-                x=[X_col[highlight_idx]], 
+                x=[X_col.iloc[highlight_idx]], 
                 y=[shap_values[highlight_idx]], 
                 mode='markers',
                 marker=dict(
