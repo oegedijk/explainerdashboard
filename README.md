@@ -261,7 +261,6 @@ You can also hide individual components on the various tabs:
 
 ```python
     ExplainerDashboard(explainer, 
-        hide_poweredby=True, # hide the poweredby:explainerdashboard footer
         # importances tab:
         hide_importances=True,
         # classification stats tab:
@@ -300,6 +299,8 @@ cats toggle will be hidden on every component that has one:
 ```python
 ExplainerDashboard(explainer, 
                     no_permutations=True, # do not show or calculate permutation importances
+                    hide_poweredby=True, # hide the poweredby:explainerdashboard footer
+                    hide_popout=True, # hide the 'popout' button from each graph
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
                     hide_orientation=True, # hide orientation dropdown in contributions graph/table
