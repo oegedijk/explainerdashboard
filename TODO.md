@@ -1,16 +1,10 @@
 
 # TODO
-- add get local ip
-- change cats_missing to cats_notencoded
-- add tests for cats_missing
-- add some zeros into X_test te test cats_missing
-- add tests for custom dashboards
-- add plot_sample to ExplainerComponents
-- add circular callbacks to cutoff - cutoff percentile
+
+
 ## Bugs:
 
 ## Plots:
-- add sample_size parameter for shap dependence plot with large dataset
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
@@ -26,10 +20,8 @@
     - new method?
 
 ### Regression plots:
-- add plot_sample parameter
 
 ## Explainers:
-- add show_metrics parameter to ``metrics`` and ``ModelSummaryComponent``.
 - add metrics, classification_df, roc_auc_cruve, pr_auc_curve, etc to calculate_properties()
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
@@ -44,7 +36,7 @@
 
 
 ## Dashboard:
-- make poweredby rght align
+- make poweredby right align
 - more flexible instantiate_component:
     - no explainer needed (if explainer component detected, pass otherwise ignore)
 - add TablePopout
@@ -66,6 +58,7 @@
 
 
 ### Components
+- add circular callbacks to cutoff - cutoff percentile
 - Add side-by-side option to cutoff selector component
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks
@@ -88,6 +81,9 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add tests for custom dashboards
+- add tests for cats_notencoded
+- add some zeros into X_test te test cats_notencoded
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately

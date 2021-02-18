@@ -66,7 +66,7 @@ class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X:pd.DataFrame, y:pd.Series=None, permutation_metric:Callable=r2_score, 
                     shap:str="guess", X_background:pd.DataFrame=None, model_output:str="raw",
-                    cats:bool=None, cats_missing:Dict=None, 
+                    cats:bool=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:dict=None, 
                     n_jobs:int=None, permutation_cv:int=None, na_fill:float=-999,
@@ -95,7 +95,7 @@ class BaseExplainer(ABC):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
-            cats_missing (dict): value to display when all onehot encoded
+            cats_notencoded (dict): value to display when all onehot encoded
                 columns are equal to zero. Defaults to 'NOT_ENCODED' for each
                 onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
@@ -152,15 +152,15 @@ class BaseExplainer(ABC):
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
 
-        self.onehot_missing = {col:"NOT_ENCODED" for col in self.onehot_cols}
-        if cats_missing is not None:
-            assert isinstance(cats_missing, dict), \
-                ("cats_missing should be a dict mapping a onehot col to a "
-                " missing value, e.g. cats_missing={'Deck': 'Unknown Deck'}...!")
-            assert set(cats_missing.keys()).issubset(self.onehot_cols), \
-                ("The following keys in cats_missing are not in cats:"
-                f"{list(set(cats_missing.keys()) - set(self.onehot_cols))}!")
-            self.onehot_missing.update(cats_missing)
+        self.onehot_notencoded = {col:"NOT_ENCODED" for col in self.onehot_cols}
+        if cats_notencoded is not None:
+            assert isinstance(cats_notencoded, dict), \
+                ("cats_notencoded should be a dict mapping a onehot col to a "
+                " missing value, e.g. cats_notencoded={'Deck': 'Unknown Deck'}...!")
+            assert set(cats_notencoded.keys()).issubset(self.onehot_cols), \
+                ("The following keys in cats_notencoded are not in cats:"
+                f"{list(set(cats_notencoded.keys()) - set(self.onehot_cols))}!")
+            self.onehot_notencoded.update(cats_notencoded)
 
         if self.encoded_cols:
             self.X[self.encoded_cols] = self.X[self.encoded_cols].astype(np.int8)
@@ -400,7 +400,7 @@ class BaseExplainer(ABC):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
             self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, 
-                not_encoded_dict=self.onehot_missing, drop_regular=True)
+                not_encoded_dict=self.onehot_notencoded, drop_regular=True)
         return self._X_cats
 
     @property
@@ -454,7 +454,7 @@ class BaseExplainer(ABC):
                     f"expecting {self.columns}")
         if merge:
             X_row = merge_categorical_columns(X_row, self.onehot_dict, 
-                        not_encoded_dict=self.onehot_missing)[self.merged_cols]
+                        not_encoded_dict=self.onehot_notencoded)[self.merged_cols]
         return X_row
 
     def set_X_row_func(self, func):
@@ -578,7 +578,7 @@ class BaseExplainer(ABC):
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
                 if col in self.onehot_cols:
-                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_missing).item()
+                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_notencoded).item()
                 else:
                     col_value = X_row[col].item()
 
@@ -1085,7 +1085,7 @@ class BaseExplainer(ABC):
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as self.X or self.merged_cols!"
                 X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, 
-                    not_encoded_dict=self.onehot_missing, drop_regular=False)[self.merged_cols]
+                    not_encoded_dict=self.onehot_notencoded, drop_regular=False)[self.merged_cols]
 
             shap_values = self.shap_explainer.shap_values(X_row)
             if self.is_classifier:
@@ -1097,7 +1097,7 @@ class BaseExplainer(ABC):
             shap_values_df = merge_categorical_shap_values(shap_values_df, 
                                     self.onehot_dict, self.merged_cols)
             return get_contrib_df(self.shap_base_value(pos_label), shap_values_df.values[0], 
-                        remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_missing), 
+                        remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_notencoded), 
                         topx, cutoff, sort, cols)   
 
         else:
@@ -1689,7 +1689,7 @@ class ClassifierExplainer(BaseExplainer):
                     permutation_metric:Callable=roc_auc_score, 
                     shap:str='guess', X_background:pd.DataFrame=None, 
                     model_output:str="probability",
-                    cats:Union[List, Dict]=None, cats_missing:Dict=None, 
+                    cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, 
                     index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, 
@@ -1727,7 +1727,7 @@ class ClassifierExplainer(BaseExplainer):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
-            cats_missing (dict): value to display when all onehot encoded
+            cats_notencoded (dict): value to display when all onehot encoded
                 columns are equal to zero. Defaults to 'NOT_ENCODED' for each
                 onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
@@ -1752,7 +1752,7 @@ class ClassifierExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
-                            cats, cats_missing, idxs, index_name, target, 
+                            cats, cats_notencoded, idxs, index_name, target, 
                             descriptions, n_jobs, permutation_cv, na_fill, 
                             precision)
 
@@ -2210,10 +2210,26 @@ class ClassifierExplainer(BaseExplainer):
         show_metrics_dict = {}
         for m in show_metrics:
             if callable(m):
-                show_metrics_dict[m.__name__] = m(
-                        self.y_binary(pos_label), 
-                        np.where(self.pred_probas(pos_label) > cutoff, 1, 0)
-                    )
+                metric_args = inspect.signature(m).parameters.keys()
+                metric_kwargs = {}
+                if 'pos_label' in metric_args:
+                    y_true = self.y
+                    y_pred = self.pred_probas_raw
+                    metric_kwargs['pos_label'] = pos_label
+                else:
+                    y_true = self.y_binary(pos_label)
+                    y_pred = self.pred_probas(pos_label)
+
+                if 'cutoff' in metric_args:
+                    metric_kwargs['cutoff'] = cutoff
+                else:
+                    y_pred = np.where(y_pred > cutoff, 1, 0)
+                try:
+                    show_metrics_dict[m.__name__] = m(y_true, y_pred, **metric_kwargs)
+                except:
+                    raise Exception(f"Failed to calculate metric {m.__name__}! "
+                            "Make sure it takes arguments y_true and y_pred, and "
+                            "optionally cutoff and pos_label!")
             elif m in metrics_dict:
                 show_metrics_dict[m] = metrics_dict[m]
         return show_metrics_dict
@@ -2674,7 +2690,7 @@ class RegressionExplainer(BaseExplainer):
                     permutation_metric:Callable=r2_score, 
                     shap:str="guess", X_background:pd.DataFrame=None, 
                     model_output:str="raw",
-                    cats:Union[List, Dict]=None, cats_missing:Dict=None, 
+                    cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
                     na_fill:float=-999, precision:str="float64", units:str=""):
@@ -2706,7 +2722,7 @@ class RegressionExplainer(BaseExplainer):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
-            cats_missing (dict): value to display when all onehot encoded
+            cats_notencoded (dict): value to display when all onehot encoded
                 columns are equal to zero. Defaults to 'NOT_ENCODED' for each
                 onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
@@ -2728,7 +2744,7 @@ class RegressionExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
-                            cats, cats_missing, idxs, index_name, target, 
+                            cats, cats_notencoded, idxs, index_name, target, 
                             descriptions, n_jobs, permutation_cv, na_fill, 
                             precision)
 
