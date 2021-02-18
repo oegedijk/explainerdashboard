@@ -25,7 +25,7 @@ class ShapSummaryComponent(ExplainerComponent):
                     hide_type=False, hide_index=False, hide_selector=False,
                     hide_popout=False, pos_label=None, depth=None, 
                     summary_type="aggregate", max_cat_colors=5, index=None,
-                    description=None, **kwargs):
+                    plot_sample=None, description=None, **kwargs):
         """Shows shap summary component
 
         Args:
@@ -52,6 +52,8 @@ class ShapSummaryComponent(ExplainerComponent):
                         summary graph to show. Defaults to "aggregate".
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -171,8 +173,8 @@ class ShapSummaryComponent(ExplainerComponent):
                         kind='shap', topx=depth, pos_label=pos_label)
             elif summary_type == 'detailed':
                 plot = self.explainer.plot_importances_detailed(
-                        topx=depth, pos_label=pos_label, index=index, 
-                        max_cat_colors=self.max_cat_colors)
+                        topx=depth, pos_label=pos_label, highlight_index=index, 
+                        max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
             else:
                 raise PreventUpdate
 
@@ -197,7 +199,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     pos_label=None, 
                     col=None, color_col=None, index=None, 
                     cats_topx=10, cats_sort='freq', max_cat_colors=5,
-                    description=None, **kwargs):
+                    plot_sample=None, description=None, **kwargs):
         """Show shap dependence graph
 
         Args:
@@ -231,6 +233,8 @@ class ShapDependenceComponent(ExplainerComponent):
                 'freq' or 'shap'. Defaults to 'freq'.
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -385,7 +389,7 @@ class ShapDependenceComponent(ExplainerComponent):
                 return self.explainer.plot_dependence(
                             col, color_col, topx=topx, sort=sort, 
                             highlight_index=index, max_cat_colors=self.max_cat_colors,
-                            pos_label=pos_label)
+                            plot_sample=self.plot_sample, pos_label=pos_label)
             raise PreventUpdate
             
 
@@ -427,7 +431,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                     hide_type=False, hide_index=False, hide_popout=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
                     summary_type="aggregate", max_cat_colors=5,
-                    index=None, description=None,
+                    index=None, plot_sample=None, description=None,
                     **kwargs):
         """Show SHAP Interaciton values summary component
 
@@ -459,6 +463,8 @@ class InteractionSummaryComponent(ExplainerComponent):
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
             index (str):    Default index. Defaults to None.
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -597,8 +603,8 @@ class InteractionSummaryComponent(ExplainerComponent):
                     return plot, dict(display="none")
                 elif summary_type=='detailed':
                     plot = self.explainer.plot_interactions_detailed(
-                        col, topx=depth, pos_label=pos_label, index=index, 
-                        max_cat_colors=self.max_cat_colors)
+                        col, topx=depth, pos_label=pos_label, highlight_index=index, 
+                        max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
                 return plot, {}
             raise PreventUpdate
 
@@ -612,7 +618,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     hide_cats_sort=False, hide_top=False, hide_bottom=False,
                     pos_label=None, col=None, interact_col=None,
                     cats_topx=10, cats_sort='freq', max_cat_colors=5,
-                    description=None, index=None, **kwargs):
+                    plot_sample=None, description=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
         Shows two graphs:
@@ -657,6 +663,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                 'freq' or 'shap'. Defaults to 'freq'.
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -850,7 +858,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                 style = {} if interact_col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_interaction(
                             interact_col, col, highlight_index=index, pos_label=pos_label,
-                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
+                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors,
+                            plot_sample=self.plot_sample),
                         style)
             raise PreventUpdate
 
@@ -868,7 +877,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                 style = {} if col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_interaction(
                             col, interact_col, highlight_index=index, pos_label=pos_label,
-                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
+                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors,
+                            plot_sample=self.plot_sample),
                         style)
             raise PreventUpdate
 
