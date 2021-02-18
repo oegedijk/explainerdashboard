@@ -35,6 +35,7 @@
     name is given is now done with a determinative process instead of a random
     `uuid`. This should help with scaling custom dashboards across cluster
     deployments. Also drops `shortuuid` dependency.
+- `ExplainerDashboard` now prints out local ip adress when startin dashboard.
 
 ### Other Changes
 -

@@ -711,7 +711,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_col), 
                     make_hideable(
                         dbc.Col([
-                            html.Label('Interaction feature:', id='interaction-dependence-interact-col-label-'+self.name),
+                            html.Label('Interaction:', id='interaction-dependence-interact-col-label-'+self.name),
                                 dbc.Tooltip("Select feature to show interaction values for.  Two plots will be shown: "
                                             "both Feature vs Interaction Feature and Interaction Feature vs Feature.", 
                                             target='interaction-dependence-interact-col-label-'+self.name),

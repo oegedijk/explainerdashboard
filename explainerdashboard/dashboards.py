@@ -846,7 +846,7 @@ class ExplainerDashboard:
             else:
                 app = self.app
 
-            print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
+            print(f"Starting ExplainerDashboard on http://{get_local_ip_adress()}:{port}", flush=True)
             if use_waitress:
                 from waitress import serve
                 serve(app.server, host=host, port=port)
@@ -862,7 +862,7 @@ class ExplainerDashboard:
                 app = self.app
             if mode == 'external':
                 if not self.is_colab:
-                    print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
+                    print(f"Starting ExplainerDashboard on http://{get_local_ip_adress()}:{port}\n"
                         "You can terminate the dashboard with "
                         f"ExplainerDashboard.terminate({port})", flush=True)
                 app.run_server(port=port, mode=mode, **kwargs)
@@ -1713,7 +1713,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{host}:{port}", flush=True)
+        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  

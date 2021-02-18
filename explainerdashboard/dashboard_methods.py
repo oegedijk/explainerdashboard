@@ -13,6 +13,7 @@ __all__ = [
     'decode_callables',
     'reset_id_generator',
     'yield_id',
+    'get_local_ip_adress',
     'instantiate_component'
 ]
 
@@ -21,6 +22,7 @@ from abc import ABC
 import inspect
 import types
 from importlib import import_module
+import socket
 
 import dash
 import dash_core_components as dcc
@@ -127,6 +129,21 @@ def yield_id():
     return next(id_gen)
 
 reset_id_generator()
+
+
+def get_local_ip_adress():
+    """returns the local ip adress"""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
 
 def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):
     """Return a dbc.Table and a list of dbc.Tooltips.

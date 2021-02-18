@@ -1,7 +1,12 @@
 
 # TODO
+- add get local ip
+- change cats_missing to cats_notencoded
 - add tests for cats_missing
 - add some zeros into X_test te test cats_missing
+- add tests for custom dashboards
+- add plot_sample to ExplainerComponents
+- add circular callbacks to cutoff - cutoff percentile
 ## Bugs:
 
 ## Plots:
@@ -61,8 +66,6 @@
 
 
 ### Components
-- autodetect when uuid name get rendered and issue warning
-
 - Add side-by-side option to cutoff selector component
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks

@@ -261,7 +261,6 @@ You can also hide individual components on the various tabs:
 
 ```python
     ExplainerDashboard(explainer, 
-        hide_poweredby=True, # hide the poweredby:explainerdashboard footer
         # importances tab:
         hide_importances=True,
         # classification stats tab:
@@ -294,12 +293,14 @@ You can also hide individual components on the various tabs:
 ### Hiding toggles and dropdowns inside components
 
 You can also hide individual toggles and dropdowns using `**kwargs`. However they
-are not individually targeted, so if you pass `hide_cats=True` then the group
-cats toggle will be hidden on every component that has one:
+are not individually targeted, so if you pass `hide_depth=True` then the depth
+(number of features) dropddown will be hidden on every component that has one:
 
 ```python
 ExplainerDashboard(explainer, 
                     no_permutations=True, # do not show or calculate permutation importances
+                    hide_poweredby=True, # hide the poweredby:explainerdashboard footer
+                    hide_popout=True, # hide the popout button
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
                     hide_orientation=True, # hide orientation dropdown in contributions graph/table
