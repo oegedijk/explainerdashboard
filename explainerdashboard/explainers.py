@@ -578,7 +578,7 @@ class BaseExplainer(ABC):
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
                 if col in self.onehot_cols:
-                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_notencoded).item()
+                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_notencoded[col]).item()
                 else:
                     col_value = X_row[col].item()
 
@@ -1227,6 +1227,7 @@ class BaseExplainer(ABC):
                                 .sample(sample_size)
             else:
                 sampleX = self.X.sample(min(sample, len(self.X)))
+
         pdp_df = get_pdp_df(
                 model=self.model, X_sample=sampleX,
                 feature=features, n_grid_points=n_grid_points, 
@@ -2229,7 +2230,7 @@ class ClassifierExplainer(BaseExplainer):
                 except:
                     raise Exception(f"Failed to calculate metric {m.__name__}! "
                             "Make sure it takes arguments y_true and y_pred, and "
-                            "optionally cutoff and pos_label!")v
+                            "optionally cutoff and pos_label!")
             elif m in metrics_dict:
                 show_metrics_dict[m] = metrics_dict[m]
         return show_metrics_dict
@@ -2680,9 +2681,11 @@ class ClassifierExplainer(BaseExplainer):
             None
 
         """
-        _ = self.pred_probas(), self.y_binary()
-        _ = self.metrics(), self.classification_df()
-        _ = self.roc_auc_curve(), self.pr_auc_curve()
+        _ = self.pred_probas()
+        if not self.y_missing:
+            _ = self.y_binary()
+            _ = self.metrics(), self.get_classification_df()
+            _ = self.roc_auc_curve(), self.pr_auc_curve()
         super().calculate_properties(include_interactions=include_interactions)
 
 

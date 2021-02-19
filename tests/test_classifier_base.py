@@ -42,6 +42,9 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 
+    def test_cats_notencoded(self):
+        self.assertEqual(self.explainer.get_contrib_df(0).query("col=='Gender'")['value'].item(), 'No Gender')
+
     def test_row_from_input(self):
         input_row = self.explainer.get_row_from_input(
             self.explainer.X.iloc[[0]].values.tolist())

@@ -1,7 +1,7 @@
 import dash
 from sklearn.ensemble import RandomForestClassifier
 
-from explainerdashboard.explainers import *
+from explainerdashboard import *
 from explainerdashboard.datasets import *
 from explainerdashboard.custom import *
 
@@ -19,9 +19,9 @@ def get_classification_explainer():
 class CustomDashboard(ExplainerComponent):
     def __init__(self, explainer, title="Custom Dashboard", name=None):
         super().__init__(explainer)
-        self.confusion = ConfusionMatrixComponent(explainer, 
+        self.confusion = ConfusionMatrixComponent(explainer, self.name+'0',
                             hide_selector=True, hide_percentage=True, cutoff=0.75)
-        self.contrib = ShapContributionsGraphComponent(explainer, 
+        self.contrib = ShapContributionsGraphComponent(explainer, self.name+'1',
                             hide_selector=True, hide_depth=True, hide_sort=True)
         
     def layout(self):
@@ -44,7 +44,7 @@ class CustomDashboard(ExplainerComponent):
 
 def test_classification_dashboard(dash_duo):
     explainer = get_classification_explainer()
-    custom_instance = CustomDashboard(explainer)
+    custom_instance = CustomDashboard(explainer, name='custom')
     db = ExplainerDashboard(explainer, [custom_instance, CustomDashboard], title="testing", responsive=False)
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)

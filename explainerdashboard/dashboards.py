@@ -472,7 +472,7 @@ class ExplainerDashboard:
         if isinstance(tabs, list) and len(tabs)==1:
             tabs = tabs[0]
         print("Generating layout...") 
-        reset_id_generator() 
+        reset_id_generator("dbid") 
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             self.explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
@@ -497,7 +497,7 @@ class ExplainerDashboard:
                             fluid=self.fluid))
 
         self.app.layout = self.explainer_layout.layout()
-
+        reset_id_generator() 
         print("Calculating dependencies...", flush=True)  
         self.explainer_layout.calculate_dependencies()
         print("Reminder: you can store the explainer (including calculated "
