@@ -334,7 +334,9 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='shap'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='shap'), list)
 
-
+    def test_cats_notencoded(self):
+        self.assertEqual(explainer.get_contrib_df(0).query("col=='Gender'")['value'].item(), 'No Gender')
+        
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 

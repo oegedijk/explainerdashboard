@@ -25,6 +25,7 @@ class RegressionBunchTests(unittest.TestCase):
                             model, X_test, y_test, 
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
+                            cats_notencoded={'Gender':'No Gender'},
                             idxs=test_names)
 
     def test_residuals(self):

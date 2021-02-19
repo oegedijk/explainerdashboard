@@ -24,6 +24,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
                             model, X_test, y_test, 
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
+                            cats_notencoded={'Gender':'No Gender'},
                             target='Survival',
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
