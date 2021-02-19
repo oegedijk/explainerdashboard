@@ -107,6 +107,7 @@ model.fit(X_train, y_train)
 explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Deck', 'Embarked',
                                     {'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}],
+                                cats_notencoded={'Deck': 'Deck not known'}, # defaults to 'NOT_ENCODED'
                                 descriptions=feature_descriptions, # defaults to None
                                 labels=['Not survived', 'Survived'], # defaults to ['0', '1', etc]
                                 idxs = test_names, # defaults to X.index
@@ -345,6 +346,8 @@ ExplainerDashboard(explainer,
                     pdp_col='Fare', # initial pdp feature
                     cutoff=0.8, # cutoff for classification plots
                     round=2 # rounding to apply to floats
+                    show_metrics=['accuracy', 'f1', custom_metric] # only show certain metrics 
+                    plot_sample=1000, # only display a 1000 random markers in scatter plots
                     )
 ```
 
@@ -456,8 +459,10 @@ or with waitress (also works on Windows):
 
 When you deploy a dashboard with a dataset with a large number of rows (`n`) and columns (`m`),
 the memory usage of the dashboard can be substantial. You can check the (approximate)
-memory usage with `explainer.memory_usage()`. In order to reduce the memory
-footprint there are a number of things you can do:
+memory usage with `explainer.memory_usage()`. (as a side note: if you have lots
+of rows, you probably want to set the `plot_sample` parameter as well)
+
+In order to reduce the memory footprint there are a number of things you can do:
 
 1. Not including shap interaction tab: shap interaction values are shape (`n*m*m`),
     so can take a subtantial amount of memory.

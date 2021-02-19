@@ -48,7 +48,7 @@ class ClassifierExplainerTests(unittest.TestCase):
         def meandiff_metric4(y_true, y_pred, cutoff, pos_label):
             return np.mean(np.where(y_true==pos_label, 1, 0))-np.mean(np.where(y_pred[:, pos_label] > cutoff, 1, 0))
 
-        metrics = np.array(list(explainer.metrics(
+        metrics = np.array(list(self.explainer.metrics(
             show_metrics=[meandiff_metric1, meandiff_metric2, meandiff_metric3, meandiff_metric4]
             ).values()))
         self.assertTrue(np.all(metrics==metrics[0]))

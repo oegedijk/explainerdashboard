@@ -61,7 +61,7 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
 
     def test_ordered_cats(self):
-        self.assertEqual(self.explainer.ordered_cats("Sex"), ['Sex_female', 'Sex_male'])
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['NOT_ENCODED', 'Sex_female', 'Sex_male'])
         self.assertEqual(self.explainer.ordered_cats("Deck", topx=2, sort='alphabet'), ['Deck_A', 'Deck_B'])
 
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
@@ -326,7 +326,7 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
     def test_ordered_cats(self):
-        self.assertEqual(self.explainer.ordered_cats("Sex"), ['Sex_female', 'Sex_male'])
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['NOT_ENCODED', 'Sex_female', 'Sex_male'])
         self.assertEqual(self.explainer.ordered_cats("Deck", topx=2, sort='alphabet'), ['Deck_A', 'Deck_B'])
 
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
@@ -334,9 +334,6 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='shap'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='shap'), list)
 
-    def test_cats_notencoded(self):
-        self.assertEqual(explainer.get_contrib_df(0).query("col=='Gender'")['value'].item(), 'No Gender')
-        
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 

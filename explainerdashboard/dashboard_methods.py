@@ -109,19 +109,19 @@ def decode_callables(obj):
         return [decode_callables(o) for o in obj]     
     return obj
 
-def id_generator():
+def id_generator(prefix='id'):
     """generator that generatores unique consecutive id's starting with 'id' + number
     
     Can be reset with reset_id_generator()"""
     i = 1
     while True:
-        yield 'id'+str(i)
+        yield prefix+str(i)
         i += 1
 
-def reset_id_generator():
+def reset_id_generator(prefix='id'):
     """resets the global id generator"""
     global id_gen
-    id_gen = id_generator()
+    id_gen = id_generator(prefix)
 
 def yield_id():
     """yields the next unique consecutive id. Reset using reset_id_generator()"""
