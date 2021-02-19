@@ -23,6 +23,7 @@ class ClassifierExplainerTests(unittest.TestCase):
         self.explainer = ClassifierExplainer(model, X_test, y_test,  
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
+                            cats_notencoded={'Gender':'No Gender'},
                             idxs=test_names, 
                             labels=['Not survived', 'Survived'])
 
@@ -33,6 +34,25 @@ class ClassifierExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.pos_label_str, str)
         self.assertEqual(self.explainer.pos_label, 0)
         self.assertEqual(self.explainer.pos_label_str, "Not survived")
+
+    def test_custom_metrics(self):
+        def meandiff_metric1(y_true, y_pred):
+            return np.mean(y_true)-np.mean(y_pred)
+
+        def meandiff_metric2(y_true, y_pred, cutoff):
+            return np.mean(y_true)-np.mean(np.where(y_pred>cutoff, 1, 0))
+
+        def meandiff_metric3(y_true, y_pred, pos_label):
+            return np.mean(np.where(y_true==pos_label, 1, 0))-np.mean(y_pred[:, pos_label])
+
+        def meandiff_metric4(y_true, y_pred, cutoff, pos_label):
+            return np.mean(np.where(y_true==pos_label, 1, 0))-np.mean(np.where(y_pred[:, pos_label] > cutoff, 1, 0))
+
+        metrics = np.array(list(explainer.metrics(
+            show_metrics=[meandiff_metric1, meandiff_metric2, meandiff_metric3, meandiff_metric4]
+            ).values()))
+        self.assertTrue(np.all(metrics==metrics[0]))
+
 
     def test_pred_probas(self):
         self.assertIsInstance(self.explainer.pred_probas(), np.ndarray)

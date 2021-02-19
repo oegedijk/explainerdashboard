@@ -60,6 +60,7 @@
 ### Components
 - add circular callbacks to cutoff - cutoff percentile
 - Add side-by-side option to cutoff selector component
+- add `index_dropdown=True` parameter. Alternative: free entry input.
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks
 - add querystring method to ExplainerComponents
@@ -81,9 +82,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add tests for custom dashboards
-- add tests for cats_notencoded
-- add some zeros into X_test te test cats_notencoded
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately

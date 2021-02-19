@@ -27,6 +27,7 @@ class RegressionBaseExplainerTests(unittest.TestCase):
                             model, X_test, y_test, r2_score,
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
+                            cats_notencoded={'Gender':'No Gender'},
                             idxs=test_names, target='Fare', units='$')
 
     def test_explainer_len(self):

@@ -2229,7 +2229,7 @@ class ClassifierExplainer(BaseExplainer):
                 except:
                     raise Exception(f"Failed to calculate metric {m.__name__}! "
                             "Make sure it takes arguments y_true and y_pred, and "
-                            "optionally cutoff and pos_label!")
+                            "optionally cutoff and pos_label!")v
             elif m in metrics_dict:
                 show_metrics_dict[m] = metrics_dict[m]
         return show_metrics_dict
@@ -2681,6 +2681,8 @@ class ClassifierExplainer(BaseExplainer):
 
         """
         _ = self.pred_probas(), self.y_binary()
+        _ = self.metrics(), self.classification_df()
+        _ = self.roc_auc_curve(), self.pr_auc_curve()
         super().calculate_properties(include_interactions=include_interactions)
 
 
