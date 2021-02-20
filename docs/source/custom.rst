@@ -150,10 +150,10 @@ take ``y_true`` and ``y_pred`` as parameters::
 For ``ClassifierExplainer``, ``y_true`` and ``y_pred`` will have already been
 calculated as an array of ``1`` and ``0`` depending on the ``pos_label`` and
 ``cutoff`` that was passed to ``explainer.metrics()``. However, if you take 
-``pos_label`` and ``cutoff`` as parameters of the metric, then you will get the
+``pos_label`` and ``cutoff`` as parameters to the custom metric function, then you will get the
 unprocessed raw labels and `pred_probas`. So for example you could calculate 
-a cost function over the confusion matrix. Then the following metrics would
-all work and have the equivalent result::
+a sum of cost function over the confusion matrix as a custom metric. Then the following 
+metrics would all work and have the equivalent result::
 
     from sklearn.metrics import confusion_matrix
 

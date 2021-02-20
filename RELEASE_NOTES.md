@@ -1,9 +1,11 @@
 # Release Notes
 
 ## Version 0.3.2:
-### Breaking Changes
-- 
-- 
+
+Highlights:
+- Control what metrics to show or use your own custom metrics using `show_metrics`
+- Set the naming for onehot features with all `0`s with `cats_notencoded`
+- Speed up plots by displaying only a random sample of markers in scatter plots with `plot_sample`.
 
 ### New Features
 - new parameter `show_metrics` for both `explainer.metrics()`, `ClassifierModelSummaryComponent`

@@ -103,7 +103,7 @@ cats_notencoded
 When you have onehotencoded a categorical feature, you may have dropped some columns
 during feature selection. Or there are new categories in the test set that were not encoded
 as columns in the training set. In that cases all columns in your onehot encoding may be equal 
-to ``0``. By default the value assigned to the aggregated feature for such cases is ``'NOT_ENCODED'``,
+to ``0`` for some rows. By default the value assigned to the aggregated feature for such cases is ``'NOT_ENCODED'``,
 but this can be overriden with the ``cats_notencoded`` parameter::
 
     ClassifierExplainer(model, X, y, 
@@ -138,7 +138,7 @@ but you can also pass it explicitly, e.g.: ``index_name="Passenger"``.
 descriptions
 ------------
 
-``descriptions`` can be passed as a dictionary of descriptions for each variable.
+``descriptions`` can be passed as a dictionary of descriptions for each feature.
 In order to be explanatory, you often have to explain the meaning of the features 
 themselves (especially if the naming is not obvious).
 Passing the dict along to descriptions will show hover-over tooltips for the 
@@ -151,6 +151,7 @@ the ``cats`` parameter, you can also give descriptions of these groups, e.g::
             'Gender': 'Gender of the passenger',
             'Fare': 'The price of the ticket paid for by the passenger',
             'Deck': 'The deck of the cabin of the passenger',
+            'Age': 'Age of the passenger in year'
         })
 
 
