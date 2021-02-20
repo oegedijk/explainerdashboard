@@ -107,7 +107,7 @@ model.fit(X_train, y_train)
 explainer = ClassifierExplainer(model, X_test, y_test, 
                                 cats=['Deck', 'Embarked',
                                     {'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}],
-                                cats_notencoded={'Deck': 'Deck not known'}, # defaults to 'NOT_ENCODED'
+                                cats_notencoded={'Embarked': 'Stowaway'}, # defaults to 'NOT_ENCODED'
                                 descriptions=feature_descriptions, # defaults to None
                                 labels=['Not survived', 'Survived'], # defaults to ['0', '1', etc]
                                 idxs = test_names, # defaults to X.index
@@ -117,7 +117,7 @@ explainer = ClassifierExplainer(model, X_test, y_test,
 
 db = ExplainerDashboard(explainer, 
                         title="Titanic Explainer", # defaults to "Model Explainer"
-                        whatif=False, # you can switch off tabs with bools
+                        shap_interaction=False, # you can switch off tabs with bools
                         )
 db.run(port=8050)
 ```
@@ -185,6 +185,11 @@ There are a few tricks to make this less painful:
     number of trees, `L` is the maximum number of leaves in any tree and 
     `D` the maximal depth of any tree. So reducing the number of leaves or average
     depth in the decision tree can really speed up SHAP calculations.
+4. Plotting only a random sample of points. When you have a lots of observations,
+    simply rendering the plots may get slow as well. You can pass the `plot_sample`
+    parameter to render a (different each time) random sample of observations
+    for the various scatter plots in the dashboard. E.g.: 
+    `ExplainerDashboard(explainer, plot_sample=1000).run()`
 
 ## Launching from within a notebook
 
