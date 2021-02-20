@@ -118,10 +118,10 @@ def id_generator(prefix='id', start=0):
         yield prefix+str(i), i
         i += 1
 
-def reset_id_generator(prefix='id'):
+def reset_id_generator(prefix='id', start=0):
     """resets the global id generator"""
     global id_gen
-    id_gen = id_generator(prefix)
+    id_gen = id_generator(prefix, start)
 
 def yield_id(return_i=False):
     """yields the next unique consecutive id. Reset using reset_id_generator()"""
