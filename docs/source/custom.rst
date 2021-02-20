@@ -126,9 +126,61 @@ Some examples of useful parameters to pass::
         pdp_col='Fare', # initial pdp feature
         cutoff=0.8, # cutoff for classification plots
         round=2 # round floats to 2 digits
+        show_metrics=['accuracy', 'f1', custom_metric] # only show certain metrics 
+        plot_sample=1000, # only display a 1000 random markers in scatter plots
         )
 
+Using custom metrics
+====================
 
+By default the dashboard shows a number of metrics for classifiers (accuracy, etc)
+and regression models (R-squared, etc). You can control which metrics are shown
+and in what order by passing ``show_metrics``::
+
+    ExplainerDashboard(explainer, show_metrics=['accuracy', 'f1', 'recall']).run()
+
+However you can also define custom metrics functions yourself as long as they
+take ``y_true`` and ``y_pred`` as parameters::
+
+    def custom_metric(y_true, y_pred):
+        return np.mean(y_true)-np.mean(y_pred)
+
+    ExplainerDashboard(explainer, show_metrics=['accuracy', custom_metric]).run()
+
+For ``ClassifierExplainer``, ``y_true`` and ``y_pred`` will have already been
+calculated as an array of ``1`` and ``0`` depending on the ``pos_label`` and
+``cutoff`` that was passed to ``explainer.metrics()``. However, if you take 
+``pos_label`` and ``cutoff`` as parameters of the metric, then you will get the
+unprocessed raw labels and `pred_probas`. So for example you could calculate 
+a cost function over the confusion matrix. Then the following metrics would
+all work and have the equivalent result::
+
+    from sklearn.metrics import confusion_matrix
+
+    def cost_metric(y_true, y_pred):
+        cost_matrix = np.array([[10, -50], [-20, 10]])
+        cm = confusion_matrix(y_true, y_pred)
+        return (cost_matrix * cm).sum()
+
+    def cost_metric2(y_true, y_pred, cutoff):
+        return cost_metric(y_true, np.where(y_pred>cutoff, 1, 0))
+
+    def cost_metric3(y_true, y_pred, pos_label):
+        return cost_metric(np.where(y_true==pos_label, 1, 0), y_pred[:, pos_label])
+
+    def cost_metric4(y_true, y_pred, cutoff, pos_label):
+        return cost_metric(np.where(y_true==pos_label, 1, 0), 
+                            np.where(y_pred[:, pos_label] > cutoff, 1, 0))
+
+    explainer.metrics(show_metrics=[cost_metric, cost_metric2, cost_metric3, cost_metric4]).run()
+
+.. note::
+    When storing an ``ExplainerDashboard.to_yaml()`` the custom metric functions will 
+    be stored to the ``.yaml`` file with a reference to their name and module. 
+    So when loading the dashboard ``from_config()`` you have to make sure the 
+    metric function can be found by the same name in the same module (which 
+    could be ``__main__``), otherwise the dashboard will fail to load.
+                        
 Building custom layout
 ======================
 
