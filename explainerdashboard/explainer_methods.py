@@ -17,6 +17,14 @@ from sklearn.model_selection import StratifiedKFold
 
 from joblib import Parallel, delayed
 
+
+class IndexNotFoundError(Exception):
+    def __init__(self, message="Index not Found", index=None):
+        if index is not None:
+            message = f"Index {index} not found!"
+        super().__init__(message)
+
+
 def safe_isinstance(obj, *instance_str):
     """Checks instance by comparing str(type(obj)) to one or more
     instance_str. """
@@ -29,6 +37,7 @@ def safe_isinstance(obj, *instance_str):
             if obj_str[:-2].endswith(i):
                 return True
     return False
+
 
 def guess_shap(model):
     """guesses which SHAP explainer to use for a particular model, based
