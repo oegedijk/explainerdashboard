@@ -926,7 +926,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=True, 
                     hide_selector=False, hide_popout=False, feature_input_component=None, 
-                    pos_label=None, index=None, depth=None, sort='high-to-low', 
+                    index_dropdown=True, pos_label=None, 
+                    index=None, depth=None, sort='high-to-low', 
                     orientation='vertical', higher_is_better=True,
                     description=None, **kwargs):
         """Display Shap contributions to prediction graph component
@@ -952,6 +953,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
@@ -985,6 +988,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'contributions-graph-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
+
         self.popout = GraphPopout('contributions-graph-'+self.name+'popout', 
                             'contributions-graph-'+self.name, self.title, self.description)
         self.register_dependencies('shap_values_df')
@@ -1011,10 +1017,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='contributions-graph-index-label-'+self.name),
                             dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
                                         target='contributions-graph-index-label-'+self.name),
-                            dcc.Dropdown(id='contributions-graph-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout()
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
                         dbc.Col([
@@ -1111,7 +1114,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_index=False, 
                     hide_depth=False, hide_sort=False,
                     hide_selector=False, feature_input_component=None,
-                    pos_label=None, index=None, depth=None, sort='abs', 
+                    index_dropdown=True, pos_label=None, index=None, depth=None, sort='abs', 
                     description=None, **kwargs):
         """Show SHAP values contributions to prediction in a table component
 
@@ -1133,6 +1136,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ([type], optional): Initial index to display. Defaults to None.
@@ -1161,6 +1166,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
         from all the individual ingredients in the model.
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'contributions-table-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
+        
         self.register_dependencies('shap_values_df')
 
     def layout(self):
@@ -1180,10 +1188,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='contributions-table-index-label-'+self.name),
                             dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
                                         target='contributions-table-index-label-'+self.name),
-                            dcc.Dropdown(id='contributions-table-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout()
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
                         dbc.Col([

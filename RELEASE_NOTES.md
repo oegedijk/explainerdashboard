@@ -6,6 +6,7 @@ Highlights:
 - Control what metrics to show or use your own custom metrics using `show_metrics`
 - Set the naming for onehot features with all `0`s with `cats_notencoded`
 - Speed up plots by displaying only a random sample of markers in scatter plots with `plot_sample`.
+- make index selection a free text field with `index_dropdown=False`
 
 ### New Features
 - new parameter `show_metrics` for both `explainer.metrics()`, `ClassifierModelSummaryComponent`
@@ -29,6 +30,11 @@ Highlights:
     scatter plots. When you have a large dataset, this may significantly
     speed up various plots without sacrificing much in expressiveness:
     `ExplainerDashboard(explainer, plot_sample=1000).run`
+- new parameter `index_dropdown=False` will replace the index dropdowns with a
+    free text field. This can be useful when you have a lot of potential indexes,
+    and the user is expected to know the index string. 
+    Input will be checked for validity with `explainer.index_exists(index)`.
+    You can set a custom function for this with `explainer.set_index_exists_func(func)`.
 - adds mean absolute percentage error to the regression metrics. If it is too
     large a warning will be printed. Can be excluded with the new `show_metrics`
     parameter.

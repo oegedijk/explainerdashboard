@@ -275,7 +275,8 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         hide_selector=hide_selector,  **kwargs)
 
         self.index_connector = IndexConnector(self.index, 
-                [self.summary, self.contributions, self.pdp, self.contributions_list])
+                [self.summary, self.contributions, self.pdp, self.contributions_list],
+                explainer=explainer)
 
     def layout(self):
         return dbc.Container([
@@ -363,7 +364,7 @@ class WhatIfComposite(ExplainerComponent):
                         feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)
 
-        self.index_connector = IndexConnector(self.index, [self.input])
+        self.index_connector = IndexConnector(self.index, self.input, explainer=explainer)
 
     def layout(self):
         return dbc.Container([
@@ -521,7 +522,8 @@ class DecisionTreesComposite(ExplainerComponent):
                     hide_selector=hide_selector, **kwargs)
 
         self.index_connector = IndexConnector(self.index, 
-            [self.trees, self.decisionpath_table, self.decisionpath_graph])
+            [self.trees, self.decisionpath_table, self.decisionpath_graph], 
+            explainer=explainer)
         self.highlight_connector = HighlightConnector(self.trees, 
             [self.decisionpath_table, self.decisionpath_graph])
         

@@ -14,6 +14,7 @@ import base64
 from pathlib import Path
 from typing import List, Dict, Union, Callable
 from types import MethodType
+from functools import wraps
 
 import numpy as np
 import pandas as pd
@@ -37,6 +38,7 @@ pio.templates.default = "none"
 
 def insert_pos_label(func):
     """decorator to insert pos_label=self.pos_label into method call when pos_label=None"""
+    @wraps(func)
     def inner(self, *args, **kwargs):
         if not self.is_classifier:
             return func(self, *args, **kwargs)
@@ -58,9 +60,9 @@ def insert_pos_label(func):
         else:
             kwargs.update(dict(pos_label=self.pos_label))   
         return func(self, **kwargs)
-    inner.__doc__ = func.__doc__
-    inner.__signature__ = inspect.signature(func)
+
     return inner
+
 
 class BaseExplainer(ABC):
     """ """
@@ -378,7 +380,7 @@ class BaseExplainer(ABC):
         elif isinstance(index, str):
             if self.idxs is not None and index in self.idxs:
                 return self.idxs.get_loc(index)
-        return None
+        raise IndexNotFoundError(index=index)
 
     def get_index(self, index):
         """Turn int index into a str index
@@ -416,6 +418,33 @@ class BaseExplainer(ABC):
         """
         return len(self.merged_cols)
 
+    def index_exists(self, index):
+        if isinstance(index, int):
+            if index >= 0 and index < len(self):
+                return True
+        elif isinstance(index, str):
+            if self.idxs is not None and index in self.idxs:
+                return True
+        return False
+
+    def set_index_exists_func(self, func):
+        """Sets an external function that checks whether an index is valid
+
+        func should either be a function that takes a single parameter: def func(index)
+        or a method that takes a single parameter: def func(self, index)
+        """
+        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
+        argspec = inspect.getfullargspec(func).args
+        if argspec == ['self', 'index']:
+            self._get_index_exists_func = MethodType(func, self)
+        elif argspec == ['index']:
+            self._get_index_exists_func = func
+        else:
+            raise ValueError(f"Parameter func should either be a function {func.__name__}(index) "
+                             f"or a method {func.__name__}(self, index)! Instead you "
+                             f"passed func={func.__name__}{inspect.signature(func)}")
+
+
     def get_index_list(self):
         if self._get_index_list_func is not None:
             index_list = self._get_index_list_func()
@@ -447,7 +476,10 @@ class BaseExplainer(ABC):
         if self._get_X_row_func is not None:
             X_row = self._get_X_row_func(index)
         else:
-            X_row = self.X.iloc[[self.get_idx(index)]]
+            idx = self.get_idx(index)
+            if idx is None: 
+                raise IndexNotFoundError(index=index)
+            X_row = self.X.iloc[[idx]]
 
         if not matching_cols(X_row.columns, self.columns):
             raise ValueError(f"columns do not match! Got {X_row.columns}, but was"

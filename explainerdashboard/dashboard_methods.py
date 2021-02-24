@@ -5,6 +5,7 @@ __all__ = [
     'ExplainerComponent',
     'PosLabelSelector',
     'GraphPopout',
+    'IndexSelector',
     'make_hideable',
     'get_dbc_tooltips',
     'update_params',
@@ -473,6 +474,38 @@ class PosLabelSelector(ExplainerComponent):
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))
 
+
+class IndexSelector(ExplainerComponent):
+    """Either shows a dropdown or a free text input field for selecting an index"""
+    def __init__(self, explainer, name=None, index=None, index_dropdown=True):
+        super().__init__(explainer)
+        
+    def layout(self):
+        if self.index_dropdown:
+            return dcc.Dropdown(id=self.name, 
+                                options = [{'label': str(idx), 'value': str(idx)} for idx in self.explainer.get_index_list()],
+                                placeholder=f"Select {self.explainer.index_name} here...",
+                                value=self.index
+                               )
+        else:
+            return dbc.Input(id=self.name, placeholder=f"Type {self.explainer.index_name} here...", 
+                             value=self.index, debounce=True, type="text")
+        
+    def component_callbacks(self, app):
+        if not self.index_dropdown:
+            @app.callback(
+                [Output(self.name, 'valid'),
+                 Output(self.name, 'invalid')],
+                [Input(self.name, 'value')]
+            )
+            def update_valid_index(index):
+                if index is not None:
+                    if self.explainer.index_exists(index):
+                        return True, False
+                    else:
+                        return False, True
+                return False, False
+                
 
 class GraphPopout(ExplainerComponent):
     """Provides a way to open a modal popup with the content of a graph figure.
