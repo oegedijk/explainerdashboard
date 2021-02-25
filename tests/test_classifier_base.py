@@ -39,6 +39,12 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(), int)
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
+    def test_index_exists(self):
+        self.assertTrue(self.explainer.index_exists(0))
+        self.assertTrue(self.explainer.index_exists(self.explainer.idxs[0]))
+        self.assertTrue(not self.explainer.index_exists('bla'))
+
+
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
 
