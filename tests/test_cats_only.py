@@ -61,7 +61,7 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
 
     def test_ordered_cats(self):
-        self.assertEqual(self.explainer.ordered_cats("Sex"), ['Sex_female', 'Sex_male'])
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['NOT_ENCODED', 'Sex_female', 'Sex_male'])
         self.assertEqual(self.explainer.ordered_cats("Deck", topx=2, sort='alphabet'), ['Deck_A', 'Deck_B'])
 
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
@@ -223,8 +223,8 @@ class CatBoostRegressionTests(unittest.TestCase):
     def test_metrics(self):
         metrics_dict = self.explainer.metrics()
         self.assertIsInstance(metrics_dict, dict)
-        self.assertTrue('root_mean_squared_error' in metrics_dict)
-        self.assertTrue('mean_absolute_error' in metrics_dict)
+        self.assertTrue('root-mean-squared-error' in metrics_dict)
+        self.assertTrue('mean-absolute-error' in metrics_dict)
         self.assertTrue('R-squared' in metrics_dict)
         self.assertIsInstance(self.explainer.metrics_descriptions(), dict) 
 
@@ -326,14 +326,13 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
     def test_ordered_cats(self):
-        self.assertEqual(self.explainer.ordered_cats("Sex"), ['Sex_female', 'Sex_male'])
+        self.assertEqual(self.explainer.ordered_cats("Sex"), ['NOT_ENCODED', 'Sex_female', 'Sex_male'])
         self.assertEqual(self.explainer.ordered_cats("Deck", topx=2, sort='alphabet'), ['Deck_A', 'Deck_B'])
 
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='freq'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='freq'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", sort='shap'), list)
         self.assertIsInstance(self.explainer.ordered_cats("Deck", topx=3, sort='shap'), list)
-
 
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)

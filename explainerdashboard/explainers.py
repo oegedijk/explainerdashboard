@@ -14,6 +14,7 @@ import base64
 from pathlib import Path
 from typing import List, Dict, Union, Callable
 from types import MethodType
+from functools import wraps
 
 import numpy as np
 import pandas as pd
@@ -37,6 +38,7 @@ pio.templates.default = "none"
 
 def insert_pos_label(func):
     """decorator to insert pos_label=self.pos_label into method call when pos_label=None"""
+    @wraps(func)
     def inner(self, *args, **kwargs):
         if not self.is_classifier:
             return func(self, *args, **kwargs)
@@ -58,15 +60,16 @@ def insert_pos_label(func):
         else:
             kwargs.update(dict(pos_label=self.pos_label))   
         return func(self, **kwargs)
-    inner.__doc__ = func.__doc__
-    inner.__signature__ = inspect.signature(func)
+
     return inner
+
 
 class BaseExplainer(ABC):
     """ """
     def __init__(self, model, X:pd.DataFrame, y:pd.Series=None, permutation_metric:Callable=r2_score, 
                     shap:str="guess", X_background:pd.DataFrame=None, model_output:str="raw",
-                    cats:bool=None, idxs:pd.Index=None, index_name:str=None, target:str=None,
+                    cats:bool=None, cats_notencoded:Dict=None, 
+                    idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:dict=None, 
                     n_jobs:int=None, permutation_cv:int=None, na_fill:float=-999,
                     precision:str="float64"):
@@ -94,6 +97,9 @@ class BaseExplainer(ABC):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
+            cats_notencoded (dict): value to display when all onehot encoded
+                columns are equal to zero. Defaults to 'NOT_ENCODED' for each
+                onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
                 Defaults to X.index.
             index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
@@ -147,6 +153,16 @@ class BaseExplainer(ABC):
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
+
+        self.onehot_notencoded = {col:"NOT_ENCODED" for col in self.onehot_cols}
+        if cats_notencoded is not None:
+            assert isinstance(cats_notencoded, dict), \
+                ("cats_notencoded should be a dict mapping a onehot col to a "
+                " missing value, e.g. cats_notencoded={'Deck': 'Unknown Deck'}...!")
+            assert set(cats_notencoded.keys()).issubset(self.onehot_cols), \
+                ("The following keys in cats_notencoded are not in cats:"
+                f"{list(set(cats_notencoded.keys()) - set(self.onehot_cols))}!")
+            self.onehot_notencoded.update(cats_notencoded)
 
         if self.encoded_cols:
             self.X[self.encoded_cols] = self.X[self.encoded_cols].astype(np.int8)
@@ -364,7 +380,7 @@ class BaseExplainer(ABC):
         elif isinstance(index, str):
             if self.idxs is not None and index in self.idxs:
                 return self.idxs.get_loc(index)
-        return None
+        raise IndexNotFoundError(index=index)
 
     def get_index(self, index):
         """Turn int index into a str index
@@ -385,12 +401,16 @@ class BaseExplainer(ABC):
     def X_cats(self):
         """X with categorical variables grouped together"""
         if not hasattr(self, '_X_cats'):
-            self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, drop_regular=True)
+            self._X_cats = merge_categorical_columns(self.X, self.onehot_dict, 
+                not_encoded_dict=self.onehot_notencoded, drop_regular=True)
         return self._X_cats
 
     @property
-    def X_merged(self):
-        return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
+    def X_merged(self, index=None):
+        if index is None:
+            return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
+        else:
+            return self.X[index].merge(self.X_cats[index], left_index=True, right_index=True)[self.merged_cols]
 
     @property
     def n_features(self):
@@ -401,15 +421,24 @@ class BaseExplainer(ABC):
         """
         return len(self.merged_cols)
 
+    def index_exists(self, index):
+        if isinstance(index, int):
+            if index >= 0 and index < len(self):
+                return True
+        if isinstance(index, str):
+            if index in self.idxs:
+                return True
+            if self._get_index_list_func is not None and index in self.get_index_list():
+                return True
+        return False
+
     def get_index_list(self):
         if self._get_index_list_func is not None:
-            index_list = self._get_index_list_func()
+            if not hasattr(self, '_index_list'):
+                self._index_list = pd.Index(self._get_index_list_func())
+            return self._index_list
         else:
-            index_list = list(self.idxs)
-        if not isinstance(index_list, list):
-            raise ValueError("self._get_index_list_func() should return a list! "
-                        f"Instead returned {index_list}")
-        return index_list
+            return self.idxs
 
     def set_index_list_func(self, func):
         """Sets an external function all available indexes from an external source.
@@ -429,16 +458,21 @@ class BaseExplainer(ABC):
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
     def get_X_row(self, index, merge=False):
-        if self._get_X_row_func is not None:
+        if index in self.idxs:
+            X_row = self.X.iloc[[self.get_idx(index)]]
+        elif isinstance(index, int) and index >= 0 and index < len(self):
+            X_row = self.X.iloc[[index]]
+        elif self._get_X_row_func is not None and index in self.get_index_list():
             X_row = self._get_X_row_func(index)
         else:
-            X_row = self.X.iloc[[self.get_idx(index)]]
+            raise IndexNotFoundError(index=index)
 
         if not matching_cols(X_row.columns, self.columns):
             raise ValueError(f"columns do not match! Got {X_row.columns}, but was"
                     f"expecting {self.columns}")
         if merge:
-            X_row = merge_categorical_columns(X_row, self.onehot_dict)[self.merged_cols]
+            X_row = merge_categorical_columns(X_row, self.onehot_dict, 
+                        not_encoded_dict=self.onehot_notencoded)[self.merged_cols]
         return X_row
 
     def set_X_row_func(self, func):
@@ -459,14 +493,16 @@ class BaseExplainer(ABC):
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
     def get_y(self, index):
-        if self._get_y_func is not None:
-            y = self._get_y_func(index)
-        else:
+        if index in self.idxs:
             if self.y_missing:
-                y = None
-            else:
-                y = self.y.iloc[self.get_idx(index)]
-        return y
+                return None
+            return self.y.iloc[[self.get_idx(index)]].item()
+        elif isinstance(index, int) and index >= 0 and index < len(self):
+            return self.y.iloc[[index]].item()
+        elif self._get_y_func is not None and index in self.get_index_list():
+            return self._get_y_func(index)
+        else:
+            raise IndexNotFoundError(index=index)
 
     def set_y_func(self, func):
         """Sets an external function to retrieve an observed label for a given index.
@@ -562,7 +598,7 @@ class BaseExplainer(ABC):
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
                 if col in self.onehot_cols:
-                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col]).item()
+                    col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_notencoded[col]).item()
                 else:
                     col_value = X_row[col].item()
 
@@ -1068,7 +1104,8 @@ class BaseExplainer(ABC):
             else:
                 assert matching_cols(X_row.columns, self.columns), \
                     "X_row should have the same columns as self.X or self.merged_cols!"
-                X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, drop_regular=False)[self.merged_cols]
+                X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, 
+                    not_encoded_dict=self.onehot_notencoded, drop_regular=False)[self.merged_cols]
 
             shap_values = self.shap_explainer.shap_values(X_row)
             if self.is_classifier:
@@ -1080,7 +1117,7 @@ class BaseExplainer(ABC):
             shap_values_df = merge_categorical_shap_values(shap_values_df, 
                                     self.onehot_dict, self.merged_cols)
             return get_contrib_df(self.shap_base_value(pos_label), shap_values_df.values[0], 
-                        remove_cat_names(X_row_merged, self.onehot_dict), 
+                        remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_notencoded), 
                         topx, cutoff, sort, cols)   
 
         else:
@@ -1158,12 +1195,12 @@ class BaseExplainer(ABC):
         assert col in self.X.columns or col in self.onehot_cols, \
             f"{col} not in columns of dataset"
         if col in self.onehot_cols:
-            features = self.ordered_cats(col, n_grid_points, sort)
+            grid_values = self.ordered_cats(col, n_grid_points, sort)
             if index is not None or X_row is not None:
                 val, pred = self.get_col_value_plus_prediction(col, index, X_row)
-                if val not in features:
-                    features[-1] = val
-            grid_values = None
+                if val not in grid_values:
+                    grid_values[-1] = val
+            features = self.onehot_dict[col]
         elif col in self.categorical_cols:
             features = col
             grid_values = self.ordered_cats(col, n_grid_points, sort)
@@ -1197,14 +1234,12 @@ class BaseExplainer(ABC):
                 sampleX = pd.concat([
                     X_row,
                     self.X[(self.X[features] != self.na_fill)]\
-                            .sample(sample_size)],
-                    ignore_index=True, axis=0)
+                            .sample(sample_size)], ignore_index=True, axis=0)
             else:
                 sample_size = min(sample, len(self.X)-1)
                 sampleX = pd.concat([
                     X_row,
-                    self.X.sample(sample_size)],
-                    ignore_index=True, axis=0)
+                    self.X.sample(sample_size)], ignore_index=True, axis=0)
         else:
             if isinstance(features, str) and drop_na: # regular col, not onehotencoded
                 sample_size=min(sample, len(self.X[(self.X[features] != self.na_fill)])-1)
@@ -1258,24 +1293,30 @@ class BaseExplainer(ABC):
             return plotly_importances_plot(importances_df, round=round, units=units, title=title)
 
     @insert_pos_label
-    def plot_importances_detailed(self, index=None, topx=None, max_cat_colors=5, pos_label=None):
+    def plot_importances_detailed(self, highlight_index=None, topx=None, max_cat_colors=5, 
+                plot_sample=None, pos_label=None):
         """Plot barchart of mean absolute shap value.
         
         Displays all individual shap value for each feature in a horizontal
         scatter chart in descending order by mean absolute shap value.
 
         Args:
-          index (str or int): index to highlight
+          highlight_index (str or int): index to highlight
           topx(int, optional): Only display topx most important features, 
             defaults to None
           max_cat_colors (int, optional): for categorical features, maximum number
             of categories to label with own color. Defaults to 5. 
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label: positive class (Default value = None)
 
         Returns:
           plotly.Fig
 
         """
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         if self.is_classifier:
             pos_label_str = self.labels[pos_label]
             if self.model_output == 'probability':
@@ -1295,11 +1336,11 @@ class BaseExplainer(ABC):
                                         ['Feature'].values.tolist()
 
         return plotly_shap_scatter_plot(
-                                self.X_merged[cols],
-                                self.get_shap_values_df(pos_label)[cols],
+                                self.X_merged[cols].iloc[plot_idxs],
+                                self.get_shap_values_df(pos_label)[cols].iloc[plot_idxs],
                                 cols, 
-                                idxs=self.idxs,
-                                highlight_index=index,
+                                idxs=self.idxs[plot_idxs],
+                                highlight_index=highlight_index,
                                 title=title,
                                 na_fill=self.na_fill,
                                 max_cat_colors=max_cat_colors)
@@ -1342,10 +1383,28 @@ class BaseExplainer(ABC):
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
 
+    def get_idx_sample(self, sample_size=None, include_index=None):
+        """returns a random sample of integer indexes, making sure that
+        include_index is included"""
+        if sample_size is None:
+            idx_sample = self.X.index
+            return idx_sample
+        else:
+            assert sample_size >= 0, "sample_size should be a positive integer!"
+            idx_sample = self.X.sample(min(sample_size, len(self))).index
+            if include_index is not None:
+                if isinstance(include_index, str):
+                    if include_index not in self.idxs:
+                        raise ValueError(f"{include_index} could not be found in idxs!")
+                    include_index = self.idxs.get_loc(include_index)
+                if include_index not in idx_sample and include_index < len(self):
+                    idx_sample = idx_sample.append(pd.Index([include_index]))
+            return idx_sample
+
     @insert_pos_label
     def plot_dependence(self, col, color_col=None, highlight_index=None, 
                                 topx=None, sort='alphabet', max_cat_colors=5, 
-                                round=3, pos_label=None):
+                                round=3, plot_sample=None, pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1365,41 +1424,47 @@ class BaseExplainer(ABC):
                 highest mean absolute value first 'shap'. Defaults to 'alphabet'.
           max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+          round (int, optional): rounding to apply to floats. Defaults to 3.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label: positive class (Default value = None)
 
         Returns:
 
         """
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         if color_col is None:
             X_color_col = None
         else:
-            X_color_col = self.get_col(color_col)
+            X_color_col = self.get_col(color_col).iloc[plot_idxs]
 
         if col in self.cat_cols:
             return plotly_shap_violin_plot(
-                            self.get_col(col), 
-                            self.get_shap_values_df(pos_label)[col], 
+                            self.get_col(col).iloc[plot_idxs], 
+                            self.get_shap_values_df(pos_label)[col].iloc[plot_idxs].values, 
                             X_color_col, 
                             highlight_index=highlight_index,
-                            idxs=self.idxs,
+                            idxs=self.idxs[plot_idxs],
                             round=round,
                             cats_order=self.ordered_cats(col, topx, sort),
                             max_cat_colors=max_cat_colors)
         else:
             return plotly_dependence_plot(
-                        self.get_col(col), 
-                        self.get_shap_values_df(pos_label)[col],
+                        self.get_col(col).iloc[plot_idxs], 
+                        self.get_shap_values_df(pos_label)[col].iloc[plot_idxs].values,
                         X_color_col, 
                         na_fill=self.na_fill, 
                         units=self.units, 
                         highlight_index=highlight_index,
-                        idxs=self.idxs,
+                        idxs=self.idxs[plot_idxs],
                         round=round)
 
     @insert_pos_label
     def plot_interaction(self, col, interact_col, highlight_index=None, 
                                 topx=10, sort='alphabet', max_cat_colors=5, 
-                                pos_label=None):
+                                plot_sample=None, pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         Args:
@@ -1411,29 +1476,33 @@ class BaseExplainer(ABC):
                 Should be in {'alphabet', 'freq', 'shap'}.
           max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label:  (Default value = None)
 
         Returns:
           plotly.Fig: Plotly Fig
 
         """
-        
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         if col in self.cat_cols:
             return plotly_shap_violin_plot(
-                self.get_col(col), 
-                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label),
-                self.get_col(interact_col), 
+                self.get_col(col).iloc[plot_idxs], 
+                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label)[plot_idxs],
+                self.get_col(interact_col).iloc[plot_idxs], 
                 interaction=True, units=self.units, 
-                highlight_index=highlight_index, idxs=self.idxs,
+                highlight_index=highlight_index, idxs=self.idxs[plot_idxs],
                 cats_order=self.ordered_cats(col, topx, sort),
                 max_cat_colors=max_cat_colors)
         else:
             return plotly_dependence_plot(
-                self.get_col(col),
-                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label),
-                self.get_col(interact_col), 
+                self.get_col(col).iloc[plot_idxs],
+                self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label)[plot_idxs],
+                self.get_col(interact_col).iloc[plot_idxs], 
                 interaction=True, units=self.units,
-                highlight_index=highlight_index, idxs=self.idxs)
+                highlight_index=highlight_index, idxs=self.idxs[plot_idxs])
 
     @insert_pos_label
     def plot_interactions_importance(self, col, topx=None, pos_label=None):
@@ -1453,8 +1522,8 @@ class BaseExplainer(ABC):
         return plotly_importances_plot(interactions_df, units=self.units, title=title)
 
     @insert_pos_label
-    def plot_interactions_detailed(self, col, index=None, topx=None, 
-                                        max_cat_colors=5, pos_label=None):
+    def plot_interactions_detailed(self, col, highlight_index=None, topx=None, 
+                                        max_cat_colors=5, plot_sample=None, pos_label=None):
         """Plot barchart of mean absolute shap interaction values
         
         Displays all individual shap interaction values for each feature in a
@@ -1462,23 +1531,28 @@ class BaseExplainer(ABC):
 
         Args:
           col(type]): feature for which to show interactions summary
-          index (str or int): index to highlight
+          highlight_index (str or int): index to highlight
           topx(int, optional): only show topx most important features, defaults to None
           max_cat_colors (int, optional): for categorical features, maximum number
             of categories to label with own color. Defaults to 5. 
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           pos_label: positive class (Default value = None)
 
         Returns:
           fig
         """
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        highlight_index = self.get_index(highlight_index)
+
         interact_cols = self.top_shap_interactions(col, pos_label=pos_label)
         shap_df = pd.DataFrame(self.shap_interaction_values_for_col(col, pos_label=pos_label),
-                            columns=self.merged_cols)                            
+                            columns=self.merged_cols).iloc[plot_idxs]                         
         if topx is None: topx = len(interact_cols)
         title = f"Shap interaction values for {col}"
         return plotly_shap_scatter_plot(
-                self.X_merged, shap_df, interact_cols[:topx], title=title, 
-                idxs=self.idxs, highlight_index=index, na_fill=self.na_fill,
+                self.X_merged.iloc[plot_idxs], shap_df, interact_cols[:topx], title=title, 
+                idxs=self.idxs[plot_idxs], highlight_index=highlight_index, na_fill=self.na_fill,
                 max_cat_colors=max_cat_colors)
 
     @insert_pos_label
@@ -1636,7 +1710,8 @@ class ClassifierExplainer(BaseExplainer):
                     permutation_metric:Callable=roc_auc_score, 
                     shap:str='guess', X_background:pd.DataFrame=None, 
                     model_output:str="probability",
-                    cats:Union[List, Dict]=None, idxs:pd.Index=None, 
+                    cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
+                    idxs:pd.Index=None, 
                     index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, 
                     permutation_cv:int=None, na_fill:float=-999,
@@ -1673,6 +1748,9 @@ class ClassifierExplainer(BaseExplainer):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
+            cats_notencoded (dict): value to display when all onehot encoded
+                columns are equal to zero. Defaults to 'NOT_ENCODED' for each
+                onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
                 Defaults to X.index.
             index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
@@ -1695,8 +1773,9 @@ class ClassifierExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
-                            cats, idxs, index_name, target, descriptions, 
-                            n_jobs, permutation_cv, na_fill, precision)
+                            cats, cats_notencoded, idxs, index_name, target, 
+                            descriptions, n_jobs, permutation_cv, na_fill, 
+                            precision)
 
         assert hasattr(model, "predict_proba"), \
                 ("for ClassifierExplainer, model should be a scikit-learn "
@@ -2099,13 +2178,15 @@ class ClassifierExplainer(BaseExplainer):
         return 1-(self.pred_probas(pos_label) < cutoff).mean()
 
     @insert_pos_label
-    def metrics(self, cutoff=0.5, pos_label=None):
+    def metrics(self, cutoff:float=0.5, show_metrics:List[Union[str, Callable]]=None, pos_label:int=None):
         """returns a dict with useful metrics for your classifier:
         
         accuracy, precision, recall, f1, roc auc, pr auc, log loss
 
         Args:
           cutoff(float): cutoff used to calculate metrics (Default value = 0.5)
+          show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
           pos_label: positive class (Default value = None)
 
         Returns:
@@ -2140,9 +2221,39 @@ class ClassifierExplainer(BaseExplainer):
                     self._metrics[label][np.round(cut, 2)] = \
                         get_metrics(cut, label)
         if cutoff in self._metrics[pos_label]:
-            return self._metrics[pos_label][cutoff]
+            metrics_dict =  self._metrics[pos_label][cutoff]
         else:
-            return get_metrics(cutoff, pos_label)
+            metrics_dict = get_metrics(cutoff, pos_label)
+        
+        if not show_metrics:
+            return metrics_dict
+
+        show_metrics_dict = {}
+        for m in show_metrics:
+            if callable(m):
+                metric_args = inspect.signature(m).parameters.keys()
+                metric_kwargs = {}
+                if 'pos_label' in metric_args:
+                    y_true = self.y
+                    y_pred = self.pred_probas_raw
+                    metric_kwargs['pos_label'] = pos_label
+                else:
+                    y_true = self.y_binary(pos_label)
+                    y_pred = self.pred_probas(pos_label)
+
+                if 'cutoff' in metric_args:
+                    metric_kwargs['cutoff'] = cutoff
+                else:
+                    y_pred = np.where(y_pred > cutoff, 1, 0)
+                try:
+                    show_metrics_dict[m.__name__] = m(y_true, y_pred, **metric_kwargs)
+                except:
+                    raise Exception(f"Failed to calculate metric {m.__name__}! "
+                            "Make sure it takes arguments y_true and y_pred, and "
+                            "optionally cutoff and pos_label!")
+            elif m in metrics_dict:
+                show_metrics_dict[m] = metrics_dict[m]
+        return show_metrics_dict
 
     @insert_pos_label
     def metrics_descriptions(self, cutoff=0.5, round=3, pos_label=None):
@@ -2157,7 +2268,7 @@ class ClassifierExplainer(BaseExplainer):
         Returns:
             dict
         """
-        metrics_dict = self.metrics(cutoff, pos_label)
+        metrics_dict = self.metrics(cutoff=cutoff, pos_label=pos_label)
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
             if k == 'accuracy':
@@ -2590,7 +2701,11 @@ class ClassifierExplainer(BaseExplainer):
             None
 
         """
-        _ = self.pred_probas(), self.y_binary()
+        _ = self.pred_probas()
+        if not self.y_missing:
+            _ = self.y_binary()
+            _ = self.metrics(), self.get_classification_df()
+            _ = self.roc_auc_curve(), self.pr_auc_curve()
         super().calculate_properties(include_interactions=include_interactions)
 
 
@@ -2600,8 +2715,8 @@ class RegressionExplainer(BaseExplainer):
                     permutation_metric:Callable=r2_score, 
                     shap:str="guess", X_background:pd.DataFrame=None, 
                     model_output:str="raw",
-                    cats:Union[List, Dict]=None, idxs:pd.Index=None, 
-                    index_name:str=None, target:str=None,
+                    cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
+                    idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
                     na_fill:float=-999, precision:str="float64", units:str=""):
         """Explainer for regression models.
@@ -2632,6 +2747,9 @@ class RegressionExplainer(BaseExplainer):
                 pass a list of prefixes: cats=['Sex']. Allows to 
                 group onehot encoded categorical variables together in 
                 various plots. Defaults to None.
+            cats_notencoded (dict): value to display when all onehot encoded
+                columns are equal to zero. Defaults to 'NOT_ENCODED' for each
+                onehot col.
             idxs (pd.Series): list of row identifiers. Can be names, id's, etc. 
                 Defaults to X.index.
             index_name (str): identifier for row indexes. e.g. index_name='Passenger'.
@@ -2651,8 +2769,9 @@ class RegressionExplainer(BaseExplainer):
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
-                            cats, idxs, index_name, target, descriptions,
-                            n_jobs, permutation_cv, na_fill, precision)
+                            cats, cats_notencoded, idxs, index_name, target, 
+                            descriptions, n_jobs, permutation_cv, na_fill, 
+                            precision)
 
         self._params_dict = {**self._params_dict, **dict(units=units)}
         self.units = units
@@ -2788,19 +2907,38 @@ class RegressionExplainer(BaseExplainer):
                         index=preds_df.columns), ignore_index=True)
         return preds_df
 
-    def metrics(self):
-        """dict of performance metrics: rmse, mae and R^2"""
+    def metrics(self, show_metrics:List[str]=None):
+        """dict of performance metrics: root_mean_squared_error, mean_absolute_error and R-squared
+        
+        Args:
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
+        """
 
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
         metrics_dict = {
-            'root_mean_squared_error' : np.sqrt(mean_squared_error(self.y, self.preds)),
-            'mean_absolute_error' : mean_absolute_error(self.y, self.preds),
+            'mean-squared-error' : mean_squared_error(self.y, self.preds),
+            'root-mean-squared-error' : np.sqrt(mean_squared_error(self.y, self.preds)),
+            'mean-absolute-error' : mean_absolute_error(self.y, self.preds),
+            'mean-absolute-percentage-error': mape_score(self.y, self.preds),
             'R-squared' : r2_score(self.y, self.preds),
         }
-        return metrics_dict
+        if metrics_dict['mean-absolute-percentage-error'] > 2:
+            print("Warning: mean-absolute-percentage-error is very large "
+                f"({metrics_dict['mean-absolute-percentage-error']}), you can hide "
+                 "it from the metrics by passing parameter show_metrics...", flush=True)
+        if not show_metrics:
+            return metrics_dict
+        show_metrics_dict = {}
+        for m in show_metrics:
+            if callable(m):
+                show_metrics_dict[m.__name__] = m(self.y, self.preds)
+            elif m in metrics_dict:
+                show_metrics_dict[m] = metrics_dict[m]
+        return show_metrics_dict
 
-    def metrics_descriptions(self):
+    def metrics_descriptions(self, round=2):
         """Returns a metrics dict, with the metric values replaced by a descriptive
         string, explaining/interpreting the value of the metric
 
@@ -2810,15 +2948,31 @@ class RegressionExplainer(BaseExplainer):
         metrics_dict = self.metrics()
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
-            if k == 'root_mean_squared_error':
-                metrics_descriptions_dict[k] = f"A measure of how close predicted value fits true values, where large deviations are punished more heavily. So the lower this number the better the model."
-            if k == 'mean_absolute_error':
-                metrics_descriptions_dict[k] = f"On average predictions deviate {round(v, 2)} {self.units} off the observed value of {self.target} (can be both above or below)"
+            if k == 'mean-squared-error':
+                metrics_descriptions_dict[k] = (f"A measure of how close "
+                    "predicted value fits true values, where large deviations "
+                    "are punished more heavily. So the lower this number the "
+                    "better the model.")
+            if k == 'root-mean-squared-error':
+                metrics_descriptions_dict[k] = (f"A measure of how close "
+                    "predicted value fits true values, where large deviations "
+                    "are punished more heavily. So the lower this number the "
+                    "better the model.")
+            if k == 'mean-absolute-error':
+                metrics_descriptions_dict[k] = (f"On average predictions deviate "
+                    f"{v:.{round}f} {self.units} off the observed value of "
+                    f"{self.target} (can be both above or below)")
+            if k == 'mean-absolute-percentage-error':
+                metrics_descriptions_dict[k] = (f"On average predictions deviate "
+                    f"{100*v:.{round}f}% off the observed value of "
+                    f"{self.target} (can be both above or below)")
             if k == 'R-squared':
-                metrics_descriptions_dict[k] = f"{round(100*v, 2)}% of all variation in {self.target} was explained by the model."
+                metrics_descriptions_dict[k] = (f"{100*v:.{round}f}% of all "
+                    f"variation in {self.target} was explained by the model.")
         return metrics_descriptions_dict
 
-    def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, **kwargs):
+    def plot_predicted_vs_actual(self, round=2, logs=False, log_x=False, log_y=False, 
+                                    plot_sample=None, **kwargs):
         """plot with predicted value on x-axis and actual value on y axis.
 
         Args:
@@ -2826,20 +2980,24 @@ class RegressionExplainer(BaseExplainer):
           logs (bool, optional): log both x and y axis, defaults to False
           log_y (bool, optional): only log x axis. Defaults to False.
           log_x (bool, optional): only log y axis. Defaults to False.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
           **kwargs: 
 
         Returns:
           Plotly fig
 
         """
+        plot_idxs = self.get_idx_sample(plot_sample)
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot predicted vs actual!")
-        return plotly_predicted_vs_actual(self.y, self.preds, 
-                target=self.target, units=self.units, idxs=self.idxs, 
+        return plotly_predicted_vs_actual(self.y[plot_idxs], self.preds[plot_idxs], 
+                target=self.target, units=self.units, idxs=self.idxs[plot_idxs], 
                 logs=logs, log_x=log_x, log_y=log_y, round=round, 
                 index_name=self.index_name)
     
-    def plot_residuals(self, vs_actual=False, round=2, residuals='difference'):
+    def plot_residuals(self, vs_actual=False, round=2, residuals='difference',
+                        plot_sample=None):
         """plot of residuals. x-axis is the predicted outcome by default
 
         Args:
@@ -2848,19 +3006,26 @@ class RegressionExplainer(BaseExplainer):
           round(int, optional): rounding to perform on values, defaults to 2
           residuals (str, {'difference', 'ratio', 'log-ratio'} optional): 
                     How to calcualte residuals. Defaults to 'difference'.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
+
         Returns:
           Plotly fig
 
         """
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot residuals!")
-        return plotly_plot_residuals(self.y, self.preds, idxs=self.idxs,
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        return plotly_plot_residuals(self.y[plot_idxs], self.preds[plot_idxs], 
+                                     idxs=self.idxs[plot_idxs],
                                      vs_actual=vs_actual, target=self.target, 
                                      units=self.units, residuals=residuals, 
                                      round=round, index_name=self.index_name)
     
     def plot_residuals_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
+                dropna=True, points=True, winsor=0, topx=None, sort='alphabet',
+                plot_sample=None):
         """Plot residuals vs individual features
 
         Args:
@@ -2873,6 +3038,8 @@ class RegressionExplainer(BaseExplainer):
                     Defaults to True.
           winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
 
         Returns:
           plotly fig
@@ -2880,23 +3047,28 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot residuals!")
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
-        col_vals = self.get_col(col)
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        col_vals = self.get_col(col).iloc[plot_idxs]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         if col in self.cat_cols:
             return plotly_residuals_vs_col(
-                self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
-                round=round, winsor=winsor, index_name=self.index_name,
+                self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                col_vals[plot_idxs][na_mask], 
+                residuals=residuals, idxs=self.idxs[plot_idxs].values[na_mask], 
+                points=points, round=round, winsor=winsor, index_name=self.index_name,
                 cats_order=self.ordered_cats(col, topx, sort))
         else:
             return plotly_residuals_vs_col(
-                self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                residuals=residuals, idxs=self.idxs.values[na_mask], points=points, 
-                round=round, winsor=winsor, index_name=self.index_name)
+                self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                col_vals[plot_idxs][na_mask], 
+                residuals=residuals, idxs=self.idxs[plot_idxs].values[na_mask], 
+                points=points, round=round, winsor=winsor, index_name=self.index_name)
 
 
     def plot_y_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
+                            dropna=True, points=True, winsor=0, topx=None, 
+                            sort='alphabet', plot_sample=None):
         """Plot y vs individual features
 
         Args:
@@ -2907,6 +3079,8 @@ class RegressionExplainer(BaseExplainer):
                     Defaults to True.
           winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
 
         Returns:
           plotly fig
@@ -2914,21 +3088,28 @@ class RegressionExplainer(BaseExplainer):
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot plot y vs feature!")
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
-        col_vals = self.get_col(col)
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        col_vals = self.get_col(col).iloc[plot_idxs]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         if col in self.cat_cols:
-            return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_actual_vs_col(
+                    self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                    col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, 
+                    round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name,
                     cats_order=self.ordered_cats(col, topx, sort))
         else:
-            return plotly_actual_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_actual_vs_col(self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], 
+                    col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name)
 
 
     def plot_preds_vs_feature(self, col, residuals='difference', round=2, 
-                dropna=True, points=True, winsor=0, topx=None, sort='alphabet'):
+                dropna=True, points=True, winsor=0, topx=None, 
+                sort='alphabet', plot_sample=None):
         """Plot y vs individual features
 
         Args:
@@ -2939,21 +3120,27 @@ class RegressionExplainer(BaseExplainer):
                     Defaults to True.
           winsor (int, 0-50, optional): percentage of outliers to winsor out of 
                     the y-axis. Defaults to 0.
+          plot_sample (int, optional): Instead of all points only plot a random
+            sample of points. Defaults to None (=all points)
 
         Returns:
           plotly fig
         """
         assert col in self.merged_cols, f'{col} not in explainer.merged_cols!'
-        col_vals = self.get_col(col)
+
+        plot_idxs = self.get_idx_sample(plot_sample)
+        col_vals = self.get_col(col).iloc[plot_idxs]
         na_mask = col_vals != self.na_fill if dropna else np.array([True]*len(col_vals))
         if col in self.cat_cols:
-            return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_preds_vs_col(
+                    self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name,
                     cats_order=self.ordered_cats(col, topx, sort))
         else:
-            return plotly_preds_vs_col(self.y[na_mask], self.preds[na_mask], col_vals[na_mask], 
-                    idxs=self.idxs.values[na_mask], points=points, round=round, winsor=winsor,
+            return plotly_preds_vs_col(
+                    self.y[plot_idxs][na_mask], self.preds[plot_idxs][na_mask], col_vals[plot_idxs][na_mask], 
+                    idxs=self.idxs[plot_idxs].values[na_mask], points=points, round=round, winsor=winsor,
                     units=self.units, target=self.target, index_name=self.index_name)
 
 

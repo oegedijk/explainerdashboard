@@ -5,10 +5,16 @@ __all__ = [
     'ExplainerComponent',
     'PosLabelSelector',
     'GraphPopout',
+    'IndexSelector',
     'make_hideable',
     'get_dbc_tooltips',
     'update_params',
     'update_kwargs',
+    'encode_callables',
+    'decode_callables',
+    'reset_id_generator',
+    'yield_id',
+    'get_local_ip_adress',
     'instantiate_component'
 ]
 
@@ -16,14 +22,14 @@ import sys
 from abc import ABC
 import inspect
 import types
+from importlib import import_module
+import socket
 
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-
-import shortuuid
 
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
 # then extended to deal with multiple inheritance
@@ -77,6 +83,71 @@ def update_params(kwargs, **params):
 def update_kwargs(kwargs, **params):
     """params override kwargs"""
     return dict(kwargs, **params)
+
+
+def encode_callables(obj):
+    """replaces all callables (functions) in obj with a dict specifying module and name
+    
+    Works recursively through sub-list and sub-dicts"""
+    if callable(obj):
+        return dict(__callable__=dict(module=obj.__module__, name=obj.__name__))  
+    if isinstance(obj, dict):
+        return {k:encode_callables(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [encode_callables(o) for o in obj]     
+    return obj
+
+
+def decode_callables(obj):
+    """replaces all dict-encoded callables in obj with the appropriate function
+    
+    Works recursively through sub-list and sub-dicts"""
+    if isinstance(obj, dict) and '__callable__' in obj:
+        return getattr(import_module(obj['__callable__']['module']), obj['__callable__']['name'])
+    if isinstance(obj, dict):
+        return {k:decode_callables(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [decode_callables(o) for o in obj]     
+    return obj
+
+def id_generator(prefix='id', start=0):
+    """generator that generatores unique consecutive id's starting with 'id' + number
+    
+    Can be reset with reset_id_generator()"""
+    i = start
+    while True:
+        yield prefix+str(i), i
+        i += 1
+
+def reset_id_generator(prefix='id', start=0):
+    """resets the global id generator"""
+    global id_gen
+    id_gen = id_generator(prefix, start)
+
+def yield_id(return_i=False):
+    """yields the next unique consecutive id. Reset using reset_id_generator()"""
+    global id_gen
+    str_id, i = next(id_gen)
+    if return_i:
+        return str_id, i
+    return str_id
+    
+
+reset_id_generator()
+
+
+def get_local_ip_adress():
+    """returns the local ip adress"""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
 
 def get_dbc_tooltips(dbc_table, desc_dict, hover_id, name):
@@ -177,7 +248,7 @@ class ExplainerComponent(ABC):
         """
         self._store_child_params(no_param=['explainer'])
         if not hasattr(self, "name") or self.name is None:
-            self.name = name or "uuid"+shortuuid.ShortUUID().random(length=5)
+            self.name = name or yield_id()
         if not hasattr(self, "title") or self.title is None:
             self.title = title or "Custom"
 
@@ -212,6 +283,8 @@ class ExplainerComponent(ABC):
                 setattr(self, name, value)
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
+        
+        self._stored_params = encode_callables(self._stored_params)
 
     def exclude_callbacks(self, *components):
         """exclude certain subcomponents from the register_components scan
@@ -401,6 +474,38 @@ class PosLabelSelector(ExplainerComponent):
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))
 
+
+class IndexSelector(ExplainerComponent):
+    """Either shows a dropdown or a free text input field for selecting an index"""
+    def __init__(self, explainer, name=None, index=None, index_dropdown=True):
+        super().__init__(explainer)
+        
+    def layout(self):
+        if self.index_dropdown:
+            return dcc.Dropdown(id=self.name, 
+                                options = [{'label': str(idx), 'value': str(idx)} for idx in self.explainer.get_index_list()],
+                                placeholder=f"Select {self.explainer.index_name} here...",
+                                value=self.index
+                               )
+        else:
+            return dbc.Input(id=self.name, placeholder=f"Type {self.explainer.index_name} here...", 
+                             value=self.index, debounce=True, type="text")
+        
+    def component_callbacks(self, app):
+        if not self.index_dropdown:
+            @app.callback(
+                [Output(self.name, 'valid'),
+                 Output(self.name, 'invalid')],
+                [Input(self.name, 'value')]
+            )
+            def update_valid_index(index):
+                if index is not None:
+                    if self.explainer.index_exists(index):
+                        return True, False
+                    else:
+                        return False, True
+                return False, False
+                
 
 class GraphPopout(ExplainerComponent):
     """Provides a way to open a modal popup with the content of a graph figure.

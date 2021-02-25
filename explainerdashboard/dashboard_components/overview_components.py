@@ -257,7 +257,7 @@ class PdpComponent(ExplainerComponent):
                     hide_footer=False, hide_selector=False, hide_popout=False, 
                     hide_dropna=False, hide_sample=False, 
                     hide_gridlines=False, hide_gridpoints=False, hide_cats_sort=False,
-                    feature_input_component=None,
+                    index_dropdown=True, feature_input_component=None, 
                     pos_label=None, col=None, index=None, 
                     dropna=True, sample=100, gridlines=50, gridpoints=10,
                     cats_sort='freq',
@@ -285,6 +285,8 @@ class PdpComponent(ExplainerComponent):
             hide_gridlines (bool, optional): Hide gridlines input. Defaults to False.
             hide_gridpoints (bool, optional): Hide gridpounts input. Defaults to False.
             hide_cats_sort (bool, optional): Hide the categorical sorting dropdown. Defaults to False.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
@@ -323,6 +325,9 @@ class PdpComponent(ExplainerComponent):
         x-axis to calculate model predictions for (gridpoints).
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'pdp-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
+
         self.popout = GraphPopout('pdp-'+self.name+'popout', 'pdp-graph-'+self.name, self.title, self.description)
 
     def layout(self):
@@ -353,10 +358,7 @@ class PdpComponent(ExplainerComponent):
                                 dbc.Label(f"{self.explainer.index_name}:", id='pdp-index-label-'+self.name),
                                 dbc.Tooltip(f"Select the {self.explainer.index_name} to display the partial dependence plot for", 
                                         target='pdp-index-label-'+self.name),
-                                dcc.Dropdown(id='pdp-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
-                                    value=self.index)
+                                self.index_selector.layout(),
                             ], md=4), hide=self.hide_index), 
                         make_hideable(
                             dbc.Col([self.selector.layout()
@@ -561,10 +563,13 @@ class FeatureInputComponent(ExplainerComponent):
                     dbc.FormText(f"Select any {col}") if not self.hide_range else None,
                 ])   
         elif col in onehot_cols:
-            col_values = onehot_dict[col]
+            col_values = [c for c in onehot_dict[col]]
             display_values = [
                 col_val[len(col)+1:] if col_val.startswith(col+"_") else col_val
                     for col_val in col_values]
+            if any(self.explainer.X[self.explainer.onehot_dict[col]].sum(axis=1) == 0):
+                col_values.append(self.explainer.onehot_notencoded[col])
+                display_values.append(self.explainer.onehot_notencoded[col])
             return dbc.FormGroup([
                     dbc.Label(col),
                     dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 

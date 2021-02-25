@@ -227,7 +227,8 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         hide_predindexselector=False, hide_predictionsummary=False,
                         hide_contributiongraph=False, hide_pdp=False,
                         hide_contributiontable=False,
-                        hide_title=False, hide_selector=True, **kwargs):
+                        hide_title=False, hide_selector=True, index_check=True,
+                        **kwargs):
         """Composite for a number of component that deal with individual predictions:
 
         - random index selector
@@ -252,6 +253,8 @@ class IndividualPredictionsComposite(ExplainerComponent):
             hide_pdp (bool, optional): hide PdpComponent
             hide_contributiontable (bool, optional): hide ShapContributionsTableComponent
             hide_title (bool, optional): hide title. Defaults to False.
+            index_check (bool, optional): only pass valid indexes from random index 
+                selector to feature input. Defaults to True.
             hide_selector(bool, optional): hide all pos label selectors. Defaults to True.
         """
         super().__init__(explainer, title, name)
@@ -275,7 +278,8 @@ class IndividualPredictionsComposite(ExplainerComponent):
                         hide_selector=hide_selector,  **kwargs)
 
         self.index_connector = IndexConnector(self.index, 
-                [self.summary, self.contributions, self.pdp, self.contributions_list])
+                [self.summary, self.contributions, self.pdp, self.contributions_list],
+                explainer=explainer if index_check else None)
 
     def layout(self):
         return dbc.Container([
@@ -303,7 +307,7 @@ class WhatIfComposite(ExplainerComponent):
                         hide_whatifindexselector=False, hide_inputeditor=False,
                         hide_whatifprediction=False, hide_whatifcontributiongraph=False, 
                         hide_whatifpdp=False, hide_whatifcontributiontable=False,
-                        hide_title=True, hide_selector=True, 
+                        hide_title=True, hide_selector=True, index_check=True,
                         n_input_cols=4, sort='importance', **kwargs):
         """Composite for the whatif component:
 
@@ -324,6 +328,8 @@ class WhatIfComposite(ExplainerComponent):
             hide_whatifcontributiongraph (bool, optional): hide ShapContributionsGraphComponent
             hide_whatifcontributiontable (bool, optional): hide ShapContributionsTableComponent
             hide_whatifpdp (bool, optional): hide PdpComponent
+            index_check (bool, optional): only pass valid indexes from random index 
+                selector to feature input. Defaults to True.
             n_input_cols (int, optional): number of columns to divide the feature inputs into.
                 Defaults to 4. 
             sort ({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sorting of shap values. 
@@ -363,7 +369,8 @@ class WhatIfComposite(ExplainerComponent):
                         feature_input_component=self.input,
                         hide_selector=hide_selector, **kwargs)
 
-        self.index_connector = IndexConnector(self.index, [self.input])
+        self.index_connector = IndexConnector(self.index, self.input, 
+                                    explainer=explainer if index_check else None)
 
     def layout(self):
         return dbc.Container([
@@ -480,7 +487,7 @@ class DecisionTreesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Decision Trees", name=None,
                     hide_treeindexselector=False, hide_treesgraph=False,
                     hide_treepathtable=False, hide_treepathgraph=False,
-                    hide_selector=True, **kwargs):
+                    hide_selector=True, index_check=True, **kwargs):
         """Composite of decision tree related components:
         
         - index selector
@@ -502,6 +509,8 @@ class DecisionTreesComposite(ExplainerComponent):
             hide_treepathtable (bool, optional): hide DecisionPathTableComponent
             hide_treepathgraph (bool, optional): DecisionPathGraphComponent
             hide_selector (bool, optional): hide all pos label selectors. Defaults to True.
+            index_check (bool, optional): only pass valid indexes from random index 
+                selector to feature input. Defaults to True.
         """
         super().__init__(explainer, title, name)
         
@@ -521,7 +530,8 @@ class DecisionTreesComposite(ExplainerComponent):
                     hide_selector=hide_selector, **kwargs)
 
         self.index_connector = IndexConnector(self.index, 
-            [self.trees, self.decisionpath_table, self.decisionpath_graph])
+            [self.trees, self.decisionpath_table, self.decisionpath_graph], 
+            explainer=explainer if index_check else None)
         self.highlight_connector = HighlightConnector(self.trees, 
             [self.decisionpath_table, self.decisionpath_graph])
         

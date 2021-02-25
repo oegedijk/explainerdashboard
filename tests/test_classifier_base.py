@@ -24,6 +24,7 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
                             model, X_test, y_test, 
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
+                            cats_notencoded={'Gender':'No Gender'},
                             target='Survival',
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
@@ -38,8 +39,17 @@ class ClassifierBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(), int)
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
+    def test_index_exists(self):
+        self.assertTrue(self.explainer.index_exists(0))
+        self.assertTrue(self.explainer.index_exists(self.explainer.idxs[0]))
+        self.assertTrue(not self.explainer.index_exists('bla'))
+
+
     def test_preds(self):
         self.assertIsInstance(self.explainer.preds, np.ndarray)
+
+    def test_cats_notencoded(self):
+        self.assertEqual(self.explainer.get_contrib_df(0).query("col=='Gender'")['value'].item(), 'No Gender')
 
     def test_row_from_input(self):
         input_row = self.explainer.get_row_from_input(
