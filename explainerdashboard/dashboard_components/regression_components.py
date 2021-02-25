@@ -486,7 +486,7 @@ class PredictedVsActualComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, 
                     hide_log_x=False, hide_log_y=False, hide_popout=False, 
                     logs=False, log_x=False, log_y=False, round=3,
-                    description=None,
+                    plot_sample=None, description=None,
                     **kwargs):
         """Shows a plot of predictions vs y.
 
@@ -509,6 +509,8 @@ class PredictedVsActualComponent(ExplainerComponent):
             log_y (bool, optional): log only y axis. Defaults to False.
             round (int, optional): rounding to apply to float predictions. 
                 Defaults to 3.
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -598,7 +600,9 @@ class PredictedVsActualComponent(ExplainerComponent):
              Input('pred-vs-actual-logy-'+self.name, 'checked')],
         )
         def update_predicted_vs_actual_graph(log_x, log_y):
-            return self.explainer.plot_predicted_vs_actual(log_x=log_x, log_y=log_y, round=self.round)
+            return self.explainer.plot_predicted_vs_actual(
+                                    log_x=log_x, log_y=log_y, round=self.round, 
+                                    plot_sample=self.plot_sample)
 
 class ResidualsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Residuals", name=None,
@@ -606,7 +610,7 @@ class ResidualsComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_pred_or_actual=False, hide_ratio=False, hide_popout=False, 
                     pred_or_actual="vs_pred", residuals="difference",
-                    round=3, description=None, **kwargs):
+                    round=3, plot_sample=None, description=None, **kwargs):
         """Residuals plot component
 
         Args:
@@ -632,6 +636,8 @@ class ResidualsComponent(ExplainerComponent):
                     How to calcualte residuals. Defaults to 'difference'.
             round (int, optional): rounding to apply to float predictions. 
                 Defaults to 3.
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -723,7 +729,8 @@ class ResidualsComponent(ExplainerComponent):
         def update_residuals_graph(pred_or_actual, residuals):
             vs_actual = pred_or_actual=='vs_actual'
             return self.explainer.plot_residuals(vs_actual=vs_actual, 
-                                        residuals=residuals, round=self.round)
+                                        residuals=residuals, round=self.round, 
+                                        plot_sample=self.plot_sample)
 
 
 class RegressionVsColComponent(ExplainerComponent):
@@ -735,7 +742,7 @@ class RegressionVsColComponent(ExplainerComponent):
                     hide_cats_topx=False, hide_cats_sort=False, hide_popout=False, 
                     col=None, display='difference', round=3,
                     points=True, winsor=0, cats_topx=10, cats_sort='freq', 
-                    description=None, **kwargs):
+                    plot_sample=None, description=None, **kwargs):
         """Show residuals, observed or preds vs a particular Feature component
 
         Args:
@@ -770,6 +777,8 @@ class RegressionVsColComponent(ExplainerComponent):
                 for categorical features. Defaults to 10.
             cats_sort (str, optional): how to sort categories: 'alphabet', 
                 'freq' or 'shap'. Defaults to 'freq'.
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -928,23 +937,26 @@ class RegressionVsColComponent(ExplainerComponent):
             if display == 'observed':
                 return self.explainer.plot_y_vs_feature(
                         col, points=bool(points), winsor=winsor, dropna=True,
-                        topx=topx, sort=sort, round=self.round), style, style, style
+                        topx=topx, sort=sort, round=self.round, 
+                        plot_sample=self.plot_sample), style, style, style
             elif display == 'predicted':
                 return self.explainer.plot_preds_vs_feature(
                         col, points=bool(points), winsor=winsor, dropna=True,
-                        topx=topx, sort=sort, round=self.round), style, style, style
+                        topx=topx, sort=sort, round=self.round, 
+                        plot_sample=self.plot_sample), style, style, style
             else:
                 return self.explainer.plot_residuals_vs_feature(
                             col, residuals=display, points=bool(points), 
                             winsor=winsor, dropna=True,
-                        topx=topx, sort=sort, round=self.round), style, style, style
+                        topx=topx, sort=sort, round=self.round, 
+                        plot_sample=self.plot_sample), style, style, style
 
 
 class RegressionModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model Summary", name=None, 
                     subtitle="Quantitative metrics for model performance",
                     hide_title=False, hide_subtitle=False, 
-                    round=3, description=None, **kwargs):
+                    round=3, show_metrics=None, description=None, **kwargs):
         """Show model summary statistics (RMSE, MAE, R2) component
 
         Args:
@@ -959,6 +971,8 @@ class RegressionModelSummaryComponent(ExplainerComponent):
             hide_title (bool, optional): hide title
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             round (int): rounding to perform to metric floats.
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -972,7 +986,7 @@ class RegressionModelSummaryComponent(ExplainerComponent):
 
     def layout(self):
         metrics_dict = self.explainer.metrics_descriptions()
-        metrics_df = (pd.DataFrame(self.explainer.metrics(), index=["Score"]).T
+        metrics_df = (pd.DataFrame(self.explainer.metrics(show_metrics=self.show_metrics), index=["Score"]).T
                         .rename_axis(index="metric").reset_index().round(self.round))
         metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)      
         metrics_table, tooltips = get_dbc_tooltips(metrics_table, 

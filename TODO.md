@@ -1,10 +1,10 @@
 
 # TODO
 
+
 ## Bugs:
 
 ## Plots:
-- add sample_size parameter for shap dependence plot with large dataset
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
@@ -20,11 +20,8 @@
     - new method?
 
 ### Regression plots:
-- add plot_sample parameter
 
 ## Explainers:
-- add show_metrics parameter to ``metrics`` and ``ModelSummaryComponent``.
-- add metrics, classification_df, roc_auc_cruve, pr_auc_curve, etc to calculate_properties()
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -38,6 +35,7 @@
 
 
 ## Dashboard:
+- make poweredby right align
 - more flexible instantiate_component:
     - no explainer needed (if explainer component detected, pass otherwise ignore)
 - add TablePopout
@@ -59,9 +57,11 @@
 
 
 ### Components
-- autodetect when uuid name get rendered and issue warning
-
+- add predictions list to whatif composite:
+    - https://github.com/oegedijk/explainerdashboard/issues/85
+- add circular callbacks to cutoff - cutoff percentile
 - Add side-by-side option to cutoff selector component
+- add `index_dropdown=True` parameter. Alternative: free entry input.
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks
 - add querystring method to ExplainerComponents
@@ -95,7 +95,6 @@
     - to explainer class methods
     - to explainer_methods
     - to explainer_plots
-- Add pydata video when it comes online (january 4th)
 
 
 ## Library level:

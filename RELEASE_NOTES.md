@@ -1,5 +1,67 @@
 # Release Notes
 
+## Version 0.3.2:
+
+Highlights:
+- Control what metrics to show or use your own custom metrics using `show_metrics`
+- Set the naming for onehot features with all `0`s with `cats_notencoded`
+- Speed up plots by displaying only a random sample of markers in scatter plots with `plot_sample`.
+- make index selection a free text field with `index_dropdown=False` 
+
+### New Features
+- new parameter `show_metrics` for both `explainer.metrics()`, `ClassifierModelSummaryComponent`
+    and `RegressionModelSummaryComponent`:
+    - pass a list of metrics and only display those metrics in that order
+    - you can also pass custom scoring functions as long as they
+        are of the form `metric_func(y_true, y_pred)`: `show_metrics=[metric_func]`
+        - For `ClassifierExplainer` what is passed to the custom metric function
+            depends on whether the function takes additional parameters `cutoff`
+            and `pos_label`. If these are not arguments, then `y_true=self.y_binary(pos_label)`
+            and `y_pred=np.where(self.pred_probas(pos_label)>cutoff, 1, 0)`.
+            Else the raw `self.y` and `self.pred_probas` are passed for the 
+            custom metric function to do something with.
+        - custom functions are also stored to `dashboard.yaml` and imported upon 
+            loading `ExplainerDashboard.from_config()`
+- new parameter `cats_notencoded`: a dict to indicate how to name the value 
+    of a onehotencoded features when all onehot columns equal 0. Defaults
+    to `'NOT_ENCODED'`, but can be adjusted with this parameter. E.g. 
+    `cats_notencoded=dict(Deck="Deck not known")`.
+- new parameter `plot_sample` to only plot a random sample in the various 
+    scatter plots. When you have a large dataset, this may significantly
+    speed up various plots without sacrificing much in expressiveness:
+    `ExplainerDashboard(explainer, plot_sample=1000).run`
+- new parameter `index_dropdown=False` will replace the index dropdowns with a
+    free text field. This can be useful when you have a lot of potential indexes,
+    and the user is expected to know the index string. 
+    Input will be checked for validity with `explainer.index_exists(index)`, 
+    and field indicates when input index does not exist. If index does not exist,
+    will not be forwarded to other components, unless you also set `index_check=False`.
+- adds mean absolute percentage error to the regression metrics. If it is too
+    large a warning will be printed. Can be excluded with the new `show_metrics`
+    parameter.
+
+### Bug Fixes
+- `get_classification_df` added to `ClassificationComponent` dependencies.
+-
+
+### Improvements
+- accepting single column `pd.Dataframe` for `y`, and automatically converting 
+    it to a `pd.Series`
+- if WhatIf `FeatureInputComponent` detects the presence of missing onehot features
+    (i.e. rows where all columns of the onehotencoded feature equal 0), then
+    adds `'NOT_ENCODED'` or the matching value from `cats_notencoded` to the 
+    dropdown options.
+- Generating `name` for parameters for `ExplainerComponents` for which no
+    name is given is now done with a determinative process instead of a random
+    `uuid`. This should help with scaling custom dashboards across cluster
+    deployments. Also drops `shortuuid` dependency.
+- `ExplainerDashboard` now prints out local ip address when starting dashboard.
+- `get_index_list()` is only called once upon starting dashboard.
+
+### Other Changes
+-
+-
+
 ## Version 0.3.1:
 This version is mostly about pre-calculating and optimizing the classifier statistics
 components. Those components should now be much more responsive with large datasets.

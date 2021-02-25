@@ -33,6 +33,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         hide_index=False, hide_slider=False,
                         hide_labels=False, hide_pred_or_perc=False,
                         hide_selector=False, hide_button=False,
+                        index_dropdown=True,
                         pos_label=None, index=None, slider= None, labels=None,
                         pred_or_perc='predictions', description=None,
                         **kwargs):
@@ -57,6 +58,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         toggle. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_button (bool, optional): Hide button. Defaults to False.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display.
                         Defaults to None.
@@ -85,6 +88,8 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             self.hide_labels = True
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'random-index-clas-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
 
         assert (len(self.slider) == 2 and
                 self.slider[0] >= 0 and self.slider[0] <=1 and
@@ -131,10 +136,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dcc.Dropdown(id='random-index-clas-index-'+self.name,
-                                    options = [{'label': str(idx), 'value':idx}
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index),
+                            self.index_selector.layout()
                         ], md=8), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
@@ -250,7 +252,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                     hide_index=False, hide_title=False,  hide_subtitle=False,
                     hide_table=False, hide_piechart=False, 
                     hide_star_explanation=False, hide_selector=False,
-                    feature_input_component=None,
+                    index_dropdown=True, feature_input_component=None,
                     pos_label=None, index=None,  round=3, description=None, 
                     **kwargs):
         """Shows a summary for a particular prediction
@@ -272,6 +274,8 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                 Defaults to False.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
@@ -288,6 +292,8 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
 
         self.index_name = 'clas-prediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'clas-prediction-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
 
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -313,10 +319,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             dbc.Label(f"{self.explainer.index_name}:"),
-                            dcc.Dropdown(id='clas-prediction-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index)
+                            self.index_selector.layout()
                         ], md=6), hide=self.hide_index),
                     make_hideable(
                             dbc.Col([self.selector.layout()
@@ -1082,7 +1085,7 @@ class ClassificationComponent(ExplainerComponent):
 
         self.popout = GraphPopout('classification-'+self.name+'popout', 
                             'classification-graph-'+self.name, self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("get_classification_df")
 
     def layout(self):
         return dbc.Card([
@@ -1354,7 +1357,8 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Model performance metrics", name=None,
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_selector=False,
-                    pos_label=None, cutoff=0.5, round=3, description=None,
+                    pos_label=None, cutoff=0.5, round=3, show_metrics=None,
+                    description=None,
                     **kwargs):
         """Show model summary statistics (accuracy, precision, recall,  
             f1, roc_auc, pr_auc, log_loss) component.
@@ -1375,6 +1379,8 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
             pos_label ({int, str}, optional): initial pos label. Defaults to explainer.pos_label
             cutoff (float, optional): default cutoff. Defaults to 0.5.
             round (int): round floats. Defaults to 3.
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -1435,7 +1441,8 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
         def update_classifier_summary(cutoff, pos_label):
             metrics_dict = self.explainer.metrics_descriptions(cutoff, pos_label)
             metrics_df = (pd.DataFrame(
-                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label), 
+                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label, 
+                                                        show_metrics=self.show_metrics), 
                                 index=["Score"])
                               .T.rename_axis(index="metric").reset_index()
                               .round(self.round))

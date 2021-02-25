@@ -235,7 +235,7 @@ class CutoffConnector(ExplainerComponent):
 
 
 class IndexConnector(ExplainerComponent):
-    def __init__(self, input_index, output_indexes):
+    def __init__(self, input_index, output_indexes, explainer=None):
         """Connect the index selector of input_index with those of output_indexes.
 
         You can use this to connect a RandomIndexComponent with a
@@ -254,6 +254,7 @@ class IndexConnector(ExplainerComponent):
         """
         self.input_index_name = self.index_name(input_index)
         self.output_index_names = self.index_name(output_indexes)
+        self.explainer = explainer
         if not isinstance(self.output_index_names, list):
             self.output_index_names = [self.output_index_names]
 
@@ -281,6 +282,11 @@ class IndexConnector(ExplainerComponent):
             [Input(self.input_index_name, 'value')]
         )
         def update_indexes(index):
+            if self.explainer is not None:
+                if self.explainer.index_exists(index):
+                    return tuple(index for i in range(len(self.output_index_names)))
+                else:
+                    raise PreventUpdate
             return tuple(index for i in range(len(self.output_index_names)))
 
 

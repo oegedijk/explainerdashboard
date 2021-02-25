@@ -25,7 +25,7 @@ class DecisionTreesComponent(ExplainerComponent):
                     hide_title=False,  hide_subtitle=False,
                     hide_index=False, hide_highlight=False,
                     hide_selector=False, hide_popout=False,
-                    pos_label=None, index=None, highlight=None, 
+                    index_dropdown=True, pos_label=None, index=None, highlight=None, 
                     higher_is_better=True, description=None, **kwargs):
         """Show prediction from individual decision trees inside RandomForest component
 
@@ -44,6 +44,8 @@ class DecisionTreesComponent(ExplainerComponent):
             hide_highlight (bool, optional): Hide tree highlight selector. Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
             hide_popout (bool, optional): hide popout button
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
@@ -59,6 +61,8 @@ class DecisionTreesComponent(ExplainerComponent):
         self.highlight_name = 'decisiontrees-highlight-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'decisiontrees-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
         
         
         if isinstance(self.explainer, RandomForestExplainer):
@@ -101,10 +105,7 @@ class DecisionTreesComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='decisiontrees-index-label-'+self.name),
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to display decision trees for", 
                                             target='decisiontrees-index-label-'+self.name),
-                            dcc.Dropdown(id='decisiontrees-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout()
                         ], md=4), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
@@ -165,7 +166,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                     subtitle="Decision path through decision tree",
                     hide_title=False,  hide_subtitle=False,
                     hide_index=False, hide_highlight=False,
-                    hide_selector=False,
+                    hide_selector=False, index_dropdown=True,
                     pos_label=None, index=None, highlight=None, description=None,
                     **kwargs):
         """Display a table of the decision path through a particular decision tree
@@ -187,6 +188,8 @@ class DecisionPathTableComponent(ExplainerComponent):
                         Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. 
                         Defaults to False.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                        of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display decision 
@@ -202,6 +205,8 @@ class DecisionPathTableComponent(ExplainerComponent):
         self.highlight_name = 'decisionpath-table-highlight-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'decisionpath-table-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
         
         if self.description is None: self.description = """
         Shows the path that an observation took down a specific decision tree.
@@ -225,10 +230,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='decisionpath-table-index-label-'+self.name),
                             dbc.Tooltip(f"Select {self.explainer.index_name} to display decision tree for", 
                                             target='decisionpath-table-index-label-'+self.name),
-                            dcc.Dropdown(id='decisionpath-table-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout()
                         ], md=4), hide=self.hide_index),
                         make_hideable(
                         dbc.Col([
@@ -272,7 +274,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                     subtitle="Visualizing entire decision tree",
                     hide_title=False,  hide_subtitle=False, hide_index=False, 
                     hide_highlight=False, hide_button=False,
-                    hide_selector=False,
+                    hide_selector=False, index_dropdown=True,
                     pos_label=None, index=None, highlight=None, description=None,
                     **kwargs):
         """Display dtreeviz decision path
@@ -292,6 +294,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
             hide_highlight (bool, optional): hide tree idx selector. Defaults to False.
             hide_button (bool, optional): hide the button, Defaults to False.
             hide_selector (bool, optional): hide pos label selectors. Defaults to False.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({str, int}, optional): Initial index to display. Defaults to None.
@@ -312,6 +316,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
         """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'decisionpath-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
 
     def layout(self):
         return dbc.Card([
@@ -330,10 +336,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='decisionpath-index-label-'+self.name),
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to display decision tree for", 
                                             target='decisionpath-index-label-'+self.name),
-                            dcc.Dropdown(id='decisionpath-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout(),
                         ], md=4), hide=self.hide_index),
                         make_hideable(
                         dbc.Col([
@@ -376,6 +379,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
              State('pos-label-'+self.name, 'value')]
         )
         def update_tree_graph(n_clicks, index, highlight, pos_label):
-            if n_clicks is not None and index is not None and highlight is not None:
+            if (n_clicks is not None 
+                and index is not None 
+                and highlight is not None):
                 return self.explainer.decisiontree_encoded(int(highlight), index)
             raise PreventUpdate

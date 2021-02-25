@@ -25,7 +25,7 @@ class ShapSummaryComponent(ExplainerComponent):
                     hide_type=False, hide_index=False, hide_selector=False,
                     hide_popout=False, pos_label=None, depth=None, 
                     summary_type="aggregate", max_cat_colors=5, index=None,
-                    description=None, **kwargs):
+                    plot_sample=None, description=None, **kwargs):
         """Shows shap summary component
 
         Args:
@@ -52,6 +52,8 @@ class ShapSummaryComponent(ExplainerComponent):
                         summary graph to show. Defaults to "aggregate".
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -171,8 +173,8 @@ class ShapSummaryComponent(ExplainerComponent):
                         kind='shap', topx=depth, pos_label=pos_label)
             elif summary_type == 'detailed':
                 plot = self.explainer.plot_importances_detailed(
-                        topx=depth, pos_label=pos_label, index=index, 
-                        max_cat_colors=self.max_cat_colors)
+                        topx=depth, pos_label=pos_label, highlight_index=index, 
+                        max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
             else:
                 raise PreventUpdate
 
@@ -197,7 +199,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     pos_label=None, 
                     col=None, color_col=None, index=None, 
                     cats_topx=10, cats_sort='freq', max_cat_colors=5,
-                    description=None, **kwargs):
+                    plot_sample=None, description=None, **kwargs):
         """Show shap dependence graph
 
         Args:
@@ -231,6 +233,8 @@ class ShapDependenceComponent(ExplainerComponent):
                 'freq' or 'shap'. Defaults to 'freq'.
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -385,7 +389,7 @@ class ShapDependenceComponent(ExplainerComponent):
                 return self.explainer.plot_dependence(
                             col, color_col, topx=topx, sort=sort, 
                             highlight_index=index, max_cat_colors=self.max_cat_colors,
-                            pos_label=pos_label)
+                            plot_sample=self.plot_sample, pos_label=pos_label)
             raise PreventUpdate
             
 
@@ -427,7 +431,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                     hide_type=False, hide_index=False, hide_popout=False, hide_selector=False,
                     pos_label=None, col=None, depth=None, 
                     summary_type="aggregate", max_cat_colors=5,
-                    index=None, description=None,
+                    index=None, plot_sample=None, description=None,
                     **kwargs):
         """Show SHAP Interaciton values summary component
 
@@ -459,6 +463,8 @@ class InteractionSummaryComponent(ExplainerComponent):
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
             index (str):    Default index. Defaults to None.
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -597,8 +603,8 @@ class InteractionSummaryComponent(ExplainerComponent):
                     return plot, dict(display="none")
                 elif summary_type=='detailed':
                     plot = self.explainer.plot_interactions_detailed(
-                        col, topx=depth, pos_label=pos_label, index=index, 
-                        max_cat_colors=self.max_cat_colors)
+                        col, topx=depth, pos_label=pos_label, highlight_index=index, 
+                        max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
                 return plot, {}
             raise PreventUpdate
 
@@ -612,7 +618,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                     hide_cats_sort=False, hide_top=False, hide_bottom=False,
                     pos_label=None, col=None, interact_col=None,
                     cats_topx=10, cats_sort='freq', max_cat_colors=5,
-                    description=None, index=None, **kwargs):
+                    plot_sample=None, description=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
         Shows two graphs:
@@ -657,6 +663,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                 'freq' or 'shap'. Defaults to 'freq'.
             max_cat_colors (int, optional): for categorical features, maximum number
                 of categories to label with own color. Defaults to 5. 
+            plot_sample (int, optional): Instead of all points only plot a random
+                sample of points. Defaults to None (=all points) 
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
@@ -711,7 +719,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_col), 
                     make_hideable(
                         dbc.Col([
-                            html.Label('Interaction feature:', id='interaction-dependence-interact-col-label-'+self.name),
+                            html.Label('Interaction:', id='interaction-dependence-interact-col-label-'+self.name),
                                 dbc.Tooltip("Select feature to show interaction values for.  Two plots will be shown: "
                                             "both Feature vs Interaction Feature and Interaction Feature vs Feature.", 
                                             target='interaction-dependence-interact-col-label-'+self.name),
@@ -850,7 +858,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                 style = {} if interact_col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_interaction(
                             interact_col, col, highlight_index=index, pos_label=pos_label,
-                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
+                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors,
+                            plot_sample=self.plot_sample),
                         style)
             raise PreventUpdate
 
@@ -868,7 +877,8 @@ class InteractionDependenceComponent(ExplainerComponent):
                 style = {} if col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_interaction(
                             col, interact_col, highlight_index=index, pos_label=pos_label,
-                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors),
+                            topx=topx, sort=sort, max_cat_colors=self.max_cat_colors,
+                            plot_sample=self.plot_sample),
                         style)
             raise PreventUpdate
 
@@ -916,7 +926,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_index=False, hide_depth=False, 
                     hide_sort=False, hide_orientation=True, 
                     hide_selector=False, hide_popout=False, feature_input_component=None, 
-                    pos_label=None, index=None, depth=None, sort='high-to-low', 
+                    index_dropdown=True, pos_label=None, 
+                    index=None, depth=None, sort='high-to-low', 
                     orientation='vertical', higher_is_better=True,
                     description=None, **kwargs):
         """Display Shap contributions to prediction graph component
@@ -942,6 +953,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ({int, bool}, optional): Initial index to display. Defaults to None.
@@ -975,6 +988,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         """
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'contributions-graph-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
+
         self.popout = GraphPopout('contributions-graph-'+self.name+'popout', 
                             'contributions-graph-'+self.name, self.title, self.description)
         self.register_dependencies('shap_values_df')
@@ -1001,10 +1017,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='contributions-graph-index-label-'+self.name),
                             dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
                                         target='contributions-graph-index-label-'+self.name),
-                            dcc.Dropdown(id='contributions-graph-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout()
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
                         dbc.Col([
@@ -1072,7 +1085,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 if index is None:
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
-                plot = self.explainer.plot_contributions(index, topx=depth, 
+                plot = self.explainer.plot_contributions(str(index), topx=depth, 
                             sort=sort, orientation=orientation, 
                             pos_label=pos_label, higher_is_better=self.higher_is_better)
                 return plot
@@ -1101,7 +1114,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     hide_title=False, hide_subtitle=False, hide_index=False, 
                     hide_depth=False, hide_sort=False,
                     hide_selector=False, feature_input_component=None,
-                    pos_label=None, index=None, depth=None, sort='abs', 
+                    index_dropdown=True, pos_label=None, index=None, depth=None, sort='abs', 
                     description=None, **kwargs):
         """Show SHAP values contributions to prediction in a table component
 
@@ -1123,6 +1136,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             pos_label ({int, str}, optional): initial pos label. 
                         Defaults to explainer.pos_label
             index ([type], optional): Initial index to display. Defaults to None.
@@ -1151,6 +1166,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
         from all the individual ingredients in the model.
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'contributions-table-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown)
+        
         self.register_dependencies('shap_values_df')
 
     def layout(self):
@@ -1170,10 +1188,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Label(f"{self.explainer.index_name}:", id='contributions-table-index-label-'+self.name),
                             dbc.Tooltip(f"Select the {self.explainer.index_name} to display the feature contributions for", 
                                         target='contributions-table-index-label-'+self.name),
-                            dcc.Dropdown(id='contributions-table-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.get_index_list()],
-                                value=self.index)
+                            self.index_selector.layout()
                         ], md=4), hide=self.hide_index), 
                     make_hideable(
                         dbc.Col([
@@ -1225,7 +1240,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
                 contributions_table = dbc.Table.from_dataframe(
-                    self.explainer.get_contrib_summary_df(index, topx=depth, 
+                    self.explainer.get_contrib_summary_df(str(index), topx=depth, 
                                     sort=sort, pos_label=pos_label))
 
                 tooltip_cols = {}

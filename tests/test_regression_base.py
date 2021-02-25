@@ -5,7 +5,6 @@ import numpy as np
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
 
 import plotly.graph_objects as go
 
@@ -24,9 +23,10 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         model = RandomForestRegressor(n_estimators=5, max_depth=2).fit(X_train, y_train)
 
         self.explainer = RegressionExplainer(
-                            model, X_test, y_test, r2_score,
+                            model, X_test, y_test, 
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
+                            cats_notencoded={'Gender':'No Gender'},
                             idxs=test_names, target='Fare', units='$')
 
     def test_explainer_len(self):
@@ -38,6 +38,11 @@ class RegressionBaseExplainerTests(unittest.TestCase):
     def test_random_index(self):
         self.assertIsInstance(self.explainer.random_index(), int)
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
+
+    def test_index_exists(self):
+        self.assertTrue(self.explainer.index_exists(0))
+        self.assertTrue(self.explainer.index_exists(self.explainer.idxs[0]))
+        self.assertFalse(self.explainer.index_exists('bla'))
 
     def test_row_from_input(self):
         input_row = self.explainer.get_row_from_input(

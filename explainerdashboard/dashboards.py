@@ -19,7 +19,6 @@ from pathlib import Path
 from copy import copy, deepcopy
 
 import oyaml as yaml
-import shortuuid
 
 import dash
 import dash_auth
@@ -34,7 +33,7 @@ from jupyter_dash import JupyterDash
 
 import plotly.io as pio
 
-from .dashboard_methods import instantiate_component
+from .dashboard_methods import instantiate_component, encode_callables, decode_callables
 from .dashboard_components import *
 from .dashboard_tabs import *
 from .explainers import BaseExplainer
@@ -363,6 +362,7 @@ class ExplainerDashboard:
 
         self._store_params(no_param=['explainer', 'tabs', 'server'])
         self._stored_params['tabs'] = self._tabs_to_yaml(tabs)
+
         if not hasattr(explainer, "__version__"):
             raise ValueError(f"The {explainer.__class__.__name__} was generated "
                     "with a version of explainerdashboard<0.3 and therefore not "
@@ -404,14 +404,6 @@ class ExplainerDashboard:
                 self.external_stylesheets = [bootstrap_theme]
             else:
                 self.external_stylesheets.append(bootstrap_theme)
-
-        if not hasattr(self.explainer, "onehot_dict"):
-            # explainer generated with explainerdashboard < v0.2.20
-            self.explainer.onehot_dict = self.explainer.cats_dict
-            self.explainer.onehot_cols = self.explainer.cats
-            self.explainer.cat_cols = self.explainer.cats
-            self.explainer.categorical_cols = []
-            self.explainer.categorical_dict = {}
 
         self.app = self._get_dash_app()
 
@@ -471,31 +463,38 @@ class ExplainerDashboard:
 
         if isinstance(tabs, list) and len(tabs)==1:
             tabs = tabs[0]
-        print("Generating layout...")  
+
+        print("Generating layout...") 
+        _, i = yield_id(return_i=True) # store id generator index
+        reset_id_generator("db") # reset id generator to 0 with prefix "db"
+        if hasattr(self.explainer, "_index_list"):
+            del self.explainer._index_list # delete cached ._index_list to force re-download
+
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             self.explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
                             description=self.description,
                             **update_kwargs(kwargs, 
-                            header_hide_title=self.header_hide_title, 
-                            header_hide_selector=self.header_hide_selector, 
-                            hide_poweredby=self.hide_poweredby,
-                            block_selector_callbacks=self.block_selector_callbacks,
-                            pos_label=self.pos_label,
-                            fluid=fluid))
+                                header_hide_title=self.header_hide_title, 
+                                header_hide_selector=self.header_hide_selector, 
+                                hide_poweredby=self.hide_poweredby,
+                                block_selector_callbacks=self.block_selector_callbacks,
+                                pos_label=self.pos_label,
+                                fluid=fluid))
         else:
             tabs = self._convert_str_tabs(tabs)
             self.explainer_layout = ExplainerPageLayout(explainer, tabs, title,
                             description=self.description, 
                             **update_kwargs(kwargs,
-                            header_hide_title=self.header_hide_title, 
-                            header_hide_selector=self.header_hide_selector, 
-                            hide_poweredby=self.hide_poweredby,
-                            block_selector_callbacks=self.block_selector_callbacks,
-                            pos_label=self.pos_label,
-                            fluid=self.fluid))
+                                header_hide_title=self.header_hide_title, 
+                                header_hide_selector=self.header_hide_selector, 
+                                hide_poweredby=self.hide_poweredby,
+                                block_selector_callbacks=self.block_selector_callbacks,
+                                pos_label=self.pos_label,
+                                fluid=self.fluid))
 
         self.app.layout = self.explainer_layout.layout()
+        reset_id_generator(start=i+1) # reset id generator to previous index
 
         print("Calculating dependencies...", flush=True)  
         self.explainer_layout.calculate_dependencies()
@@ -565,7 +564,7 @@ class ExplainerDashboard:
                     "When passing two arguments to ExplainerDashboard.from_config(arg1, arg2), "
                     "arg2 should be a .yaml file or a dict!")
 
-        dashboard_params = config['dashboard']['params']
+        dashboard_params = decode_callables(config['dashboard']['params'])
 
         for k, v in update_params.items():
             if k in dashboard_params:
@@ -675,6 +674,8 @@ class ExplainerDashboard:
             if not dont_param and name not in no_store and name not in no_param:
                 self._stored_params[name] = value
 
+        self._stored_params = encode_callables(self._stored_params)
+
     def _convert_str_tabs(self, component):
         if isinstance(component, str):
             if component == 'importances':
@@ -749,6 +750,8 @@ class ExplainerDashboard:
                 else:
                     if not 'name' in tab['params'] or tab['params']['name'] is None:
                         tab['params']['name'] = name
+
+                    tab['params'] = decode_callables(tab['params'])
                     tab_instance = tab_class(explainer, **tab['params'])
                     return tab_instance
             else:
@@ -841,7 +844,7 @@ class ExplainerDashboard:
             else:
                 app = self.app
 
-            print(f"Starting ExplainerDashboard on http://localhost:{port}", flush=True)
+            print(f"Starting ExplainerDashboard on http://{get_local_ip_adress()}:{port}", flush=True)
             if use_waitress:
                 from waitress import serve
                 serve(app.server, host=host, port=port)
@@ -857,7 +860,7 @@ class ExplainerDashboard:
                 app = self.app
             if mode == 'external':
                 if not self.is_colab:
-                    print(f"Starting ExplainerDashboard on http://localhost:{port}\n"
+                    print(f"Starting ExplainerDashboard on http://{get_local_ip_adress()}:{port}\n"
                         "You can terminate the dashboard with "
                         f"ExplainerDashboard.terminate({port})", flush=True)
                 app.run_server(port=port, mode=mode, **kwargs)
@@ -1708,7 +1711,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{host}:{port}", flush=True)
+        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  
