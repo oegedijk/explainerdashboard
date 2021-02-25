@@ -40,6 +40,11 @@ class RegressionBaseExplainerTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.random_index(), int)
         self.assertIsInstance(self.explainer.random_index(return_str=True), str)
 
+    def test_index_exists(self):
+        self.assertTrue(self.explainer.index_exists(0))
+        self.assertTrue(self.explainer.index_exists(self.explainer.idxs[0]))
+        self.assertTrue(not self.explainer.index_exists('bla'))
+
     def test_row_from_input(self):
         input_row = self.explainer.get_row_from_input(
             self.explainer.X.iloc[[0]].values.tolist())

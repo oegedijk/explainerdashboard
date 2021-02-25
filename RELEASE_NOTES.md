@@ -34,7 +34,8 @@ Highlights:
     free text field. This can be useful when you have a lot of potential indexes,
     and the user is expected to know the index string. 
     Input will be checked for validity with `explainer.index_exists(index)`, 
-    and field indicates when input index does not exist.
+    and field indicates when input index does not exist. If index does not exist,
+    will not be forwarded to other components, unless you also set `index_check=False`.
 - adds mean absolute percentage error to the regression metrics. If it is too
     large a warning will be printed. Can be excluded with the new `show_metrics`
     parameter.
