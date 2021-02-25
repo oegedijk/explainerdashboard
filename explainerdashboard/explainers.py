@@ -435,7 +435,7 @@ class BaseExplainer(ABC):
     def get_index_list(self):
         if self._get_index_list_func is not None:
             if not hasattr(self, '_index_list'):
-                self._index_list = self._get_index_list_func()
+                self._index_list = pd.Index(self._get_index_list_func())
             return self._index_list
         else:
             return self.idxs
