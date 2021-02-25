@@ -58,6 +58,9 @@
 
 
 ### Components
+- add `index_check=False` parameter
+- add predictions list to whatif composite:
+    - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile
 - Add side-by-side option to cutoff selector component
 - add `index_dropdown=True` parameter. Alternative: free entry input.
@@ -82,6 +85,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- test for index_exists
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately

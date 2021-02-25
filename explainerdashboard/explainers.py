@@ -406,8 +406,11 @@ class BaseExplainer(ABC):
         return self._X_cats
 
     @property
-    def X_merged(self):
-        return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
+    def X_merged(self, index=None):
+        if index is None:
+            return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
+        else:
+            return self.X[index].merge(self.X_cats[index], left_index=True, right_index=True)[self.merged_cols]
 
     @property
     def n_features(self):
@@ -422,38 +425,20 @@ class BaseExplainer(ABC):
         if isinstance(index, int):
             if index >= 0 and index < len(self):
                 return True
-        elif isinstance(index, str):
-            if self.idxs is not None and index in self.idxs:
+        if isinstance(index, str):
+            if index in self.idxs:
+                return True
+            if self._get_index_list_func is not None and index in self.get_index_list():
                 return True
         return False
 
-    def set_index_exists_func(self, func):
-        """Sets an external function that checks whether an index is valid
-
-        func should either be a function that takes a single parameter: def func(index)
-        or a method that takes a single parameter: def func(self, index)
-        """
-        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
-        argspec = inspect.getfullargspec(func).args
-        if argspec == ['self', 'index']:
-            self._get_index_exists_func = MethodType(func, self)
-        elif argspec == ['index']:
-            self._get_index_exists_func = func
-        else:
-            raise ValueError(f"Parameter func should either be a function {func.__name__}(index) "
-                             f"or a method {func.__name__}(self, index)! Instead you "
-                             f"passed func={func.__name__}{inspect.signature(func)}")
-
-
     def get_index_list(self):
         if self._get_index_list_func is not None:
-            index_list = self._get_index_list_func()
+            if not hasattr(self, '_index_list'):
+                self._index_list = self._get_index_list_func()
+            return self._index_list
         else:
-            index_list = list(self.idxs)
-        if not isinstance(index_list, list):
-            raise ValueError("self._get_index_list_func() should return a list! "
-                        f"Instead returned {index_list}")
-        return index_list
+            return self.idxs
 
     def set_index_list_func(self, func):
         """Sets an external function all available indexes from an external source.
@@ -473,13 +458,14 @@ class BaseExplainer(ABC):
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
     def get_X_row(self, index, merge=False):
-        if self._get_X_row_func is not None:
+        if index in self.idxs:
+            X_row = self.X.iloc[[self.get_idx(index)]]
+        elif isinstance(index, int) and index >= 0 and index < len(self):
+            X_row = self.X.iloc[[index]]
+        elif self._get_X_row_func is not None and index in self.get_index_list():
             X_row = self._get_X_row_func(index)
         else:
-            idx = self.get_idx(index)
-            if idx is None: 
-                raise IndexNotFoundError(index=index)
-            X_row = self.X.iloc[[idx]]
+            raise IndexNotFoundError(index=index)
 
         if not matching_cols(X_row.columns, self.columns):
             raise ValueError(f"columns do not match! Got {X_row.columns}, but was"
@@ -507,14 +493,16 @@ class BaseExplainer(ABC):
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
     def get_y(self, index):
-        if self._get_y_func is not None:
-            y = self._get_y_func(index)
-        else:
+        if index in self.idxs:
             if self.y_missing:
-                y = None
-            else:
-                y = self.y.iloc[self.get_idx(index)]
-        return y
+                return None
+            return self.y.iloc[[self.get_idx(index)]].item()
+        elif isinstance(index, int) and index >= 0 and index < len(self):
+            return self.y.iloc[[index]].item()
+        elif self._get_y_func is not None and index in self.get_index_list():
+            return self._get_y_func(index)
+        else:
+            raise IndexNotFoundError(index=index)
 
     def set_y_func(self, func):
         """Sets an external function to retrieve an observed label for a given index.

@@ -405,14 +405,6 @@ class ExplainerDashboard:
             else:
                 self.external_stylesheets.append(bootstrap_theme)
 
-        if not hasattr(self.explainer, "onehot_dict"):
-            # explainer generated with explainerdashboard < v0.2.20
-            self.explainer.onehot_dict = self.explainer.cats_dict
-            self.explainer.onehot_cols = self.explainer.cats
-            self.explainer.cat_cols = self.explainer.cats
-            self.explainer.categorical_cols = []
-            self.explainer.categorical_dict = {}
-
         self.app = self._get_dash_app()
 
         if logins is not None:
@@ -473,8 +465,11 @@ class ExplainerDashboard:
             tabs = tabs[0]
 
         print("Generating layout...") 
-        _, i = yield_id(return_i=True)
-        reset_id_generator("db") 
+        _, i = yield_id(return_i=True) # store id generator index
+        reset_id_generator("db") # reset id generator to 0 with prefix "db"
+        if hasattr(self.explainer, "_index_list"):
+            del self.explainer._index_list # delete cached ._index_list to force re-download
+
         if isinstance(tabs, list):
             tabs = [self._convert_str_tabs(tab) for tab in tabs]
             self.explainer_layout = ExplainerTabsLayout(explainer, tabs, title, 
@@ -499,7 +494,7 @@ class ExplainerDashboard:
                                 fluid=self.fluid))
 
         self.app.layout = self.explainer_layout.layout()
-        reset_id_generator(start=i+1) 
+        reset_id_generator(start=i+1) # reset id generator to previous index
 
         print("Calculating dependencies...", flush=True)  
         self.explainer_layout.calculate_dependencies()
