@@ -22,7 +22,6 @@
 ### Regression plots:
 
 ## Explainers:
-- add metrics, classification_df, roc_auc_cruve, pr_auc_curve, etc to calculate_properties()
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -58,7 +57,6 @@
 
 
 ### Components
-- add `index_check=False` parameter
 - add predictions list to whatif composite:
     - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile
@@ -85,7 +83,6 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- test for index_exists
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately
@@ -98,7 +95,6 @@
     - to explainer class methods
     - to explainer_methods
     - to explainer_plots
-- Add pydata video when it comes online (january 4th)
 
 
 ## Library level:
