@@ -145,7 +145,7 @@ class DecisionTreesComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')],
         )
         def update_tree_graph(index, highlight, pos_label):
-            if index is not None and self.explainer.index_exists(index):
+            if index is not None:
                 highlight = None if highlight is None else int(highlight)
                 return self.explainer.plot_trees(index, 
                         highlight_tree=highlight, pos_label=pos_label,
@@ -262,7 +262,7 @@ class DecisionPathTableComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')],
         )
         def update_decisiontree_table(index, highlight, pos_label):
-            if index is not None and self.explainer.index_exists(index) and highlight is not None:
+            if index is not None and highlight is not None:
                 get_decisionpath_df = self.explainer.get_decisionpath_summary_df(
                     int(highlight), index, pos_label=pos_label)
                 return dbc.Table.from_dataframe(get_decisionpath_df)
@@ -381,7 +381,6 @@ class DecisionPathGraphComponent(ExplainerComponent):
         def update_tree_graph(n_clicks, index, highlight, pos_label):
             if (n_clicks is not None 
                 and index is not None 
-                and self.explainer.index_exists(index)
                 and highlight is not None):
                 return self.explainer.decisiontree_encoded(int(highlight), index)
             raise PreventUpdate
