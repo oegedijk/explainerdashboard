@@ -356,6 +356,7 @@ ExplainerDashboard(explainer,
                     )
 ```
 
+
 ### Designing your own layout
 
 All the components in the dashboard are modular and re-usable, which means that 
@@ -490,7 +491,14 @@ In order to reduce the memory footprint there are a number of things you can do:
         and `index` as argument and returns the observed outcome `y` for
         that index.
     - with `explainer.set_index_list_func()` you can set a function 
-        that returns a list of available indexes that can be queried.
+        that returns a list of available indexes that can be queried. Only gets
+        called upon start of the dashboard.
+
+    If you have a very large number of indexes and the user is able to look
+    them up elsewhere, you can also replace the index dropdowns with a simple free
+    text field with `index_dropdown=False`. Only valid indexes (i.e. in the 
+    `get_index_list()` list) get propagated
+    to other components by default, but this can be overriden with `index_check=False`.
 
     Important: these function can be called multiple times by multiple independent
     components, so probably best to implement some kind of caching functionality.
