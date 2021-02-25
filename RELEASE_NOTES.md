@@ -56,6 +56,7 @@ Highlights:
     `uuid`. This should help with scaling custom dashboards across cluster
     deployments. Also drops `shortuuid` dependency.
 - `ExplainerDashboard` now prints out local ip address when starting dashboard.
+- `get_index_list()` is only called once upon starting dashboard.
 
 ### Other Changes
 -
