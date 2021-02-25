@@ -1085,7 +1085,7 @@ class ClassificationComponent(ExplainerComponent):
 
         self.popout = GraphPopout('classification-'+self.name+'popout', 
                             'classification-graph-'+self.name, self.title, self.description)
-        self.register_dependencies("preds", "pred_probas", "pred_percentiles")
+        self.register_dependencies("get_classification_df")
 
     def layout(self):
         return dbc.Card([

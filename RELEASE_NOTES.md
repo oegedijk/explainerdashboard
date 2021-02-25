@@ -41,7 +41,7 @@ Highlights:
     parameter.
 
 ### Bug Fixes
--
+- `get_classification_df` added to `ClassificationComponent` dependencies.
 -
 
 ### Improvements
