@@ -28,7 +28,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         hide_index=False, hide_pred_slider=False,
                         hide_residual_slider=False, hide_pred_or_y=False,
                         hide_abs_residuals=False, hide_button=False,
-                        index=None, pred_slider=None, y_slider=None,
+                        index_dropdown=True, index=None, pred_slider=None, y_slider=None,
                         residual_slider=None, abs_residual_slider=None,
                         pred_or_y="preds", abs_residuals=True, round=2,
                         description=None, **kwargs):
@@ -56,6 +56,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             hide_abs_residuals (bool, optional): hide absolute residuals toggle.
                         Defaults to False.
             hide_button (bool, optional): hide button. Defaults to False.
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             index ({str, int}, optional): Initial index to display.
                         Defaults to None.
             pred_slider ([lb, ub], optional): Initial values for prediction
@@ -84,6 +86,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             self.title = f"Select {self.explainer.index_name}"
 
         self.index_name = 'random-index-reg-index-'+self.name
+        self.index_selector = IndexSelector(explainer, self.index_name,
+                                    index=index, index_dropdown=index_dropdown)
 
         if self.explainer.y_missing:
             self.hide_residual_slider = True
@@ -156,10 +160,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dcc.Dropdown(id='random-index-reg-index-'+self.name,
-                                    options = [{'label': str(idx), 'value':idx}
-                                                    for idx in self.explainer.get_index_list()],
-                                    value=self.index)
+                            self.index_selector.layout()
                         ], md=8), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
@@ -392,8 +393,8 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 class RegressionPredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False, 
-                    hide_subtitle=False, hide_table=False,
-                    feature_input_component=None,
+                    hide_subtitle=False, hide_table=False, 
+                    index_dropdown=True, feature_input_component=None,
                     index=None,  round=3, description=None,
                     **kwargs):
         """Shows a summary for a particular prediction
@@ -410,6 +411,8 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
             hide_title (bool, optional): hide title. Defaults to False.
             hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
             hide_table (bool, optional): hide the results table
+            index_dropdown (bool, optional): Use dropdown for index input instead 
+                of free text input. Defaults to True.
             feature_input_component (FeatureInputComponent): A FeatureInputComponent
                 that will give the input to the graph instead of the index selector.
                 If not None, hide_index=True. Defaults to None.
@@ -420,6 +423,8 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         self.index_name = 'reg-prediction-index-'+self.name
+        self.index_selector = IndexSelector(explainer, self.index_name,
+                                    index=index, index_dropdown=index_dropdown)
 
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -442,10 +447,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             dbc.Label(f"{self.explainer.index_name}:"),
-                            dcc.Dropdown(id='reg-prediction-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
-                                    value=self.index)
+                            self.index_selector.layout(),
                         ], md=6), hide=self.hide_index),          
                 ]),
                 dbc.Row([
