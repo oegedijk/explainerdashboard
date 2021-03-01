@@ -224,6 +224,7 @@ class BaseExplainer(ABC):
         self.X.reset_index(drop=True, inplace=True)
         self.y.reset_index(drop=True, inplace=True)
 
+        self._index_exists_func = None
         self._get_index_list_func = None
         self._get_X_row_func = None
         self._get_y_func = None
@@ -430,7 +431,27 @@ class BaseExplainer(ABC):
                 return True
             if self._get_index_list_func is not None and index in self.get_index_list():
                 return True
+            if self._index_exists_func is not None and self._index_exists_func(index):
+                return True
         return False
+    
+    def set_index_exists_func(self, func):
+        """Sets an external function to check whether an index is valid or not.
+
+        func should either be a function that takes a single parameter: def func(index)
+        or a method that takes a single parameter: def func(self, index)
+        """
+        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
+        argspec = inspect.getfullargspec(func).args
+        if argspec == ['self', 'index']:
+            self._index_exists_func = MethodType(func, self)
+        elif argspec == ['index']:
+            self._index_exists_func = func
+        else:
+            raise ValueError(f"Parameter func should either be a function {func.__name__}(index) "
+                             f"or a method {func.__name__}(self, index)! Instead you "
+                             f"passed func={func.__name__}{inspect.signature(func)}")
+
 
     def get_index_list(self):
         if self._get_index_list_func is not None:
@@ -462,7 +483,7 @@ class BaseExplainer(ABC):
             X_row = self.X.iloc[[self.get_idx(index)]]
         elif isinstance(index, int) and index >= 0 and index < len(self):
             X_row = self.X.iloc[[index]]
-        elif self._get_X_row_func is not None and index in self.get_index_list():
+        elif self._get_X_row_func is not None and self.index_exists(index):
             X_row = self._get_X_row_func(index)
         else:
             raise IndexNotFoundError(index=index)
@@ -499,8 +520,13 @@ class BaseExplainer(ABC):
             return self.y.iloc[[self.get_idx(index)]].item()
         elif isinstance(index, int) and index >= 0 and index < len(self):
             return self.y.iloc[[index]].item()
-        elif self._get_y_func is not None and index in self.get_index_list():
-            return self._get_y_func(index)
+        elif self._get_y_func is not None and self.index_exists(index):
+            y = self._get_y_func(index)
+            if isinstance(y, pd.Series) or isinstance(y, np.ndarray):
+                try:
+                    return y.item()
+                except:
+                    raise ValueError(f"Can't turn y into a single item: {y}")
         else:
             raise IndexNotFoundError(index=index)
 
@@ -2320,9 +2346,9 @@ class ClassifierExplainer(BaseExplainer):
             if pred_percentile_max is None: pred_percentile_max = 1.0
             
             if not self.y_missing:
-                if y_values is None: y_values = self.y.unique().tolist()
+                if y_values is None: y_values = self.y.unique().astype(str).tolist()
                 if not isinstance(y_values, list): y_values = [y_values]
-                y_values = [y if isinstance(y, int) else self.labels.index(y) for y in y_values]
+                y_values = [y if isinstance(y, int) else self.labels.index(str(y)) for y in y_values]
 
                 potential_idxs = self.idxs[(self.y.isin(y_values)) &
                                 (pred_probas >= pred_proba_min) &
