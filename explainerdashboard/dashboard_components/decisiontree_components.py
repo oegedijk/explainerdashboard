@@ -143,14 +143,15 @@ class DecisionTreesComponent(ExplainerComponent):
             [Input('decisiontrees-index-'+self.name, 'value'),
              Input('decisiontrees-highlight-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
+            [State("decisiontrees-graph-"+self.name, 'figure')]
         )
-        def update_tree_graph(index, highlight, pos_label):
-            if index is not None:
-                highlight = None if highlight is None else int(highlight)
-                return self.explainer.plot_trees(index, 
-                        highlight_tree=highlight, pos_label=pos_label,
-                        higher_is_better=self.higher_is_better)
-            return {}
+        def update_tree_graph(index, highlight, pos_label, old_fig):
+            if index is None or not self.explainer.index_exists(index):
+                return old_fig
+            highlight = None if highlight is None else int(highlight)
+            return self.explainer.plot_trees(index, 
+                    highlight_tree=highlight, pos_label=pos_label,
+                    higher_is_better=self.higher_is_better)
 
         @app.callback(
             Output('decisiontrees-highlight-'+self.name, 'value'),
@@ -211,7 +212,7 @@ class DecisionPathTableComponent(ExplainerComponent):
         if self.description is None: self.description = """
         Shows the path that an observation took down a specific decision tree.
         """
-        self.register_dependencies("decision_trees")
+        self.register_dependencies("shadow_trees")
 
     def layout(self):
         return dbc.Card([
@@ -262,11 +263,11 @@ class DecisionPathTableComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')],
         )
         def update_decisiontree_table(index, highlight, pos_label):
-            if index is not None and highlight is not None:
-                get_decisionpath_df = self.explainer.get_decisionpath_summary_df(
-                    int(highlight), index, pos_label=pos_label)
-                return dbc.Table.from_dataframe(get_decisionpath_df)
-            raise PreventUpdate
+            if index is None or highlight is None or not self.explainer.index_exists(index):
+                raise PreventUpdate
+            get_decisionpath_df = self.explainer.get_decisionpath_summary_df(
+                int(highlight), index, pos_label=pos_label)
+            return dbc.Table.from_dataframe(get_decisionpath_df)
 
 
 class DecisionPathGraphComponent(ExplainerComponent):
@@ -318,6 +319,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisionpath-index-'+self.name,
                                     index=index, index_dropdown=index_dropdown)
+        self.register_dependencies("shadow_trees")
 
     def layout(self):
         return dbc.Card([
@@ -379,8 +381,8 @@ class DecisionPathGraphComponent(ExplainerComponent):
              State('pos-label-'+self.name, 'value')]
         )
         def update_tree_graph(n_clicks, index, highlight, pos_label):
-            if (n_clicks is not None 
-                and index is not None 
-                and highlight is not None):
+            if index is None or not self.explainer.index_exists(index):
+                raise PreventUpdate
+            if n_clicks is not None and highlight is not None:
                 return self.explainer.decisiontree_encoded(int(highlight), index)
             raise PreventUpdate

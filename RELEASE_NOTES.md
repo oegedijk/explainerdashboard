@@ -1,5 +1,35 @@
 # Release Notes
 
+
+## Version 0.3.2.2:
+
+- `index_dropdown=False` now works for indexes not listed in `set_index_list_func()`
+    as long as it can be found by `set_index_exists_func`
+
+### Breaking Changes
+- 
+- 
+
+### New Features
+- adds `set_index_exists_func` to add function that checks for index existing
+    besides those listed by `set_index_list_func()`
+-
+
+### Bug Fixes
+- bug fix when no explicit `labels` are based with index selector
+- component only update if `explainer.index_exists()`: no `IndexNotFoundErrors` anymore.
+- fixed title for regression index selector labeled 'Custom' bug
+- get_y() now returns `.item()` when necessary
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+
 ## Version 0.3.2:
 
 Highlights:
