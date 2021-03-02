@@ -22,7 +22,8 @@
 - get_y() now returns `.item()` when necessary
 
 ### Improvements
--
+- new helper function `get_shap_row(index)` to calculate or look up a single 
+    row of shap values.
 -
 
 ### Other Changes
