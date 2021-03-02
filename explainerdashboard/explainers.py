@@ -2385,9 +2385,8 @@ class ClassifierExplainer(BaseExplainer):
         if index is None and X_row is None:
             raise ValueError("You need to either pass an index or X_row!")
         if index is not None:
-            int_idx = self.get_idx(index)
-            pred_probas = self.pred_probas_raw[int_idx, :]
-        elif X_row is not None:
+            X_row = self.get_X_row(index)
+        if X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
             pred_probas = self.model.predict_proba(X_row)[0, :]
@@ -2398,8 +2397,13 @@ class ClassifierExplainer(BaseExplainer):
         if logodds:
             preds_df.loc[:, "logodds"] = \
                 preds_df.probability.apply(lambda p: np.log(p / (1-p))) 
-        if index is not None and not self.y_missing and not np.isnan(self.y[int_idx]):
-            preds_df.iloc[self.y[int_idx], 0] = f"{preds_df.iloc[self.y[int_idx], 0]}*"
+        if index is not None:
+            try:
+                y_true = self.pos_label_index(self.get_y(index))
+                preds_df.iloc[y_true, 0] = f"{preds_df.iloc[y_true, 0]}*"
+            except Exception as e:
+                print(e)
+            
         return preds_df.round(round)
 
     @insert_pos_label
