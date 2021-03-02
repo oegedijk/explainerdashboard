@@ -2931,7 +2931,7 @@ class RegressionExplainer(BaseExplainer):
                     pd.Series(("Residual", f"{(y_true-pred):.{round}f} {self.units}"), 
                         index=preds_df.columns), ignore_index=True)
             except Exception as e:
-                print(e)
+                pass
         return preds_df
 
     def metrics(self, show_metrics:List[str]=None):
