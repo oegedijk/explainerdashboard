@@ -152,6 +152,7 @@ in the github repo.
    tabs
    components
    custom
+   buildcustom
    deployment
    license
    help
