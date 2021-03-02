@@ -2934,35 +2934,6 @@ class RegressionExplainer(BaseExplainer):
                 print(e)
         return preds_df
 
-
-        # if index is not None:
-        #     X_row = 
-        #     int_idx = self.get_idx(index)
-        #     preds_df = pd.DataFrame(columns = ["", self.target])
-        #     preds_df = preds_df.append(
-        #         pd.Series(("Predicted", str(np.round(self.preds[int_idx], round)) + f" {self.units}"), 
-        #                 index=preds_df.columns), ignore_index=True)
-        #     if not self.y_missing:
-        #         preds_df = preds_df.append(
-        #             pd.Series(("Observed", str(np.round(self.y[int_idx], round)) + f" {self.units}"), 
-        #                 index=preds_df.columns), ignore_index=True)
-        #         preds_df = preds_df.append(
-        #             pd.Series(("Residual", str(np.round(self.residuals[int_idx], round)) + f" {self.units}"), 
-        #                 index=preds_df.columns), ignore_index=True)
-
-        # elif X_row is not None:
-        #     if matching_cols(X_row.columns, self.merged_cols):
-        #         X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns) 
-        #     assert matching_cols(X_row.columns, self.columns), \
-        #         ("The column names of X_row should match X! Instead X_row.columns"
-        #          f"={X_row.columns}...")
-        #     prediction = self.model.predict(X_row)[0]
-        #     preds_df = pd.DataFrame(columns = ["", self.target])
-        #     preds_df = preds_df.append(
-        #         pd.Series(("Predicted", str(np.round(prediction, round)) + f" {self.units}"), 
-        #                 index=preds_df.columns), ignore_index=True)
-        #return preds_df
-
     def metrics(self, show_metrics:List[str]=None):
         """dict of performance metrics: root_mean_squared_error, mean_absolute_error and R-squared
         
