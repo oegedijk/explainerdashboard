@@ -547,6 +547,7 @@ class BaseExplainer(ABC):
                              f"or a method {func.__name__}(self, index)! Instead you "
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
+    
     def get_row_from_input(self, inputs:List, ranked_by_shap=False, return_merged=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
         if len(inputs)==1 and isinstance(inputs[0], list):
@@ -829,6 +830,28 @@ class BaseExplainer(ABC):
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
         return self._shap_values_df
+
+    @insert_pos_label
+    def get_shap_row(self, index=None, X_row=None, pos_label=None):
+        if index is not None:
+            if index in self.idxs:
+                shap_row = self.get_shap_values_df().iloc[[self.idxs.get_loc(index)]]
+            elif isinstance(index, int) and index >= 0 and index < len(self):
+                shap_row = self.get_shap_values_df().iloc[[index]]
+            elif self._get_X_row_func is not None and self.index_exists(index):
+                X_row = self._get_X_row_func(index)
+                shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+                shap_row = merge_categorical_shap_values(shap_row, 
+                                    self.onehot_dict, self.merged_cols)
+            else:
+                raise IndexNotFoundError(index=index)
+        elif X_row is not None:
+            shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+            shap_row = merge_categorical_shap_values(shap_row, 
+                                    self.onehot_dict, self.merged_cols)
+        else:
+            raise ValueError("you should either pas index or X_row!")            
+        return shap_row
     
     @insert_pos_label
     def shap_interaction_values(self, pos_label=None):
@@ -1112,6 +1135,8 @@ class BaseExplainer(ABC):
           pd.DataFrame: contrib_df
 
         """
+        if index is None and X_row is None:
+            raise ValueError("Either index or X_row should be passed!")
         if sort =='importance':
             if cutoff is None:
                 cols = self.columns_ranked_by_shap()
@@ -1122,8 +1147,9 @@ class BaseExplainer(ABC):
         else:
             cols =  None
         if index is not None:
-            X_row = self.get_X_row(index)
-        if X_row is not None:
+            X_row_merged = self.get_X_row(index, merge=True)
+            shap_values = self.get_shap_row(index, pos_label=pos_label)
+        elif X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row_merged = X_row  
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)       
@@ -1133,22 +1159,13 @@ class BaseExplainer(ABC):
                 X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, 
                     not_encoded_dict=self.onehot_notencoded, drop_regular=False)[self.merged_cols]
 
-            shap_values = self.shap_explainer.shap_values(X_row)
-            if self.is_classifier:
-                if not isinstance(shap_values, list) and len(self.labels)==2:
-                    shap_values = [-shap_values, shap_values]
-                shap_values = shap_values[pos_label]
-            shap_values_df = pd.DataFrame(shap_values, columns=self.columns)
-
-            shap_values_df = merge_categorical_shap_values(shap_values_df, 
-                                    self.onehot_dict, self.merged_cols)
-            return get_contrib_df(self.shap_base_value(pos_label), shap_values_df.values[0], 
+            shap_values = self.get_shap_row(X_row=X_row, pos_label=pos_label)
+            
+        return get_contrib_df(self.shap_base_value(pos_label), shap_values.values[0], 
                         remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_notencoded), 
                         topx, cutoff, sort, cols)   
 
-        else:
-            raise ValueError("Either index or X_row should be passed!")
-
+        
     @insert_pos_label
     def get_contrib_summary_df(self, index=None, X_row=None, topx=None, cutoff=None, 
                             round=2, sort='abs', pos_label=None):
@@ -2086,6 +2103,29 @@ class ClassifierExplainer(BaseExplainer):
                 return self._shap_values_df.multiply(-1)
             else:
                 raise ValueError(f"pos_label={pos_label}, but should be either 1 or 0!")
+
+    @insert_pos_label
+    def get_shap_row(self, index=None, X_row=None, pos_label=None):
+        if index is not None:
+            if index in self.idxs:
+                shap_row = self.get_shap_values_df(pos_label=pos_label).iloc[[self.idxs.get_loc(index)]]
+            elif isinstance(index, int) and index >= 0 and index < len(self):
+                shap_row = self.get_shap_values_df(pos_label=pos_label).iloc[[index]]
+            elif self._get_X_row_func is not None and self.index_exists(index):
+                X_row = self._get_X_row_func(index)
+                shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row)[pos_label], columns=self.columns)
+                shap_row = merge_categorical_shap_values(shap_row, 
+                                    self.onehot_dict, self.merged_cols)
+            else:
+                raise IndexNotFoundError(index=index)
+        elif X_row is not None:
+            shap_row = self.shap_explainer.shap_values(X_row)[pos_label]
+            shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row)[pos_label], columns=self.columns)
+            shap_row = merge_categorical_shap_values(shap_row, 
+                                    self.onehot_dict, self.merged_cols)
+        else:
+            raise ValueError("you should either pas index or X_row!")            
+        return shap_row
 
 
     @insert_pos_label
