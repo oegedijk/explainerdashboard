@@ -1082,7 +1082,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                  Input('contributions-graph-orientation-'+self.name, 'value'),
                  Input('pos-label-'+self.name, 'value')])
             def update_output_div(index, depth, sort, orientation, pos_label):
-                if index is None:
+                if index is None or not self.explainer.index_exists(index):
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
                 plot = self.explainer.plot_contributions(str(index), topx=depth, 
@@ -1236,7 +1236,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 Input('contributions-table-sorting-'+self.name, 'value'),
                 Input('pos-label-'+self.name, 'value')])
             def update_output_div(index, depth, sort, pos_label):
-                if index is None:
+                if index is None or not self.explainer.index_exists(index):
                     raise PreventUpdate
                 depth = None if depth is None else int(depth)
                 contributions_table = dbc.Table.from_dataframe(

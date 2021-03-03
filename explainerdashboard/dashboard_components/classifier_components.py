@@ -350,21 +350,22 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 [Input('clas-prediction-index-'+self.name, 'value'),
                 Input('pos-label-'+self.name, 'value')])
             def update_output_div(index, pos_label):
-                if index is not None:
-                    fig = self.explainer.plot_prediction_result(index, showlegend=False)
+                if index is None or not self.explainer.index_exists(index):
+                    raise PreventUpdate
+                fig = self.explainer.plot_prediction_result(index, showlegend=False)
 
-                    preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
-                    preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
-                    preds_df.probability = preds_df.probability + ' %'
-                    preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+                preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
+                preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
+                preds_df.probability = preds_df.probability + ' %'
+                preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+                
+                if self.explainer.model_output!='logodds':
+                    preds_df = preds_df[['label', 'probability']]
                     
-                    if self.explainer.model_output!='logodds':
-                        preds_df = preds_df[['label', 'probability']]
-                        
-                    preds_table = dbc.Table.from_dataframe(preds_df, 
-                                        striped=False, bordered=False, hover=False)  
-                    return preds_table, fig
-                raise PreventUpdate
+                preds_table = dbc.Table.from_dataframe(preds_df, 
+                                    striped=False, bordered=False, hover=False)  
+                return preds_table, fig
+
         else:
             @app.callback(
                 [Output('clas-prediction-div-'+self.name, 'children'),
