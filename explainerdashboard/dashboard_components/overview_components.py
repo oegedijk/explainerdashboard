@@ -465,6 +465,8 @@ class PdpComponent(ExplainerComponent):
                  Input('pos-label-'+self.name, 'value')]
             )
             def update_pdp_graph(index, col, drop_na, sample, gridlines, gridpoints, sort, pos_label):
+                if index is None or not self.explainer.index_exists(index):
+                    raise PreventUpdate
                 return self.explainer.plot_pdp(col, index, 
                     drop_na=bool(drop_na), sample=sample, gridlines=gridlines, 
                     gridpoints=gridpoints, sort=sort, pos_label=pos_label)
@@ -650,7 +652,7 @@ class FeatureInputComponent(ExplainerComponent):
             [Input('feature-input-index-'+self.name, 'value')]
         )
         def update_whatif_inputs(index):
-            if index is None:
+            if index is None or not self.explainer.index_exists(index):
                 raise PreventUpdate
             X_row = self.explainer.get_X_row(index, merge=True)[self.explainer.columns_ranked_by_shap()]
             return X_row.values[0].tolist()

@@ -205,7 +205,8 @@ class BaseExplainer(ABC):
                     "Parameter shap='gues'', but failed to to guess the type of "
                     "shap explainer to use. "
                     "Please explicitly pass a `shap` parameter to the explainer, "
-                    "e.g. shap='tree', shap='linear', etc.")
+                    "e.g. shap='tree', shap='linear', etc. If model is not supported "
+                    "by any of these methods use shap='kernel' (warning: will be slow).")
         else:
             assert shap in ['tree', 'linear', 'deep', 'kernel'], \
                 ("Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' are "
@@ -224,6 +225,7 @@ class BaseExplainer(ABC):
         self.X.reset_index(drop=True, inplace=True)
         self.y.reset_index(drop=True, inplace=True)
 
+        self._index_exists_func = None
         self._get_index_list_func = None
         self._get_X_row_func = None
         self._get_y_func = None
@@ -430,7 +432,27 @@ class BaseExplainer(ABC):
                 return True
             if self._get_index_list_func is not None and index in self.get_index_list():
                 return True
+            if self._index_exists_func is not None and self._index_exists_func(index):
+                return True
         return False
+    
+    def set_index_exists_func(self, func):
+        """Sets an external function to check whether an index is valid or not.
+
+        func should either be a function that takes a single parameter: def func(index)
+        or a method that takes a single parameter: def func(self, index)
+        """
+        assert callable(func), f"{func} is not a callable! pass either a function or a method!"
+        argspec = inspect.getfullargspec(func).args
+        if argspec == ['self', 'index']:
+            self._index_exists_func = MethodType(func, self)
+        elif argspec == ['index']:
+            self._index_exists_func = func
+        else:
+            raise ValueError(f"Parameter func should either be a function {func.__name__}(index) "
+                             f"or a method {func.__name__}(self, index)! Instead you "
+                             f"passed func={func.__name__}{inspect.signature(func)}")
+
 
     def get_index_list(self):
         if self._get_index_list_func is not None:
@@ -462,7 +484,7 @@ class BaseExplainer(ABC):
             X_row = self.X.iloc[[self.get_idx(index)]]
         elif isinstance(index, int) and index >= 0 and index < len(self):
             X_row = self.X.iloc[[index]]
-        elif self._get_X_row_func is not None and index in self.get_index_list():
+        elif self._get_X_row_func is not None and self.index_exists(index):
             X_row = self._get_X_row_func(index)
         else:
             raise IndexNotFoundError(index=index)
@@ -499,8 +521,13 @@ class BaseExplainer(ABC):
             return self.y.iloc[[self.get_idx(index)]].item()
         elif isinstance(index, int) and index >= 0 and index < len(self):
             return self.y.iloc[[index]].item()
-        elif self._get_y_func is not None and index in self.get_index_list():
-            return self._get_y_func(index)
+        elif self._get_y_func is not None and self.index_exists(index):
+            y = self._get_y_func(index)
+            if isinstance(y, pd.Series) or isinstance(y, np.ndarray):
+                try:
+                    return y.item()
+                except:
+                    raise ValueError(f"Can't turn y into a single item: {y}")
         else:
             raise IndexNotFoundError(index=index)
 
@@ -521,6 +548,7 @@ class BaseExplainer(ABC):
                              f"or a method {func.__name__}(self, index)! Instead you "
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
+    
     def get_row_from_input(self, inputs:List, ranked_by_shap=False, return_merged=False):
         """returns a single row pd.DataFrame from a given list of *inputs"""
         if len(inputs)==1 and isinstance(inputs[0], list):
@@ -768,13 +796,14 @@ class BaseExplainer(ABC):
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
-                        "Warning: shap values for shap.LinearExplainer get "
+                        "Warning: shap values for shap.KernelExplainer get "
                         "calculated against X_background, but paramater "
-                        "X_background=None, so using X instead")
+                        "X_background=None, so using shap.sample(X, 100) instead")
                 print("Generating self.shap_explainer = "
                         f"shap.KernelExplainer(model, {X_str})...")
-                self._shap_explainer = shap.KernelExplainer(self.model, 
-                    self.X_background if self.X_background is not None else self.X)
+                self._shap_explainer = shap.KernelExplainer(self.model.predict, 
+                    self.X_background if self.X_background is not None \
+                        else shap.sample(self.X, 100))
         return self._shap_explainer
 
     @insert_pos_label
@@ -803,6 +832,28 @@ class BaseExplainer(ABC):
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
         return self._shap_values_df
+
+    @insert_pos_label
+    def get_shap_row(self, index=None, X_row=None, pos_label=None):
+        if index is not None:
+            if index in self.idxs:
+                shap_row = self.get_shap_values_df().iloc[[self.idxs.get_loc(index)]]
+            elif isinstance(index, int) and index >= 0 and index < len(self):
+                shap_row = self.get_shap_values_df().iloc[[index]]
+            elif self._get_X_row_func is not None and self.index_exists(index):
+                X_row = self._get_X_row_func(index)
+                shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+                shap_row = merge_categorical_shap_values(shap_row, 
+                                    self.onehot_dict, self.merged_cols)
+            else:
+                raise IndexNotFoundError(index=index)
+        elif X_row is not None:
+            shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+            shap_row = merge_categorical_shap_values(shap_row, 
+                                    self.onehot_dict, self.merged_cols)
+        else:
+            raise ValueError("you should either pas index or X_row!")            
+        return shap_row
     
     @insert_pos_label
     def shap_interaction_values(self, pos_label=None):
@@ -1086,6 +1137,8 @@ class BaseExplainer(ABC):
           pd.DataFrame: contrib_df
 
         """
+        if index is None and X_row is None:
+            raise ValueError("Either index or X_row should be passed!")
         if sort =='importance':
             if cutoff is None:
                 cols = self.columns_ranked_by_shap()
@@ -1096,8 +1149,9 @@ class BaseExplainer(ABC):
         else:
             cols =  None
         if index is not None:
-            X_row = self.get_X_row(index)
-        if X_row is not None:
+            X_row_merged = self.get_X_row(index, merge=True)
+            shap_values = self.get_shap_row(index, pos_label=pos_label)
+        elif X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row_merged = X_row  
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)       
@@ -1107,22 +1161,13 @@ class BaseExplainer(ABC):
                 X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, 
                     not_encoded_dict=self.onehot_notencoded, drop_regular=False)[self.merged_cols]
 
-            shap_values = self.shap_explainer.shap_values(X_row)
-            if self.is_classifier:
-                if not isinstance(shap_values, list) and len(self.labels)==2:
-                    shap_values = [-shap_values, shap_values]
-                shap_values = shap_values[pos_label]
-            shap_values_df = pd.DataFrame(shap_values, columns=self.columns)
-
-            shap_values_df = merge_categorical_shap_values(shap_values_df, 
-                                    self.onehot_dict, self.merged_cols)
-            return get_contrib_df(self.shap_base_value(pos_label), shap_values_df.values[0], 
+            shap_values = self.get_shap_row(X_row=X_row, pos_label=pos_label)
+            
+        return get_contrib_df(self.shap_base_value(pos_label), shap_values.values[0], 
                         remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_notencoded), 
                         topx, cutoff, sort, cols)   
 
-        else:
-            raise ValueError("Either index or X_row should be passed!")
-
+        
     @insert_pos_label
     def get_contrib_summary_df(self, index=None, X_row=None, topx=None, cutoff=None, 
                             round=2, sort='abs', pos_label=None):
@@ -1967,7 +2012,8 @@ class ClassifierExplainer(BaseExplainer):
                 if self.X_background is None:
                     print(
                         "Note: shap values for shap='kernel' normally get calculated against "
-                        "X_background, but paramater X_background=None, so using X instead...")
+                        "X_background, but paramater X_background=None, so setting "
+                        "X_background=shap.sample(X, 100)...")
                 if self.model_output != "probability":
                     print(
                         "Note: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
@@ -1977,7 +2023,8 @@ class ClassifierExplainer(BaseExplainer):
                              f"{'X_background' if self.X_background is not None else 'X'}"
                              ", link='identity')")
                 self._shap_explainer = shap.KernelExplainer(self.model.predict_proba, 
-                                            self.X_background if self.X_background is not None else self.X,
+                                            self.X_background if self.X_background is not None \
+                                                else shap.sample(self.X, 100),
                                             link="identity")       
         return self._shap_explainer
 
@@ -2060,6 +2107,40 @@ class ClassifierExplainer(BaseExplainer):
                 return self._shap_values_df.multiply(-1)
             else:
                 raise ValueError(f"pos_label={pos_label}, but should be either 1 or 0!")
+
+    @insert_pos_label
+    def get_shap_row(self, index=None, X_row=None, pos_label=None):
+        def X_row_to_shap_row(X_row):
+            sv = self.shap_explainer.shap_values(X_row)
+            if isinstance(sv, list) and len(sv) > 1:
+                shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
+            elif len(self.labels) == 2:
+                if pos_label == 1:
+                    shap_row = pd.DataFrame(sv, columns=self.columns)
+                elif pos_label == 0:
+                    shap_row = pd.DataFrame(-sv, columns=self.columns)
+                else:
+                    raise ValueError("binary classifier only except pos_label in {0, 1}!")
+            else:
+                raise ValueError("Shap values returned are neither a list nor 2d array for positive class!")
+            shap_row = merge_categorical_shap_values(shap_row, 
+                                self.onehot_dict, self.merged_cols)
+            return shap_row
+
+        if index is not None:
+            if index in self.idxs:
+                shap_row = self.get_shap_values_df(pos_label=pos_label).iloc[[self.idxs.get_loc(index)]]
+            elif isinstance(index, int) and index >= 0 and index < len(self):
+                shap_row = self.get_shap_values_df(pos_label=pos_label).iloc[[index]]
+            elif self._get_X_row_func is not None and self.index_exists(index):
+                return X_row_to_shap_row(self._get_X_row_func(index))
+            else:
+                raise IndexNotFoundError(index=index)
+        elif X_row is not None:
+            return X_row_to_shap_row(X_row)
+        else:
+            raise ValueError("you should either pas index or X_row!")            
+        return shap_row
 
 
     @insert_pos_label
@@ -2320,9 +2401,9 @@ class ClassifierExplainer(BaseExplainer):
             if pred_percentile_max is None: pred_percentile_max = 1.0
             
             if not self.y_missing:
-                if y_values is None: y_values = self.y.unique().tolist()
+                if y_values is None: y_values = self.y.unique().astype(str).tolist()
                 if not isinstance(y_values, list): y_values = [y_values]
-                y_values = [y if isinstance(y, int) else self.labels.index(y) for y in y_values]
+                y_values = [y if isinstance(y, int) else self.labels.index(str(y)) for y in y_values]
 
                 potential_idxs = self.idxs[(self.y.isin(y_values)) &
                                 (pred_probas >= pred_proba_min) &
@@ -2359,9 +2440,8 @@ class ClassifierExplainer(BaseExplainer):
         if index is None and X_row is None:
             raise ValueError("You need to either pass an index or X_row!")
         if index is not None:
-            int_idx = self.get_idx(index)
-            pred_probas = self.pred_probas_raw[int_idx, :]
-        elif X_row is not None:
+            X_row = self.get_X_row(index)
+        if X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
             pred_probas = self.model.predict_proba(X_row)[0, :]
@@ -2372,8 +2452,13 @@ class ClassifierExplainer(BaseExplainer):
         if logodds:
             preds_df.loc[:, "logodds"] = \
                 preds_df.probability.apply(lambda p: np.log(p / (1-p))) 
-        if index is not None and not self.y_missing and not np.isnan(self.y[int_idx]):
-            preds_df.iloc[self.y[int_idx], 0] = f"{preds_df.iloc[self.y[int_idx], 0]}*"
+        if index is not None:
+            try:
+                y_true = self.pos_label_index(self.get_y(index))
+                preds_df.iloc[y_true, 0] = f"{preds_df.iloc[y_true, 0]}*"
+            except Exception as e:
+                print(e)
+            
         return preds_df.round(round)
 
     @insert_pos_label
@@ -2881,30 +2966,27 @@ class RegressionExplainer(BaseExplainer):
         if index is None and X_row is None:
             raise ValueError("You need to either pass an index or X_row!")
         if index is not None:
-            int_idx = self.get_idx(index)
-            preds_df = pd.DataFrame(columns = ["", self.target])
-            preds_df = preds_df.append(
-                pd.Series(("Predicted", str(np.round(self.preds[int_idx], round)) + f" {self.units}"), 
-                        index=preds_df.columns), ignore_index=True)
-            if not self.y_missing:
-                preds_df = preds_df.append(
-                    pd.Series(("Observed", str(np.round(self.y[int_idx], round)) + f" {self.units}"), 
-                        index=preds_df.columns), ignore_index=True)
-                preds_df = preds_df.append(
-                    pd.Series(("Residual", str(np.round(self.residuals[int_idx], round)) + f" {self.units}"), 
-                        index=preds_df.columns), ignore_index=True)
-
-        elif X_row is not None:
+            X_row = self.get_X_row(index)
+        if X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
-                X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns) 
-            assert matching_cols(X_row.columns, self.columns), \
-                ("The column names of X_row should match X! Instead X_row.columns"
-                 f"={X_row.columns}...")
-            prediction = self.model.predict(X_row)[0]
-            preds_df = pd.DataFrame(columns = ["", self.target])
-            preds_df = preds_df.append(
-                pd.Series(("Predicted", str(np.round(prediction, round)) + f" {self.units}"), 
+                X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
+
+        pred = self.model.predict(X_row).item()
+        preds_df = pd.DataFrame(columns = ["", self.target])
+        preds_df = preds_df.append(
+                pd.Series(("Predicted", f"{pred:.{round}f} {self.units}"), 
                         index=preds_df.columns), ignore_index=True)
+        if index is not None:
+            try:
+                y_true = self.get_y(index)
+                preds_df = preds_df.append(
+                    pd.Series(("Observed", f"{y_true:.{round}f} {self.units}"), 
+                        index=preds_df.columns), ignore_index=True)
+                preds_df = preds_df.append(
+                    pd.Series(("Residual", f"{(y_true-pred):.{round}f} {self.units}"), 
+                        index=preds_df.columns), ignore_index=True)
+            except Exception as e:
+                pass
         return preds_df
 
     def metrics(self, show_metrics:List[str]=None):

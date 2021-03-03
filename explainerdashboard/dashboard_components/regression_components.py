@@ -77,13 +77,13 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
         """
-        super().__init__(explainer, title, name)
+        super().__init__(explainer, title or f"Select {explainer.index_name}", name)
         assert self.explainer.is_regression, \
             ("explainer is not a RegressionExplainer so the RegressionRandomIndexComponent "
              "will not work. Try using the ClassifierRandomIndexComponent instead.")
 
-        if self.title is None:
-            self.title = f"Select {self.explainer.index_name}"
+        # if self.title is None:
+        #     self.title = f"Select {self.explainer.index_name}"
 
         self.index_name = 'random-index-reg-index-'+self.name
         self.index_selector = IndexSelector(explainer, self.index_name,
@@ -464,12 +464,12 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
                 Output('reg-prediction-div-'+self.name, 'children'),
                 [Input('reg-prediction-index-'+self.name, 'value')])
             def update_output_div(index):
-                if index is not None:
-                    preds_df = self.explainer.prediction_result_df(index, round=self.round)
-                    return make_hideable(
-                        dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False),
-                        hide=self.hide_table)  
-                raise PreventUpdate
+                if index is None or not self.explainer.index_exists(index):
+                    raise PreventUpdate
+                preds_df = self.explainer.prediction_result_df(index, round=self.round)
+                return make_hideable(
+                    dbc.Table.from_dataframe(preds_df, striped=False, bordered=False, hover=False),
+                    hide=self.hide_table)  
         else:
             @app.callback(
                 Output('reg-prediction-div-'+self.name, 'children'),
