@@ -1,7 +1,7 @@
 # Release Notes
 
 
-## Version 0.3.2.2:
+## Version 0.3.3:
 
 - `index_dropdown=False` now works for indexes not listed in `set_index_list_func()`
     as long as it can be found by `set_index_exists_func`
@@ -16,6 +16,7 @@
 -
 
 ### Bug Fixes
+- bug fix to make shap.KernelExplainer (`shap='kernel'`) work with `RegressionExplainer`
 - bug fix when no explicit `labels` are based with index selector
 - component only update if `explainer.index_exists()`: no `IndexNotFoundErrors` anymore.
 - fixed title for regression index selector labeled 'Custom' bug

@@ -205,7 +205,8 @@ class BaseExplainer(ABC):
                     "Parameter shap='gues'', but failed to to guess the type of "
                     "shap explainer to use. "
                     "Please explicitly pass a `shap` parameter to the explainer, "
-                    "e.g. shap='tree', shap='linear', etc.")
+                    "e.g. shap='tree', shap='linear', etc. If model is not supported "
+                    "by any of these methods use shap='kernel' (warning: will be slow).")
         else:
             assert shap in ['tree', 'linear', 'deep', 'kernel'], \
                 ("Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' are "
@@ -795,13 +796,14 @@ class BaseExplainer(ABC):
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
-                        "Warning: shap values for shap.LinearExplainer get "
+                        "Warning: shap values for shap.KernelExplainer get "
                         "calculated against X_background, but paramater "
-                        "X_background=None, so using X instead")
+                        "X_background=None, so using shap.sample(X, 100) instead")
                 print("Generating self.shap_explainer = "
                         f"shap.KernelExplainer(model, {X_str})...")
-                self._shap_explainer = shap.KernelExplainer(self.model, 
-                    self.X_background if self.X_background is not None else self.X)
+                self._shap_explainer = shap.KernelExplainer(self.model.predict, 
+                    self.X_background if self.X_background is not None \
+                        else shap.sample(self.X, 100))
         return self._shap_explainer
 
     @insert_pos_label
@@ -2010,7 +2012,8 @@ class ClassifierExplainer(BaseExplainer):
                 if self.X_background is None:
                     print(
                         "Note: shap values for shap='kernel' normally get calculated against "
-                        "X_background, but paramater X_background=None, so using X instead...")
+                        "X_background, but paramater X_background=None, so setting "
+                        "X_background=shap.sample(X, 100)...")
                 if self.model_output != "probability":
                     print(
                         "Note: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
@@ -2020,7 +2023,8 @@ class ClassifierExplainer(BaseExplainer):
                              f"{'X_background' if self.X_background is not None else 'X'}"
                              ", link='identity')")
                 self._shap_explainer = shap.KernelExplainer(self.model.predict_proba, 
-                                            self.X_background if self.X_background is not None else self.X,
+                                            self.X_background if self.X_background is not None \
+                                                else shap.sample(self.X, 100),
                                             link="identity")       
         return self._shap_explainer
 
@@ -2106,23 +2110,34 @@ class ClassifierExplainer(BaseExplainer):
 
     @insert_pos_label
     def get_shap_row(self, index=None, X_row=None, pos_label=None):
+        def X_row_to_shap_row(X_row):
+            sv = self.shap_explainer.shap_values(X_row)
+            if isinstance(sv, list) and len(sv) > 1:
+                shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
+            elif len(self.labels) == 2:
+                if pos_label == 1:
+                    shap_row = pd.DataFrame(sv, columns=self.columns)
+                elif pos_label == 0:
+                    shap_row = pd.DataFrame(-sv, columns=self.columns)
+                else:
+                    raise ValueError("binary classifier only except pos_label in {0, 1}!")
+            else:
+                raise ValueError("Shap values returned are neither a list nor 2d array for positive class!")
+            shap_row = merge_categorical_shap_values(shap_row, 
+                                self.onehot_dict, self.merged_cols)
+            return shap_row
+
         if index is not None:
             if index in self.idxs:
                 shap_row = self.get_shap_values_df(pos_label=pos_label).iloc[[self.idxs.get_loc(index)]]
             elif isinstance(index, int) and index >= 0 and index < len(self):
                 shap_row = self.get_shap_values_df(pos_label=pos_label).iloc[[index]]
             elif self._get_X_row_func is not None and self.index_exists(index):
-                X_row = self._get_X_row_func(index)
-                shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row)[pos_label], columns=self.columns)
-                shap_row = merge_categorical_shap_values(shap_row, 
-                                    self.onehot_dict, self.merged_cols)
+                return X_row_to_shap_row(self._get_X_row_func(index))
             else:
                 raise IndexNotFoundError(index=index)
         elif X_row is not None:
-            shap_row = self.shap_explainer.shap_values(X_row)[pos_label]
-            shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row)[pos_label], columns=self.columns)
-            shap_row = merge_categorical_shap_values(shap_row, 
-                                    self.onehot_dict, self.merged_cols)
+            return X_row_to_shap_row(X_row)
         else:
             raise ValueError("you should either pas index or X_row!")            
         return shap_row
