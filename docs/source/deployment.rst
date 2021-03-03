@@ -226,6 +226,12 @@ footprint there are a number of things you can do:
       that index.
     - with ``explainer.set_index_list_func()`` you can set a function 
       that returns a list of available indexes that can be queried.
+    
+    If the number of indexes is too long to fit in a dropdown you can pass 
+    ``index_dropdown=False`` which turns the dropdowns into free text fields.
+    Instead of an ``index_list_func`` you can also set an 
+    ``explainer.set_index_check_func(func)`` which should return a bool whether
+    the ``index`` exists or not. 
 
     Important: these function can be called multiple times by multiple independent
     components, so probably best to implement some kind of caching functionality.

@@ -5,14 +5,16 @@
 ## Bugs:
 
 ## Plots:
+- add SHAP decision plots:
+    https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
+- add winsor to shap dependence
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
     - using some kind of inheritance?
 - change lines and annotation to this:
     - https://community.plotly.com/t/announcing-plotly-py-4-12-horizontal-and-vertical-lines-and-rectangles/46783
-- add some of these:
-    https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
+
 
 ### Classifier plots:
 - pdp: add multiclass option
@@ -57,6 +59,7 @@
 
 
 ### Components
+- add winsor to shap dependence
 - add predictions list to whatif composite:
     - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile
