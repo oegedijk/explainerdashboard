@@ -409,7 +409,7 @@ own model, project and needs. You can use the [ExplainerComposites](https://gith
 are used for the tabs of the default dashboard as a starting point, and edit
 them to reorganize components, add text, etc. 
 See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
-for more details. A deployed custom dashboard can be found [here](http://titanicexplainer.herokuapp.com/custom/)([source code](https://github.com/oegedijk/explainingtitanic/blob/master/custom.py)).
+for more details. A deployed custom dashboard can be found [here](http://titanicexplainer.herokuapp.com/custom/)([source code](https://github.com/oegedijk/explainingtitanic/blob/master/buildcustom.py)).
 
 ## Deployment
 
