@@ -1254,12 +1254,18 @@ def plotly_confusion_matrix(cm, labels = None, percentage=True):
     layout = go.Layout(
             title="Confusion Matrix",
             xaxis=dict(title='predicted',
-                       constrain="domain"),
+                       constrain="domain",
+                       tickmode = 'array',
+                       tickvals = [f" {lab}" for lab in labels],
+                       ticktext = [f" {lab}" for lab in labels]),
             yaxis=dict(title=dict(text='observed',standoff=20),
                        autorange="reversed", 
                        side='left',
                        scaleanchor='x', 
-                       scaleratio=1),
+                       scaleratio=1,
+                       tickmode = 'array',
+                       tickvals = [f" {lab}" for lab in labels],
+                       ticktext = [f" {lab}" for lab in labels]),
             plot_bgcolor = '#fff',
         )
     fig = go.Figure(data, layout)
