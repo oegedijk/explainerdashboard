@@ -1,7 +1,7 @@
 # Release Notes
 
 
-## Version 0.3.3:
+## Version 0.3.2.2:
 
 - `index_dropdown=False` now works for indexes not listed in `set_index_list_func()`
     as long as it can be found by `set_index_exists_func`
@@ -21,6 +21,8 @@
 - component only update if `explainer.index_exists()`: no `IndexNotFoundErrors` anymore.
 - fixed title for regression index selector labeled 'Custom' bug
 - get_y() now returns `.item()` when necessary
+- removed ticks from confusion matrix plot when no `labels` param passed 
+    (this bug got reintroduced in recent plotly release)
 
 ### Improvements
 - new helper function `get_shap_row(index)` to calculate or look up a single 
