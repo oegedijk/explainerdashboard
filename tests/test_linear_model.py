@@ -179,13 +179,28 @@ class LogisticRegressionKernelTests(unittest.TestCase):
         model.fit(X_train, y_train)
 
         self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, 
+                            model, X_test.iloc[:20], y_test.iloc[:20], 
                             shap='kernel', model_output='probability', 
                             X_background=shap.sample(X_train, 5),
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
                             labels=['Not survived', 'Survived'],
                             idxs=test_names)
+
+    def test_shap_values(self):
+        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
+        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
+
+
+class LinearRegressionKernelTests(unittest.TestCase):
+    def setUp(self):
+        X_train, y_train, X_test, y_test = titanic_fare()
+        self.test_len = len(X_test)
+
+        model = LinearRegression().fit(X_train, y_train)
+        self.explainer = RegressionExplainer(model, X_test.iloc[:20], y_test.iloc[:20], shap='kernel',
+                                                X_background=shap.sample(X_train, 5))
 
     def test_shap_values(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
