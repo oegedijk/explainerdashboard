@@ -498,7 +498,10 @@ In order to reduce the memory footprint there are a number of things you can do:
     them up elsewhere, you can also replace the index dropdowns with a simple free
     text field with `index_dropdown=False`. Only valid indexes (i.e. in the 
     `get_index_list()` list) get propagated
-    to other components by default, but this can be overriden with `index_check=False`.
+    to other components by default, but this can be overriden with `index_check=False`. 
+    Instead of an ``index_list_func`` you can also set an 
+    ``explainer.set_index_check_func(func)`` which should return a bool whether
+    the ``index`` exists or not. 
 
     Important: these function can be called multiple times by multiple independent
     components, so probably best to implement some kind of caching functionality.
