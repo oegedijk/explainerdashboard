@@ -6,7 +6,7 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_numeric_dtype, is_categorical_dtype
 
 from dtreeviz.trees import ShadowDecTree
 
@@ -266,7 +266,10 @@ def merge_categorical_columns(X, onehot_dict=None, cols=None, not_encoded_dict=N
                                     sep).astype("category")
         else:
             if not drop_regular:
-                X_cats.loc[:, col_name] = X[col_name].values
+                if is_categorical_dtype(X[col_name]):
+                    X_cats[col_name] = pd.Categorical(X[col_name])
+                else:
+                    X_cats.loc[:, col_name] = X[col_name].values
     if cols:
         return X_cats[cols]
     else:

@@ -184,8 +184,7 @@ class LogisticRegressionKernelTests(unittest.TestCase):
                             X_background=shap.sample(X_train, 5),
                             cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
                                                 'Deck', 'Embarked'],
-                            labels=['Not survived', 'Survived'],
-                            idxs=test_names)
+                            labels=['Not survived', 'Survived'])
 
     def test_shap_values(self):
         self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
