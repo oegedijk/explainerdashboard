@@ -214,7 +214,7 @@ $ explainerdashboard run explainer.joblib
 ```
 
 Or store the full configuration of a dashboard to `.yaml` with e.g.
-`dashboard.to_yaml("dashboard.yaml")` and run it with:
+`dashboard.to_yaml("dashboard.yaml", explainerfile="explainer.joblib", dump_explainer=True)` and run it with:
 
 ```bash
 $ explainerdashboard run dashboard.yaml
