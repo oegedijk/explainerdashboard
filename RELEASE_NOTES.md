@@ -10,11 +10,14 @@
 -
 
 ### Bug Fixes
--
+-   Sets proper Locks before making calls to shap explainer to prevent race
+    conditions with dashboards calling for shap values in multiple threads. 
+    (shap is unfortunately not threadsafe)
 -
 
 ### Improvements
--
+- Now defaults to shap.KernelExplainer when not sure what explainer to use
+    and now explicit `shap` parameter is passed.
 -
 
 ### Other Changes

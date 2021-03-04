@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import List, Dict, Union, Callable
 from types import MethodType
 from functools import wraps
+from threading import Lock
 
 import numpy as np
 import pandas as pd
@@ -253,7 +254,9 @@ class BaseExplainer(ABC):
             self.interactions_should_work = False
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
-        self.__version__ = "0.3.1"
+
+        self._lock = Lock()
+        self.__version__ = "0.3.2"
 
     @classmethod
     def from_file(cls, filepath):
@@ -842,12 +845,14 @@ class BaseExplainer(ABC):
                 shap_row = self.get_shap_values_df().iloc[[index]]
             elif self._get_X_row_func is not None and self.index_exists(index):
                 X_row = self._get_X_row_func(index)
-                shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+                with self._lock:
+                    shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
                 shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
             else:
                 raise IndexNotFoundError(index=index)
         elif X_row is not None:
+            print("X_row shap row:", X_row, flush=True)
             shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
             shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -1428,28 +1433,35 @@ class BaseExplainer(ABC):
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
 
-    def get_idx_sample(self, sample_size=None, include_index=None):
+    def get_idx_sample(self, sample_size=None, include_index=None, 
+                        winsor_array=None, winsor=None):
         """returns a random sample of integer indexes, making sure that
         include_index is included"""
-        if sample_size is None:
-            idx_sample = self.X.index
+        idx_sample = np.arange(0, len(self))
+        if sample_size is None and winsor_array is None:
             return idx_sample
         else:
-            assert sample_size >= 0, "sample_size should be a positive integer!"
-            idx_sample = self.X.sample(min(sample_size, len(self))).index
+            if winsor_array is not None and winsor is not None:
+                winsor_bounds = np.percentile(winsor_array, [winsor, 100-winsor])
+                idx_sample = idx_sample[(winsor_array > winsor_bounds[0]) 
+                                        & (winsor_array < winsor_bounds[1])]
+            if sample_size is not None and sample_size < len(idx_sample):
+                assert sample_size >= 0, "sample_size should be a positive integer!"
+                idx_sample = np.random.choice(idx_sample, sample_size, replace=False)
+            
             if include_index is not None:
                 if isinstance(include_index, str):
                     if include_index not in self.idxs:
                         raise ValueError(f"{include_index} could not be found in idxs!")
                     include_index = self.idxs.get_loc(include_index)
                 if include_index not in idx_sample and include_index < len(self):
-                    idx_sample = idx_sample.append(pd.Index([include_index]))
+                    idx_sample = np.append(idx_sample, include_index)
             return idx_sample
 
     @insert_pos_label
     def plot_dependence(self, col, color_col=None, highlight_index=None, 
                                 topx=None, sort='alphabet', max_cat_colors=5, 
-                                round=3, plot_sample=None, pos_label=None):
+                                round=3, plot_sample=None, winsor=None, pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1472,12 +1484,15 @@ class BaseExplainer(ABC):
           round (int, optional): rounding to apply to floats. Defaults to 3.
           plot_sample (int, optional): Instead of all points only plot a random
             sample of points. Defaults to None (=all points)
+          winsor (int, optional): winsorize the plot by excluding winsor highest
+            and lowest shap values.
           pos_label: positive class (Default value = None)
 
         Returns:
 
         """
-        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index, 
+            self.get_shap_values_df(pos_label)[col].values, winsor)
         highlight_index = self.get_index(highlight_index)
 
         if color_col is None:
@@ -1509,7 +1524,7 @@ class BaseExplainer(ABC):
     @insert_pos_label
     def plot_interaction(self, col, interact_col, highlight_index=None, 
                                 topx=10, sort='alphabet', max_cat_colors=5, 
-                                plot_sample=None, pos_label=None):
+                                plot_sample=None, winsor=None, pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         Args:
@@ -1523,13 +1538,16 @@ class BaseExplainer(ABC):
                 of categories to label with own color. Defaults to 5. 
           plot_sample (int, optional): Instead of all points only plot a random
             sample of points. Defaults to None (=all points)
+          winsor (int, optional): winsorize the plot by excluding winsor highest
+            and lowest shap interaction values.
           pos_label:  (Default value = None)
 
         Returns:
           plotly.Fig: Plotly Fig
 
         """
-        plot_idxs = self.get_idx_sample(plot_sample, highlight_index)
+        plot_idxs = self.get_idx_sample(plot_sample, highlight_index, 
+            self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label), winsor)
         highlight_index = self.get_index(highlight_index)
 
         if col in self.cat_cols:
@@ -2013,7 +2031,7 @@ class ClassifierExplainer(BaseExplainer):
                     print(
                         "Note: shap values for shap='kernel' normally get calculated against "
                         "X_background, but paramater X_background=None, so setting "
-                        "X_background=shap.sample(X, 100)...")
+                        "X_background=shap.kmeans(X, 50)...")
                 if self.model_output != "probability":
                     print(
                         "Note: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
@@ -2024,7 +2042,7 @@ class ClassifierExplainer(BaseExplainer):
                              ", link='identity')")
                 self._shap_explainer = shap.KernelExplainer(self.model.predict_proba, 
                                             self.X_background if self.X_background is not None \
-                                                else shap.sample(self.X, 100),
+                                                else shap.kmeans(self.X, 50),
                                             link="identity")       
         return self._shap_explainer
 
@@ -2111,7 +2129,8 @@ class ClassifierExplainer(BaseExplainer):
     @insert_pos_label
     def get_shap_row(self, index=None, X_row=None, pos_label=None):
         def X_row_to_shap_row(X_row):
-            sv = self.shap_explainer.shap_values(X_row)
+            with self._lock:
+                sv = self.shap_explainer.shap_values(X_row)
             if isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
             elif len(self.labels) == 2:
@@ -2181,9 +2200,6 @@ class ClassifierExplainer(BaseExplainer):
             if len(self._shap_interaction_values) == 1:
                  self._shap_interaction_values =  self._shap_interaction_values[0]
 
-            # self._shap_interaction_values = [
-            #     normalize_shap_interaction_values(siv, self.shap_values)
-            #         for siv, sv in zip(self._shap_interaction_values, self._shap_values_df)]
         if len(self.labels) > 2:
             if isinstance(self._shap_interaction_values, list):
                 return self._shap_interaction_values[pos_label]
@@ -2449,7 +2465,7 @@ class ClassifierExplainer(BaseExplainer):
         preds_df =  pd.DataFrame(dict(
             label=self.labels, 
             probability=pred_probas))
-        if logodds:
+        if logodds and all(preds_df.probability < 1-np.finfo(np.float64).eps):
             preds_df.loc[:, "logodds"] = \
                 preds_df.probability.apply(lambda p: np.log(p / (1-p))) 
         if index is not None:

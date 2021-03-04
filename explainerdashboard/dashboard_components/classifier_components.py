@@ -357,9 +357,10 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
                 preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
                 preds_df.probability = preds_df.probability + ' %'
-                preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+                if 'logodds' in preds_df.columns:
+                    preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
                 
-                if self.explainer.model_output!='logodds':
+                if self.explainer.model_output != 'logodds':
                     preds_df = preds_df[['label', 'probability']]
                     
                 preds_table = dbc.Table.from_dataframe(preds_df, 
@@ -379,7 +380,8 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round, logodds=True)                
                 preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
                 preds_df.probability = preds_df.probability + ' %'
-                preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+                if 'logodds' in preds_df.columns:
+                    preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
                 
                 if self.explainer.model_output!='logodds':
                     preds_df = preds_df[['label', 'probability']]

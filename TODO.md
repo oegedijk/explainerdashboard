@@ -25,7 +25,6 @@
 
 ## Explainers:
 - add cross validation metrics
-- if not autodetect default to shap='kernel'
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
