@@ -65,7 +65,7 @@ def guess_shap(model):
                    'IsolationForest'
                   ]
     linear_models = ['LinearRegression', 'LogisticRegression',
-                    'Ridge', 'Lasso', 'ElasticNet']
+                    'Ridge', 'Lasso', 'ElasticNet', 'SGDClassifier']
     
     for tree_model in tree_models:
         if str(type(model)).endswith(tree_model + "'>"):
