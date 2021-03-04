@@ -1,5 +1,26 @@
 # Release Notes
 
+## Version 0.3.3:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 
 ## Version 0.3.2.2:
 
@@ -12,7 +33,7 @@
 ### Bug Fixes
 - bug fix to make `shap.KernelExplainer` (used with explainer parameter`shap='kernel'`) 
     work with `RegressionExplainer`
-- bug fix when no explicit `labels` are passed with index selector
+- bug fix when no explicit `labels` are based with index selector
 - component only update if `explainer.index_exists()`: no `IndexNotFoundErrors` anymore.
 - fixed title for regression index selector labeled 'Custom' bug
 - `get_y()` now returns `.item()` when necessary

@@ -193,20 +193,20 @@ class BaseExplainer(ABC):
 
         if shap == "guess":
             shap_guess = guess_shap(self.model)
-            if shap_guess is not None:
-                model_str = str(type(self.model))\
+            model_str = str(type(self.model))\
                     .replace("'", "").replace("<", "").replace(">", "")\
                     .split(".")[-1]
-                print(f"Note: shap=='guess' so guessing for {model_str}"
-                      f" shap='{shap_guess}'...")
+            if shap_guess is not None:
                 self.shap = shap_guess
             else:
-                raise ValueError(
-                    "Parameter shap='gues'', but failed to to guess the type of "
-                    "shap explainer to use. "
-                    "Please explicitly pass a `shap` parameter to the explainer, "
-                    "e.g. shap='tree', shap='linear', etc. If model is not supported "
-                    "by any of these methods use shap='kernel' (warning: will be slow).")
+                self.shap = 'kernel'
+                print(
+                    "Warning: Parameter shap='guess', but failed to guess the "
+                    f"type of shap explainer to use for {model_str}. "
+                    "Defaulting to the model agnostic shap.KernelExplainer "
+                    "(shap='kernel'). However this will be slow, so if your model is "
+                    "compatible with e.g. shap.TreeExplainer or shap.LinearExplainer "
+                    "then pass shap='tree' or shap='linear'!")
         else:
             assert shap in ['tree', 'linear', 'deep', 'kernel'], \
                 ("Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' are "
@@ -798,12 +798,12 @@ class BaseExplainer(ABC):
                     print(
                         "Warning: shap values for shap.KernelExplainer get "
                         "calculated against X_background, but paramater "
-                        "X_background=None, so using shap.sample(X, 100) instead")
+                        "X_background=None, so using shap.kmeans(X, 50) instead")
                 print("Generating self.shap_explainer = "
                         f"shap.KernelExplainer(model, {X_str})...")
                 self._shap_explainer = shap.KernelExplainer(self.model.predict, 
                     self.X_background if self.X_background is not None \
-                        else shap.sample(self.X, 100))
+                        else shap.kmeans(self.X, 50))
         return self._shap_explainer
 
     @insert_pos_label
