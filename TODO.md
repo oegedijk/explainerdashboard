@@ -7,7 +7,6 @@
 ## Plots:
 - add SHAP decision plots:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
-- add winsor to shap dependence
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
@@ -88,6 +87,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add permutation_cv metrics tests
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately

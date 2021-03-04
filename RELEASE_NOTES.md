@@ -6,11 +6,13 @@
 - 
 
 ### New Features
--
+- metrics now get calculated with cross validation over `X` when you pass the
+    `permutation_cv` parameter to the explainer
+- adds winsorization to shap dependence and shap interaction plots
 -
 
 ### Bug Fixes
--   Sets proper Locks before making calls to shap explainer to prevent race
+-   Sets proper threading.Locks before making calls to shap explainer to prevent race
     conditions with dashboards calling for shap values in multiple threads. 
     (shap is unfortunately not threadsafe)
 -
