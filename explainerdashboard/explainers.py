@@ -25,6 +25,8 @@ import shap
 
 from dtreeviz.trees import ShadowDecTree, dtreeviz
 
+from sklearn.model_selection import KFold
+from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, roc_curve, confusion_matrix
 from sklearn.metrics import precision_recall_curve, precision_score, recall_score, log_loss
@@ -2308,17 +2310,56 @@ class ClassifierExplainer(BaseExplainer):
             }
             return metrics_dict
 
+        def get_cv_metrics(n_splits):
+            cv_metrics = {}
+            for label in range(len(self.labels)):
+                cv_metrics[label] = dict()
+                for cut in np.linspace(1, 99, 99, dtype=int):
+                    cv_metrics[label][cut] = {
+                        'accuracy' : [],
+                        'precision' : [],
+                        'recall' : [],
+                        'f1' : [],
+                        'roc_auc_score' : [],
+                        'pr_auc_score' : [],
+                        'log_loss' : [],
+                    }
+            for train_index, test_index in KFold(n_splits=n_splits, shuffle=True).split(self.X):
+                X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
+                y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
+                preds = clone(self.model).fit(X_train, y_train).predict_proba(X_test)
+                for label in range(len(self.labels)):
+                    for cut in np.linspace(1, 99, 99, dtype=int):
+                        y_true = np.where(y_test==label, 1, 0) 
+                        y_pred = np.where(preds[:, label] > 0.01*cut, 1, 0)
+                        cv_metrics[label][cut]['accuracy'].append(accuracy_score(y_true, y_pred))
+                        cv_metrics[label][cut]['precision'].append(precision_score(y_true, y_pred, zero_division=0))
+                        cv_metrics[label][cut]['recall'].append(recall_score(y_true, y_pred))
+                        cv_metrics[label][cut]['f1'].append(f1_score(y_true, y_pred))
+                        cv_metrics[label][cut]['roc_auc_score'].append(roc_auc_score(y_true, preds[:, label]))
+                        cv_metrics[label][cut]['pr_auc_score'].append(average_precision_score(y_true, preds[:, label]))
+                        cv_metrics[label][cut]['log_loss'].append(log_loss(y_true, preds[:, label]))
+            for label in range(len(self.labels)):
+                    for cut in np.linspace(1, 99, 99, dtype=int):
+                        cv_metrics[label][cut] = {k:np.mean(v) for k,v in cv_metrics[label][cut].items()}
+            return cv_metrics
+
         if not hasattr(self, "_metrics"):
             _ = self.pred_probas()
             print("Calculating metrics...", flush=True)
-            self._metrics = dict()
-            for label in range(len(self.labels)):
-                self._metrics[label] = dict()
-                for cut in np.linspace(0.01, 0.99, 99):
-                    self._metrics[label][np.round(cut, 2)] = \
-                        get_metrics(cut, label)
-        if cutoff in self._metrics[pos_label]:
-            metrics_dict =  self._metrics[pos_label][cutoff]
+            if self.permutation_cv is None:
+                self._metrics = dict()
+                for label in range(len(self.labels)):
+                    self._metrics[label] = dict()
+                    for cut in np.linspace(1, 99, 99, dtype=int):
+                        self._metrics[label][cut] = \
+                            get_metrics(0.01*cut, label)
+            else:
+                self._metrics = get_cv_metrics(self.permutation_cv)
+
+
+        if int(cutoff*100) in self._metrics[pos_label]:
+            metrics_dict =  self._metrics[pos_label][int(cutoff*100)]
         else:
             metrics_dict = get_metrics(cutoff, pos_label)
         
@@ -2328,6 +2369,8 @@ class ClassifierExplainer(BaseExplainer):
         show_metrics_dict = {}
         for m in show_metrics:
             if callable(m):
+                if self.permutation_cv is not None:
+                    raise ValueError("custom metrics do not work with permutation_cv for now!")
                 metric_args = inspect.signature(m).parameters.keys()
                 metric_kwargs = {}
                 if 'pos_label' in metric_args:
@@ -3015,13 +3058,33 @@ class RegressionExplainer(BaseExplainer):
 
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
-        metrics_dict = {
-            'mean-squared-error' : mean_squared_error(self.y, self.preds),
-            'root-mean-squared-error' : np.sqrt(mean_squared_error(self.y, self.preds)),
-            'mean-absolute-error' : mean_absolute_error(self.y, self.preds),
-            'mean-absolute-percentage-error': mape_score(self.y, self.preds),
-            'R-squared' : r2_score(self.y, self.preds),
-        }
+        if self.permutation_cv is None:
+            metrics_dict = {
+                'mean-squared-error' : mean_squared_error(self.y, self.preds),
+                'root-mean-squared-error' : np.sqrt(mean_squared_error(self.y, self.preds)),
+                'mean-absolute-error' : mean_absolute_error(self.y, self.preds),
+                'mean-absolute-percentage-error': mape_score(self.y, self.preds),
+                'R-squared' : r2_score(self.y, self.preds),
+            }
+        else:
+            metrics_dict = {
+                'mean-squared-error' : [],
+                'root-mean-squared-error' : [],
+                'mean-absolute-error' : [],
+                'mean-absolute-percentage-error': [],
+                'R-squared' : [],
+            }
+            for train_index, test_index in KFold(n_splits=self.permutation_cv, shuffle=True).split(self.X):
+                X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
+                y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
+                preds = clone(self.model).fit(X_train, y_train).predict(X_test)
+                metrics_dict['mean-squared-error'].append(mean_squared_error(y_test, preds))
+                metrics_dict['root-mean-squared-error'].append(np.sqrt(mean_squared_error(y_test, preds)))
+                metrics_dict['mean-absolute-error'].append(mean_absolute_error(y_test, preds))
+                metrics_dict['mean-absolute-percentage-error'].append(mape_score(y_test, preds))
+                metrics_dict['R-squared'].append(r2_score(y_test, preds))
+            metrics_dict = {k:np.mean(v) for k,v in metrics_dict.items()}
+
         if metrics_dict['mean-absolute-percentage-error'] > 2:
             print("Warning: mean-absolute-percentage-error is very large "
                 f"({metrics_dict['mean-absolute-percentage-error']}), you can hide "
@@ -3031,6 +3094,8 @@ class RegressionExplainer(BaseExplainer):
         show_metrics_dict = {}
         for m in show_metrics:
             if callable(m):
+                if self.permutation_cv is not None:
+                    raise ValueError("custom metrics do not work with permutation_cv for now!")
                 show_metrics_dict[m.__name__] = m(self.y, self.preds)
             elif m in metrics_dict:
                 show_metrics_dict[m] = metrics_dict[m]
