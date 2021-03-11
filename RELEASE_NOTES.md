@@ -2,25 +2,33 @@
 
 ## Version 0.3.3:
 ### Breaking Changes
-- 
+- parameter `permutation_cv` has been deprecated and replaced by parameter `cv` which
+    now also works to calculate cross-validated metrics besides cross-validated
+    permutation importances.
 - 
 
 ### New Features
 - metrics now get calculated with cross validation over `X` when you pass the
-    `permutation_cv` parameter to the explainer
+    `cv` parameter to the explainer, this is useful when for some reason you
+    want to pass the training set to the explainer.
 - adds winsorization to shap dependence and shap interaction plots
+- If `shap='guess'` fails (unable to guess the right type of shap explainer),
+    then default to the model agnostic `shap='kernel'`.
+- Better support for sklearn `Pipelines`: if not able to extract transformer+model,
+    then default to `shap.KernelExplainer` to explain the entire pipeline
 -
 
 ### Bug Fixes
--   Sets proper threading.Locks before making calls to shap explainer to prevent race
+-   Sets proper `threading.Locks` before making calls to shap explainer to prevent race
     conditions with dashboards calling for shap values in multiple threads. 
     (shap is unfortunately not threadsafe)
 -
 
 ### Improvements
-- Now defaults to shap.KernelExplainer when not sure what explainer to use
-    and now explicit `shap` parameter is passed.
--
+- single shap row calculations now go without tqdm progress bar
+- added cutoff tpr anf fpr to roc auc plot
+- added cutoff precision and recall to pr auc plot
+- but a loading spinner on shap contrib table
 
 ### Other Changes
 -
