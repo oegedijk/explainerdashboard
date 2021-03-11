@@ -1342,23 +1342,35 @@ def plotly_roc_auc_curve(fpr, tpr, thresholds, score, cutoff=None, round=2):
     
     if cutoff is not None:
         threshold_idx = np.argmin(np.abs(thresholds-cutoff))
+        cutoff_tpr = tpr[threshold_idx]
+        cutoff_fpr = fpr[threshold_idx]
+
         shapes.append(
             dict(type='line', xref='x', yref='y',
-                x0=0, x1=1, y0=tpr[threshold_idx], y1=tpr[threshold_idx],
+                x0=0, x1=1, y0=cutoff_tpr, y1=cutoff_tpr,
                 line=dict(color="lightslategray",width=1)))
         shapes.append(
             dict(type='line', xref='x', yref='y',
-                 x0=fpr[threshold_idx], x1=fpr[threshold_idx], y0=0, y1=1,
+                 x0=cutoff_fpr, x1=cutoff_fpr, y0=0, y1=1,
                  line=dict(color="lightslategray", width=1)))
         
-        annotations = [go.layout.Annotation(x=0.6, y=0.3, 
-                            text=f"Cutoff: {cutoff:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.6, y=0.20, 
+        annotations = [go.layout.Annotation(x=0.6, y=0.4, 
                             text=f"roc-auc-score: {score:.{round}f}",
                             showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),]
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.6, y=0.35, 
+                            text=f"cutoff: {cutoff:.{round}f}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.6, y=0.3, 
+                            text=f"TPR: {cutoff_tpr:.{round}f}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.6, y=0.24, 
+                            text=f"FPR: {cutoff_fpr:.{round}f}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       ]
         fig.update_layout(annotations=annotations)
                                             
     fig.update_layout(shapes=shapes)
@@ -1401,25 +1413,37 @@ def plotly_pr_auc_curve(precision, recall, thresholds, score, cutoff=None, round
     
     if cutoff is not None:
         threshold_idx = np.argmin(np.abs(thresholds-cutoff))
+        cutoff_recall = recall[threshold_idx]
+        cutoff_precision = precision[threshold_idx]
         shapes.append(
             dict(type='line', xref='x', yref='y',
                 x0=0, x1=1, 
-                y0=recall[threshold_idx], y1=recall[threshold_idx],
+                y0=cutoff_recall, y1=cutoff_recall,
                 line=dict(color="lightslategray",width=1)))
         shapes.append(
             dict(type='line', xref='x', yref='y',
-                 x0=precision[threshold_idx], x1=precision[threshold_idx], 
+                 x0=cutoff_precision, x1=cutoff_precision, 
                  y0=0, y1=1,
                  line=dict(color="lightslategray", width=1)))
         
-        annotations = [go.layout.Annotation(x=0.15, y=0.3, 
-                            text=f"Cutoff: {cutoff:.{round}f}",
-                            showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),
-                       go.layout.Annotation(x=0.15, y=0.20, 
+        annotations = [go.layout.Annotation(x=0.15, y=0.40, 
                             text=f"pr-auc-score: {score:.{round}f}",
                             showarrow=False, align="right", 
-                            xanchor='left', yanchor='top'),]
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.15, y=0.35, 
+                            text=f"cutoff: {cutoff:.{round}f}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.15, y=0.3, 
+                            text=f"precision: {cutoff_precision:.{round}f}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                       go.layout.Annotation(x=0.15, y=0.25, 
+                            text=f"recall: {cutoff_recall:.{round}f}",
+                            showarrow=False, align="right", 
+                            xanchor='left', yanchor='top'),
+                    
+                       ]
         fig.update_layout(annotations=annotations)
                                             
     fig.update_layout(shapes=shapes)

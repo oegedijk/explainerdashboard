@@ -1,4 +1,44 @@
 # Release Notes
+## Version 0.3.3:
+
+Highlights:
+* Adding support for cross validated metrics
+* Better support for pipelines by using kernel explainer
+* Making explainer threadsafe by adding locks
+* Remove outliers from shap dependence plots
+
+### Breaking Changes
+- parameter `permutation_cv` has been deprecated and replaced by parameter `cv` which
+    now also works to calculate cross-validated metrics besides cross-validated
+    permutation importances.
+
+### New Features
+- metrics now get calculated with cross validation over `X` when you pass the
+    `cv` parameter to the explainer, this is useful when for some reason you
+    want to pass the training set to the explainer.
+- adds winsorization to shap dependence and shap interaction plots
+- If `shap='guess'` fails (unable to guess the right type of shap explainer),
+    then default to the model agnostic `shap='kernel'`.
+- Better support for sklearn `Pipelines`: if not able to extract transformer+model,
+    then default to `shap.KernelExplainer` to explain the entire pipeline
+- you can now remove outliers from shap dependence/interaction plots with 
+    `remove_outliers=True`: filters all outliers beyond 1.5*IQR
+
+### Bug Fixes
+-   Sets proper `threading.Locks` before making calls to shap explainer to prevent race
+    conditions with dashboards calling for shap values in multiple threads. 
+    (shap is unfortunately not threadsafe)
+-
+
+### Improvements
+- single shap row KernelExplainer calculations now go without tqdm progress bar
+- added cutoff tpr anf fpr to roc auc plot
+- added cutoff precision and recall to pr auc plot
+- put a loading spinner on shap contrib table
+
+### Other Changes
+-
+-
 
 
 ## Version 0.3.2.2:
@@ -12,7 +52,7 @@
 ### Bug Fixes
 - bug fix to make `shap.KernelExplainer` (used with explainer parameter`shap='kernel'`) 
     work with `RegressionExplainer`
-- bug fix when no explicit `labels` are passed with index selector
+- bug fix when no explicit `labels` are based with index selector
 - component only update if `explainer.index_exists()`: no `IndexNotFoundErrors` anymore.
 - fixed title for regression index selector labeled 'Custom' bug
 - `get_y()` now returns `.item()` when necessary

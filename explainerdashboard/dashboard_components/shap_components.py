@@ -194,11 +194,12 @@ class ShapDependenceComponent(ExplainerComponent):
                     subtitle="Relationship between feature value and SHAP value",
                     hide_title=False, hide_subtitle=False, hide_col=False, 
                     hide_color_col=False, hide_index=False,
-                    hide_selector=False, hide_cats_topx=False, hide_cats_sort=False,
+                    hide_selector=False, hide_outliers=False, 
+                    hide_cats_topx=False, hide_cats_sort=False,
                     hide_popout=False, hide_footer=False,
                     pos_label=None, 
                     col=None, color_col=None, index=None, 
-                    cats_topx=10, cats_sort='freq', max_cat_colors=5,
+                    remove_outliers=False, cats_topx=10, cats_sort='freq', max_cat_colors=5,
                     plot_sample=None, description=None, **kwargs):
         """Show shap dependence graph
 
@@ -219,6 +220,7 @@ class ShapDependenceComponent(ExplainerComponent):
             hide_selector (bool, optional): hide pos label selector. Defaults to False.
             hide_cats_topx (bool, optional): hide the categories topx input. Defaults to False.
             hide_cats_sort (bool, optional): hide the categories sort selector.Defaults to False.
+            hide_outliers (bool, optional): Hide remove outliers toggle input. Defaults to False.
             hide_popout (bool, optional): hide popout button. Defaults to False.
             hide_footer (bool, optional): hide the footer.
             pos_label ({int, str}, optional): initial pos label. 
@@ -227,6 +229,8 @@ class ShapDependenceComponent(ExplainerComponent):
             color_col (str, optional): Color plot by values of this Feature. 
                         Defaults to None.
             index (int, optional): Highlight a particular index. Defaults to None.
+            remove_outliers (bool, optional): remove outliers in feature and 
+                color feature from the plot.
             cats_topx (int, optional): maximum number of categories to display
                 for categorical features. Defaults to 10.
             cats_sort (str, optional): how to sort categories: 'alphabet', 
@@ -324,32 +328,49 @@ class ShapDependenceComponent(ExplainerComponent):
             ]), 
             make_hideable(
                 dbc.CardFooter([
-                    html.Div([
-                        dbc.Row([
-                            make_hideable(
-                                dbc.Col([
+                    dbc.Row([
+                        make_hideable(
+                            dbc.Col([
+                                dbc.FormGroup([
+                                    dbc.Tooltip("Remove outliers in feature (and color feature) from plot.",
+                                            target='shap-dependence-outliers-'+self.name),
+                                    dbc.Checklist(
+                                        options=[{"label":  "Remove outliers", "value": True}],
+                                        value=[True] if self.remove_outliers else [],
+                                        id='shap-dependence-outliers-'+self.name,
+                                        inline=True,
+                                        switch=True,
+                                    ),
+                                ]),
+                            ], md=2), hide=self.hide_outliers),
+                        make_hideable(
+                            dbc.Col([
+                                html.Div([
                                     dbc.Label("Categories:", id='shap-dependence-n-categories-label-'+self.name),
                                     dbc.Tooltip("Maximum number of categories to display", 
                                                 target='shap-dependence-n-categories-label-'+self.name),
                                     dbc.Input(id='shap-dependence-n-categories-'+self.name, 
                                         value=self.cats_topx,
                                         type="number", min=1, max=50, step=1),
-                                ], md=2), self.hide_cats_topx),
-                            make_hideable(
-                                dbc.Col([
-                                        html.Label('Sort categories:', id='shap-dependence-categories-sort-label-'+self.name),
-                                        dbc.Tooltip("How to sort the categories: Alphabetically, most common "
-                                                    "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
-                                                    target='shap-dependence-categories-sort-label-'+self.name),
-                                        dbc.Select(id='shap-dependence-categories-sort-'+self.name,
-                                                options = [{'label': 'Alphabetically', 'value': 'alphabet'},
-                                                            {'label': 'Frequency', 'value': 'freq'},
-                                                            {'label': 'Shap impact', 'value': 'shap'}],
-                                                value=self.cats_sort),
-                                    ], md=4), hide=self.hide_cats_sort),
-                        ])
-                    ], id='shap-dependence-categories-div-'+self.name,
-                        style={} if self.col in self.explainer.cat_cols else dict(display="none"))
+                                ], id='shap-dependence-categories-div1-'+self.name,
+                                    style={} if self.col in self.explainer.cat_cols else dict(display="none"))
+                            ], md=2), self.hide_cats_topx),
+                        make_hideable(
+                            dbc.Col([
+                                html.Div([
+                                    html.Label('Sort categories:', id='shap-dependence-categories-sort-label-'+self.name),
+                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
+                                                "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                                target='shap-dependence-categories-sort-label-'+self.name),
+                                    dbc.Select(id='shap-dependence-categories-sort-'+self.name,
+                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                        {'label': 'Frequency', 'value': 'freq'},
+                                                        {'label': 'Shap impact', 'value': 'shap'}],
+                                            value=self.cats_sort),
+                                ], id='shap-dependence-categories-div2-'+self.name,
+                                    style={} if self.col in self.explainer.cat_cols else dict(display="none"))
+                            ], md=4), hide=self.hide_cats_sort),
+                    ]) 
                 ]), hide=self.hide_footer),
         ])
 
@@ -357,7 +378,8 @@ class ShapDependenceComponent(ExplainerComponent):
         @app.callback(
             [Output('shap-dependence-color-col-'+self.name, 'options'),
              Output('shap-dependence-color-col-'+self.name, 'value'),
-             Output('shap-dependence-categories-div-'+self.name, 'style')],
+             Output('shap-dependence-categories-div1-'+self.name, 'style'),
+             Output('shap-dependence-categories-div2-'+self.name, 'style')],
             [Input('shap-dependence-col-'+self.name, 'value')],
             [State('pos-label-'+self.name, 'value')])
         def set_color_col_dropdown(col, pos_label):
@@ -372,7 +394,7 @@ class ShapDependenceComponent(ExplainerComponent):
             else:
                 value = sorted_interact_cols[1]   
                 style = dict(display="none")                             
-            return (options, value, style)
+            return (options, value, style, style)
 
         @app.callback(
             Output('shap-dependence-graph-'+self.name, 'figure'),
@@ -380,16 +402,18 @@ class ShapDependenceComponent(ExplainerComponent):
              Input('shap-dependence-index-'+self.name, 'value'),
              Input('shap-dependence-n-categories-'+self.name, 'value'),
              Input('shap-dependence-categories-sort-'+self.name, 'value'),
+             Input('shap-dependence-outliers-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
             [State('shap-dependence-col-'+self.name, 'value')])
-        def update_dependence_graph(color_col, index, topx, sort, pos_label, col):
+        def update_dependence_graph(color_col, index, topx, sort, remove_outliers, pos_label, col):
             if col is not None:
                 if color_col =="no_color_col": 
                     color_col, index = None, None
                 return self.explainer.plot_dependence(
                             col, color_col, topx=topx, sort=sort, 
                             highlight_index=index, max_cat_colors=self.max_cat_colors,
-                            plot_sample=self.plot_sample, pos_label=pos_label)
+                            plot_sample=self.plot_sample, remove_outliers=bool(remove_outliers), 
+                            pos_label=pos_label)
             raise PreventUpdate
             
 
@@ -614,10 +638,10 @@ class InteractionDependenceComponent(ExplainerComponent):
                     subtitle="Relation between feature value and shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_col=False, 
                     hide_interact_col=False, hide_index=False,
-                    hide_popout=False, hide_selector=False, hide_cats_topx=False, 
-                    hide_cats_sort=False, hide_top=False, hide_bottom=False,
-                    pos_label=None, col=None, interact_col=None,
-                    cats_topx=10, cats_sort='freq', max_cat_colors=5,
+                    hide_popout=False, hide_selector=False, hide_outliers=False, 
+                    hide_cats_topx=False, hide_cats_sort=False, hide_top=False, 
+                    hide_bottom=False, pos_label=None, col=None, interact_col=None,
+                    remove_outliers=False, cats_topx=10, cats_sort='freq', max_cat_colors=5,
                     plot_sample=None, description=None, index=None, **kwargs):
         """Interaction Dependence Component.
 
@@ -643,6 +667,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         Defaults to False.
             hide_selector (bool, optional): hide pos label selector. 
                         Defaults to False.
+            hide_outliers (bool, optional): Hide remove outliers toggle input. Defaults to False.
             hide_popout (bool, optional): hide popout button
             hide_cats_topx (bool, optional): hide the categories topx input. 
                         Defaults to False.
@@ -657,6 +682,8 @@ class InteractionDependenceComponent(ExplainerComponent):
             col (str, optional): Feature to find interactions for. Defaults to None.
             interact_col (str, optional): Feature to interact with. Defaults to None.
             highlight (int, optional): Index row to highlight Defaults to None.
+            remove_outliers (bool, optional): remove outliers in feature and 
+                color feature from the plot.
             cats_topx (int, optional): number of categories to display for 
                 categorical features.
             cats_sort (str, optional): how to sort categories: 'alphabet', 
@@ -757,19 +784,37 @@ class InteractionDependenceComponent(ExplainerComponent):
                             self.popout_top.layout()
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
-                html.Div([
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
+                
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup([
+                                dbc.Tooltip("Remove outliers (> 1.5*IQR) in feature and interaction feature from plot.",
+                                        target='interaction-dependence-top-outliers-'+self.name),
+                                dbc.Checklist(
+                                    options=[{"label":  "Remove outliers", "value": True}],
+                                    value=[True] if self.remove_outliers else [],
+                                    id='interaction-dependence-top-outliers-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
+                        ], md=2), hide=self.hide_outliers), 
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
                                 dbc.Label("Categories:", id='interaction-dependence-top-n-categories-label-'+self.name),
                                 dbc.Tooltip("Maximum number of categories to display", 
                                             target='interaction-dependence-top-n-categories-label-'+self.name),
                                 dbc.Input(id='interaction-dependence-top-n-categories-'+self.name, 
                                     value=self.cats_topx,
                                     type="number", min=1, max=50, step=1),
-                            ], md=2), self.hide_cats_topx),
+                            ], id='interaction-dependence-top-categories-div1-'+self.name, 
+                                style={} if self.interact_col in self.explainer.cat_cols else dict(display="none")),
+                        ], md=2), self.hide_cats_topx),
                         make_hideable(
                             dbc.Col([
+                                html.Div([
                                     html.Label('Sort categories:', id='interaction-dependence-top-categories-sort-label-'+self.name),
                                     dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
@@ -779,11 +824,10 @@ class InteractionDependenceComponent(ExplainerComponent):
                                                         {'label': 'Frequency', 'value': 'freq'},
                                                         {'label': 'Shap impact', 'value': 'shap'}],
                                             value=self.cats_sort),
-                                ], md=4), hide=self.hide_cats_sort),
-                    ])
-                ], id='interaction-dependence-top-categories-div-'+self.name, 
-                    style={} if self.interact_col in self.explainer.cat_cols else dict(display="none")),
-                
+                                ], id='interaction-dependence-top-categories-div2-'+self.name, 
+                                style={} if self.interact_col in self.explainer.cat_cols else dict(display="none")),
+                            ], md=4), hide=self.hide_cats_sort),
+                ]),
                 dbc.Row([
                     dbc.Col([
                         make_hideable(
@@ -799,33 +843,49 @@ class InteractionDependenceComponent(ExplainerComponent):
                             self.popout_bottom.layout()
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
-                html.Div([
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup([
+                                dbc.Tooltip("Remove outliers (> 1.5*IQR) in feature and interaction feature from plot.",
+                                        target='interaction-dependence-bottom-outliers-'+self.name),
+                                dbc.Checklist(
+                                    options=[{"label":  "Remove outliers", "value": True}],
+                                    value=[True] if self.remove_outliers else [],
+                                    id='interaction-dependence-bottom-outliers-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
+                        ], md=2), hide=self.hide_outliers), 
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
                                 dbc.Label("Categories:", id='interaction-dependence-bottom-n-categories-label-'+self.name),
                                 dbc.Tooltip("Maximum number of categories to display", 
                                             target='interaction-dependence-bottom-n-categories-label-'+self.name),
                                 dbc.Input(id='interaction-dependence-bottom-n-categories-'+self.name, 
                                     value=self.cats_topx,
                                     type="number", min=1, max=50, step=1),
-                            ], md=2), self.hide_cats_topx),
-                        make_hideable(
-                            dbc.Col([
-                                    html.Label('Sort categories:', id='interaction-dependence-bottom-categories-sort-label-'+self.name),
-                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
-                                                "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
-                                                target='interaction-dependence-bottom-categories-sort-label-'+self.name),
-                                    dbc.Select(id='interaction-dependence-bottom-categories-sort-'+self.name,
-                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
-                                                        {'label': 'Frequency', 'value': 'freq'},
-                                                        {'label': 'Shap impact', 'value': 'shap'}],
-                                            value=self.cats_sort),
-                                ], md=4), hide=self.hide_cats_sort),
-                    ])
-                ], id='interaction-dependence-bottom-categories-div-'+self.name, 
-                    style={} if self.col in self.explainer.cat_cols else dict(display="none")),
-
+                            ], id='interaction-dependence-bottom-categories-div1-'+self.name, 
+                                style={} if self.col in self.explainer.cat_cols else dict(display="none")),
+                        ], md=2), self.hide_cats_topx),
+                    make_hideable(
+                        dbc.Col([
+                            html.Div([
+                                html.Label('Sort categories:', id='interaction-dependence-bottom-categories-sort-label-'+self.name),
+                                dbc.Tooltip("How to sort the categories: Alphabetically, most common "
+                                            "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                            target='interaction-dependence-bottom-categories-sort-label-'+self.name),
+                                dbc.Select(id='interaction-dependence-bottom-categories-sort-'+self.name,
+                                        options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                    {'label': 'Frequency', 'value': 'freq'},
+                                                    {'label': 'Shap impact', 'value': 'shap'}],
+                                        value=self.cats_sort),
+                            ], id='interaction-dependence-bottom-categories-div2-'+self.name, 
+                            style={} if self.col in self.explainer.cat_cols else dict(display="none")),
+                        ], md=4), hide=self.hide_cats_sort), 
+                ])
             ]),
         ])
 
@@ -846,40 +906,44 @@ class InteractionDependenceComponent(ExplainerComponent):
 
         @app.callback(
             [Output('interaction-dependence-top-graph-'+self.name, 'figure'),
-             Output('interaction-dependence-top-categories-div-'+self.name, 'style')],
+             Output('interaction-dependence-top-categories-div1-'+self.name, 'style'),
+             Output('interaction-dependence-top-categories-div2-'+self.name, 'style')],
             [Input('interaction-dependence-interact-col-'+self.name, 'value'),
              Input('interaction-dependence-index-'+self.name, 'value'),
              Input('interaction-dependence-top-n-categories-'+self.name, 'value'),
              Input('interaction-dependence-top-categories-sort-'+self.name, 'value'),
+             Input('interaction-dependence-top-outliers-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
              Input('interaction-dependence-col-'+self.name, 'value')])
-        def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
+        def update_dependence_graph(interact_col, index, topx, sort, remove_outliers, pos_label, col):
             if col is not None and interact_col is not None:
                 style = {} if interact_col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_interaction(
                             interact_col, col, highlight_index=index, pos_label=pos_label,
                             topx=topx, sort=sort, max_cat_colors=self.max_cat_colors,
-                            plot_sample=self.plot_sample),
-                        style)
+                            plot_sample=self.plot_sample, remove_outliers=bool(remove_outliers)),
+                        style, style)
             raise PreventUpdate
 
         @app.callback(
             [Output('interaction-dependence-bottom-graph-'+self.name, 'figure'),
-             Output('interaction-dependence-bottom-categories-div-'+self.name, 'style')],
+             Output('interaction-dependence-bottom-categories-div1-'+self.name, 'style'),
+             Output('interaction-dependence-bottom-categories-div2-'+self.name, 'style')],
             [Input('interaction-dependence-interact-col-'+self.name, 'value'),
              Input('interaction-dependence-index-'+self.name, 'value'),
              Input('interaction-dependence-bottom-n-categories-'+self.name, 'value'),
              Input('interaction-dependence-bottom-categories-sort-'+self.name, 'value'),
+             Input('interaction-dependence-bottom-outliers-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
              Input('interaction-dependence-col-'+self.name, 'value')])
-        def update_dependence_graph(interact_col, index, topx, sort, pos_label, col):
+        def update_dependence_graph(interact_col, index, topx, sort, remove_outliers, pos_label, col):
             if col is not None and interact_col is not None:
                 style = {} if col in self.explainer.cat_cols else dict(display="none")
                 return (self.explainer.plot_interaction(
                             col, interact_col, highlight_index=index, pos_label=pos_label,
                             topx=topx, sort=sort, max_cat_colors=self.max_cat_colors,
-                            plot_sample=self.plot_sample),
-                        style)
+                            plot_sample=self.plot_sample, remove_outliers=bool(remove_outliers)),
+                        style, style)
             raise PreventUpdate
 
         
@@ -1221,7 +1285,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 ], form=True),
                 dbc.Row([
                     dbc.Col([
-                        html.Div(id='contributions-table-'+self.name)
+                        dcc.Loading(id='loading-contributions-table-'+self.name, 
+                            children=[html.Div(id='contributions-table-'+self.name)]),
                     ]),
                 ]),
             ]),   

@@ -233,13 +233,15 @@ An example of using setting ``X_background`` and ``model_output`` with a
     ExplainerDashboard(explainer).run()
 
 
-permutation_cv
---------------
+cv
+--
 
-Normally permutation importances get calculated over a single fold (assuming the
-data is the test set). However if you pass the training set to the explainer,
-you may wish to cross-validate calculate the permutation importances. In that
-case pass the number of folds to ``permutation_cv``.
+Normally metrics and permutation importances get calculated over a single fold 
+(assuming the data ``X`` is the test set). However if you pass the training set 
+to the explainer, you may wish to cross-validate calculate the permutation 
+importances and metrics. In that case pass the number of folds to ``cv``. 
+Note that custom metrics do not work with cross validation for now.
+
 
 na_fill
 -------
@@ -505,7 +507,7 @@ get_importances_df
 .. automethod:: explainerdashboard.explainers.BaseExplainer.get_importances_df
 
 get_contrib_df
-^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.BaseExplainer.get_contrib_df
 
@@ -614,12 +616,12 @@ with the following additional methods::
 
 
 get_decisionpath_df
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.RandomForestExplainer.get_decisionpath_df
 
 get_decisionpath_summary_df
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: explainerdashboard.explainers.RandomForestExplainer.get_decisionpath_summary_df
 
