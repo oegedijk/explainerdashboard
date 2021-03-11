@@ -1,11 +1,16 @@
 # Release Notes
-
 ## Version 0.3.3:
+
+Highlights:
+* Adding support for cross validated metrics
+* Better support for pipelines by using kernel explainer
+* Making explainer threadsafe by adding locks
+* Remove outliers from shap dependence plots
+
 ### Breaking Changes
 - parameter `permutation_cv` has been deprecated and replaced by parameter `cv` which
     now also works to calculate cross-validated metrics besides cross-validated
     permutation importances.
-- 
 
 ### New Features
 - metrics now get calculated with cross validation over `X` when you pass the
@@ -16,7 +21,8 @@
     then default to the model agnostic `shap='kernel'`.
 - Better support for sklearn `Pipelines`: if not able to extract transformer+model,
     then default to `shap.KernelExplainer` to explain the entire pipeline
--
+- you can now remove outliers from shap dependence/interaction plots with 
+    `remove_outliers=True`: filters all outliers beyond 1.5*IQR
 
 ### Bug Fixes
 -   Sets proper `threading.Locks` before making calls to shap explainer to prevent race
@@ -25,10 +31,10 @@
 -
 
 ### Improvements
-- single shap row calculations now go without tqdm progress bar
+- single shap row KernelExplainer calculations now go without tqdm progress bar
 - added cutoff tpr anf fpr to roc auc plot
 - added cutoff precision and recall to pr auc plot
-- but a loading spinner on shap contrib table
+- put a loading spinner on shap contrib table
 
 ### Other Changes
 -
