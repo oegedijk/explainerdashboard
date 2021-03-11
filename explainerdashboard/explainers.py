@@ -74,7 +74,7 @@ class BaseExplainer(ABC):
                     cats:bool=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:dict=None, 
-                    n_jobs:int=None, permutation_cv:int=None, na_fill:float=-999,
+                    n_jobs:int=None, permutation_cv:int=None, cv:int=None, na_fill:float=-999,
                     precision:str="float64"):
         """Defines the basic functionality that is shared by both
         ClassifierExplainer and RegressionExplainer. 
@@ -112,30 +112,68 @@ class BaseExplainer(ABC):
             n_jobs (int): for jobs that can be parallelized using joblib,
                 how many processes to split the job in. For now only used
                 for calculating permutation importances. Defaults to None.
-            permutation_cv (int): If not None then permutation importances 
-                will get calculated using cross validation across X. 
-                This is for calculating permutation importances against
-                X_train. Defaults to None
+            permutation_cv (int): Deprecated! Use parameter cv instead! 
+                (now also works for calculating metrics)
+            cv (int): If not None then permutation importances and metrics
+                will get calculated using cross validation across X. Use this
+                when you are passing the training set to the explainer. 
+                Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
         """
         self._params_dict = dict(
             shap=shap, model_output=model_output, cats=cats, 
             descriptions=descriptions, target=target, n_jobs=n_jobs, 
-            permutation_cv=n_jobs, na_fill=na_fill, precision=precision)
+            permutation_cv=permutation_cv, cv=cv, na_fill=na_fill, precision=precision)
+
+        if permutation_cv is not None:
+            raise ValueError("Parameter permutation_cv has been deprecated! Please use "
+                        "the new parameter `cv` instead! (Which now also works for "
+                        "calculating cross-validated metrics)")
 
         if isinstance(model, Pipeline):
-            self.X, self.model = split_pipeline(model, X.copy())
-            if X_background is not None:
-                self.X_background, _ = split_pipeline(model, X_background.copy())
-            else:
-                self.X_background = None
-        else:
+            if shap != 'kernel':
+                pipeline_model = model.steps[-1][1] 
+                pipeline_transformer = Pipeline(model.steps[:-1])
+                if hasattr(model, "predict") and hasattr(pipeline_transformer, "transform"):
+                    X_transformed = pipeline_transformer.transform(X)
+                    if X_transformed.shape == X.shape:
+                        print("Warning: Extracting final model from Pipeline and "
+                            "transforming X using transformation steps. The dashboard will "
+                            "show the transformed features. To use the original "
+                            "features set shap='kernel' to use the (probably slower) "
+                            "shap.KernelExplainer.")
+                        self.model = pipeline_model
+                        self.X = pd.DataFrame(X_transformed, columns=X.columns)
+                        if X_background is not None:
+                            self.X_background = pd.DataFrame(pipeline_transformer.transform(X_background), columns=X.columns)
+                    else:
+                        print("Warning: Pipeline does not output the same number "
+                            "of columns as input, so not able to extract model, "
+                            "transformer and assign column names. So setting "
+                            "shap='kernel' to use the (slower and approximate) "
+                            "model-agnostic shap.KernelExplainer. To override "
+                            " this please pre-process your data yourself and only "
+                            "pass the final model and transformed data to the explainer.")
+                        shap = 'kernel'
+                    del pipeline_model
+                    del pipeline_transformer
+                    del X_transformed
+                else:
+                    print("Warning: Failed to extract a data transformer and final "
+                        "model from the Pipeline. So setting shap='kernel' to use "
+                        "the (slower and approximate) model-agnostic shap.KernelExplainer "
+                        "instead.")
+                    shap = 'kernel'
+
+        if not hasattr(self, "X"):
             self.X = X.copy()
+        if not hasattr(self, "X_background"):
             if X_background is not None:
                 self.X_background = X_background.copy() 
             else:
                 self.X_background = None
+        if not hasattr(self, "model"):
             self.model = model
 
         if safe_isinstance(model, "xgboost.core.Booster"):
@@ -151,8 +189,8 @@ class BaseExplainer(ABC):
 
         self.onehot_cols, self.onehot_dict = parse_cats(self.X, cats)
         self.encoded_cols, self.regular_cols = get_encoded_and_regular_cols(self.X.columns, self.onehot_dict)
-        self.categorical_cols = [col for col in self.regular_cols if not is_numeric_dtype(X[col])]
-        self.categorical_dict = {col:sorted(X[col].unique().tolist()) for col in self.categorical_cols}
+        self.categorical_cols = [col for col in self.regular_cols if not is_numeric_dtype(self.X[col])]
+        self.categorical_dict = {col:sorted(self.X[col].unique().tolist()) for col in self.categorical_cols}
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
@@ -173,10 +211,11 @@ class BaseExplainer(ABC):
         if self.categorical_cols:
             for col in self.categorical_cols:
                 self.X[col] = self.X[col].astype("category")
-            print(f"Warning: Detected the following categorical columns: {self.categorical_cols}."
-                    "Unfortunately for now shap interaction values do not work with"
-                    "categorical columns.", flush=True)
-            self.interactions_should_work = False
+            if not isinstance(self.model, Pipeline):
+                print(f"Warning: Detected the following categorical columns: {self.categorical_cols}. "
+                        "Unfortunately for now shap interaction values do not work with"
+                        "categorical columns.", flush=True)
+                self.interactions_should_work = False
 
         if y is not None:
             if isinstance(y, pd.DataFrame):
@@ -215,6 +254,10 @@ class BaseExplainer(ABC):
                 ("Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' are "
                  " supported for now!.")
             self.shap = shap
+        if self.shap == 'kernel':
+            print("For shap='kernel', shap interaction values can unfortunately "
+                    "not be calculated!")
+            self.interactions_should_work = False
 
         self.model_output = model_output
 
@@ -244,7 +287,7 @@ class BaseExplainer(ABC):
         self.descriptions = {} if descriptions is None else descriptions
         self.target = target if target is not None else self.y.name
         self.n_jobs = n_jobs
-        self.permutation_cv = permutation_cv
+        self.cv = cv
         self.na_fill = na_fill
         self.precision = precision
         self.columns = self.X.columns
@@ -257,8 +300,13 @@ class BaseExplainer(ABC):
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
 
-        self._lock = Lock()
-        self.__version__ = "0.3.2"
+        
+        self.__version__ = "0.3.3"
+
+    def get_lock(self):
+        if not hasattr(self, "_lock"):
+            self._lock = Lock()
+        return self._lock
 
     @classmethod
     def from_file(cls, filepath):
@@ -300,6 +348,7 @@ class BaseExplainer(ABC):
             filepath (str, Path): filepath where to save the Explainer.
         """
         filepath = Path(filepath)
+        if hasattr(self, "_lock"): del self._lock # Python Locks are not picklable
         if str(filepath).endswith(".pkl") or str(filepath).endswith(".pickle"):
             import pickle
             pickle.dump(self, open(str(filepath), "wb"))
@@ -743,7 +792,7 @@ class BaseExplainer(ABC):
             self._perm_imps = (cv_permutation_importances(
                                 self.model, self.X, self.y, self.metric,
                                 onehot_dict=self.onehot_dict,
-                                cv=self.permutation_cv,
+                                cv=self.cv,
                                 n_jobs=self.n_jobs,
                                 needs_proba=self.is_classifier)
                                 .sort_values("Importance", ascending=False))
@@ -803,12 +852,17 @@ class BaseExplainer(ABC):
                     print(
                         "Warning: shap values for shap.KernelExplainer get "
                         "calculated against X_background, but paramater "
-                        "X_background=None, so using shap.kmeans(X, 50) instead")
+                        "X_background=None, so using shap.sample(X, 50) instead")
                 print("Generating self.shap_explainer = "
                         f"shap.KernelExplainer(model, {X_str})...")
-                self._shap_explainer = shap.KernelExplainer(self.model.predict, 
+
+                def model_predict(data_asarray):
+                    data_asframe =  pd.DataFrame(data_asarray, columns=self.columns)
+                    return self.model.predict(data_asframe)
+
+                self._shap_explainer = shap.KernelExplainer(model_predict, 
                     self.X_background if self.X_background is not None \
-                        else shap.kmeans(self.X, 50))
+                        else shap.sample(self.X, 50))
         return self._shap_explainer
 
     @insert_pos_label
@@ -847,15 +901,19 @@ class BaseExplainer(ABC):
                 shap_row = self.get_shap_values_df().iloc[[index]]
             elif self._get_X_row_func is not None and self.index_exists(index):
                 X_row = self._get_X_row_func(index)
-                with self._lock:
-                    shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+                with self.get_lock():
+                    shap_row = pd.DataFrame(
+                        self.shap_explainer.shap_values(X_row, silent=True), 
+                        columns=self.columns)
                 shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
             else:
                 raise IndexNotFoundError(index=index)
         elif X_row is not None:
-            print("X_row shap row:", X_row, flush=True)
-            shap_row = pd.DataFrame(self.shap_explainer.shap_values(X_row), columns=self.columns)
+            with self.get_lock():
+                shap_row = pd.DataFrame(
+                    self.shap_explainer.shap_values(X_row, silent=True), 
+                    columns=self.columns)
             shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
         else:
@@ -1779,7 +1837,7 @@ class ClassifierExplainer(BaseExplainer):
                     idxs:pd.Index=None, 
                     index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, 
-                    permutation_cv:int=None, na_fill:float=-999,
+                    permutation_cv:int=None, cv:int=None, na_fill:float=-999,
                     precision:str="float64", labels:List=None, pos_label:int=1):
         """
         Explainer for classification models. Defines the shap values for
@@ -1825,10 +1883,12 @@ class ClassifierExplainer(BaseExplainer):
             n_jobs (int): for jobs that can be parallelized using joblib,
                 how many processes to split the job in. For now only used
                 for calculating permutation importances. Defaults to None.
-            permutation_cv (int): If not None then permutation importances 
-                will get calculated using cross validation across X. 
-                This is for calculating permutation importances against
-                X_train. Defaults to None
+            permutation_cv (int): Deprecated! Use parameter cv instead! 
+                (now also works for calculating metrics)
+            cv (int): If not None then permutation importances and metrics
+                will get calculated using cross validation across X. Use this
+                when you are passing the training set to the explainer. 
+                Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
             labels(list): list of str labels for the different classes, 
@@ -1839,20 +1899,28 @@ class ClassifierExplainer(BaseExplainer):
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output, 
                             cats, cats_notencoded, idxs, index_name, target, 
-                            descriptions, n_jobs, permutation_cv, na_fill, 
+                            descriptions, n_jobs, permutation_cv, cv, na_fill, 
                             precision)
 
         assert hasattr(model, "predict_proba"), \
                 ("for ClassifierExplainer, model should be a scikit-learn "
                  "compatible *classifier* model that has a predict_proba(...) "
-                 f"method, so not a {type(model)}!")
+                 f"method, so not a {type(model)}! If you are using e.g an SVM "
+                 "with hinge loss (which does not support predict_proba), you "
+                 "can try the following monkey patch:\n\n"
+                 "import types\n"
+                 "def predict_proba(self, X):\n"
+                 "    pred = self.predict(X)\n"
+                 "    return np.array([1-pred, pred]).T\n"
+                 "model.predict_proba = types.MethodType(predict_proba, model)\n"
+                 )
 
         self._params_dict = {**self._params_dict, **dict(
             labels=labels, pos_label=pos_label)}
         
         if not self.y_missing:
             self.y = self.y.astype('int16')
-        if self.categorical_cols and model_output == 'probability':
+        if self.categorical_cols and model_output == 'probability' and not isinstance(self.model, Pipeline):
             print("Warning: Models that deal with categorical features directly "
                 f"such as {self.model.__class__.__name__} are incompatible with model_output='probability'"
                 " for now. So setting model_output='logodds'...", flush=True)
@@ -1959,7 +2027,7 @@ class ClassifierExplainer(BaseExplainer):
             self._perm_imps = [cv_permutation_importances(
                             self.model, self.X, self.y, self.metric,
                             onehot_dict=self.onehot_dict,
-                            cv=self.permutation_cv,
+                            cv=self.cv,
                             needs_proba=self.is_classifier,
                             pos_label=label).sort_values("Importance", ascending=False) 
                                 for label in range(len(self.labels))]
@@ -2033,7 +2101,7 @@ class ClassifierExplainer(BaseExplainer):
                     print(
                         "Note: shap values for shap='kernel' normally get calculated against "
                         "X_background, but paramater X_background=None, so setting "
-                        "X_background=shap.kmeans(X, 50)...")
+                        "X_background=shap.sample(X, 50)...")
                 if self.model_output != "probability":
                     print(
                         "Note: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
@@ -2042,9 +2110,14 @@ class ClassifierExplainer(BaseExplainer):
                 print("Generating self.shap_explainer = shap.KernelExplainer(model, "
                              f"{'X_background' if self.X_background is not None else 'X'}"
                              ", link='identity')")
-                self._shap_explainer = shap.KernelExplainer(self.model.predict_proba, 
+                
+                def model_predict(data_asarray):
+                    data_asframe =  pd.DataFrame(data_asarray, columns=self.columns)
+                    return self.model.predict_proba(data_asframe)
+
+                self._shap_explainer = shap.KernelExplainer(model_predict, 
                                             self.X_background if self.X_background is not None \
-                                                else shap.kmeans(self.X, 50),
+                                                else shap.sample(self.X, 50),
                                             link="identity")       
         return self._shap_explainer
 
@@ -2131,8 +2204,8 @@ class ClassifierExplainer(BaseExplainer):
     @insert_pos_label
     def get_shap_row(self, index=None, X_row=None, pos_label=None):
         def X_row_to_shap_row(X_row):
-            with self._lock:
-                sv = self.shap_explainer.shap_values(X_row)
+            with self.get_lock():
+                sv = self.shap_explainer.shap_values(X_row, silent=True)
             if isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
             elif len(self.labels) == 2:
@@ -2347,7 +2420,7 @@ class ClassifierExplainer(BaseExplainer):
         if not hasattr(self, "_metrics"):
             _ = self.pred_probas()
             print("Calculating metrics...", flush=True)
-            if self.permutation_cv is None:
+            if self.cv is None:
                 self._metrics = dict()
                 for label in range(len(self.labels)):
                     self._metrics[label] = dict()
@@ -2355,7 +2428,7 @@ class ClassifierExplainer(BaseExplainer):
                         self._metrics[label][cut] = \
                             get_metrics(0.01*cut, label)
             else:
-                self._metrics = get_cv_metrics(self.permutation_cv)
+                self._metrics = get_cv_metrics(self.cv)
 
 
         if int(cutoff*100) in self._metrics[pos_label]:
@@ -2369,7 +2442,7 @@ class ClassifierExplainer(BaseExplainer):
         show_metrics_dict = {}
         for m in show_metrics:
             if callable(m):
-                if self.permutation_cv is not None:
+                if self.cv is not None:
                     raise ValueError("custom metrics do not work with permutation_cv for now!")
                 metric_args = inspect.signature(m).parameters.keys()
                 metric_kwargs = {}
@@ -2862,7 +2935,7 @@ class RegressionExplainer(BaseExplainer):
                     cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
-                    na_fill:float=-999, precision:str="float64", units:str=""):
+                    cv:int=None, na_fill:float=-999, precision:str="float64", units:str=""):
         """Explainer for regression models.
 
         In addition to BaseExplainer defines a number of plots specific to 
@@ -2903,10 +2976,12 @@ class RegressionExplainer(BaseExplainer):
             n_jobs (int): for jobs that can be parallelized using joblib,
                 how many processes to split the job in. For now only used
                 for calculating permutation importances. Defaults to None.
-            permutation_cv (int): If not None then permutation importances 
-                will get calculated using cross validation across X. 
-                This is for calculating permutation importances against
-                X_train. Defaults to None
+            permutation_cv (int): Deprecated! Use parameter cv instead! 
+                (now also works for calculating metrics)
+            cv (int): If not None then permutation importances and metrics
+                will get calculated using cross validation across X. Use this
+                when you are passing the training set to the explainer. 
+                Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
             units(str): units to display for regression quantity
@@ -2914,7 +2989,7 @@ class RegressionExplainer(BaseExplainer):
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
                             cats, cats_notencoded, idxs, index_name, target, 
-                            descriptions, n_jobs, permutation_cv, na_fill, 
+                            descriptions, n_jobs, permutation_cv, cv, na_fill, 
                             precision)
 
         self._params_dict = {**self._params_dict, **dict(units=units)}
@@ -3058,7 +3133,7 @@ class RegressionExplainer(BaseExplainer):
 
         if self.y_missing:
             raise ValueError("No y was passed to explainer, so cannot calculate metrics!")
-        if self.permutation_cv is None:
+        if self.cv is None:
             metrics_dict = {
                 'mean-squared-error' : mean_squared_error(self.y, self.preds),
                 'root-mean-squared-error' : np.sqrt(mean_squared_error(self.y, self.preds)),
@@ -3074,7 +3149,7 @@ class RegressionExplainer(BaseExplainer):
                 'mean-absolute-percentage-error': [],
                 'R-squared' : [],
             }
-            for train_index, test_index in KFold(n_splits=self.permutation_cv, shuffle=True).split(self.X):
+            for train_index, test_index in KFold(n_splits=self.cv, shuffle=True).split(self.X):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
                 preds = clone(self.model).fit(X_train, y_train).predict(X_test)
@@ -3094,7 +3169,7 @@ class RegressionExplainer(BaseExplainer):
         show_metrics_dict = {}
         for m in show_metrics:
             if callable(m):
-                if self.permutation_cv is not None:
+                if self.cv is not None:
                     raise ValueError("custom metrics do not work with permutation_cv for now!")
                 show_metrics_dict[m.__name__] = m(self.y, self.preds)
             elif m in metrics_dict:

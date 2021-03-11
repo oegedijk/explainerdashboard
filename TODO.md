@@ -23,7 +23,6 @@
 ### Regression plots:
 
 ## Explainers:
-- add cross validation metrics
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -60,7 +59,6 @@
 
 ### Components
 - add feature descriptions component
-- add winsor to shap dependence
 - add predictions list to whatif composite:
     - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile

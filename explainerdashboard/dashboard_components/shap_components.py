@@ -1271,7 +1271,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 ], form=True),
                 dbc.Row([
                     dbc.Col([
-                        html.Div(id='contributions-table-'+self.name)
+                        dcc.Loading(id='loading-contributions-table-'+self.name, 
+                            children=[html.Div(id='contributions-table-'+self.name)]),
                     ]),
                 ]),
             ]),   
