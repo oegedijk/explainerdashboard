@@ -16,6 +16,7 @@ from typing import List, Dict, Union, Callable
 from types import MethodType
 from functools import wraps
 from threading import Lock
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -127,9 +128,11 @@ class BaseExplainer(ABC):
             permutation_cv=permutation_cv, cv=cv, na_fill=na_fill, precision=precision)
 
         if permutation_cv is not None:
-            raise ValueError("Parameter permutation_cv has been deprecated! Please use "
+            warnings.warn("Parameter permutation_cv has been deprecated! Please use "
                         "the new parameter `cv` instead! (Which now also works for "
-                        "calculating cross-validated metrics)")
+                        "calculating cross-validated metrics!)")
+            if cv is None: 
+                cv = permutation_cv
 
         if isinstance(model, Pipeline):
             if shap != 'kernel':
