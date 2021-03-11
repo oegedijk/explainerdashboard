@@ -23,6 +23,7 @@
 ### Regression plots:
 
 ## Explainers:
+- Turn print statements into logging
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -36,6 +37,7 @@
 
 
 ## Dashboard:
+- Turn print statements into logging
 - make poweredby right align
 - more flexible instantiate_component:
     - no explainer needed (if explainer component detected, pass otherwise ignore)
