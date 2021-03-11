@@ -13,7 +13,7 @@ from dtreeviz.trees import ShadowDecTree
 from sklearn.metrics import make_scorer
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold, StratifiedKFold
 
 from joblib import Parallel, delayed
 
@@ -65,7 +65,7 @@ def guess_shap(model):
                    'IsolationForest'
                   ]
     linear_models = ['LinearRegression', 'LogisticRegression',
-                    'Ridge', 'Lasso', 'ElasticNet']
+                    'Ridge', 'Lasso', 'ElasticNet', 'SGDClassifier']
     
     for tree_model in tree_models:
         if str(type(model)).endswith(tree_model + "'>"):
@@ -524,9 +524,15 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
                                         sort=False,
                                         verbose=verbose)
 
-    skf = StratifiedKFold(n_splits=cv, random_state=None, shuffle=False)
+    if needs_proba:
+        skf = StratifiedKFold(n_splits=cv, random_state=None, shuffle=False)
+        splitter = skf.split(X, y)
+    else:
+        kf = KFold(n_splits=cv, random_state=None, shuffle=False)
+        splitter = kf.split(X)
+
     model = clone(model)
-    for i, (train_index, test_index) in enumerate(skf.split(X, y)):
+    for i, (train_index, test_index) in enumerate(splitter):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
@@ -541,12 +547,13 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
                                         sort=False,
                                         verbose=verbose)
         if i == 0:
-            imps = imp
+            imps = imp[['Feature', 'Importance']]
         else:
-            imps = imps.merge(imp, on='Feature', suffixes=("", "_" + str(i)))
+            imps = imps.merge(imp[['Feature', 'Importance']], on='Feature', suffixes=("", "_" + str(i)))
 
-    return pd.DataFrame(imps.mean(axis=1), columns=['Importance'])\
-                        .sort_values('Importance', ascending=False)
+    return (imps.set_index("Feature").mean(axis=1)
+                .to_frame().rename(columns={0:'Importance'})
+                .sort_values('Importance', ascending=False).reset_index())
 
 
 def get_mean_absolute_shap_df(columns, shap_values, onehot_dict=None):

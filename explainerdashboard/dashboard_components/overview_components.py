@@ -332,115 +332,115 @@ class PdpComponent(ExplainerComponent):
 
     def layout(self):
         return dbc.Card([
-                make_hideable(
-                    dbc.CardHeader([
-                            html.Div([
-                                html.H3(self.title, id='pdp-title-'+self.name),
-                                make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
-                                dbc.Tooltip(self.description, target='pdp-title-'+self.name),
-                            ]), 
-                    ]), hide=self.hide_title),
-                dbc.CardBody([
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
-                                dbc.Label("Feature:", 
-                                        html_for='pdp-col'+self.name, id='pdp-col-label-'+self.name),
-                                dbc.Tooltip("Select the feature for which you want to see the partial dependence plot", 
-                                            target='pdp-col-label-'+self.name),
-                                dbc.Select(id='pdp-col-'+self.name,       
-                                    options=[{'label': col, 'value':col} 
-                                                for col in self.explainer.columns_ranked_by_shap()],
-                                    value=self.col),
-                            ], md=4), hide=self.hide_col),
-                        make_hideable(
-                            dbc.Col([
-                                dbc.Label(f"{self.explainer.index_name}:", id='pdp-index-label-'+self.name),
-                                dbc.Tooltip(f"Select the {self.explainer.index_name} to display the partial dependence plot for", 
-                                        target='pdp-index-label-'+self.name),
-                                self.index_selector.layout(),
-                            ], md=4), hide=self.hide_index), 
-                        make_hideable(
-                            dbc.Col([self.selector.layout()
-                        ], width=2), hide=self.hide_selector),
-                    ], form=True),
-                    dbc.Row([
+            make_hideable(
+                dbc.CardHeader([
+                        html.Div([
+                            html.H3(self.title, id='pdp-title-'+self.name),
+                            make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
+                            dbc.Tooltip(self.description, target='pdp-title-'+self.name),
+                        ]), 
+                ]), hide=self.hide_title),
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
                         dbc.Col([
-                            dcc.Loading(id='loading-pdp-graph-'+self.name, 
-                                children=[dcc.Graph(id='pdp-graph-'+self.name,
-                                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
-                        ])
-                    ]),
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
-                                self.popout.layout()
-                            ], md=2, align="start"), hide=self.hide_popout),
-                    ], justify="end"),
+                            dbc.Label("Feature:", 
+                                    html_for='pdp-col'+self.name, id='pdp-col-label-'+self.name),
+                            dbc.Tooltip("Select the feature for which you want to see the partial dependence plot", 
+                                        target='pdp-col-label-'+self.name),
+                            dbc.Select(id='pdp-col-'+self.name,       
+                                options=[{'label': col, 'value':col} 
+                                            for col in self.explainer.columns_ranked_by_shap()],
+                                value=self.col),
+                        ], md=4), hide=self.hide_col),
+                    make_hideable(
+                        dbc.Col([
+                            dbc.Label(f"{self.explainer.index_name}:", id='pdp-index-label-'+self.name),
+                            dbc.Tooltip(f"Select the {self.explainer.index_name} to display the partial dependence plot for", 
+                                    target='pdp-index-label-'+self.name),
+                            self.index_selector.layout(),
+                        ], md=4), hide=self.hide_index), 
+                    make_hideable(
+                        dbc.Col([self.selector.layout()
+                    ], width=2), hide=self.hide_selector),
+                ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        dcc.Loading(id='loading-pdp-graph-'+self.name, 
+                            children=[dcc.Graph(id='pdp-graph-'+self.name,
+                                                config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
+                    ])
                 ]),
-                make_hideable(
-                dbc.CardFooter([
-                    dbc.Row([
-                        make_hideable(
-                            dbc.Col([
-                                dbc.FormGroup([
-                                    dbc.Label("Drop fill:"),
-                                    dbc.Tooltip("Drop all observations with feature values "
-                                            f"equal to {self.explainer.na_fill} from the plot. "
-                                            "This prevents the filler values from ruining the x-axis.", 
-                                                target='pdp-dropna-'+self.name),
-                                    dbc.Checklist(
-                                        options=[{"label": "Drop na_fill", "value": True}],
-                                        value=[True] if self.dropna else [],
-                                        id='pdp-dropna-'+self.name,
-                                        inline=True,
-                                        switch=True,
-                                    ),
-                                ]),
-                            ]), hide=self.hide_dropna),
-                        make_hideable(
-                            dbc.Col([ 
-                                dbc.Label("Sample:", id='pdp-sample-label-'+self.name ),
-                                dbc.Tooltip("Number of observations to use to calculate average partial dependence", 
-                                            target='pdp-sample-label-'+self.name ),
-                                dbc.Input(id='pdp-sample-'+self.name, value=self.sample,
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            self.popout.layout()
+                        ], md=2, align="start"), hide=self.hide_popout),
+                ], justify="end"),
+            ]),
+            make_hideable(
+            dbc.CardFooter([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup([
+                                dbc.Label("Drop fill:"),
+                                dbc.Tooltip("Drop all observations with feature values "
+                                        f"equal to {self.explainer.na_fill} from the plot. "
+                                        "This prevents the filler values from ruining the x-axis.", 
+                                            target='pdp-dropna-'+self.name),
+                                dbc.Checklist(
+                                    options=[{"label": "Drop na_fill", "value": True}],
+                                    value=[True] if self.dropna else [],
+                                    id='pdp-dropna-'+self.name,
+                                    inline=True,
+                                    switch=True,
+                                ),
+                            ]),
+                        ]), hide=self.hide_dropna),
+                    make_hideable(
+                        dbc.Col([ 
+                            dbc.Label("Sample:", id='pdp-sample-label-'+self.name ),
+                            dbc.Tooltip("Number of observations to use to calculate average partial dependence", 
+                                        target='pdp-sample-label-'+self.name ),
+                            dbc.Input(id='pdp-sample-'+self.name, value=min(self.sample, len(self.explainer)),
+                                type="number", min=0, max=len(self.explainer), step=1),
+                        ]), hide=self.hide_sample),  
+                    make_hideable(   
+                        dbc.Col([ #gridlines
+                            dbc.Label("Gridlines:", id='pdp-gridlines-label-'+self.name ),
+                            dbc.Tooltip("Number of individual observations' partial dependences to show in plot", 
+                                        target='pdp-gridlines-label-'+self.name),
+                            dbc.Input(id='pdp-gridlines-'+self.name, value=min(self.gridlines, len(self.explainer)),
                                     type="number", min=0, max=len(self.explainer), step=1),
-                            ]), hide=self.hide_sample),  
-                        make_hideable(   
-                            dbc.Col([ #gridlines
-                                dbc.Label("Gridlines:", id='pdp-gridlines-label-'+self.name ),
-                                dbc.Tooltip("Number of individual observations' partial dependences to show in plot", 
-                                            target='pdp-gridlines-label-'+self.name),
-                                dbc.Input(id='pdp-gridlines-'+self.name, value=self.gridlines,
-                                        type="number", min=0, max=len(self.explainer), step=1),
-                            ]), hide=self.hide_gridlines),
-                        make_hideable(
-                            dbc.Col([ #gridpoints
-                                dbc.Label("Gridpoints:", id='pdp-gridpoints-label-'+self.name ),
-                                dbc.Tooltip("Number of points to sample the feature axis for predictions."
-                                            " The higher, the smoother the curve, but takes longer to calculate", 
-                                            target='pdp-gridpoints-label-'+self.name ),
-                                dbc.Input(id='pdp-gridpoints-'+self.name, value=self.gridpoints,
-                                    type="number", min=0, max=100, step=1),
-                            ]), hide=self.hide_gridpoints),
-                        make_hideable(
-                            html.Div([
-                                dbc.Col([
-                                        html.Label('Sort categories:', id='pdp-categories-sort-label-'+self.name),
-                                        dbc.Tooltip("How to sort the categories: Alphabetically, most common "
-                                                    "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
-                                                    target='pdp-categories-sort-label-'+self.name),
-                                        dbc.Select(id='pdp-categories-sort-'+self.name,
-                                                options = [{'label': 'Alphabetically', 'value': 'alphabet'},
-                                                            {'label': 'Frequency', 'value': 'freq'},
-                                                            {'label': 'Shap impact', 'value': 'shap'}],
-                                                value=self.cats_sort),
-                                    ])], 
-                                id='pdp-categories-sort-div-'+self.name,
-                                style={} if self.col in self.explainer.cat_cols else dict(display="none")
-                            ), hide=self.hide_cats_sort),
-                    ], form=True),
-                ]), hide=self.hide_footer)
+                        ]), hide=self.hide_gridlines),
+                    make_hideable(
+                        dbc.Col([ #gridpoints
+                            dbc.Label("Gridpoints:", id='pdp-gridpoints-label-'+self.name ),
+                            dbc.Tooltip("Number of points to sample the feature axis for predictions."
+                                        " The higher, the smoother the curve, but takes longer to calculate", 
+                                        target='pdp-gridpoints-label-'+self.name ),
+                            dbc.Input(id='pdp-gridpoints-'+self.name, value=self.gridpoints,
+                                type="number", min=0, max=100, step=1),
+                        ]), hide=self.hide_gridpoints),
+                    make_hideable(
+                        html.Div([
+                            dbc.Col([
+                                    html.Label('Sort categories:', id='pdp-categories-sort-label-'+self.name),
+                                    dbc.Tooltip("How to sort the categories: Alphabetically, most common "
+                                                "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
+                                                target='pdp-categories-sort-label-'+self.name),
+                                    dbc.Select(id='pdp-categories-sort-'+self.name,
+                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                        {'label': 'Frequency', 'value': 'freq'},
+                                                        {'label': 'Shap impact', 'value': 'shap'}],
+                                            value=self.cats_sort),
+                                ])], 
+                            id='pdp-categories-sort-div-'+self.name,
+                            style={} if self.col in self.explainer.cat_cols else dict(display="none")
+                        ), hide=self.hide_cats_sort),
+                ], form=True),
+            ]), hide=self.hide_footer)
         ])
                 
     def component_callbacks(self, app):

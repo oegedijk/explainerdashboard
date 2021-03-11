@@ -390,6 +390,62 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                                 return_str=True)
 
 
+class RegressionModelSummaryComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Model Summary", name=None, 
+                    subtitle="Quantitative metrics for model performance",
+                    hide_title=False, hide_subtitle=False, 
+                    round=3, show_metrics=None, description=None, **kwargs):
+        """Show model summary statistics (RMSE, MAE, R2) component
+
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Model Summary".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            subtitle (str): subtitle
+            hide_title (bool, optional): hide title
+            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
+            round (int): rounding to perform to metric floats.
+            show_metrics (List): list of metrics to display in order. Defaults
+                to None, displaying all metrics.
+            description (str, optional): Tooltip to display when hover over
+                component title. When None default text is shown. 
+        """
+        super().__init__(explainer, title, name)
+        if self.description is None: self.description = f"""
+        In the table below you can find a number of regression performance 
+        metrics that describe how well the model is able to predict 
+        {self.explainer.target}.
+        """
+        self.register_dependencies(['preds', 'residuals'])
+
+    def layout(self):
+        metrics_dict = self.explainer.metrics_descriptions()
+        metrics_df = (pd.DataFrame(self.explainer.metrics(show_metrics=self.show_metrics), index=["Score"]).T
+                        .rename_axis(index="metric").reset_index().round(self.round))
+        metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)      
+        metrics_table, tooltips = get_dbc_tooltips(metrics_table, 
+                                                    metrics_dict, 
+                                                    "reg-model-summary-div-hover", 
+                                                    self.name)
+        return dbc.Card([
+            make_hideable(
+                dbc.CardHeader([
+                    html.Div([
+                        html.H3(self.title, id='reg-model-summary-title-'+self.name),
+                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
+                        dbc.Tooltip(self.description, target='reg-model-summary-title-'+self.name),
+                    ]), 
+                ]), hide=self.hide_title),
+            dbc.CardBody([
+                metrics_table,
+                *tooltips
+            ]),
+        ])
+
 class RegressionPredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False, 
@@ -954,58 +1010,3 @@ class RegressionVsColComponent(ExplainerComponent):
                         plot_sample=self.plot_sample), style, style, style
 
 
-class RegressionModelSummaryComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Model Summary", name=None, 
-                    subtitle="Quantitative metrics for model performance",
-                    hide_title=False, hide_subtitle=False, 
-                    round=3, show_metrics=None, description=None, **kwargs):
-        """Show model summary statistics (RMSE, MAE, R2) component
-
-        Args:
-            explainer (Explainer): explainer object constructed with either
-                        ClassifierExplainer() or RegressionExplainer()
-            title (str, optional): Title of tab or page. Defaults to 
-                        "Model Summary".
-            name (str, optional): unique name to add to Component elements. 
-                        If None then random uuid is generated to make sure 
-                        it's unique. Defaults to None.
-            subtitle (str): subtitle
-            hide_title (bool, optional): hide title
-            hide_subtitle (bool, optional): Hide subtitle. Defaults to False.
-            round (int): rounding to perform to metric floats.
-            show_metrics (List): list of metrics to display in order. Defaults
-                to None, displaying all metrics.
-            description (str, optional): Tooltip to display when hover over
-                component title. When None default text is shown. 
-        """
-        super().__init__(explainer, title, name)
-        if self.description is None: self.description = f"""
-        In the table below you can find a number of regression performance 
-        metrics that describe how well the model is able to predict 
-        {self.explainer.target}.
-        """
-        self.register_dependencies(['preds', 'residuals'])
-
-    def layout(self):
-        metrics_dict = self.explainer.metrics_descriptions()
-        metrics_df = (pd.DataFrame(self.explainer.metrics(show_metrics=self.show_metrics), index=["Score"]).T
-                        .rename_axis(index="metric").reset_index().round(self.round))
-        metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)      
-        metrics_table, tooltips = get_dbc_tooltips(metrics_table, 
-                                                    metrics_dict, 
-                                                    "reg-model-summary-div-hover", 
-                                                    self.name)
-        return dbc.Card([
-            make_hideable(
-                dbc.CardHeader([
-                    html.Div([
-                        html.H3(self.title, id='reg-model-summary-title-'+self.name),
-                        make_hideable(html.H6(self.subtitle, className='card-subtitle'), hide=self.hide_subtitle),
-                        dbc.Tooltip(self.description, target='reg-model-summary-title-'+self.name),
-                    ]), 
-                ]), hide=self.hide_title),
-            dbc.CardBody([
-                metrics_table,
-                *tooltips
-            ]),
-        ])

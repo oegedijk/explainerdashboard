@@ -7,7 +7,6 @@
 ## Plots:
 - add SHAP decision plots:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
-- add winsor to shap dependence
 - make plot background transparent?
 - Only use ScatterGl above a certain cutoff
 - seperate standard shap plots for shap_interaction plots 
@@ -24,6 +23,7 @@
 ### Regression plots:
 
 ## Explainers:
+- Turn print statements into logging
 - pass n_jobs to pdp_isolate
 - add ExtraTrees and GradientBoostingClassifier to tree visualizers
 - add plain language explanations
@@ -37,6 +37,7 @@
 
 
 ## Dashboard:
+- Turn print statements into logging
 - make poweredby right align
 - more flexible instantiate_component:
     - no explainer needed (if explainer component detected, pass otherwise ignore)
@@ -59,7 +60,7 @@
 
 
 ### Components
-- add winsor to shap dependence
+- add feature descriptions component
 - add predictions list to whatif composite:
     - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile
@@ -86,6 +87,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add cv metrics tests
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately
