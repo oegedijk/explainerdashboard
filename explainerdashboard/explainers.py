@@ -903,7 +903,7 @@ class BaseExplainer(ABC):
                 X_row = self._get_X_row_func(index)
                 with self.get_lock():
                     shap_row = pd.DataFrame(
-                        self.shap_explainer.shap_values(X_row, silent=True), 
+                        self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
                         columns=self.columns)
                 shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -912,7 +912,7 @@ class BaseExplainer(ABC):
         elif X_row is not None:
             with self.get_lock():
                 shap_row = pd.DataFrame(
-                    self.shap_explainer.shap_values(X_row, silent=True), 
+                    self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
                     columns=self.columns)
             shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -1494,21 +1494,36 @@ class BaseExplainer(ABC):
                     target=self.target, units=self.units)
 
     def get_idx_sample(self, sample_size=None, include_index=None, 
-                        winsor_array=None, winsor=None):
+                        outlier_array1=None, outlier_array2=None):
         """returns a random sample of integer indexes, making sure that
-        include_index is included"""
+        include_index is included. Outlier indexes can be excluded.
+        
+        Args:
+            sample_size: Number of (random) samples to return
+            include_index: index that has to be included, independent of random draw
+            outlier_array1: array to exclude all indexes with values <> 1.5*IQR from.
+            outlier_array2: array to exclude all indexes with values <> 1.5*IQR from.
+        """
+
         idx_sample = np.arange(0, len(self))
-        if sample_size is None and winsor_array is None:
+        if sample_size is None and outlier_array1 is None and outlier_array2 is None:
             return idx_sample
         else:
-            if winsor_array is not None and winsor is not None:
-                winsor_bounds = np.percentile(winsor_array, [winsor, 100-winsor])
-                idx_sample = idx_sample[(winsor_array > winsor_bounds[0]) 
-                                        & (winsor_array < winsor_bounds[1])]
+            if outlier_array1 is not None:
+                q1, q3 = np.percentile(outlier_array1, [25, 75])
+                lb, ub = q1 - 1.5 * (q3-q1), q3 + 1.5 * (q3-q1)
+                idx_sample = idx_sample[(outlier_array1 >= lb) 
+                                        & (outlier_array1 <= ub)]
+            if outlier_array2 is not None:
+                q1, q3 = np.percentile(outlier_array2[idx_sample], [25, 75])
+                lb, ub = q1 - 1.5 * (q3-q1), q3 + 1.5 * (q3-q1)
+                idx_sample = idx_sample[(outlier_array2[idx_sample] >= lb) 
+                                        & (outlier_array2[idx_sample] <= ub)]
+
             if sample_size is not None and sample_size < len(idx_sample):
                 assert sample_size >= 0, "sample_size should be a positive integer!"
                 idx_sample = np.random.choice(idx_sample, sample_size, replace=False)
-            
+
             if include_index is not None:
                 if isinstance(include_index, str):
                     if include_index not in self.idxs:
@@ -1518,10 +1533,11 @@ class BaseExplainer(ABC):
                     idx_sample = np.append(idx_sample, include_index)
             return idx_sample
 
+
     @insert_pos_label
     def plot_dependence(self, col, color_col=None, highlight_index=None, 
                                 topx=None, sort='alphabet', max_cat_colors=5, 
-                                round=3, plot_sample=None, winsor=None, pos_label=None):
+                                round=3, plot_sample=None, remove_outliers=False, pos_label=None):
         """plot shap dependence
         
         Plots a shap dependence plot:
@@ -1544,15 +1560,17 @@ class BaseExplainer(ABC):
           round (int, optional): rounding to apply to floats. Defaults to 3.
           plot_sample (int, optional): Instead of all points only plot a random
             sample of points. Defaults to None (=all points)
-          winsor (int, optional): winsorize the plot by excluding winsor highest
-            and lowest shap values.
+          remove_outliers (bool, optional): remove observations that are >1.5*IQR 
+            in either col or color_col. Defaults to False.
           pos_label: positive class (Default value = None)
 
         Returns:
 
         """
+
         plot_idxs = self.get_idx_sample(plot_sample, highlight_index, 
-            self.get_shap_values_df(pos_label)[col].values, winsor)
+            self.get_col(col).values if remove_outliers and col not in self.cat_cols else None,
+            self.get_col(color_col).values if remove_outliers and color_col is not None and color_col not in self.cat_cols else None)
         highlight_index = self.get_index(highlight_index)
 
         if color_col is None:
@@ -1584,7 +1602,7 @@ class BaseExplainer(ABC):
     @insert_pos_label
     def plot_interaction(self, col, interact_col, highlight_index=None, 
                                 topx=10, sort='alphabet', max_cat_colors=5, 
-                                plot_sample=None, winsor=None, pos_label=None):
+                                plot_sample=None, remove_outliers=False, pos_label=None):
         """plots a dependence plot for shap interaction effects
 
         Args:
@@ -1598,8 +1616,8 @@ class BaseExplainer(ABC):
                 of categories to label with own color. Defaults to 5. 
           plot_sample (int, optional): Instead of all points only plot a random
             sample of points. Defaults to None (=all points)
-          winsor (int, optional): winsorize the plot by excluding winsor highest
-            and lowest shap interaction values.
+          remove_outliers (bool, optional): remove observations that are >1.5*IQR 
+            in either col or color_col. Defaults to False.
           pos_label:  (Default value = None)
 
         Returns:
@@ -1607,7 +1625,8 @@ class BaseExplainer(ABC):
 
         """
         plot_idxs = self.get_idx_sample(plot_sample, highlight_index, 
-            self.shap_interaction_values_for_col(col, interact_col, pos_label=pos_label), winsor)
+            self.get_col(col).values if remove_outliers and col not in self.cat_cols else None,
+            self.get_col(interact_col).values if remove_outliers and interact_col not in self.cat_cols else None)
         highlight_index = self.get_index(highlight_index)
 
         if col in self.cat_cols:
@@ -2205,7 +2224,7 @@ class ClassifierExplainer(BaseExplainer):
     def get_shap_row(self, index=None, X_row=None, pos_label=None):
         def X_row_to_shap_row(X_row):
             with self.get_lock():
-                sv = self.shap_explainer.shap_values(X_row, silent=True)
+                sv = self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {}))
             if isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
             elif len(self.labels) == 2:

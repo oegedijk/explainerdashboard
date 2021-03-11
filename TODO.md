@@ -85,7 +85,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add permutation_cv metrics tests
+- add cv metrics tests
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately
