@@ -1513,12 +1513,12 @@ class BaseExplainer(ABC):
             return idx_sample
         else:
             if outlier_array1 is not None:
-                q1, q3 = np.percentile(outlier_array1, [25, 75])
+                q1, q3 = np.nanpercentile(outlier_array1, [25, 75])
                 lb, ub = q1 - 1.5 * (q3-q1), q3 + 1.5 * (q3-q1)
                 idx_sample = idx_sample[(outlier_array1 >= lb) 
                                         & (outlier_array1 <= ub)]
             if outlier_array2 is not None:
-                q1, q3 = np.percentile(outlier_array2[idx_sample], [25, 75])
+                q1, q3 = np.nanpercentile(outlier_array2[idx_sample], [25, 75])
                 lb, ub = q1 - 1.5 * (q3-q1), q3 + 1.5 * (q3-q1)
                 idx_sample = idx_sample[(outlier_array2[idx_sample] >= lb) 
                                         & (outlier_array2[idx_sample] <= ub)]
