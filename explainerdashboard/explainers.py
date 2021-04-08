@@ -253,7 +253,8 @@ class BaseExplainer(ABC):
                     "compatible with e.g. shap.TreeExplainer or shap.LinearExplainer "
                     "then pass shap='tree' or shap='linear'!")
         else:
-            if shap in ['deep', 'skorch'], "shap.DeepExplainer is not supported for now but we're working on it!"
+            if shap in {'deep', 'skorch'}:
+                raise ValueError("shap.DeepExplainer is not supported for now but we're working on it!")
             assert shap in ['tree', 'linear', 'deep', 'kernel', 'skorch'], \
                 ("Only shap='guess', 'tree', 'linear', 'deep', ' kernel' or 'skorch' are "
                  " supported for now!.")
