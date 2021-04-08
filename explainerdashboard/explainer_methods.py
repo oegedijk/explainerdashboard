@@ -1085,7 +1085,7 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1):
         pd.DataFrame: columns=['node_id', 'average', 'feature', 
             'value', 'split', 'direction', 'left', 'right', 'diff']
     """
-    _, nodes = decision_tree.predict(observation)
+    nodes = decision_tree.predict_path(observation)
 
     decisiontree_df = pd.DataFrame(columns=['node_id', 'average', 'feature',
                                      'value', 'split', 'direction',

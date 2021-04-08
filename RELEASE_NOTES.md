@@ -1,4 +1,26 @@
 # Release Notes
+
+## Template:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+- fixes but with removing outliers when nans are present in feature
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.3.3:
 
 Highlights:

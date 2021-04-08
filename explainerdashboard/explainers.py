@@ -253,8 +253,8 @@ class BaseExplainer(ABC):
                     "compatible with e.g. shap.TreeExplainer or shap.LinearExplainer "
                     "then pass shap='tree' or shap='linear'!")
         else:
-            assert shap in ['tree', 'linear', 'deep', 'kernel'], \
-                ("Only shap='guess', 'tree', 'linear', 'deep', or ' kernel' are "
+            assert shap in ['tree', 'linear', 'deep', 'kernel', 'skorch'], \
+                ("Only shap='guess', 'tree', 'linear', 'deep', ' kernel' or 'skorch' are "
                  " supported for now!.")
             self.shap = shap
         if self.shap == 'kernel':
@@ -846,10 +846,25 @@ class BaseExplainer(ABC):
                 print(f"Generating self.shap_explainer = shap.LinearExplainer(model{X_str})...")
                 self._shap_explainer = shap.LinearExplainer(self.model, 
                     self.X_background if self.X_background is not None else self.X)
-            elif self.shap=='deep':
+            elif self.shap == 'deep':
                 print(f"Generating self.shap_explainer = "
-                      f"shap.DeepExplainer(model{NoX_str})")
-                self._shap_explainer = shap.DeepExplainer(self.model)
+                      f"shap.DeepExplainer(model, X_background)")
+                print("Warning: shap values for shap.DeepExplainer get "
+                        "calculated against X_background, but paramater "
+                        "X_background=None, so using shap.sample(X, 5) instead")
+                self._shap_explainer = shap.DeepExplainer(self.model, 
+                        self.X_background if self.X_background is not None \
+                            else shap.sample(self.X, 5))
+            elif self.shap == 'skorch':
+                print(f"Generating self.shap_explainer = "
+                      f"shap.DeepExplainer(model, X_background)")
+                print("Warning: shap values for shap.DeepExplainer get "
+                        "calculated against X_background, but paramater "
+                        "X_background=None, so using shap.sample(X, 5) instead")
+                import torch
+                self._shap_explainer = shap.DeepExplainer(self.model.module_, 
+                        torch.tensor(self.X_background.values) if self.X_background is not None \
+                            else torch.tensor(shap.sample(self.X, 5).values))
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
@@ -889,7 +904,12 @@ class BaseExplainer(ABC):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
-            self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
+            if self.shap == 'skorch':
+                import torch
+                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(torch.tensor(self.X.values)), 
+                                    columns=self.columns)
+            else:
+                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
                                     columns=self.columns)
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
@@ -1513,12 +1533,12 @@ class BaseExplainer(ABC):
             return idx_sample
         else:
             if outlier_array1 is not None:
-                q1, q3 = np.percentile(outlier_array1, [25, 75])
+                q1, q3 = np.nanpercentile(outlier_array1, [25, 75])
                 lb, ub = q1 - 1.5 * (q3-q1), q3 + 1.5 * (q3-q1)
                 idx_sample = idx_sample[(outlier_array1 >= lb) 
                                         & (outlier_array1 <= ub)]
             if outlier_array2 is not None:
-                q1, q3 = np.percentile(outlier_array2[idx_sample], [25, 75])
+                q1, q3 = np.nanpercentile(outlier_array2[idx_sample], [25, 75])
                 lb, ub = q1 - 1.5 * (q3-q1), q3 + 1.5 * (q3-q1)
                 idx_sample = idx_sample[(outlier_array2[idx_sample] >= lb) 
                                         & (outlier_array2[idx_sample] <= ub)]
@@ -2115,9 +2135,24 @@ class ClassifierExplainer(BaseExplainer):
                 
                 self._shap_explainer = shap.LinearExplainer(self.model, 
                                             self.X_background if self.X_background is not None else self.X)
-            elif self.shap=='deep':
-                print("Generating self.shap_explainer = shap.DeepExplainer(model{', X_background' if self.X_background is not None else ''})")
-                self._shap_explainer = shap.DeepExplainer(self.model, self.X_background)
+            elif self.shap == 'deep':
+                print(f"Generating self.shap_explainer = "
+                      f"shap.DeepExplainer(model, X_background)")
+                print("Warning: shap values for shap.DeepExplainer get "
+                        "calculated against X_background, but paramater "
+                        "X_background=None, so using shap.sample(X, 5) instead")
+                self._shap_explainer = shap.DeepExplainer(self.model, 
+                        self.X_background if self.X_background is not None \
+                            else shap.sample(self.X, 5))
+            elif self.shap == 'skorch':
+                print(f"Generating self.shap_explainer = "
+                      f"shap.DeepExplainer(model, X_background)")
+                print("Warning: shap values for shap.DeepExplainer get "
+                        "calculated against X_background, but paramater "
+                        "X_background=None, so using shap.sample(X, 5) instead")
+                self._shap_explainer = shap.DeepExplainer(self.model.module_, 
+                        self.X_background if self.X_background is not None \
+                            else shap.sample(self.X, 5).values)
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
@@ -2173,7 +2208,7 @@ class ClassifierExplainer(BaseExplainer):
         """SHAP Values"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
-            _shap_values = self.shap_explainer.shap_values(self.X)
+            _shap_values = self.shap_explainer.shap_values(self.X.values)
             
             if len(self.labels) == 2:
                 if not isinstance(_shap_values, list):
