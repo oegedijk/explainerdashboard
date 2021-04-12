@@ -1,26 +1,14 @@
 # Release Notes
 
-## Template:
-### Breaking Changes
-- 
-- 
-
-### New Features
--
--
+## Version 0.3.4:
 
 ### Bug Fixes
-- fixes but with removing outliers when nans are present in feature
--
+- Fixes incompatibility bug with dtreeviz >= 1.3
+- 
 
 ### Improvements
+- raises ValueError when passing `shap='deep'` as it is not yet correctly supported
 -
--
-
-### Other Changes
--
--
-
 ## Version 0.3.3:
 
 Highlights:
