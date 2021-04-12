@@ -16,8 +16,8 @@ decision trees, etc.
 
 You can also interactively explore components of the dashboard in a 
 notebook/colab environment (or just launch a dashboard straight from there). 
-Or design a dashboard with your own custom layout and explanations (thanks
-to the modular design of the library). And you can combine multiple dashboards into
+Or design a dashboard with your own [custom layout](https://explainerdashboard.readthedocs.io/en/latest/buildcustom.html) 
+and explanations (thanks to the modular design of the library). And you can combine multiple dashboards into
 a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
@@ -214,7 +214,7 @@ $ explainerdashboard run explainer.joblib
 ```
 
 Or store the full configuration of a dashboard to `.yaml` with e.g.
-`dashboard.to_yaml("dashboard.yaml")` and run it with:
+`dashboard.to_yaml("dashboard.yaml", explainerfile="explainer.joblib", dump_explainer=True)` and run it with:
 
 ```bash
 $ explainerdashboard run dashboard.yaml
@@ -409,7 +409,7 @@ own model, project and needs. You can use the [ExplainerComposites](https://gith
 are used for the tabs of the default dashboard as a starting point, and edit
 them to reorganize components, add text, etc. 
 See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
-for more details. A deployed custom dashboard can be found [here](http://titanicexplainer.herokuapp.com/custom/)([source code](https://github.com/oegedijk/explainingtitanic/blob/master/custom.py)).
+for more details. A deployed custom dashboard can be found [here](http://titanicexplainer.herokuapp.com/custom/)([source code](https://github.com/oegedijk/explainingtitanic/blob/master/buildcustom.py)).
 
 ## Deployment
 
