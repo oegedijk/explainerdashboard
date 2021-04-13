@@ -1,7 +1,12 @@
 
 # TODO
 
-
+- try pytorch model and DeepExplainer
+- try keras model and DeepExplainer
+- do multiclass pdp
+- turn print statements into log statements
+- add ExtraTrees to tree support
+- add feature descriptions component
 ## Bugs:
 
 ## Plots:

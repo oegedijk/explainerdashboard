@@ -859,7 +859,7 @@ class ExplainerDashboard:
             else:
                 app = self.app
             if mode == 'external':
-                if not self.is_colab:
+                if not self.is_colab or self.mode == 'external':
                     print(f"Starting ExplainerDashboard on http://{get_local_ip_adress()}:{port}\n"
                         "You can terminate the dashboard with "
                         f"ExplainerDashboard.terminate({port})", flush=True)
@@ -1575,10 +1575,12 @@ class ExplainerHub:
             return card_decks
 
             
-        header = dbc.Jumbotron([
+        header = html.Div([
+            dbc.Jumbotron([
                 html.H1(self.title, className="display-3"),
                 html.Hr(className="my-2"),
                 html.P(self.description, className="lead"),
+            ])
         ], style=dict(marginTop=40))
         
         if self.masonry:
