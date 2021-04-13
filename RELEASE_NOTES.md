@@ -1,4 +1,14 @@
 # Release Notes
+
+## Version 0.3.4:
+
+### Bug Fixes
+- Fixes incompatibility bug with dtreeviz >= 1.3
+- 
+
+### Improvements
+- raises ValueError when passing `shap='deep'` as it is not yet correctly supported
+-
 ## Version 0.3.3:
 
 Highlights:

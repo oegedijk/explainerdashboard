@@ -136,6 +136,11 @@ scratch_notebook.ipynb
 scratch_import.py
 show_and_tell_draft.md
 pydata_notebook.ipynb
+meetup_notebook.ipynb
+default_dashboard.yaml
+default_explainer.joblib
+custom_dashboard.yaml
+custom_explainer.joblib
 explainer.joblib
 explainerdashboard.yaml
 clicktest.py
