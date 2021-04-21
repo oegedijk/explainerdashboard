@@ -107,6 +107,7 @@ class SimplifiedClassifierDashboard(ExplainerComponent):
 
     def layout(self):
         return html.Div([
+            dbc.Alert("Note: Changing global cutoff would affect outputs from the confusion matrix and the custom classifier component.", color="info", style=dict(marginTop=10)),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -119,12 +120,14 @@ class SimplifiedClassifierDashboard(ExplainerComponent):
                 make_hideable(self.classifier_custom_component.layout(),
                               hide=self.hide_classifier_custom_component),
             ], style=dict(marginBottom=25)),
+            dbc.Alert("Note: Updating either the SHAP Summary or the Dependence component potentially would affect the other.", color="info", style=dict(marginTop=10)),
             dbc.CardDeck([
                 make_hideable(self.shap_summary.layout(),
                               hide=self.hide_shapsummary),
                 make_hideable(self.shap_dependence.layout(),
                               hide=self.hide_shapdependence),
             ], style=dict(marginTop=25)),
+            dbc.Alert("Note: Select or choose a random sample below to see prediction summary and how SHAP contribution changes.", color="info", style=dict(marginTop=10)),
             dbc.CardDeck([
                 make_hideable(self.index.layout(),
                               hide=self.hide_predindexselector),
