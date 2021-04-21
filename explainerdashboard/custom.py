@@ -33,7 +33,7 @@ class SimplifiedClassifierDashboard(ExplainerComponent):
             explainer (Explainer): explainer object constructed with either
                         ClassifierExplainer() or RegressionExplainer()
             title (str, optional): Title of tab or page. Defaults to 
-                        "Decision Trees".
+                        "Simple Classification Stats".
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
@@ -66,6 +66,8 @@ class SimplifiedClassifierDashboard(ExplainerComponent):
 
         self.confusionmatrix = ConfusionMatrixComponent(explainer, name=self.name+"0",
                                                         hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+        
+        # select custom classifier report metric
         if classifier_custom_component.lower() == 'pr_auc':
             self.classifier_custom_component = PrAucComponent(explainer, name=self.name+"1",
                                                               hide_selector=hide_selector, pos_label=pos_label, **kwargs)
@@ -82,12 +84,15 @@ class SimplifiedClassifierDashboard(ExplainerComponent):
             self.classifier_custom_component = RocAucComponent(explainer, name=self.name+"1",
                                                                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
 
+        # SHAP summary & dependence
         self.shap_summary = ShapSummaryComponent(
             explainer, name=self.name+"2",
             **update_params(kwargs, hide_selector=hide_selector, depth=depth))
         self.shap_dependence = ShapDependenceComponent(
             explainer, name=self.name+"3",
             hide_selector=hide_selector, **kwargs)
+
+        # SHAP contribution, along with prediction summary
         self.index = ClassifierRandomIndexComponent(explainer, name=self.name+"4",
                                                     hide_selector=hide_selector, **kwargs)
         self.summary = ClassifierPredictionSummaryComponent(explainer, name=self.name+"5",
@@ -95,6 +100,7 @@ class SimplifiedClassifierDashboard(ExplainerComponent):
         self.contributions = ShapContributionsGraphComponent(explainer, name=self.name+"6",
                                                              hide_selector=hide_selector, **kwargs)
 
+        # connect relevant components
         self.cutoffpercentile = CutoffPercentileComponent(explainer, name=self.name+"7",
                                                           hide_selector=hide_selector, pos_label=pos_label, **kwargs)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
