@@ -251,6 +251,7 @@ class ExplainerDashboard:
                  title:str='Model Explainer',
                  name:str=None,
                  description:str=None,
+                 simple=False,
                  hide_header:bool=False,
                  header_hide_title:bool=False,
                  header_hide_selector:bool=False,
@@ -312,9 +313,11 @@ class ExplainerDashboard:
             explainer(): explainer object
             tabs(): single component or list of components
             title(str, optional): title of dashboard, defaults to 'Model Explainer'
-            name (str): name of the dashboard. Used for assigning url in ExplainerHub.
-            description (str): summary for dashboard. Gets used for title tooltip and 
+            name (str, optional): name of the dashboard. Used for assigning url in ExplainerHub.
+            description (str, optional): summary for dashboard. Gets used for title tooltip and 
                 in description for ExplainerHub.
+            simple(bool, optional): instead of full dashboard with all tabs display
+                a single page SimplifiedClassifierDashboard or SimplifiedRegressionDashboard.
             hide_header (bool, optional) hide the header (title+selector), defaults to False.
             header_hide_title(bool, optional): hide the title, defaults to False
             header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
@@ -378,10 +381,6 @@ class ExplainerDashboard:
             machine learning model, and explains its predictions."""
             self._stored_params['description'] = self.description
 
-        if self.hide_header:
-            self.header_hide_title = True
-            self.header_hide_selector = True
-
         try:
             ipython_kernel = str(get_ipython())
             self.is_notebook = True
@@ -429,40 +428,51 @@ class ExplainerDashboard:
             "ClassifierExplainer or RegressionExplainer!")
 
         if tabs is None:
-            tabs = []
-            if model_summary and explainer.y_missing:
-                print("No y labels were passed to the Explainer, so setting"
-                        " model_summary=False...", flush=True)
-                model_summary = False
-            if shap_interaction and (not explainer.interactions_should_work):
-                print("For this type of model and model_output interactions don't "
-                          "work, so setting shap_interaction=False...", flush=True)
-                shap_interaction = False
-            if decision_trees and not hasattr(explainer, 'is_tree_explainer'):
-                print("The explainer object has no decision_trees property. so "
-                        "setting decision_trees=False...", flush=True)
-                decision_trees = False
-        
-            if importances:
-                tabs.append(ImportancesComposite)
-            if model_summary:
-                tabs.append(ClassifierModelStatsComposite if explainer.is_classifier else RegressionModelStatsComposite)
-            if contributions:
-                tabs.append(IndividualPredictionsComposite)
-            if whatif:
-                tabs.append(WhatIfComposite)
-            if shap_dependence:
-                tabs.append(ShapDependenceComposite)
-            if shap_interaction:
-                print("Warning: calculating shap interaction values can be slow! "
-                        "Pass shap_interaction=False to remove interactions tab.", 
-                        flush=True)
-                tabs.append(ShapInteractionsComposite)
-            if decision_trees:
-                tabs.append(DecisionTreesComposite)
+            if simple:
+                self.hide_header=True
+                if explainer.is_classifier:
+                    tabs = SimplifiedClassifierComposite(explainer, title=title, **kwargs)
+                else:
+                    tabs = SimplifiedRegressionComposite(explainer, title=title, **kwargs)
+            else:
+                tabs = []
+                if model_summary and explainer.y_missing:
+                    print("No y labels were passed to the Explainer, so setting"
+                            " model_summary=False...", flush=True)
+                    model_summary = False
+                if shap_interaction and (not explainer.interactions_should_work):
+                    print("For this type of model and model_output interactions don't "
+                            "work, so setting shap_interaction=False...", flush=True)
+                    shap_interaction = False
+                if decision_trees and not hasattr(explainer, 'is_tree_explainer'):
+                    print("The explainer object has no decision_trees property. so "
+                            "setting decision_trees=False...", flush=True)
+                    decision_trees = False
+            
+                if importances:
+                    tabs.append(ImportancesComposite)
+                if model_summary:
+                    tabs.append(ClassifierModelStatsComposite if explainer.is_classifier else RegressionModelStatsComposite)
+                if contributions:
+                    tabs.append(IndividualPredictionsComposite)
+                if whatif:
+                    tabs.append(WhatIfComposite)
+                if shap_dependence:
+                    tabs.append(ShapDependenceComposite)
+                if shap_interaction:
+                    print("Warning: calculating shap interaction values can be slow! "
+                            "Pass shap_interaction=False to remove interactions tab.", 
+                            flush=True)
+                    tabs.append(ShapInteractionsComposite)
+                if decision_trees:
+                    tabs.append(DecisionTreesComposite)
 
         if isinstance(tabs, list) and len(tabs)==1:
             tabs = tabs[0]
+
+        if self.hide_header:
+            self.header_hide_title = True
+            self.header_hide_selector = True
 
         print("Generating layout...") 
         _, i = yield_id(return_i=True) # store id generator index

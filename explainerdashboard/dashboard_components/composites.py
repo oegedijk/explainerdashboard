@@ -735,16 +735,17 @@ class SimplifiedRegressionComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
-            regression_custom_component (str, optional): custom classifier quality indicator 
-                    supported by the ClassifierExplainer object. Valid values are: 
-                    'metrics', 'residuals' or'vs_col' 
+            regression_custom_component (str, optional): custom classifier quality 
+                indicator supported by the ClassifierExplainer object. Valid values are: 
+                'metrics', 'residuals' or'vs_col' 
             hide_goodness_of_fit (bool, optional): hide goodness of fit component
-            hide_regression_custom_component (bool, optional): hide the chosen regression_custom_component
+            hide_regression_custom_component (bool, optional): hide the chosen 
+                regression_custom_component
             hide_shapsummary (bool, optional): hide ShapSummaryComponent
             hide_shapdependence (bool, optional): hide ShapDependenceComponent
-            hide_predindexselector (bool, optional): hide ClassifierRandomIndexComponent 
+            hide_predindexselector (bool, optional): hide RegressionRandomIndexComponent 
                 or RegressionRandomIndexComponent
-            hide_predictionsummary (bool, optional): hide ClassifierPredictionSummaryComponent
+            hide_predictionsummary (bool, optional): hide RegressionPredictionSummaryComponent
                 or RegressionPredictionSummaryComponent
             hide_contributiongraph (bool, optional): hide ShapContributionsGraphComponent
         """
@@ -758,12 +759,13 @@ class SimplifiedRegressionComposite(ExplainerComponent):
         elif regression_custom_component == 'residuals':
             self.regression_custom_component = ResidualsComponent(explainer, **kwargs)
         elif regression_custom_component == 'vs_col':
-            self.regression_custom_component = RegressionVsColComponent(explainer, **kwargs)
+            self.regression_custom_component = RegressionVsColComponent(explainer, 
+                                **update_params(kwargs, display='predicted'))
         else:
             raise ValueError(
-                "ERROR: SimplifiedRegressionDashboard parameter regression_custom_component "
-                "should be in {'metrics', 'residuals', 'vs_col'} "
-                f"but you passed {regression_custom_component}!")
+                "ERROR: SimplifiedRegressionDashboard parameter "
+                "regression_custom_component should be in {'metrics', 'residuals', 'vs_col'}"
+                f" but you passed {regression_custom_component}!")
             
         # SHAP summary & dependence
         self.shap_summary = ShapSummaryComponent(
