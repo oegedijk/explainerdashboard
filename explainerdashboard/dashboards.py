@@ -26,7 +26,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 
-from flask import Flask
+from flask import Flask, redirect
 from flask_simplelogin import SimpleLogin, login_required
 from werkzeug.security import check_password_hash, generate_password_hash
 from jupyter_dash import JupyterDash
@@ -948,7 +948,7 @@ class ExplainerHub:
                     dbs_open_by_default:bool=False, port:int=8050, 
                     min_height:int=3000, secret_key:str=None, no_index:bool=False, 
                     bootstrap:str=None, fluid:bool=True, base_route:str="/dashboard", 
-                    **kwargs):
+                    max_dashboard:int=None, **kwargs):
         """
     
         Note:
@@ -1000,6 +1000,8 @@ class ExplainerHub:
                 of the browser. Defaults to True.
             base_route (str): Base route for dashboard : <base_route>/dashboard1. 
                 Defaults to "/dashboard".
+            max_dashboard (int): Max number of dashboards in the hub. Defaults to None 
+                (for no limitation).
             **kwargs: all kwargs will be forwarded to the constructors of
                 each dashboard in dashboards dashboards. 
         """
@@ -1029,7 +1031,13 @@ class ExplainerHub:
         SimpleLogin(self.app, login_checker=self._validate_user)
         
         self.base_route = base_route
+
+        self.max_dashboard = max_dashboard
+        assert max_dashboard is None or len(dashboards) <= max_dashboard, \
+            f"There should be less than {max_dashboard} in the hub."
+
         self.dashboards = self._instantiate_dashboards(dashboards, **kwargs)
+        self.added_dashboard_counter = len(self.dashboards)
         
         self.dashboard_names = [db.name for db in self.dashboards]
         assert len(set(self.dashboard_names)) == len(self.dashboard_names), \
@@ -1048,6 +1056,21 @@ class ExplainerHub:
                 self._protect_dashviews(self.index_page)
             self._add_flask_routes(self.app)
 
+    def remove_dashboard(self, dashboard_name):
+        """Remove a dashboard from the dashboard"""
+        index_dashboard = self.dashboard_names.index(dashboard_name)
+
+        del self.dashboards[index_dashboard]
+        del self.dashboard_names[index_dashboard]
+
+        # Remove dashboard from index
+        if not self.no_index:    
+            self.index_page = self._get_index_page()
+
+            if self.users and not self.dbs_open_by_default:
+                self._protect_dashviews(self.index_page)
+
+
     def add_dashboard(self, dashboard:ExplainerDashboard, **kwargs):
         """Add a dashboard to the hub
         
@@ -1055,9 +1078,13 @@ class ExplainerHub:
             dashboard (ExplainerDashboard): an ExplainerDashboard to add to the hub
             **kwargs: all kwargs will be forwarded to the constructors of the dashboard
         """
+        # Remove first dashboard if the max_dashboard is reached
+        if self.max_dashboard is not None and len(self.dashboards) >= self.max_dashboard:
+            self.remove_dashboard(self.dashboard_names[0])
+
         # If the dashboard has no name we give it one
         if dashboard.name is None:
-            dashboard.name = f"dashboard{len(self.dashboards)+1}"
+            dashboard.name = f"dashboard{self.added_dashboard_counter+1}"
 
         # Dashboard name should not be a reserved name
         if dashboard.name in self.__reserved_names:
@@ -1087,6 +1114,7 @@ class ExplainerHub:
                     dashboard.explainer, config, **update_kwargs(kwargs, **update_params)))
 
             self.dashboard_names.append(dashboard.name)
+            self.added_dashboard_counter += 1
 
             if self.users and (
                 not self.dbs_open_by_default or dashboard.name in self.dashboards_with_users
@@ -1103,6 +1131,16 @@ class ExplainerHub:
                         return self._hub_page(f"{self.base_route}/{dashboard.name}/")
                     inner.__name__ = "return_dashboard_"+dashboard.name
                     return inner
+
+                
+                def remove_dashboard_route(dashboard):
+                    def inner():
+                        self.remove_dashboard(dashboard.name)
+                        return redirect("/", code=302)
+                    inner.__name__ = f"remove_dashboard_{dashboard.name}"
+                    return inner
+
+                self.app.route(f"{self.base_route}/{dashboard.name}/remove")(remove_dashboard_route(dashboard))
                 
             if self.users:
                 self.app.route(f"{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
