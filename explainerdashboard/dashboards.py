@@ -925,7 +925,8 @@ class ExplainerHub:
     A frontend is hosted at e.g. ``localhost:8050``, with summaries and links to 
     each individual dashboard. Each ExplainerDashboard is hosted on its own url path, 
     so that you can also find it directly, e.g.: 
-        ``localhost:8050/dashboard1`` and ``localhost:8050/dashboard2``.
+        ``localhost:8050<base_route>/dashboard1`` and ``localhost:8050<base_route>/dashboard2``.
+    by default base_route = "/dashboard".
 
     
     You can store the hub configuration, dashboard configurations, explainers
@@ -938,13 +939,16 @@ class ExplainerHub:
     add and delete users.
         
     """
+    __reserved_names = {'login', 'logout', 'admin'}
+
     def __init__(self, dashboards:List[ExplainerDashboard], title:str="ExplainerHub", 
                     description:str=None, masonry:bool=False, n_dashboard_cols:int=3, 
                     users_file:str="users.yaml", user_json=None, 
                     logins:List[List]=None, db_users:dict=None,
                     dbs_open_by_default:bool=False, port:int=8050, 
                     min_height:int=3000, secret_key:str=None, no_index:bool=False, 
-                    bootstrap:str=None, fluid:bool=True, **kwargs):
+                    bootstrap:str=None, fluid:bool=True, base_route:str="/dashboard", 
+                    **kwargs):
         """
     
         Note:
@@ -987,13 +991,15 @@ class ExplainerHub:
                 logins. Defaults to a new random uuid string every time you start
                 the dashboard. (i.e. no persistence) You should store the secret
                 key somewhere save, e.g. in a environmental variable. 
-            no_index (bool, optional): do not add the "/" route and "/_dashboard1"
-                etc routes, but only mount the dashboards on e.g. /dashboard1. This
+            no_index (bool, optional): do not add the "/" route and "<base_route>/_dashboard1"
+                etc routes, but only mount the dashboards on e.g. <base_route>/dashboard1. This
                 allows you to add your own custom front_end. 
             bootstrap (str, optional): url with custom bootstrap css, e.g.
                 bootstrap=dbc.themes.FLATLY. Defaults to static bootstrap css.
             fluid (bool, optional): Let the bootstrap container ill the entire width 
                 of the browser. Defaults to True.
+            base_route (str): Base route for dashboard : <base_route>/dashboard1. 
+                Defaults to "/dashboard".
             **kwargs: all kwargs will be forwarded to the constructors of
                 each dashboard in dashboards dashboards. 
         """
@@ -1022,12 +1028,13 @@ class ExplainerHub:
             self.app.config['SECRET_KEY'] = secret_key
         SimpleLogin(self.app, login_checker=self._validate_user)
         
+        self.base_route = base_route
         self.dashboards = self._instantiate_dashboards(dashboards, **kwargs)
         
-        dashboard_names = [db.name for db in self.dashboards]
-        assert len(set(dashboard_names)) == len(dashboard_names), \
-            f"All dashboard .name properties should be unique, but received the folowing: {dashboard_names}"
-        illegal_names = list(set(dashboard_names) & {'login', 'logout', 'admin'})
+        self.dashboard_names = [db.name for db in self.dashboards]
+        assert len(set(self.dashboard_names)) == len(self.dashboard_names), \
+            f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
+        illegal_names = list(set(self.dashboard_names) & self.__reserved_names)
         assert not illegal_names, \
             f"The following .name properties for dashboards are not allowed: {illegal_names}!"
              
@@ -1040,6 +1047,68 @@ class ExplainerHub:
             if self.users and not self.dbs_open_by_default:
                 self._protect_dashviews(self.index_page)
             self._add_flask_routes(self.app)
+
+    def add_dashboard(self, dashboard:ExplainerDashboard, **kwargs):
+        """Add a dashboard to the hub
+        
+        Args:
+            dashboard (ExplainerDashboard): an ExplainerDashboard to add to the hub
+            **kwargs: all kwargs will be forwarded to the constructors of the dashboard
+        """
+        # If the dashboard has no name we give it one
+        if dashboard.name is None:
+            dashboard.name = f"dashboard{len(self.dashboards)+1}"
+
+        # Dashboard name should not be a reserved name
+        if dashboard.name in self.__reserved_names:
+            raise ValueError(f"The following .name properties for dashboards are not allowed: {dashboard.name}!")
+
+        # If the dashboard name is unkown we create it
+        if dashboard.name not in self.dashboard_names:
+            update_params = dict(
+                server=self.app, 
+                name=dashboard.name, 
+                url_base_pathname = f"{self.base_route}/{dashboard.name}/",
+                mode='dash'
+            )
+            if dashboard.logins is not None:
+                for user, password in dashboard.logins:
+                    if user not in self.logins:
+                        self.add_user(user, password)
+                    else:
+                        print(f"Warning: {user} in {dashboard.name} already in "
+                              "ExplainerHub logins! So not adding to logins...")
+                    self.add_user_to_dashboard(dashboard.name, user)
+            config = deepcopy(dashboard.to_yaml(return_dict=True))
+            config['dashboard']['params']['logins'] = None
+                               
+            self.dashboards.append(
+                ExplainerDashboard.from_config(
+                    dashboard.explainer, config, **update_kwargs(kwargs, **update_params)))
+
+            self.dashboard_names.append(dashboard.name)
+
+            if self.users and (
+                not self.dbs_open_by_default or dashboard.name in self.dashboards_with_users
+            ):
+                    self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
+                    
+            if not self.no_index:    
+                self.index_page = self._get_index_page()
+                if self.users and not self.dbs_open_by_default:
+                    self._protect_dashviews(self.index_page)
+                
+                def dashboard_route(dashboard):
+                    def inner():
+                        return self._hub_page(f"{self.base_route}/{dashboard.name}/")
+                    inner.__name__ = "return_dashboard_"+dashboard.name
+                    return inner
+                
+            if self.users:
+                self.app.route(f"{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
+            else:
+                self.app.route(f"{self.base_route}/_{dashboard.name}")(dashboard_route(dashboard))
+
                         
     @classmethod
     def from_config(cls, config:Union[dict, str, Path], **update_params):
@@ -1200,10 +1269,11 @@ class ExplainerHub:
                 dashboard_name = f"dashboard{i+1}"
             else:
                 dashboard_name = dashboard.name
+
             update_params = dict(
                 server=self.app, 
                 name=dashboard_name, 
-                url_base_pathname = f"/{dashboard_name}/",
+                url_base_pathname = f"{self.base_route}/{dashboard_name}/",
                 mode='dash'
             )
             if dashboard.logins is not None:
@@ -1559,7 +1629,7 @@ class ExplainerHub:
                             ]),
                             dbc.CardFooter([
                                 dbc.CardLink("Go to dashboard", 
-                                            href=f"/{dashboard.name}", 
+                                            href=f"{self.base_route}/{dashboard.name}", 
                                             external_link=True),   
                             ])]) for dashboard in dashboards[i:i+n_cols]
                     ]
@@ -1575,7 +1645,7 @@ class ExplainerHub:
                         ]),
                         dbc.CardFooter([
                             dbc.CardLink("Go to dashboard", 
-                                        href=f"/{dashboard.name}", 
+                                        href=f"{self.base_route}/{dashboard.name}", 
                                         external_link=True),   
                         ])
                     ]) for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
@@ -1606,11 +1676,14 @@ class ExplainerHub:
                 dbc.Row([dbc.CardDeck(deck)], style=dict(marginBottom=30)) 
                     for deck in dashboard_decks(self.dashboards, self.n_dashboard_cols)]
         
-        index_page = dash.Dash(__name__, 
-                               server=self.app, 
-                               url_base_pathname="/index/",
-                               external_stylesheets=[self.bootstrap] if self.bootstrap is not None else None)
-        index_page.title = self.title
+        if hasattr(self, "index_page"):
+            index_page = self.index_page
+        else:
+            index_page = dash.Dash(__name__, 
+                                server=self.app, 
+                                url_base_pathname="/index/",
+                                external_stylesheets=[self.bootstrap] if self.bootstrap is not None else None)
+            index_page.title = self.title
 
         index_page.layout = dbc.Container([
             dbc.Row([dbc.Col([header])]),
@@ -1647,7 +1720,7 @@ class ExplainerHub:
                                 Dashboards
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink2">
-                            {"".join([f'<a class="dropdown-item" href="/_{db.name}">{db.title}</a>' 
+                            {"".join([f'<a class="dropdown-item" href="{self.base_route}/_{db.name}">{db.title}</a>' 
                                             for db in self.dashboards])}
                             </div>
                         </li>
@@ -1686,12 +1759,12 @@ class ExplainerHub:
             
             def dashboard_route(dashboard):
                 def inner():
-                    return self._hub_page(f"/{dashboard.name}/")
+                    return self._hub_page(f"{self.base_route}/{dashboard.name}/")
                 inner.__name__ = "return_dashboard_"+dashboard.name
                 return inner
             
             for dashboard in self.dashboards:
-                app.route(f"/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
+                app.route(f"{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
         else:
             @app.route("/")
             def index_route():
@@ -1699,12 +1772,12 @@ class ExplainerHub:
             
             def dashboard_route(dashboard):
                 def inner():
-                    return self._hub_page(f"/{dashboard.name}/")
+                    return self._hub_page(f"{self.base_route}/{dashboard.name}/")
                 inner.__name__ = "return_dashboard_"+dashboard.name
                 return inner
             
             for dashboard in self.dashboards:
-                app.route(f"/_{dashboard.name}")(dashboard_route(dashboard))
+                app.route(f"{self.base_route}/_{dashboard.name}")(dashboard_route(dashboard))
 
         
     def flask_server(self):
