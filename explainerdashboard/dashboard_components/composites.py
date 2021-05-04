@@ -26,7 +26,7 @@ from .decisiontree_components import *
 
 class ImportancesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
-                    hide_importances=False,
+                    hide_importances=False, hide_descriptions=False,
                     hide_selector=True, **kwargs):
         """Overview tab of feature importances
 
@@ -41,6 +41,7 @@ class ImportancesComposite(ExplainerComponent):
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
             hide_importances (bool, optional): hide the ImportancesComponent
+            hide_descriptions (bool, optional): hide the FeatureDescriptionsComponent
             hide_selector (bool, optional): hide the post label selector. 
                 Defaults to True.
         """
@@ -48,6 +49,10 @@ class ImportancesComposite(ExplainerComponent):
 
         self.importances = ImportancesComponent(
                 explainer, name=self.name+"0", hide_selector=hide_selector, **kwargs)
+        self.feature_descriptions = FeatureDescriptionsComponent(explainer, **kwargs)
+        
+        if not self.explainer.descriptions:
+            self.hide_descriptions=True
 
     def layout(self):
         return html.Div([
@@ -56,6 +61,12 @@ class ImportancesComposite(ExplainerComponent):
                     dbc.Col([
                         self.importances.layout(),
                     ]), hide=self.hide_importances),
+            ], style=dict(margin=25)),
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                        self.feature_descriptions.layout(),
+                    ]), hide=self.hide_descriptions),
             ], style=dict(margin=25))
         ])
 

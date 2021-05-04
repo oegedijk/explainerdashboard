@@ -1,6 +1,29 @@
 # Release Notes
 
 ## Version 0.3.4:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- adds `SimplifiedClassifierComposite` and `SimplifiedRegressionComposite` to `explainerdashboard.custom`
+- adds flag `simple=True` to load these simplified one page dashboards: `ExplainerDashboard(explainer, simple=True)`
+- adds support for visualizing trees of `ExtraTreesClassifier` and `ExtraTreesRegressor`
+- adds `FeatureDescriptionsComponent` to `explainerdashboard.custom`
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+## Version 0.3.4:
 
 ### Bug Fixes
 - Fixes incompatibility bug with dtreeviz >= 1.3

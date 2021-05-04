@@ -1,6 +1,7 @@
 __all__ = [
     'PredictionSummaryComponent',
     'ImportancesComponent',
+    'FeatureDescriptionsComponent',
     'FeatureInputComponent',
     'PdpComponent',
 ]
@@ -247,6 +248,77 @@ class ImportancesComponent(ExplainerComponent):
             plot =  self.explainer.plot_importances(
                         kind=permutation_shap, topx=depth, pos_label=pos_label)
             return plot
+
+
+class FeatureDescriptionsComponent(ExplainerComponent):
+    def __init__(self, explainer, title="Feature Descriptions", name=None, 
+                hide_title=False, hide_sort=False,
+                sort='alphabet'):
+        """ Display Feature Descriptions table.
+        
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Feature Importances".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title
+            hide_sort (bool, optional): hide the sort 
+            sort (str, optional): how to sort the features, either 'alphabet' 
+                or by mean abs shap ('shap')
+        
+        """
+        super().__init__(explainer, title, name)
+        
+        if sort not in {'alphabet', 'shap'}:
+            raise ValueError("FeatureDesriptionsComponent parameter sort should be either"
+                            "'alphabet' or 'shap'!")
+    
+    def layout(self):
+        return dbc.Card([
+            make_hideable(
+                dbc.CardHeader([
+                    html.H3(self.title), 
+                ]), hide=self.hide_title), 
+            dbc.CardBody([
+                dbc.Row([
+                    make_hideable(
+                        dbc.Col([
+                            dbc.FormGroup([
+                                dbc.Label("Sort Features:"),
+                                dbc.Select(
+                                    options=[
+                                        {'label': 'Alphabetically', 
+                                        'value': 'alphabet'},
+                                        {'label': 'SHAP', 
+                                        'value': 'shap'}
+                                    ],
+                                    value=self.sort,
+                                    id='feature-descriptions-table-sort-'+self.name,
+                                ), 
+                            ]),
+                            dbc.Tooltip("Sort features either alphabetically or from highest "
+                                        "mean absolute SHAP value to lowest.",
+                                    target='feature-descriptions-table-sort-'+self.name),
+                        ], md=3), self.hide_sort),   
+                ], form=True),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div(id='feature-descriptions-table-'+self.name)
+                    ]),
+                ]),
+            ])
+        ])
+    
+    def component_callbacks(self, app):
+        @app.callback(
+            Output('feature-descriptions-table-'+self.name, 'children'),
+            Input('feature-descriptions-table-sort-'+self.name, 'value')
+        )
+        def update_feature_descriptions_table(sort):
+            return dbc.Table.from_dataframe(self.explainer.get_descriptions_df(sort=sort)) 
 
 
 class PdpComponent(ExplainerComponent):

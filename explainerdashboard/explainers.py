@@ -712,6 +712,10 @@ class BaseExplainer(ABC):
         """
         if col in self.descriptions.keys():
             return self.descriptions[col]
+        elif col in self.encoded_cols:
+            cat_col = [k for k, v in self.onehot_dict.items() if col in v][0]
+            if cat_col in self.descriptions.keys():
+                return self.descriptions[cat_col]
         return ""
 
     def description_list(self, cols):
@@ -724,6 +728,26 @@ class BaseExplainer(ABC):
             list of descriptions
         """
         return [self.description(col) for col in cols]
+
+    def get_descriptions_df(self, sort:str='alphabet')->pd.DataFrame:
+        """returns a dataframe with features and their descriptions.
+        
+        Args:
+            sort (str, optional): sort either by 'alphabet' or be mean absolute
+                shap values ('shap')
+                
+        Returns:
+            pd.DataFrame
+        """
+        if sort == 'alphabet':
+            cols = self.merged_cols.sort_values()
+        elif sort == 'shap':
+            cols = self.columns_ranked_by_shap()
+        else:
+            raise ValueError("get_description_df() parameter sort should be either"
+                            f"'alphabet' or 'shap', but you passed {sort}!")
+        return pd.DataFrame(dict(
+                Feature=cols, Description=self.description_list(cols)))
 
     def ordered_cats(self, col, topx=None, sort='alphabet', pos_label=None):
         """Return a list of categories in an categorical column, sorted
@@ -1977,7 +2001,7 @@ class ClassifierExplainer(BaseExplainer):
             self.labels = [str(i) for i in range(self.y.nunique())]
         self.pos_label = pos_label
         self.is_classifier = True
-        if str(type(self.model)).endswith("RandomForestClassifier'>"):
+        if safe_isinstance(self.model, "RandomForestClassifier", "ExtraTreesClassifier"):
             print(f"Detected RandomForestClassifier model: "
                     "Changing class type to RandomForestClassifierExplainer...", 
                     flush=True)
@@ -3055,7 +3079,7 @@ class RegressionExplainer(BaseExplainer):
         self.units = units
         self.is_regression = True
 
-        if safe_isinstance(model, "RandomForestRegressor"):
+        if safe_isinstance(model, "RandomForestRegressor", "ExtraTreesRegressor"):
             print(f"Changing class type to RandomForestRegressionExplainer...", flush=True)
             self.__class__ = RandomForestRegressionExplainer 
         if safe_isinstance(model, "XGBRegressor"):
