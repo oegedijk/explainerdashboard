@@ -108,7 +108,7 @@ explainer = ClassifierExplainer(model, X_test, y_test,
                                 cats=['Deck', 'Embarked',
                                     {'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}],
                                 cats_notencoded={'Embarked': 'Stowaway'}, # defaults to 'NOT_ENCODED'
-                                descriptions=feature_descriptions, # defaults to None
+                                descriptions=feature_descriptions, # adds a table and hover labels to dashboard
                                 labels=['Not survived', 'Survived'], # defaults to ['0', '1', etc]
                                 idxs = test_names, # defaults to X.index
                                 index_name = "Passenger", # defaults to X.index.name
@@ -141,7 +141,7 @@ ExplainerDashboard(explainer).run()
 `y_test` is actually optional, although some parts of the dashboard like performance
 metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.
 
-
+For a simplified single page dashboard try `ExplainerDashboard(explainer, simple=True)`.
 ### ExplainerHub
 
 You can combine multiple dashboards and host them in a single place using 

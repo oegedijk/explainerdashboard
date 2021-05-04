@@ -290,6 +290,11 @@ class BaseExplainer(ABC):
             self.idxs.name = index_name.capitalize()
             self.index_name = index_name.capitalize()
         self.descriptions = {} if descriptions is None else descriptions
+        if not isinstance(self.descriptions, dict):
+            raise ValueError(
+                "ERROR: parameter descriptions should be a dict with feature names as keys, "
+                "and feature descriptions as values, but you passed a "
+                f"{type(self.descriptions)}!")
         self.target = target if target is not None else self.y.name
         self.n_jobs = n_jobs
         self.cv = cv

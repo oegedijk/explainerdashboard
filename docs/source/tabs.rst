@@ -77,6 +77,23 @@ DecisionTreesComposite
 .. autoclass:: explainerdashboard.dashboard_components.composites.DecisionTreesComposite
    :members:
 
+
+SimplifiedClassifierComposite
+=============================
+
+
+.. autoclass:: explainerdashboard.dashboard_components.composites.SimplifiedClassifierComposite
+   :members:
+
+
+SimplifiedRegressionComposite
+=============================
+
+
+.. autoclass:: explainerdashboard.dashboard_components.composites.SimplifiedRegressionComposite
+   :members:
+
+
 ExplainerTabsLayout
 ===================
 
