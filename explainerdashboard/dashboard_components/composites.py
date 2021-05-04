@@ -7,6 +7,8 @@ __all__ = [
     'ShapInteractionsComposite',
     'DecisionTreesComposite',
     'WhatIfComposite',
+    'SimplifiedClassifierComposite',
+    'SimplifiedRegressionComposite',
 ]
 
 import dash_bootstrap_components as dbc
@@ -591,3 +593,222 @@ class DecisionTreesComposite(ExplainerComponent):
         else:
             raise ValueError("explainer is neither a RandomForestExplainer nor an XGBExplainer! "
                             "Pass decision_trees=False to disable the decision tree tab.")
+
+class SimplifiedClassifierComposite(ExplainerComponent):
+    def __init__(self, explainer, title="Simple Classifier Explainer", name=None,
+                 classifier_custom_component='roc_auc', 
+                 hide_confusionmatrix=False, hide_classifier_custom_component=False,
+                 hide_shapsummary=False, hide_shapdependence=False,
+                 hide_predindexselector=False, hide_predictionsummary=False,
+                 hide_contributiongraph=False, **kwargs):
+        """Composite of multiple classifier related components, on a single tab: 
+            - confusion matrix
+            - one other model quality indicator: choose from pr auc graph, precision graph, 
+                    lift curve, classification graph, or roc auc graph
+            - shap importance
+            - shap dependence
+            - index selector
+            - index prediction summary
+            - index shap contribution graph
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Simple Classification Stats".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            classifier_custom_component (str, optional): custom classifier quality indicator 
+                    supported by the ClassifierExplainer object. Valid values are: 
+                    'roc_auc', 'metrics', pr_auc', 'precision_graph', 'lift_curve', 
+                    'classification'. Defaults to 'roc_auc'.
+            hide_confusionmatrix (bool, optional): hide ConfusionMatrixComponent
+            hide_classifier_custom_component (bool, optional): hide the chosen classifier_custom_component
+            hide_shapsummary (bool, optional): hide ShapSummaryComponent
+            hide_shapdependence (bool, optional): hide ShapDependenceComponent
+            hide_predindexselector (bool, optional): hide ClassifierRandomIndexComponent 
+                or RegressionRandomIndexComponent
+            hide_predictionsummary (bool, optional): hide ClassifierPredictionSummaryComponent
+                or RegressionPredictionSummaryComponent
+            hide_contributiongraph (bool, optional): hide ShapContributionsGraphComponent
+        """
+        super().__init__(explainer, title, name)
+        
+        self.confusionmatrix = ConfusionMatrixComponent(explainer, 
+                                    **update_params(kwargs, hide_percentage=True, hide_selector=True))
+
+        # select custom classifier report metric
+        if classifier_custom_component == 'metrics':
+            self.classifier_custom_component = ClassifierModelSummaryComponent(explainer, 
+                                    **update_params(kwargs, hide_selector=True))
+        elif classifier_custom_component == 'pr_auc':
+            self.classifier_custom_component = PrAucComponent(explainer, 
+                                    **update_params(kwargs, hide_selector=True))
+        elif classifier_custom_component == 'precision_graph':
+            self.classifier_custom_component = PrecisionComponent(explainer, 
+                                    **update_params(kwargs, hide_selector=True))
+        elif classifier_custom_component == 'lift_curve':
+            self.classifier_custom_component = LiftCurveComponent(explainer, 
+                                    **update_params(kwargs, hide_selector=True))
+        elif classifier_custom_component == 'classifiction':
+            self.classifier_custom_component = ClassificationComponent(explainer, 
+                                    **update_params(kwargs, hide_selector=True))
+        elif classifier_custom_component == 'roc_auc':
+            self.classifier_custom_component = RocAucComponent(explainer, 
+                                    **update_params(kwargs, hide_selector=True))
+        else:
+            raise ValueError(
+                "ERROR: SimplifiedClassifierDashboard parameter classifier_custom_component "
+                "should be in {'metrics', 'roc_auc', pr_auc', 'precision_graph', 'lift_curve', 'class_graph'} "
+                f"but you passed {classifier_custom_component}!")
+            
+        # SHAP summary & dependence
+        self.shap_summary = ShapSummaryComponent(
+            explainer, **update_params(kwargs, title="Shap Feature Importances", 
+                                       hide_index=True, hide_selector=True, depth=None, hide_depth=True))
+        self.shap_dependence = ShapDependenceComponent( 
+            explainer, **update_params(kwargs, hide_selector=True, hide_index=True))
+
+        # SHAP contribution, along with prediction summary
+        self.index = ClassifierRandomIndexComponent(explainer, 
+                                                    hide_selector=True, **kwargs)
+        self.summary = ClassifierPredictionSummaryComponent(explainer, hide_index=True,
+                                                            hide_selector=True, **kwargs)
+        self.contributions = ShapContributionsGraphComponent(explainer, hide_index=True, hide_depth=True,
+                                                             hide_selector=True, **kwargs)
+
+        self.cutoffconnector = CutoffConnector(self.confusionmatrix, self.classifier_custom_component)
+        self.connector = ShapSummaryDependenceConnector(self.shap_summary, self.shap_dependence)
+        self.index_connector = IndexConnector(self.index, [self.summary, self.contributions])
+
+    def layout(self):
+        return html.Div([
+            html.H1(self.title),
+            html.H2("Model performance"),
+            dbc.CardDeck([
+                make_hideable(self.confusionmatrix.layout(),
+                              hide=self.hide_confusionmatrix),
+                make_hideable(self.classifier_custom_component.layout(),
+                              hide=self.hide_classifier_custom_component),
+            ], style=dict(marginTop=25, marginBottom=25)),
+            html.H3("SHAP values"),
+            dbc.CardDeck([
+                make_hideable(self.shap_summary.layout(),
+                              hide=self.hide_shapsummary),
+                make_hideable(self.shap_dependence.layout(),
+                              hide=self.hide_shapdependence),
+            ], style=dict(marginTop=25, marginBottom=25)),
+            html.H2("Individual predictions"),
+            dbc.CardDeck([
+                make_hideable(self.index.layout(),
+                              hide=self.hide_predindexselector),
+                make_hideable(self.summary.layout(),
+                              hide=self.hide_predictionsummary),
+            ], style=dict(marginBottom=25, marginTop=25)),
+            dbc.CardDeck([
+                make_hideable(self.contributions.layout(),
+                              hide=self.hide_contributiongraph),
+            ], style=dict(marginBottom=25, marginTop=25))
+        ])
+
+
+class SimplifiedRegressionComposite(ExplainerComponent):
+    def __init__(self, explainer, title="Simple Regression Explainer", name=None,
+                 regression_custom_component='vs_col', 
+                 hide_goodness_of_fit=False, hide_regression_custom_component=False,
+                 hide_shapsummary=False, hide_shapdependence=False,
+                 hide_predindexselector=False, hide_predictionsummary=False,
+                 hide_contributiongraph=False, **kwargs):
+        """Composite of multiple classifier related components, on a single tab: 
+            - goodness of fit component
+            - one other model quality indicator: 'metrics', 'residuals' or'residuals_vs_col' 
+            - shap importance
+            - shap dependence
+            - index selector
+            - index prediction summary
+            - index shap contribution graph
+        Args:
+            explainer (Explainer): explainer object constructed with either
+                        ClassifierExplainer() or RegressionExplainer()
+            title (str, optional): Title of tab or page. Defaults to 
+                        "Simple Classification Stats".
+            name (str, optional): unique name to add to Component elements. 
+                        If None then random uuid is generated to make sure 
+                        it's unique. Defaults to None.
+            regression_custom_component (str, optional): custom classifier quality 
+                indicator supported by the ClassifierExplainer object. Valid values are: 
+                'metrics', 'residuals' or'vs_col' 
+            hide_goodness_of_fit (bool, optional): hide goodness of fit component
+            hide_regression_custom_component (bool, optional): hide the chosen 
+                regression_custom_component
+            hide_shapsummary (bool, optional): hide ShapSummaryComponent
+            hide_shapdependence (bool, optional): hide ShapDependenceComponent
+            hide_predindexselector (bool, optional): hide RegressionRandomIndexComponent 
+                or RegressionRandomIndexComponent
+            hide_predictionsummary (bool, optional): hide RegressionPredictionSummaryComponent
+                or RegressionPredictionSummaryComponent
+            hide_contributiongraph (bool, optional): hide ShapContributionsGraphComponent
+        """
+        super().__init__(explainer, title, name)
+        
+        self.goodness_of_fit = PredictedVsActualComponent(explainer, **kwargs)
+
+        # select custom classifier report metric
+        if regression_custom_component == 'metrics':
+            self.regression_custom_component = RegressionModelSummaryComponent(explainer, **kwargs)
+        elif regression_custom_component == 'residuals':
+            self.regression_custom_component = ResidualsComponent(explainer, **kwargs)
+        elif regression_custom_component == 'vs_col':
+            self.regression_custom_component = RegressionVsColComponent(explainer, 
+                                **update_params(kwargs, display='predicted'))
+        else:
+            raise ValueError(
+                "ERROR: SimplifiedRegressionDashboard parameter "
+                "regression_custom_component should be in {'metrics', 'residuals', 'vs_col'}"
+                f" but you passed {regression_custom_component}!")
+            
+        # SHAP summary & dependence
+        self.shap_summary = ShapSummaryComponent(
+            explainer, **update_params(kwargs, title="Shap Feature Importances", 
+                                       hide_index=True, depth=None, hide_depth=True))
+        self.shap_dependence = ShapDependenceComponent( 
+            explainer, **update_params(kwargs, hide_index=True))
+
+        # SHAP contribution, along with prediction summary
+        self.index = RegressionRandomIndexComponent(explainer, **kwargs)
+        self.summary = RegressionPredictionSummaryComponent(explainer, hide_index=True, **kwargs)
+        self.contributions = ShapContributionsGraphComponent(explainer, 
+                                     **update_params(kwargs, hide_index=True, hide_depth=True))
+
+        self.connector = ShapSummaryDependenceConnector(self.shap_summary, self.shap_dependence)
+        self.index_connector = IndexConnector(self.index, [self.summary, self.contributions])
+
+    def layout(self):
+        return html.Div([
+            html.H1(self.title),
+            html.H2("Model performance"),
+            dbc.CardDeck([
+                make_hideable(self.goodness_of_fit.layout(),
+                              hide=self.hide_goodness_of_fit),
+                make_hideable(self.regression_custom_component.layout(),
+                              hide=self.hide_regression_custom_component),
+            ], style=dict(marginTop=25, marginBottom=25)),
+            html.H3("SHAP values"),
+            dbc.CardDeck([
+                make_hideable(self.shap_summary.layout(),
+                              hide=self.hide_shapsummary),
+                make_hideable(self.shap_dependence.layout(),
+                              hide=self.hide_shapdependence),
+            ], style=dict(marginTop=25, marginBottom=25)),
+            html.H2("Individual predictions"),
+            dbc.CardDeck([
+                make_hideable(self.index.layout(),
+                              hide=self.hide_predindexselector),
+                make_hideable(self.summary.layout(),
+                              hide=self.hide_predictionsummary),
+            ], style=dict(marginBottom=25, marginTop=25)),
+            dbc.CardDeck([
+                make_hideable(self.contributions.layout(),
+                              hide=self.hide_contributiongraph),
+            ], style=dict(marginBottom=25, marginTop=25))
+        ])
