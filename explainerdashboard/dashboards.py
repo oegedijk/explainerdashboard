@@ -1043,6 +1043,8 @@ class ExplainerHub:
         self.added_dashboard_counter = len(self.dashboards)
         
         self.dashboard_names = [db.name for db in self.dashboards]
+        self.removed_dashboard_names = []
+
         assert len(set(self.dashboard_names)) == len(self.dashboard_names), \
             f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
         illegal_names = list(set(self.dashboard_names) & self.__reserved_names)
@@ -1069,7 +1071,7 @@ class ExplainerHub:
 
         del self.dashboards[index_dashboard]
         del self.dashboard_names[index_dashboard]
-
+        self.removed_dashboard_names.append(dashboard_name)
         # Remove dashboard from index
         if not self.no_index:    
             self.index_page = self._get_index_page()
@@ -1093,67 +1095,64 @@ class ExplainerHub:
 
         # If the dashboard has no name we give it one
         if dashboard.name is None:
-            dashboard.name = f"dashboard{self.added_dashboard_counter+1}"
+            while f"dashboard{self.added_dashboard_counter}" in (self.dashboard_names+self.removed_dashboard_names):
+                self.added_dashboard_counter += 1
+            dashboard.name = f"dashboard{self.added_dashboard_counter}"
+        # if the dashboard name already exists we increment it by a counter
+        elif dashboard.name in (self.dashboard_names+self.removed_dashboard_names):
+            counter = 2
+            while f"{dashboard.name}_{counter}" in (self.dashboard_names+self.removed_dashboard_names):
+                counter += 1
+            dashboard.name = f"{dashboard.name}_{counter}"
 
         # Dashboard name should not be a reserved name
         if dashboard.name in self.__reserved_names:
             raise ValueError(f"The following .name properties for dashboards are not allowed: {dashboard.name}!")
 
         # If the dashboard name is unkown we create it
-        if dashboard.name not in self.dashboard_names:
-            update_params = dict(
-                server=self.app, 
-                name=dashboard.name, 
-                url_base_pathname = f"/{self.base_route}/{dashboard.name}/",
-                mode='dash'
-            )
-            if dashboard.logins is not None:
-                for user, password in dashboard.logins:
-                    if user not in self.logins:
-                        self.add_user(user, password)
-                    else:
-                        print(f"Warning: {user} in {dashboard.name} already in "
-                              "ExplainerHub logins! So not adding to logins...")
-                    self.add_user_to_dashboard(dashboard.name, user)
-            config = deepcopy(dashboard.to_yaml(return_dict=True))
-            config['dashboard']['params']['logins'] = None
-                               
-            self.dashboards.append(
-                ExplainerDashboard.from_config(
-                    dashboard.explainer, config, **update_kwargs(kwargs, **update_params)))
+        update_params = dict(
+            server=self.app, 
+            name=dashboard.name, 
+            url_base_pathname = f"/{self.base_route}/{dashboard.name}/",
+            mode='dash'
+        )
+        if dashboard.logins is not None:
+            for user, password in dashboard.logins:
+                if user not in self.logins:
+                    self.add_user(user, password)
+                else:
+                    print(f"Warning: {user} in {dashboard.name} already in "
+                            "ExplainerHub logins! So not adding to logins...")
+                self.add_user_to_dashboard(dashboard.name, user)
+        config = deepcopy(dashboard.to_yaml(return_dict=True))
+        config['dashboard']['params']['logins'] = None
+                            
+        self.dashboards.append(
+            ExplainerDashboard.from_config(
+                dashboard.explainer, config, **update_kwargs(kwargs, **update_params)))
 
-            self.dashboard_names.append(dashboard.name)
-            self.added_dashboard_counter += 1
+        self.dashboard_names.append(dashboard.name)
 
-            if (self.users and 
-                (not self.dbs_open_by_default or dashboard.name in self.dashboards_with_users)):
-                    self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
-                    
-            if not self.no_index:    
-                self.index_page = self._get_index_page()
-                if self.users and not self.dbs_open_by_default:
-                    self._protect_dashviews(self.index_page)
+        if (self.users and 
+            (not self.dbs_open_by_default or dashboard.name in self.dashboards_with_users)):
+                self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
                 
-                def dashboard_route(dashboard):
-                    def inner():
-                        return self._hub_page(f"/{self.base_route}/{dashboard.name}/")
-                    inner.__name__ = "return_dashboard_"+dashboard.name
-                    return inner
-
-                
-                def remove_dashboard_route(dashboard):
-                    def inner():
-                        self.remove_dashboard(dashboard.name)
-                        return redirect("/", code=302)
-                    inner.__name__ = f"remove_dashboard_{dashboard.name}"
-                    return inner
-
-                self.app.route(f"/{self.base_route}/{dashboard.name}/remove")(remove_dashboard_route(dashboard))
-                
-            if self.users:
-                self.app.route(f"/{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
-            else:
-                self.app.route(f"/{self.base_route}/_{dashboard.name}")(dashboard_route(dashboard))
+        if not self.no_index:    
+            self.index_page = self._get_index_page()
+            if self.users and not self.dbs_open_by_default:
+                self._protect_dashviews(self.index_page)
+            
+            def dashboard_route(dashboard):
+                def inner():
+                    return self._hub_page(f"/{self.base_route}/{dashboard.name}/")
+                inner.__name__ = "return_dashboard_"+dashboard.name
+                return inner
+            
+        if self.users:
+            self.app.route(f"/{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
+        else:
+            self.app.route(f"/{self.base_route}/_{dashboard.name}")(dashboard_route(dashboard))
+        return dashboard.name
 
                         
     @classmethod
@@ -1826,23 +1825,32 @@ class ExplainerHub:
                 app.route(f"/{self.base_route}/_{dashboard.name}")(dashboard_route(dashboard))
 
         if self.add_dashboard_route:
-            dashboard_pattern = re.compile(r"/add_dashboard/(\w+)/?")
+            add_dashboard_pattern = re.compile(r"(\/add_dashboard\/)(.+)")
+            remove_dashboard_pattern = re.compile(r"(\/remove_dashboard\/)(.+)")
+
             @self.app.before_request
             def add_dashboard():
                 """
                 Try to generate a new dashboard when user accesses /add_dashboard/dashboard_name.
-                
+
                 Looks up if dashboards/dashboard_name/dashboard.yaml exists, and if so add a dashboard
                 with dashboard_name to the hub.
                 """
-                match = dashboard_pattern.match(request.path)
-                if match:
-                    dashboard_name, = match.groups()
-                    dashboard_path = Path(f"dashboards/{dashboard_name}/dashboard.yaml")
-                    if dashboard_path.exists():
-                        db = ExplainerDashboard.from_config(dashboard_path, name=dashboard_name)
-                        self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
+                add_dashboard_match = add_dashboard_pattern.match(request.path)
+                if add_dashboard_match:
+                    _, dashboard_path = add_dashboard_match.groups()
+                    if dashboard_path.endswith(".yaml") and Path(dashboard_path).exists():
+                        db = ExplainerDashboard.from_config(dashboard_path)
+                        dashboard_name = self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
                         return redirect(f"/dashboards/_{dashboard_name}", code=302)
+                    return redirect("/", code=302)
+                    
+                remove_dashboard_match = remove_dashboard_pattern.match(request.path)
+                if remove_dashboard_match:
+                    _, dashboard_name = remove_dashboard_match.groups()
+                    if dashboard_name in self.dashboard_names:
+                        self.remove_dashboard(dashboard_name)
+                    return redirect(f"/", code=302)
 
 
 
