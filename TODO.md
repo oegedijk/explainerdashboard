@@ -10,6 +10,7 @@
 ## Bugs:
 
 ## Plots:
+- add hide_legend parameter
 - add SHAP decision plots:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - make plot background transparent?
