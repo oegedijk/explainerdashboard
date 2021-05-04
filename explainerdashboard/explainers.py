@@ -253,7 +253,7 @@ class BaseExplainer(ABC):
                     "compatible with e.g. shap.TreeExplainer or shap.LinearExplainer "
                     "then pass shap='tree' or shap='linear'!")
         else:
-            if shap in {'deep', 'skorch'}:
+            if shap in {'deep',  'torch', 'skorch'}:
                 raise ValueError("shap.DeepExplainer is not supported for now but we're working on it!")
             assert shap in ['tree', 'linear', 'deep', 'kernel', 'skorch'], \
                 ("Only shap='guess', 'tree', 'linear', 'deep', ' kernel' or 'skorch' are "
@@ -474,8 +474,12 @@ class BaseExplainer(ABC):
     @property
     def X_merged(self, index=None):
         if index is None:
+            if self.X_cats.empty:
+                return self.X[self.merged_cols]
             return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
         else:
+            if self.X_cats.empty:
+                return self.X[self.merged_cols]
             return self.X[index].merge(self.X_cats[index], left_index=True, right_index=True)[self.merged_cols]
 
     @property
