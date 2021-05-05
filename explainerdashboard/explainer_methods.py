@@ -99,9 +99,9 @@ def guess_shap(model):
     linear_models = ['LinearRegression', 'LogisticRegression',
                     'Ridge', 'Lasso', 'ElasticNet', 'SGDClassifier']
 
-    skorch_models = ['skorch.regressor.NeuralNet',
+    skorch_models = ['skorch.net.NeuralNet',
                      'skorch.regressor.NeuralNetRegressor',
-                     'skorch.regressor.NeuralNetClassifier']
+                     'skorch.classifier.NeuralNetClassifier']
     
     for tree_model in tree_models:
         if str(type(model)).endswith(tree_model + "'>"):

@@ -2088,7 +2088,7 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating prediction probabilities...", flush=True)
             assert hasattr(self.model, 'predict_proba'), \
                 "model does not have a predict_proba method!"
-            self._pred_probas =  self.model.predict_proba(self.X).astype(self.precision)
+            self._pred_probas =  self.model.predict_proba(self.X.values).astype(self.precision)
         return self._pred_probas
 
     @property
@@ -2196,14 +2196,15 @@ class ClassifierExplainer(BaseExplainer):
                         self.X_background if self.X_background is not None \
                             else shap.sample(self.X, 5))
             elif self.shap == 'skorch':
+                import torch
                 print(f"Generating self.shap_explainer = "
                       f"shap.DeepExplainer(model, X_background)")
                 print("Warning: shap values for shap.DeepExplainer get "
                         "calculated against X_background, but paramater "
                         "X_background=None, so using shap.sample(X, 5) instead")
                 self._shap_explainer = shap.DeepExplainer(self.model.module_, 
-                        self.X_background if self.X_background is not None \
-                            else shap.sample(self.X, 5).values)
+                        torch.tensor(self.X_background.values if self.X_background is not None \
+                            else shap.sample(self.X, 5).values))
             elif self.shap=='kernel': 
                 if self.X_background is None:
                     print(
@@ -2259,8 +2260,12 @@ class ClassifierExplainer(BaseExplainer):
         """SHAP Values"""
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
-            _shap_values = self.shap_explainer.shap_values(self.X.values)
-            
+            if self.shap == 'skorch':
+                import torch
+                _shap_values = self.shap_explainer.shap_values(torch.tensor(self.X.values.astype("float32")))
+            else:
+                _shap_values = self.shap_explainer.shap_values(self.X.values)
+
             if len(self.labels) == 2:
                 if not isinstance(_shap_values, list):
                     assert len(_shap_values.shape) == 2, f"shap_values should be 2d, instead shape={_shap_values.shape}!"
@@ -2277,14 +2282,15 @@ class ClassifierExplainer(BaseExplainer):
                      f"shap returned shap values for {len(_shap_values)} classes! "
                      "Adjust the labels parameter accordingly!")
             if self.model_output == 'probability':
-                for shap_values in _shap_values:
-                    assert np.all(shap_values >= -1.0) , \
-                        (f"model_output=='probability but some shap values are < 1.0!"
-                         "Try setting model_output='logodds'.")
-                for shap_values in _shap_values:
-                    assert np.all(shap_values <= 1.0) , \
-                        (f"model_output=='probability but some shap values are > 1.0!"
-                         "Try setting model_output='logodds'.")
+                pass
+                # for shap_values in _shap_values:
+                #     assert np.all(shap_values >= -1.0) , \
+                #         (f"model_output=='probability but some shap values are < 1.0!"
+                #          "Try setting model_output='logodds'.")
+                # for shap_values in _shap_values:
+                #     assert np.all(shap_values <= 1.0) , \
+                #         (f"model_output=='probability but some shap values are > 1.0!"
+                #          "Try setting model_output='logodds'.")
             if len(self.labels) > 2:
                 self._shap_values_df = [pd.DataFrame(sv, columns=self.columns) for sv in _shap_values]
                 self._shap_values_df = [
@@ -2312,6 +2318,9 @@ class ClassifierExplainer(BaseExplainer):
     @insert_pos_label
     def get_shap_row(self, index=None, X_row=None, pos_label=None):
         def X_row_to_shap_row(X_row):
+            if self.shap == 'skorch':
+                import torch
+                X_row = torch.tensor(X_row.values.astype("float32"))
             with self.get_lock():
                 sv = self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {}))
             if isinstance(sv, list) and len(sv) > 1:
