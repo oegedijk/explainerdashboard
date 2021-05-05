@@ -227,7 +227,7 @@ class BaseExplainer(ABC):
                 else:
                     raise ValueError('y should be a pd.Series or np.ndarray not a pd.DataFrame!')
 
-            self.y = pd.Series(y).astype(precision)
+            self.y = pd.Series(y.squeeze()).astype(precision)
             self.y_missing = False
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
@@ -246,21 +246,27 @@ class BaseExplainer(ABC):
             else:
                 self.shap = 'kernel'
                 print(
-                    "Warning: Parameter shap='guess', but failed to guess the "
+                    "WARNING: Parameter shap='guess', but failed to guess the "
                     f"type of shap explainer to use for {model_str}. "
                     "Defaulting to the model agnostic shap.KernelExplainer "
                     "(shap='kernel'). However this will be slow, so if your model is "
                     "compatible with e.g. shap.TreeExplainer or shap.LinearExplainer "
                     "then pass shap='tree' or shap='linear'!")
         else:
-            if shap in {'deep',  'torch', 'skorch'}:
-                raise ValueError("shap.DeepExplainer is not supported for now but we're working on it!")
+            if shap in {'deep',  'torch'}:
+                raise ValueError("ERROR! Only PyTorch neural networks wrapped in a skorch "
+                            "sklearn-compatible NeuralNet wrapper are supported for now! "
+                            "See https://github.com/skorch-dev/skorch")
             assert shap in ['tree', 'linear', 'deep', 'kernel', 'skorch'], \
-                ("Only shap='guess', 'tree', 'linear', 'deep', ' kernel' or 'skorch' are "
-                 " supported for now!.")
+                ("ERROR! Only shap='guess', 'tree', 'linear', ' kernel' or 'skorch' are "
+                 " supported for now!")
             self.shap = shap
         if self.shap == 'kernel':
-            print("For shap='kernel', shap interaction values can unfortunately "
+            print("WARNING: For shap='kernel', shap interaction values can unfortunately "
+                    "not be calculated!")
+            self.interactions_should_work = False
+        if self.shap == 'skorch':
+            print("WARNING: For shap='skorch', shap interaction values can unfortunately "
                     "not be calculated!")
             self.interactions_should_work = False
 
@@ -697,15 +703,16 @@ class BaseExplainer(ABC):
                     col_value = retrieve_onehot_value(X_row, col, self.onehot_dict[col], self.onehot_notencoded[col]).item()
                 else:
                     col_value = X_row[col].item()
-
+            if self.shap == 'skorch':
+                X_row = X_row.values.astype("float32")
             if self.is_classifier:
                 if pos_label is None:
                     pos_label = self.pos_label
-                prediction = self.model.predict_proba(X_row)[0][pos_label]
+                prediction = self.model.predict_proba(X_row)[0][pos_label].squeeze()
                 if self.model_output == 'probability':
                     prediction = 100*prediction
             elif self.is_regression:
-                prediction = self.model.predict(X_row)[0]
+                prediction = self.model.predict(X_row)[0].squeeze()
             return col_value, prediction
         else:
             raise ValueError("You need to pass either index or X_row!")
@@ -808,7 +815,7 @@ class BaseExplainer(ABC):
         """returns model model predictions"""
         if not hasattr(self, '_preds'):
             print("Calculating predictions...", flush=True)
-            self._preds = self.model.predict(self.X).astype(self.precision)
+            self._preds = self.model.predict(self.X.values).squeeze().astype(self.precision)
         return self._preds
     
     @insert_pos_label
@@ -959,6 +966,9 @@ class BaseExplainer(ABC):
                 shap_row = self.get_shap_values_df().iloc[[index]]
             elif self._get_X_row_func is not None and self.index_exists(index):
                 X_row = self._get_X_row_func(index)
+                if self.shap=='skorch':
+                    import torch
+                    X_row = torch.tensor(X_row.values.astype("float32"))
                 with self.get_lock():
                     shap_row = pd.DataFrame(
                         self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
@@ -968,6 +978,9 @@ class BaseExplainer(ABC):
             else:
                 raise IndexNotFoundError(index=index)
         elif X_row is not None:
+            if self.shap=='skorch':
+                import torch
+                X_row = torch.tensor(X_row.values.astype("float32"))
             with self.get_lock():
                 shap_row = pd.DataFrame(
                     self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
@@ -1246,9 +1259,9 @@ class BaseExplainer(ABC):
           index(int or str): index for which to calculate contributions
           X_row (pd.DataFrame, single row): single row of feature for which
                 to calculate contrib_df. Can us this instead of index
-          topx(int, optional, optional): Only return topx features, remainder 
+          topx(int, optional): Only return topx features, remainder 
                     called REST, defaults to None
-          cutoff(float, optional, optional): only return features with at least 
+          cutoff(float, optional): only return features with at least 
                     cutoff contributions, defaults to None
           sort({'abs', 'high-to-low', 'low-to-high', 'importance'}, optional): sort by 
                     absolute shap value, or from high to low, low to high, or
@@ -1283,12 +1296,12 @@ class BaseExplainer(ABC):
                     "X_row should have the same columns as self.X or self.merged_cols!"
                 X_row_merged = merge_categorical_columns(X_row, self.onehot_dict, 
                     not_encoded_dict=self.onehot_notencoded, drop_regular=False)[self.merged_cols]
-
             shap_values = self.get_shap_row(X_row=X_row, pos_label=pos_label)
             
-        return get_contrib_df(self.shap_base_value(pos_label), shap_values.values[0], 
-                        remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_notencoded), 
-                        topx, cutoff, sort, cols)   
+        return get_contrib_df(shap_base_value=self.shap_base_value(pos_label), 
+                        shap_values=shap_values.values[0], 
+                        X_row=remove_cat_names(X_row_merged, self.onehot_dict, self.onehot_notencoded), 
+                        topx=topx, cutoff=cutoff, sort=sort, cols=cols)   
 
         
     @insert_pos_label
@@ -1419,7 +1432,9 @@ class BaseExplainer(ABC):
         pdp_df = get_pdp_df(
                 model=self.model, X_sample=sampleX,
                 feature=features, n_grid_points=n_grid_points, 
-                pos_label=pos_label, grid_values=grid_values)
+                pos_label=pos_label, grid_values=grid_values, 
+                is_classifier=self.is_classifier, 
+                cast_to_float32=(self.shap=='skorch'))
 
         if all([str(c).startswith(col+"_") for c in pdp_df.columns]):
             pdp_df.columns = [str(c)[len(col)+1:] for c in pdp_df.columns]
@@ -1546,7 +1561,8 @@ class BaseExplainer(ABC):
 
         """
         assert orientation in ['vertical', 'horizontal']
-        contrib_df = self.get_contrib_df(index, X_row, topx, cutoff, sort, pos_label)
+        contrib_df = self.get_contrib_df(index=index, X_row=X_row, topx=topx, 
+                            cutoff=cutoff, sort=sort, pos_label=pos_label)
         return plotly_contribution_plot(contrib_df, model_output=self.model_output, 
                     orientation=orientation, round=round, higher_is_better=higher_is_better,
                     target=self.target, units=self.units)
@@ -2668,7 +2684,9 @@ class ClassifierExplainer(BaseExplainer):
         if X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
-            pred_probas = self.model.predict_proba(X_row)[0, :]
+            if self.shap=='skorch':
+                X_row = X_row.astype("float32")
+            pred_probas = self.model.predict_proba(X_row.values)[0, :].squeeze()
 
         preds_df =  pd.DataFrame(dict(
             label=self.labels, 
@@ -3196,8 +3214,9 @@ class RegressionExplainer(BaseExplainer):
         if X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
-
-        pred = self.model.predict(X_row).item()
+        if self.shap == 'skorch':
+            X_row = X_row.astype("float32")
+        pred = self.model.predict(X_row.values).item()
         preds_df = pd.DataFrame(columns = ["", self.target])
         preds_df = preds_df.append(
                 pd.Series(("Predicted", f"{pred:.{round}f} {self.units}"), 

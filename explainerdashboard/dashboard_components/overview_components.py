@@ -253,7 +253,7 @@ class ImportancesComponent(ExplainerComponent):
 class FeatureDescriptionsComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Descriptions", name=None, 
                 hide_title=False, hide_sort=False,
-                sort='alphabet'):
+                sort='alphabet', **kwargs):
         """ Display Feature Descriptions table.
         
         Args:

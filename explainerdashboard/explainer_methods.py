@@ -98,6 +98,10 @@ def guess_shap(model):
                   ]
     linear_models = ['LinearRegression', 'LogisticRegression',
                     'Ridge', 'Lasso', 'ElasticNet', 'SGDClassifier']
+
+    skorch_models = ['skorch.regressor.NeuralNet',
+                     'skorch.regressor.NeuralNetRegressor',
+                     'skorch.regressor.NeuralNetClassifier']
     
     for tree_model in tree_models:
         if str(type(model)).endswith(tree_model + "'>"):
@@ -106,7 +110,11 @@ def guess_shap(model):
     for lin_model in linear_models:
         if str(type(model)).endswith(lin_model + "'>"):
             return 'linear'
-    
+
+    for skorch_model in skorch_models:
+        if str(type(model)).endswith(skorch_model + "'>"):
+            return 'skorch'
+
     return None
 
 
@@ -505,7 +513,7 @@ def permutation_importances(model, X, y, metric, onehot_dict=None,
         for i in range(n_repeats):
             old_cols = X[col_list].copy()
             X[col_list] = np.random.permutation(X[col_list])
-            scores.append(scorer(model, X, y))
+            scores.append(scorer(model, X.values, y.values))
             X[col_list] = old_cols
         return col_name, np.mean(scores)
     
@@ -651,7 +659,8 @@ def get_grid_points(array, n_grid_points=10, min_percentage=0, max_percentage=10
 
 def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label=1,
                   n_grid_points:int=10, min_percentage:int=0, max_percentage:int=100,
-                  multiclass:bool=False, grid_values:List=None):
+                  multiclass:bool=False, grid_values:List=None, is_classifier:bool=False,
+                  cast_to_float32:bool=False):
     """Returns a dataframe with partial dependence for every row in X_sample for a number of feature values
 
     Args:
@@ -673,6 +682,9 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
             one for each predicted label.
         grid_values (list, optional): list of grid values. Default to None, in which
             case it will be inferred from X_sample.
+        is_classifier (bool, optional): model is a classifier with a pred_probas method.
+        cast_to_float32 (bool, optional): cast model input to np.float32 (necessary for
+            skorch models)
     """
     
 
@@ -691,8 +703,12 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
             raise ValueError("feature should either be a column name (str), "
                              "or a list of onehot-encoded columns!")
 
-    if hasattr(model, "predict_proba"):
-        n_labels = model.predict_proba(X_sample.iloc[[0]]).shape[1]
+    if is_classifier:
+        if cast_to_float32:
+            first_row = X_sample.iloc[[0]].values.astype("float32")
+        else:
+            first_row = X_sample.iloc[[0]].values
+        n_labels = model.predict_proba(first_row).shape[1]
         if multiclass:
             pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
         else:
@@ -709,15 +725,19 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
             dtemp.loc[:, feature] = [1 if col==grid_value else 0 for col in feature]
         else:
             dtemp.loc[:, feature] = grid_value
-        if hasattr(model, "predict_proba"):
-            pred_probas = model.predict_proba(dtemp)
+        if is_classifier:
+            if cast_to_float32:
+                dtemp = dtemp.values.astype("float32")
+            pred_probas = model.predict_proba(dtemp).squeeze()
             if multiclass:
                 for i in range(n_labels):
                     pdp_dfs[i][grid_value] = pred_probas[:, i]
             else:
                 pdp_df[grid_value] = pred_probas[:, pos_label]
         else:
-            preds = model.predict(dtemp)  
+            if cast_to_float32:
+                dtemp = dtemp.values.astype("float32")
+            preds = model.predict(dtemp).squeeze()
             pdp_df[grid_value] = preds
     if multiclass:
         return pdp_dfs
