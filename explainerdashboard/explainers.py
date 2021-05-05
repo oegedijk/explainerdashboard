@@ -469,8 +469,12 @@ class BaseExplainer(ABC):
     @property
     def X_merged(self, index=None):
         if index is None:
+            if self.X_cats.empty:
+                return self.X[self.merged_cols]
             return self.X.merge(self.X_cats, left_index=True, right_index=True)[self.merged_cols]
         else:
+            if self.X_cats.empty:
+                return self.X[index][self.merged_cols]
             return self.X[index].merge(self.X_cats[index], left_index=True, right_index=True)[self.merged_cols]
 
     @property
