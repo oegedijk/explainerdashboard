@@ -815,7 +815,11 @@ class BaseExplainer(ABC):
         """returns model model predictions"""
         if not hasattr(self, '_preds'):
             print("Calculating predictions...", flush=True)
-            self._preds = self.model.predict(self.X.values).squeeze().astype(self.precision)
+            if self.shap == 'skorch': # skorch model.predict need np.array
+                self._preds = self.model.predict(self.X.values).squeeze().astype(self.precision)
+            else: # Pipelines.predict need pd.DataFrame:
+                self._preds = self.model.predict(self.X).squeeze().astype(self.precision)
+
         return self._preds
     
     @insert_pos_label
@@ -839,7 +843,8 @@ class BaseExplainer(ABC):
                                 onehot_dict=self.onehot_dict,
                                 cv=self.cv,
                                 n_jobs=self.n_jobs,
-                                needs_proba=self.is_classifier)
+                                needs_proba=self.is_classifier,
+                                pass_nparray = (self.shap=='skorch'))
                                 .sort_values("Importance", ascending=False))
             self._perm_imps = self._perm_imps                 
         return self._perm_imps
@@ -2088,7 +2093,10 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating prediction probabilities...", flush=True)
             assert hasattr(self.model, 'predict_proba'), \
                 "model does not have a predict_proba method!"
-            self._pred_probas =  self.model.predict_proba(self.X.values).astype(self.precision)
+            if self.shap == 'skorch':
+                self._pred_probas =  self.model.predict_proba(self.X.values).astype(self.precision)
+            else:
+                self._pred_probas =  self.model.predict_proba(self.X).astype(self.precision)
         return self._pred_probas
 
     @property
@@ -2122,7 +2130,8 @@ class ClassifierExplainer(BaseExplainer):
                             onehot_dict=self.onehot_dict,
                             cv=self.cv,
                             needs_proba=self.is_classifier,
-                            pos_label=label).sort_values("Importance", ascending=False) 
+                            pos_label=label,
+                            pass_nparray=(self.shap=='skorch')).sort_values("Importance", ascending=False) 
                                 for label in range(len(self.labels))]
 
         return self._perm_imps[pos_label]
@@ -2694,8 +2703,8 @@ class ClassifierExplainer(BaseExplainer):
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
             if self.shap=='skorch':
-                X_row = X_row.astype("float32")
-            pred_probas = self.model.predict_proba(X_row.values)[0, :].squeeze()
+                X_row = X_row.values.astype("float32")
+            pred_probas = self.model.predict_proba(X_row)[0, :].squeeze()
 
         preds_df =  pd.DataFrame(dict(
             label=self.labels, 
@@ -3224,8 +3233,8 @@ class RegressionExplainer(BaseExplainer):
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)  
         if self.shap == 'skorch':
-            X_row = X_row.astype("float32")
-        pred = self.model.predict(X_row.values).item()
+            X_row = X_row.values.astype("float32")
+        pred = self.model.predict(X_row).item()
         preds_df = pd.DataFrame(columns = ["", self.target])
         preds_df = preds_df.append(
                 pd.Series(("Predicted", f"{pred:.{round}f} {self.units}"), 

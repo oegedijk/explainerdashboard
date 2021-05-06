@@ -468,7 +468,8 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
 
 def permutation_importances(model, X, y, metric, onehot_dict=None,
                             greater_is_better=True, needs_proba=False,
-                            pos_label=1, n_repeats=1, n_jobs=None, sort=True, verbose=0):
+                            pos_label=1, n_repeats=1, n_jobs=None, sort=True, 
+                            pass_nparray=False, verbose=0):
     """
     adapted from rfpimp package, returns permutation importances, optionally grouping 
     onehot-encoded features together.
@@ -491,6 +492,8 @@ def permutation_importances(model, X, y, metric, onehot_dict=None,
             Defaults to 1.
         n_jobs (int): number of jobs for joblib parallel. Defaults to None. 
         sort (bool): sort the output from highest importances to lowest. 
+        pass_nparray (bool, optional): instead of the X pass X.values to model.
+            This is useful for skorch models that do not accepts dataframes.
         verbose (int): set to 1 to print output for debugging. Defaults to 0.
     """
     X = X.copy()
@@ -504,22 +507,30 @@ def permutation_importances(model, X, y, metric, onehot_dict=None,
         scorer = make_scorer(metric, greater_is_better=greater_is_better, needs_proba=needs_proba)
     else:
         scorer = make_one_vs_all_scorer(metric, pos_label, greater_is_better)
+    if pass_nparray:
+        baseline = scorer(model, X.values, y.values)
+    else:
+        baseline = scorer(model, X, y)
 
-    baseline = scorer(model, X, y)
 
-    def _permutation_importance(model, X, y, scorer, col_name, col_list, baseline, n_repeats=1):
+    def _permutation_importance(model, X, y, scorer, col_name, col_list, 
+                baseline, n_repeats=1, pass_nparray=False):
         X = X.copy()
         scores = []
         for i in range(n_repeats):
             old_cols = X[col_list].copy()
             X[col_list] = np.random.permutation(X[col_list])
-            scores.append(scorer(model, X.values, y.values))
+            if pass_nparray:
+                scores.append(scorer(model, X.values, y.values))
+            else:
+                scores.append(scorer(model, X, y))
+
             X[col_list] = old_cols
         return col_name, np.mean(scores)
     
     scores = Parallel(n_jobs=n_jobs)(delayed(_permutation_importance)(
-                    model, X, y, scorer, col_name, col_list, baseline, n_repeats
-            ) for col_name, col_list in onehot_dict.items())
+                    model, X, y, scorer, col_name, col_list, 
+                    baseline, n_repeats, pass_nparray) for col_name, col_list in onehot_dict.items())
     
     importances_df = pd.DataFrame(scores, columns=['Feature', 'Score'])
     importances_df['Importance'] = baseline - importances_df['Score']
@@ -532,7 +543,7 @@ def permutation_importances(model, X, y, metric, onehot_dict=None,
 
 def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is_better=True,
                                 needs_proba=False, pos_label=None, cv=None, 
-                                n_repeats=1, n_jobs=None, verbose=0):
+                                n_repeats=1, n_jobs=None, pass_nparray=False, verbose=0):
     """
     Returns the permutation importances averages over `cv` cross-validated folds.
 
@@ -552,6 +563,8 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
             Defaults to 1.
         cv (int): number of cross-validation folds to apply.
         sort (bool): sort the output from highest importances to lowest. 
+        pass_nparray (bool, optional): instead of the X pass X.values to model.
+            This is useful for skorch models that do not accepts dataframes.
         verbose (int): set to 1 to print output for debugging. Defaults to 0.
     """
     if cv is None:
@@ -562,6 +575,7 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
                                         n_repeats=n_repeats,
                                         n_jobs=n_jobs,
                                         sort=False,
+                                        pass_nparray=pass_nparray,
                                         verbose=verbose)
 
     if needs_proba:
@@ -585,6 +599,7 @@ def cv_permutation_importances(model, X, y, metric, onehot_dict=None, greater_is
                                         n_repeats=n_repeats,
                                         n_jobs=n_jobs,
                                         sort=False,
+                                        pass_nparray=pass_nparray,
                                         verbose=verbose)
         if i == 0:
             imps = imp[['Feature', 'Importance']]
@@ -707,7 +722,7 @@ def get_pdp_df(model, X_sample:pd.DataFrame, feature:Union[str, List], pos_label
         if cast_to_float32:
             first_row = X_sample.iloc[[0]].values.astype("float32")
         else:
-            first_row = X_sample.iloc[[0]].values
+            first_row = X_sample.iloc[[0]]
         n_labels = model.predict_proba(first_row).shape[1]
         if multiclass:
             pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
@@ -1398,17 +1413,17 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
     if is_classifier:
         if n_classes == 2:
             if pos_label==1:
-                preds = [xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+                preds = [xgbmodel.predict(X_row, iteration_range=(0, i+1), output_margin=True)[0] for i in range(n_trees)]
             elif pos_label==0:
-                preds = [-xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+                preds = [-xgbmodel.predict(X_row, iteration_range=(0, i+1), output_margin=True)[0] for i in range(n_trees)]
             pred_probas = (np.exp(preds)/(1+np.exp(preds))).tolist()
         else:
-            margins = [xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+            margins = [xgbmodel.predict(X_row, iteration_range=(0, i+1), output_margin=True)[0] for i in range(n_trees)]
             preds = [margin[pos_label] for margin in margins]
             pred_probas = [(np.exp(margin)/ np.exp(margin).sum())[pos_label] for margin in margins]
             
     else:
-        preds = [xgbmodel.predict(X_row, ntree_limit=i+1, output_margin=True)[0] for i in range(n_trees)]
+        preds = [xgbmodel.predict(X_row, iteration_range=(0, i+1), output_margin=True)[0] for i in range(n_trees)]
              
     
     xgboost_preds_df = pd.DataFrame(

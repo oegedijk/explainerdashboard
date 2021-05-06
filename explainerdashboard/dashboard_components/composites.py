@@ -643,7 +643,7 @@ class SimplifiedClassifierComposite(ExplainerComponent):
                 or RegressionPredictionSummaryComponent
             hide_contributiongraph (bool, optional): hide ShapContributionsGraphComponent
         """
-        super().__init__(explainer, title, name)
+        super().__init__(explainer, title=title, name=name)
         
         self.confusionmatrix = ConfusionMatrixComponent(explainer, 
                                     **update_params(kwargs, hide_percentage=True, hide_selector=True))
@@ -693,33 +693,49 @@ class SimplifiedClassifierComposite(ExplainerComponent):
         self.index_connector = IndexConnector(self.index, [self.summary, self.contributions])
 
     def layout(self):
-        return html.Div([
-            html.H1(self.title),
-            html.H2("Model performance"),
-            dbc.CardDeck([
-                make_hideable(self.confusionmatrix.layout(),
-                              hide=self.hide_confusionmatrix),
-                make_hideable(self.classifier_custom_component.layout(),
-                              hide=self.hide_classifier_custom_component),
-            ], style=dict(marginTop=25, marginBottom=25)),
-            html.H3("SHAP values"),
-            dbc.CardDeck([
-                make_hideable(self.shap_summary.layout(),
-                              hide=self.hide_shapsummary),
-                make_hideable(self.shap_dependence.layout(),
-                              hide=self.hide_shapdependence),
-            ], style=dict(marginTop=25, marginBottom=25)),
-            html.H2("Individual predictions"),
-            dbc.CardDeck([
-                make_hideable(self.index.layout(),
-                              hide=self.hide_predindexselector),
-                make_hideable(self.summary.layout(),
-                              hide=self.hide_predictionsummary),
-            ], style=dict(marginBottom=25, marginTop=25)),
-            dbc.CardDeck([
-                make_hideable(self.contributions.layout(),
-                              hide=self.hide_contributiongraph),
-            ], style=dict(marginBottom=25, marginTop=25))
+        return dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    html.H1(self.title, id='simple-classifier-composite-title')
+                ]),
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.H2("Model performance"),
+                    dbc.CardDeck([
+                        make_hideable(self.confusionmatrix.layout(),
+                                    hide=self.hide_confusionmatrix),
+                        make_hideable(self.classifier_custom_component.layout(),
+                                    hide=self.hide_classifier_custom_component),
+                    ], style=dict(marginTop=25, marginBottom=25)),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.H3("SHAP values"),
+                    dbc.CardDeck([
+                        make_hideable(self.shap_summary.layout(),
+                                    hide=self.hide_shapsummary),
+                        make_hideable(self.shap_dependence.layout(),
+                                    hide=self.hide_shapdependence),
+                    ], style=dict(marginTop=25, marginBottom=25)),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.H2("Individual predictions"),
+                    dbc.CardDeck([
+                        make_hideable(self.index.layout(),
+                                    hide=self.hide_predindexselector),
+                        make_hideable(self.summary.layout(),
+                                    hide=self.hide_predictionsummary),
+                    ], style=dict(marginBottom=25, marginTop=25)),
+                    dbc.CardDeck([
+                        make_hideable(self.contributions.layout(),
+                                    hide=self.hide_contributiongraph),
+                    ], style=dict(marginBottom=25, marginTop=25))
+                ])
+            ]),  
         ])
 
 
@@ -795,31 +811,47 @@ class SimplifiedRegressionComposite(ExplainerComponent):
         self.index_connector = IndexConnector(self.index, [self.summary, self.contributions])
 
     def layout(self):
-        return html.Div([
-            html.H1(self.title),
-            html.H2("Model performance"),
-            dbc.CardDeck([
-                make_hideable(self.goodness_of_fit.layout(),
-                              hide=self.hide_goodness_of_fit),
-                make_hideable(self.regression_custom_component.layout(),
-                              hide=self.hide_regression_custom_component),
-            ], style=dict(marginTop=25, marginBottom=25)),
-            html.H3("SHAP values"),
-            dbc.CardDeck([
-                make_hideable(self.shap_summary.layout(),
-                              hide=self.hide_shapsummary),
-                make_hideable(self.shap_dependence.layout(),
-                              hide=self.hide_shapdependence),
-            ], style=dict(marginTop=25, marginBottom=25)),
-            html.H2("Individual predictions"),
-            dbc.CardDeck([
-                make_hideable(self.index.layout(),
-                              hide=self.hide_predindexselector),
-                make_hideable(self.summary.layout(),
-                              hide=self.hide_predictionsummary),
-            ], style=dict(marginBottom=25, marginTop=25)),
-            dbc.CardDeck([
-                make_hideable(self.contributions.layout(),
-                              hide=self.hide_contributiongraph),
-            ], style=dict(marginBottom=25, marginTop=25))
+        return dbc.Container([
+            dbc.Row([
+                dbc.Col([
+                    html.H1(self.title, id='simple-regression-composite-title'),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.H2("Model performance"),
+                    dbc.CardDeck([
+                        make_hideable(self.goodness_of_fit.layout(),
+                                    hide=self.hide_goodness_of_fit),
+                        make_hideable(self.regression_custom_component.layout(),
+                                    hide=self.hide_regression_custom_component),
+                    ], style=dict(marginTop=25, marginBottom=25)),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.H3("SHAP values"),
+                    dbc.CardDeck([
+                        make_hideable(self.shap_summary.layout(),
+                                    hide=self.hide_shapsummary),
+                        make_hideable(self.shap_dependence.layout(),
+                                    hide=self.hide_shapdependence),
+                    ], style=dict(marginTop=25, marginBottom=25)),
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    html.H2("Individual predictions"),
+                    dbc.CardDeck([
+                        make_hideable(self.index.layout(),
+                                    hide=self.hide_predindexselector),
+                        make_hideable(self.summary.layout(),
+                                    hide=self.hide_predictionsummary),
+                    ], style=dict(marginBottom=25, marginTop=25)),
+                    dbc.CardDeck([
+                        make_hideable(self.contributions.layout(),
+                                    hide=self.hide_contributiongraph),
+                    ], style=dict(marginBottom=25, marginTop=25))
+                ])
+            ])   
         ])
