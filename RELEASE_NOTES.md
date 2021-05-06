@@ -6,11 +6,11 @@
 - 
 
 ### New Features
-- adds support for `PyTorch` Neural Networks! (as long as they are wrapper by `skorch`)
+- adds support for `PyTorch` Neural Networks! (as long as they are wrapped by `skorch`)
 - adds `SimplifiedClassifierComposite` and `SimplifiedRegressionComposite` to `explainerdashboard.custom`
 - adds flag `simple=True` to load these simplified one page dashboards: `ExplainerDashboard(explainer, simple=True)`
 - adds support for visualizing trees of `ExtraTreesClassifier` and `ExtraTreesRegressor`
-- adds `FeatureDescriptionsComponent` to `explainerdashboard.custom`
+- adds `FeatureDescriptionsComponent` to `explainerdashboard.custom` and the Importances tab
 
 
 ### Bug Fixes

@@ -24,7 +24,8 @@ a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
  example notebook on how to launch dashboard for different models [here](notebooks/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](notebooks/explainer_examples.ipynb).
 
- Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm` and others.
+ Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm`, and `skorch` 
+ (sklearn wrapper for tabular PyTorch models) and others.
 
  ## Installation
 
