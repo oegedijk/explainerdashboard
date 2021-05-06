@@ -1003,11 +1003,14 @@ class ExplainerHub:
             max_dashboards (int, optional): Max number of dashboards in the hub. Defaults to None 
                 (for no limitation). If set and you add an additional dashboard, the
                 first dashboard in self.dashboards will be deleted!
-            add_dashboard_route (bool, optional): open a route /add_dashboard/dashboard_name
-                If a user navigates to /add_dashboard/dashboard_name, check if
-                there exists a folder dashboards with subdirectory dashboard_name
-                that contains a dashboard.yaml file. If so load this dashboard
-                and add it to the hub.
+            add_dashboard_route (bool, optional): open a route /add_dashboard and 
+                /remove_dashboard
+                If a user navigates to e.g. /add_dashboard/dashboards/dashboard4.yaml, 
+                the hub will check if there exists a folder dashboards which contains
+                a dashboard4.yaml file. If so load this dashboard
+                and add it to the hub. You can remove it with e.g. /remove_dashboard/dashboard4
+                Warning: this will only work if you run the hub on a single worker
+                or node!
             **kwargs: all kwargs will be forwarded to the constructors of
                 each dashboard in dashboards dashboards. 
         """
@@ -1044,6 +1047,11 @@ class ExplainerHub:
         
         self.dashboard_names = [db.name for db in self.dashboards]
         self.removed_dashboard_names = []
+
+        if self.add_dashboard_route:
+            print("WARNING: if you add_dashboard_route new dashboards will be"
+                    "added to a specific hub instance/worker/node. So this will"
+                    "only work if you run the hub as a single worker on a single node!")
 
         assert len(set(self.dashboard_names)) == len(self.dashboard_names), \
             f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
