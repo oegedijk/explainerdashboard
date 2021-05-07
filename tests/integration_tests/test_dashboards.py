@@ -131,7 +131,22 @@ def test_regression_dashboard(dash_duo):
     explainer = get_regression_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
     dash_duo.start_server(db.app)
-    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
+    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
+    assert dash_duo.get_logs() == [], "browser console should contain no error"
+
+def test_simple_classification_dashboard(dash_duo):
+    explainer = get_classification_explainer()
+    db = ExplainerDashboard(explainer, title="testing", responsive=False, simple=True)
+    dash_duo.start_server(db.app)
+    dash_duo.wait_for_text_to_equal("#simple-classifier-composite-title", "testing", timeout=20)
+    assert dash_duo.get_logs() == [], "browser console should contain no error"
+
+
+def test_simple_regression_dashboard(dash_duo):
+    explainer = get_regression_explainer()
+    db = ExplainerDashboard(explainer, title="testing", responsive=False, simple=True)
+    dash_duo.start_server(db.app)
+    dash_duo.wait_for_text_to_equal("#simple-regression-composite-title", "testing", timeout=20)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
 
 

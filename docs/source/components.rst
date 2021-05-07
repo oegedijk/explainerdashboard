@@ -137,6 +137,7 @@ PredictionSummaryComponent
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.PredictionSummaryComponent
    :members:
 
+   
 ImportancesComponent
 --------------------
 
@@ -144,6 +145,16 @@ ImportancesComponent
 
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.ImportancesComponent
    :members:
+
+
+FeatureDescriptionsComponent
+--------------------
+
+.. image:: screenshots/components/feature_descriptions.png
+
+.. autoclass:: explainerdashboard.dashboard_components.overview_components.FeatureDescriptionsComponent
+   :members:
+
 
 PdpComponent
 ------------
