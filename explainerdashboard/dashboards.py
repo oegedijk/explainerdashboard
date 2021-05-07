@@ -948,7 +948,8 @@ class ExplainerHub:
                     dbs_open_by_default:bool=False, port:int=8050, 
                     min_height:int=3000, secret_key:str=None, no_index:bool=False, 
                     bootstrap:str=None, fluid:bool=True, base_route:str="dashboards", 
-                    max_dashboards:int=None, add_dashboard_route:bool=False, **kwargs):
+                    max_dashboards:int=None, add_dashboard_route:bool=False, 
+                    add_dashboard_pattern:str=None, **kwargs):
         """
     
         Note:
@@ -1009,8 +1010,16 @@ class ExplainerHub:
                 the hub will check if there exists a folder dashboards which contains
                 a dashboard4.yaml file. If so load this dashboard
                 and add it to the hub. You can remove it with e.g. /remove_dashboard/dashboard4
+                Alternatively you can specify a path pattern with add_dashboard_pattern.
                 Warning: this will only work if you run the hub on a single worker
                 or node!
+            add_dashboard_pattern (str, optional): a str pattern with curly brackets
+                in the place of where the dashboard.yaml file can be found. So e.g.
+                if you keep your dashboards in a subdirectory dashboards with
+                a subdirectory for the dashboard name and each yaml file 
+                called dashboard.yaml, you could set this to "dashboards/{}/dashboard.yaml",
+                and then navigate to /add_dashboard/dashboard5 to add
+                dashboards/dashboard5/dashboard.yaml.
             **kwargs: all kwargs will be forwarded to the constructors of
                 each dashboard in dashboards dashboards. 
         """
@@ -1847,6 +1856,8 @@ class ExplainerHub:
                 add_dashboard_match = add_dashboard_pattern.match(request.path)
                 if add_dashboard_match:
                     _, dashboard_path = add_dashboard_match.groups()
+                    if self.add_dashboard_pattern is not None:
+                        dashboard_path = self.add_dashboard_pattern.format(dashboard_path)
                     if dashboard_path.endswith(".yaml") and Path(dashboard_path).exists():
                         db = ExplainerDashboard.from_config(dashboard_path)
                         dashboard_name = self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
