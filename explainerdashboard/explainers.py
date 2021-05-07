@@ -261,12 +261,8 @@ class BaseExplainer(ABC):
                 ("ERROR! Only shap='guess', 'tree', 'linear', ' kernel' or 'skorch' are "
                  " supported for now!")
             self.shap = shap
-        if self.shap == 'kernel':
-            print("WARNING: For shap='kernel', shap interaction values can unfortunately "
-                    "not be calculated!")
-            self.interactions_should_work = False
-        if self.shap == 'skorch':
-            print("WARNING: For shap='skorch', shap interaction values can unfortunately "
+        if self.shap in {'kernel', 'skorch', 'linear'}:
+            print(f"WARNING: For shap='{self.shap}', shap interaction values can unfortunately "
                     "not be calculated!")
             self.interactions_should_work = False
 
