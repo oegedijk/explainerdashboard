@@ -1855,20 +1855,26 @@ class ExplainerHub:
                 """
                 add_dashboard_match = add_dashboard_pattern.match(request.path)
                 if add_dashboard_match:
-                    _, dashboard_path = add_dashboard_match.groups()
-                    if self.add_dashboard_pattern is not None:
-                        dashboard_path = self.add_dashboard_pattern.format(dashboard_path)
-                    if dashboard_path.endswith(".yaml") and Path(dashboard_path).exists():
-                        db = ExplainerDashboard.from_config(dashboard_path)
-                        dashboard_name = self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
-                        return redirect(f"/dashboards/_{dashboard_name}", code=302)
+                    try:
+                        _, dashboard_path = add_dashboard_match.groups()
+                        if self.add_dashboard_pattern is not None:
+                            dashboard_path = self.add_dashboard_pattern.format(dashboard_path)
+                        if dashboard_path.endswith(".yaml") and Path(dashboard_path).exists():
+                            db = ExplainerDashboard.from_config(dashboard_path)
+                            dashboard_name = self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
+                            return redirect(f"/dashboards/_{dashboard_name}", code=302)
+                    except:
+                        print("ERROR: Failed to add dashboard!", flush=True)
                     return redirect("/", code=302)
                     
                 remove_dashboard_match = remove_dashboard_pattern.match(request.path)
                 if remove_dashboard_match:
-                    _, dashboard_name = remove_dashboard_match.groups()
-                    if dashboard_name in self.dashboard_names:
-                        self.remove_dashboard(dashboard_name)
+                    try:
+                        _, dashboard_name = remove_dashboard_match.groups()
+                        if dashboard_name in self.dashboard_names:
+                            self.remove_dashboard(dashboard_name)
+                    except:
+                        print("ERROR: Failed to remove dashboard!", flush=True)
                     return redirect(f"/", code=302)
 
 
