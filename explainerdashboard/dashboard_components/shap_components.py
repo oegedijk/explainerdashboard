@@ -1038,6 +1038,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features)
+        else:
+            self.depth = self.explainer.n_features
         
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -1217,6 +1219,8 @@ class ShapContributionsTableComponent(ExplainerComponent):
 
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features)
+        else:
+            self.depth = self.explainer.n_features
 
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)

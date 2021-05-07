@@ -77,6 +77,31 @@ DecisionTreesComposite
 .. autoclass:: explainerdashboard.dashboard_components.composites.DecisionTreesComposite
    :members:
 
+
+SimplifiedClassifierComposite
+=============================
+
+You can also load this composite with::
+
+   explainer = ClassifierExplainer(model, X, y)
+   ExplainerDashboard(explainer, simple=True)
+
+.. autoclass:: explainerdashboard.dashboard_components.composites.SimplifiedClassifierComposite
+   :members:
+
+
+SimplifiedRegressionComposite
+=============================
+
+You can also load this composite with::
+
+   explainer = RegressionExplainer(model, X, y)
+   ExplainerDashboard(explainer, simple=True)
+
+.. autoclass:: explainerdashboard.dashboard_components.composites.SimplifiedRegressionComposite
+   :members:
+
+
 ExplainerTabsLayout
 ===================
 

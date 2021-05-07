@@ -719,9 +719,10 @@ BaseExplainer
 =============
 
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
-   :members: get_mean_abs_shap_df, get_permutation_importances_df, get_importances_df, contrib_df, 
-            plot_importances, plot_contributions, plot_importances_detailed, 
-            plot_interactions_detailed, plot_interactions_importances, plot_dependence, plot_interaction, plot_pdp
+   :members: get_shap_values_df, get_mean_abs_shap_df, get_permutation_importances_df, 
+            get_importances_df, contrib_df, plot_importances, plot_contributions, 
+            plot_importances_detailed, plot_interactions_detailed, plot_interactions_importances, 
+            plot_dependence, plot_interaction, plot_pdp
    :member-order: bysource
 
 ClassifierExplainer
@@ -760,41 +761,6 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
    :member-order: bysource
    :noindex:
 
-
-RandomForestExplainer
-=====================
-
-The ``RandomForestExplainer`` mixin class provides additional functionality
-in order to explore individual decision trees within the RandomForest.
-This can be very useful for showing stakeholders that a RandomForest is
-indeed just a collection of simple decision trees that you then calculate
-the average off. This Mixin class will be automatically included
-whenever you pass a ``RandomForestClassifier`` or ``RandomForestRegressor`` model.
-
-.. autoclass:: explainerdashboard.explainers.RandomForestExplainer
-   :members: get_decisionpath_df, get_decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
-   :member-order: bysource
-   :exclude-members: 
-   :noindex:
-
-
-
-XGBExplainer
-============
-
-The ``XGBExplainer`` mixin class provides additional functionality
-in order to explore individual decision trees within an xgboost ensemble model.
-This can be very useful for showing stakeholders that a xgboost is
-indeed just a collection of simple decision trees that get summed together. 
-This Mixin class will be automatically included
-whenever you pass a ``XGBClassifier`` or ``XGBRegressor`` model.
-
-
-.. autoclass:: explainerdashboard.explainers.XGBExplainer
-   :members: get_decisionpath_df, get_decisionpath_summary_df, plot_trees, decisiontree, decisiontree_file, decisiontree_encoded
-   :member-order: bysource
-   :exclude-members: 
-   :noindex:
 
 
 

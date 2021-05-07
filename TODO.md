@@ -1,15 +1,13 @@
 
 # TODO
 
-- try pytorch model and DeepExplainer
-- try keras model and DeepExplainer
+- add get_descriptions_df tests
 - do multiclass pdp
 - turn print statements into log statements
-- add ExtraTrees to tree support
-- add feature descriptions component
 ## Bugs:
 
 ## Plots:
+- add hide_legend parameter
 - add SHAP decision plots:
     https://towardsdatascience.com/introducing-shap-decision-plots-52ed3b4a1cba
 - make plot background transparent?
@@ -47,8 +45,6 @@
 - more flexible instantiate_component:
     - no explainer needed (if explainer component detected, pass otherwise ignore)
 - add TablePopout
-- add SimpleClassifierDashboard
-- add SimpleRegressionDashboard
 - Add EDA style feature histograms, bar charts, correlation graphs, etc
 - add cost calculator/optimizer for classifier models based on confusion matrix weights
     - add Youden J's calculation
@@ -65,7 +61,6 @@
 
 
 ### Components
-- add feature descriptions component
 - add predictions list to whatif composite:
     - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile
@@ -92,6 +87,7 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
+- add get_descriptions_df tests
 - add cv metrics tests
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user

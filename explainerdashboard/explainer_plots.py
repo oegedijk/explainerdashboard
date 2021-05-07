@@ -2188,8 +2188,10 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
     Returns:
         Plotly fig
     """
-    assert safe_isinstance(model, "RandomForestClassifier", "RandomForestRegressor"), \
-        f"model is of type {type(model)}, but should be either RandomForestClassifier or RandomForestRegressor"
+    assert safe_isinstance(model, "RandomForestClassifier", "RandomForestRegressor", 
+                                    "ExtraTreesClassifier", "ExtraTreesRegressor"), \
+        (f"model is of type {type(model)}, but plot_rf_trees() only accepts RandomForestClassifier, "
+        "RandomForestRegressor, ExtraTreesClassifier or ExtraTreesRegressor!")
     
     colors = ['blue'] * len(model.estimators_) 
     if highlight_tree is not None:
@@ -2197,7 +2199,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
             f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
         colors[highlight_tree] = 'red'
         
-    if safe_isinstance(model, "RandomForestClassifier"):
+    if safe_isinstance(model, "RandomForestClassifier", "ExtraTreesClassifier"):
         preds_df = (
             pd.DataFrame({
                 'model' : range(len(model.estimators_)), 
@@ -2227,10 +2229,10 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
                     hoverinfo="text")
     
     if target:
-        title = f"Individual RandomForest decision trees predicting {target}"
+        title = f"Individual decision trees predicting {target}"
         yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
     else:
-        title = f"Individual RandomForest decision trees"
+        title = f"Individual decision trees"
         yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
 
     layout = go.Layout(

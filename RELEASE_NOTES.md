@@ -1,5 +1,34 @@
 # Release Notes
 
+## Version 0.3.5:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- adds support for `PyTorch` Neural Networks! (as long as they are wrapped by `skorch`)
+- adds `SimplifiedClassifierComposite` and `SimplifiedRegressionComposite` to `explainerdashboard.custom`
+- adds flag `simple=True` to load these simplified one page dashboards: `ExplainerDashboard(explainer, simple=True)`
+- adds support for visualizing trees of `ExtraTreesClassifier` and `ExtraTreesRegressor`
+- adds `FeatureDescriptionsComponent` to `explainerdashboard.custom` and the Importances tab
+- adds possibility to dynamically add new dashboards to running ExplainerHub using `/add_dashboard` route
+    with `add_dashboard_route=True` (will only work if you're running the Hub as a single worker/node though!)
+
+
+### Bug Fixes
+-
+-
+
+### Improvements
+- `ExplainerDashboard.to_yaml("dashboards/dashboard.yaml", dump_explainer=True)`
+    will now dump the explainer in the correct subdirectory (and also default 
+    to explainer.joblib)
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.3.4:
 
 ### Bug Fixes
