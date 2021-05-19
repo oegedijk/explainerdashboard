@@ -62,7 +62,7 @@ route and specifying the path to a ``.yaml`` file::
     db2.to_yaml("dashboards/dashboard2.yaml", dump_explainer=True)
     ExplainerHub([db1], add_dashboard_route=True).run()
 
-If you then navigate to ``http://localhost:8050/add_dashboard/dashboards/dashboard2.yaml`` then
+If you then navigate to e.g. ``http://localhost:8050/add_dashboard/dashboards/dashboard2.yaml`` then
 this dashboard will be added to the hub. By default you can specify any ``.yaml`` file
 in any sub directory in which the hub is running. 
 
@@ -77,7 +77,7 @@ add dashboards::
             add_dashboard_pattern="dashboards/{}.yaml").run()
 
 Now you can simply nagivate to ``http://localhost:8050/add_dashboard/dashboard2`` and it will
-find``dashboards/dashboard2.yaml`` and add it.
+find ``dashboards/dashboard2.yaml`` and add it.
 
 You can also remove dashboards by navigating to e.g. ``http://localhost:8050/remove_dashboard/db2``.
 
