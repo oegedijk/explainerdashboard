@@ -20,6 +20,26 @@ all the default tabs that are compatible with your ``model`` and ``model_output`
 .. image:: screenshots/screenshot.png
 
 
+Simplified single page dashboard
+--------------------------------
+
+For a simplified single page dashboard, use::
+
+   ExplainerDashboard(explainer, simple=True).run()
+
+
+.. raw:: html
+
+   <details>
+   <summary>screenshot</summary><p>
+
+.. image:: screenshots/simple_classifier_dashboard.png
+
+.. raw:: html
+
+   </p></details>
+   <p></p>
+
 Switching off tabs with booleans
 --------------------------------
 

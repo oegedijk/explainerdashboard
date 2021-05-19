@@ -143,6 +143,17 @@ ExplainerDashboard(explainer).run()
 metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.
 
 For a simplified single page dashboard try `ExplainerDashboard(explainer, simple=True)`.
+
+<details><summary>Show simplified dashboard screenshot</summary>
+<p>
+
+
+![docs/source/screenshots/simple_classifier_dashboard.png](docs/source/screenshots/simple_classifier_dashboard.png)
+
+</p>
+</details>
+<p></p>
+
 ### ExplainerHub
 
 You can combine multiple dashboards and host them in a single place using 
@@ -157,12 +168,20 @@ hub = ExplainerHub([db1, db2])
 hub.run()
 ```
 
-![docs/source/screenshots/explainerhub.png](docs/source/screenshots/explainerhub.png)
-
-
 You can adjust titles and descriptions, manage users and logins, store and load 
 from config, manage the hub through a CLI and more. See the 
 [ExplainerHub documentation](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
+
+<details><summary>Show ExplainerHub screenshot</summary>
+<p>
+
+
+![docs/source/screenshots/explainerhub.png](docs/source/screenshots/explainerhub.png)
+
+</p>
+</details>
+<p></p>
+
 
 ### Dealing with slow calculations
 
@@ -404,6 +423,18 @@ class CustomDashboard(ExplainerComponent):
 
 db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True).run()
 ```
+
+<details><summary>Show example custom dashboard screenshot</summary>
+<p>
+
+
+![docs/source/screenshots/custom_dashboard.png](docs/source/screenshots/custom_dashboard.png)
+
+</p>
+
+</details>
+<p></p>
+
 
 You can use this to define your own layouts, specifically tailored to your
 own model, project and needs. You can use the [ExplainerComposites](https://github.com/oegedijk/explainerdashboard/blob/master/explainerdashboard/dashboard_components/composites.py) that

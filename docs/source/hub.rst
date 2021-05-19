@@ -42,6 +42,50 @@ url path with ``name``::
                 description="Showing dashboards for both model one and two")
     hub.run()
 
+Adding dashboards 
+=================
+
+You can add additional dashboards to a hub with::
+
+    hub.add_dashboard(db2)
+
+And remove them by passing their name::
+
+    hub.remove_dashboard("db2")
+
+Adding dashboards using url
+---------------------------
+
+You can even add dashboards to a running dashboard by navigating to the ``/add_dashboard`` 
+route and specifying the path to a ``.yaml`` file::
+
+    db2.to_yaml("dashboards/dashboard2.yaml", dump_explainer=True)
+    ExplainerHub([db1], add_dashboard_route=True).run()
+
+If you then navigate to ``http://localhost:8050/add_dashboard/dashboards/dashboard2.yaml`` then
+this dashboard will be added to the hub. By default you can specify any ``.yaml`` file
+in any sub directory in which the hub is running. 
+
+This can be useful when you for example store explainers and dashboards as part of 
+an MLOps or CI/CD flow. 
+
+If you store dashboards in a particular location, you can also specify a pattern to
+add dashboards::
+
+    ExplainerHub([db1], 
+            add_dashboard_route=True, 
+            add_dashboard_pattern="dashboards/{}.yaml").run()
+
+Now you can simply nagivate to ``http://localhost:8050/add_dashboard/dashboard2`` and it will
+find``dashboards/dashboard2.yaml`` and add it.
+
+You can also remove dashboards by navigating to e.g. ``http://localhost:8050/remove_dashboard/db2``.
+
+.. note:: 
+   Dashboards will be added to a particular instance of the hub that is running. 
+   So if you have a deployment with multiple workers/nodes, this method will not work
+   for now. 
+
 Changing size, theme, etc
 ==========================
 

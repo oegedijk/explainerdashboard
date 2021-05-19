@@ -81,6 +81,18 @@ DecisionTreesComposite
 SimplifiedClassifierComposite
 =============================
 
+.. raw:: html
+
+   <details>
+   <summary>screenshot</summary><p>
+
+.. image:: screenshots/simple_classifier_dashboard.png
+
+.. raw:: html
+
+   </p></details>
+   <p></p>
+
 You can also load this composite with::
 
    explainer = ClassifierExplainer(model, X, y)
@@ -92,6 +104,18 @@ You can also load this composite with::
 
 SimplifiedRegressionComposite
 =============================
+
+.. raw:: html
+
+   <details>
+   <summary>screenshot</summary><p>
+
+.. image:: screenshots/simple_regression_dashboard.png
+
+.. raw:: html
+
+   </p></details>
+   <p></p>
 
 You can also load this composite with::
 

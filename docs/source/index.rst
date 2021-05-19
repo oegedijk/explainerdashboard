@@ -105,6 +105,11 @@ Or, as a one-liner::
 The result of the lines above can be seen in the screenshot above or can be
 viewed on `this example dashboard deployed to heroku. <http://titanicexplainer.herokuapp.com>`_
 
+For a more simple single tab dashboard try::
+
+    ExplainerDashboard(explainer, simple=True).run()
+
+
 Custom dashboards
 =================
 You can easily :ref:`remix and customize<CustomModelTab>` ``ExplainerComponent`` primitives into
