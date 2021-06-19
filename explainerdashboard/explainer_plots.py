@@ -159,6 +159,7 @@ def plotly_contribution_plot(contrib_df, target="",
         bases = bases[::-1]
         fill_colors = fill_colors[::-1]
         line_colors = line_colors[::-1]
+        hover_text = hover_text[::-1]
     
     # Base of each bar
     trace0 = go.Bar(
