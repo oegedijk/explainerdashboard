@@ -96,16 +96,25 @@ class ClassifierExplainerTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_confusion_matrix(self):
-        fig = self.explainer.plot_confusion_matrix(normalized=False, binary=False)
+        fig = self.explainer.plot_confusion_matrix(percentage=False, binary=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_confusion_matrix(normalized=False, binary=True)
+        fig = self.explainer.plot_confusion_matrix(percentage=False, binary=True)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_confusion_matrix(normalized=True, binary=False)
+        fig = self.explainer.plot_confusion_matrix(percentage=True, binary=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_confusion_matrix(normalized=True, binary=True)
+        fig = self.explainer.plot_confusion_matrix(percentage=True, binary=True)
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_confusion_matrix(normalize='all')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_confusion_matrix(normalize='observed')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_confusion_matrix(normalize='pred')
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_lift_curve(self):

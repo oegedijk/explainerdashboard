@@ -2902,7 +2902,8 @@ class ClassifierExplainer(BaseExplainer):
                     percentile=percentile, pos_label=pos_label)
 
     @insert_pos_label
-    def plot_confusion_matrix(self, cutoff=0.5, percentage=False, binary=False, pos_label=None,normalize='all'):
+    def plot_confusion_matrix(self, cutoff=0.5, percentage=False, normalize='all', 
+                                binary=False, pos_label=None):
         """plot of a confusion matrix.
 
         Args:
@@ -2910,11 +2911,13 @@ class ClassifierExplainer(BaseExplainer):
                     calculate confusion matrix for, defaults to 0.5
           percentage(bool, optional, optional): display percentages instead 
                     of counts , defaults to False
+          normalize (str[‘observed’, ‘pred’, ‘all’]): normalizes confusion matrix over 
+            the observed (rows), predicted (columns) conditions or all the population.
+            Defaults to all.
           binary(bool, optional, optional): if multiclass display one-vs-rest 
                     instead, defaults to False
           pos_label: positive label to display, defaults to self.pos_label
-          normalize (str[‘true’, ‘pred’, ‘all’]): normalizes confusion matrix over the true (rows), predicted (columns) conditions or all the population.
-            Defaults to all
+          
 
         Returns:
           plotly fig
@@ -2934,11 +2937,11 @@ class ClassifierExplainer(BaseExplainer):
 
             return plotly_confusion_matrix(
                     self.confusion_matrix(cutoff, binary, pos_label),
-                    percentage=percentage, labels=labels,normalize=normalize)
+                    percentage=percentage, labels=labels, normalize=normalize)
         else:
             return plotly_confusion_matrix(
                 self.confusion_matrix(cutoff, binary, pos_label),
-                percentage=percentage, labels=self.labels,normalize=normalize)
+                percentage=percentage, normalize=normalize, labels=self.labels)
 
     @insert_pos_label
     def plot_lift_curve(self, cutoff=None, percentage=False, add_wizard=True, 

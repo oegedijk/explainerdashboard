@@ -1224,7 +1224,7 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3,
                             ))
     return fig
 
-def plotly_confusion_matrix(cm, labels = None, percentage = True, normalize = 'all'):
+def plotly_confusion_matrix(cm, labels=None, percentage=True, normalize='all'):
     """Generates Plotly fig confusion matrix
 
     Args:
@@ -1236,12 +1236,10 @@ def plotly_confusion_matrix(cm, labels = None, percentage = True, normalize = 'a
             the true (rows), predicted (columns) conditions or all the population.
             Defaults to 'all'.
 
-
     Returns:
         Plotly fig
     """
     
-    # 
     if normalize not in ['observed', 'pred', 'all']:
         raise ValueError("Error! parameters normalize must be one of {'observed', 'pred', 'all'} !")
 
