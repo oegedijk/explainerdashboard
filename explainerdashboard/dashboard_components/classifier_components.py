@@ -748,7 +748,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                             dbc.RadioItems(
                                 options=[
                                     {"label":  "Overall", "value": 'all'},
-                                    {"label":  "True", "value": 'true'},
+                                    {"label":  "Observed", "value": 'observed'},
                                     {"label":  "Predicted", "value": 'pred'}
                                     ],
                                 value=self.normalize,
@@ -782,14 +782,14 @@ class ConfusionMatrixComponent(ExplainerComponent):
              Output('confusionmatrix-graph-'+self.name, 'figure'),
             [Input('confusionmatrix-cutoff-'+self.name, 'value'),
              Input('confusionmatrix-percentage-'+self.name, 'value'),
+             Input('confusionmatrix-normalize-'+self.name, 'value')],
              Input('confusionmatrix-binary-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value'),
-             Input('confusionmatrix-normalize-'+self.name, 'value')],
         )
-        def update_confusionmatrix_graph(cutoff, percentage, binary, pos_label,normalize):
+        def update_confusionmatrix_graph(cutoff, percentage, normalize, binary, pos_label):
             return self.explainer.plot_confusion_matrix(
-                        cutoff=cutoff, percentage=bool(percentage), 
-                        binary=bool(binary), pos_label=pos_label,normalize=normalize)
+                        cutoff=cutoff, percentage=bool(percentage), normalize=normalize, 
+                        binary=bool(binary), pos_label=pos_label)
 
 
 class LiftCurveComponent(ExplainerComponent):

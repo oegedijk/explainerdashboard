@@ -1232,8 +1232,9 @@ def plotly_confusion_matrix(cm, labels = None, percentage = True, normalize = 'a
         labels (List[str], optional): List of labels for classes. Defaults to None.
         percentage (bool, optional): Display percentages on top of the counts. 
             Defaults to True.
-        normalize (str[‘true’, ‘pred’, ‘all’]): normalizes confusion matrix over the true (rows), predicted (columns) conditions or all the population.
-            Defaults to all
+        normalize ({‘observed’, ‘pred’, ‘all’}): normalizes confusion matrix over 
+            the true (rows), predicted (columns) conditions or all the population.
+            Defaults to 'all'.
 
 
     Returns:
@@ -1241,25 +1242,22 @@ def plotly_confusion_matrix(cm, labels = None, percentage = True, normalize = 'a
     """
     
     # 
-    if normalize not in ['true', 'pred', 'all']:
-        raise ValueError("normalize must be one of {'true', 'pred', "
-                            "'all'}")
+    if normalize not in ['observed', 'pred', 'all']:
+        raise ValueError("Error! parameters normalize must be one of {'observed', 'pred', 'all'} !")
 
     with np.errstate(all='ignore'):
         if normalize == 'all':
             cm_normalized = np.round(100*cm / cm.sum(), 1)
-        elif normalize == 'true':
+        elif normalize == 'observed':
             cm_normalized = np.round(100*cm / cm.sum(axis=1, keepdims=True), 1)
         elif normalize == 'pred':
             cm_normalized = np.round(100*cm / cm.sum(axis=0, keepdims=True), 1)
          
         cm_normalized = np.nan_to_num(cm_normalized)
 
-
     if labels is None:
         labels = [str(i) for i in range(cm.shape[0])] 
 
-    #zmax = cm.sum()
     zmax = 130 # to keep the text readable at 100% accuracy
         
     data=[go.Heatmap(
