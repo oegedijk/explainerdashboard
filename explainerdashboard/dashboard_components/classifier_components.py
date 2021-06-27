@@ -627,8 +627,9 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     subtitle="How many false positives and false negatives?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_percentage=False, hide_binary=False,
-                    hide_selector=False, hide_popout=False, pos_label=None,
-                    cutoff=0.5, percentage=True, binary=True, description=None,
+                    hide_selector=False, hide_popout=False, hide_normalize=False,
+                    normalize='all', pos_label=None, cutoff=0.5, 
+                    percentage=True, binary=True, description=None,
                     **kwargs):
         """Display confusion matrix component
 
@@ -655,6 +656,8 @@ class ConfusionMatrixComponent(ExplainerComponent):
             binary (bool, optional): Show binary instead of multiclass confusion matrix. Defaults to True.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown. 
+            normalize (str[‘true’, ‘pred’, ‘all’]): normalizes confusion matrix over the true (rows), predicted (columns) conditions or all the population.
+                Defaults to all
         """
         super().__init__(explainer, title, name)
 
@@ -739,6 +742,24 @@ class ConfusionMatrixComponent(ExplainerComponent):
                 make_hideable(
                     html.Div([
                         dbc.FormGroup([
+                            dbc.Label("Normalisation:"),
+                            dbc.Tooltip("Normalize the percentages in the confusion matrix over the true observations, predicted values or overall",
+                                    target='confusionmatrix-normalize-'+self.name),
+                            dbc.RadioItems(
+                                options=[
+                                    {"label":  "Overall", "value": 'all'},
+                                    {"label":  "Observed", "value": 'observed'},
+                                    {"label":  "Predicted", "value": 'pred'}
+                                    ],
+                                value=self.normalize,
+                                id='confusionmatrix-normalize-'+self.name,
+                                inline=True,
+                            ),
+                        ]),
+                    ]), hide=self.hide_normalize),                
+                make_hideable(
+                    html.Div([
+                        dbc.FormGroup([
                             dbc.Label("Binary:", id='confusionmatrix-binary-label-'+self.name),
                             dbc.Tooltip("display a binary confusion matrix of positive "
                                             "class vs all other classes instead of a multi"
@@ -761,12 +782,13 @@ class ConfusionMatrixComponent(ExplainerComponent):
              Output('confusionmatrix-graph-'+self.name, 'figure'),
             [Input('confusionmatrix-cutoff-'+self.name, 'value'),
              Input('confusionmatrix-percentage-'+self.name, 'value'),
+             Input('confusionmatrix-normalize-'+self.name, 'value')],
              Input('confusionmatrix-binary-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')],
+             Input('pos-label-'+self.name, 'value'),
         )
-        def update_confusionmatrix_graph(cutoff, normalized, binary, pos_label):
+        def update_confusionmatrix_graph(cutoff, percentage, normalize, binary, pos_label):
             return self.explainer.plot_confusion_matrix(
-                        cutoff=cutoff, normalized=bool(normalized), 
+                        cutoff=cutoff, percentage=bool(percentage), normalize=normalize, 
                         binary=bool(binary), pos_label=pos_label)
 
 

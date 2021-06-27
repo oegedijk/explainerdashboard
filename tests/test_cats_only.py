@@ -100,8 +100,6 @@ class CatBoostRegressionTests(unittest.TestCase):
         self.assertIsInstance(self.explainer.get_contrib_df(0, sort='importance'), pd.DataFrame)
         self.assertIsInstance(self.explainer.get_contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
 
-
-
     def test_contrib_summary_df(self):
         self.assertIsInstance(self.explainer.get_contrib_summary_df(0), pd.DataFrame)
         self.assertIsInstance(self.explainer.get_contrib_summary_df(0, topx=3), pd.DataFrame)
@@ -511,17 +509,27 @@ class CatBoostClassifierTests(unittest.TestCase):
         self.assertIsInstance(fig, go.Figure)
 
     def test_plot_confusion_matrix(self):
-        fig = self.explainer.plot_confusion_matrix(normalized=False, binary=False)
+        fig = self.explainer.plot_confusion_matrix(percentage=False, binary=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_confusion_matrix(normalized=False, binary=True)
+        fig = self.explainer.plot_confusion_matrix(percentage=False, binary=True)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_confusion_matrix(normalized=True, binary=False)
+        fig = self.explainer.plot_confusion_matrix(percentage=True, binary=False)
         self.assertIsInstance(fig, go.Figure)
 
-        fig = self.explainer.plot_confusion_matrix(normalized=True, binary=True)
+        fig = self.explainer.plot_confusion_matrix(percentage=True, binary=True)
         self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_confusion_matrix(normalize='all')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_confusion_matrix(normalize='observed')
+        self.assertIsInstance(fig, go.Figure)
+
+        fig = self.explainer.plot_confusion_matrix(normalize='pred')
+        self.assertIsInstance(fig, go.Figure)
+
 
     def test_plot_lift_curve(self):
         fig = self.explainer.plot_lift_curve()

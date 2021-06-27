@@ -2902,17 +2902,22 @@ class ClassifierExplainer(BaseExplainer):
                     percentile=percentile, pos_label=pos_label)
 
     @insert_pos_label
-    def plot_confusion_matrix(self, cutoff=0.5, normalized=False, binary=False, pos_label=None):
+    def plot_confusion_matrix(self, cutoff=0.5, percentage=False, normalize='all', 
+                                binary=False, pos_label=None):
         """plot of a confusion matrix.
 
         Args:
           cutoff(float, optional, optional): cutoff of positive class to 
                     calculate confusion matrix for, defaults to 0.5
-          normalized(bool, optional, optional): display percentages instead 
+          percentage(bool, optional, optional): display percentages instead 
                     of counts , defaults to False
+          normalize (str[‘observed’, ‘pred’, ‘all’]): normalizes confusion matrix over 
+            the observed (rows), predicted (columns) conditions or all the population.
+            Defaults to all.
           binary(bool, optional, optional): if multiclass display one-vs-rest 
                     instead, defaults to False
           pos_label: positive label to display, defaults to self.pos_label
+          
 
         Returns:
           plotly fig
@@ -2932,11 +2937,11 @@ class ClassifierExplainer(BaseExplainer):
 
             return plotly_confusion_matrix(
                     self.confusion_matrix(cutoff, binary, pos_label),
-                    percentage=normalized, labels=labels)
+                    percentage=percentage, labels=labels, normalize=normalize)
         else:
             return plotly_confusion_matrix(
                 self.confusion_matrix(cutoff, binary, pos_label),
-                percentage=normalized, labels=self.labels)
+                percentage=percentage, normalize=normalize, labels=self.labels)
 
     @insert_pos_label
     def plot_lift_curve(self, cutoff=None, percentage=False, add_wizard=True, 
