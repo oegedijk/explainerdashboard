@@ -31,6 +31,8 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
+from . import to_html
+
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
 # then extended to deal with multiple inheritance
 def delegates_kwargs(to=None, keep=False):
@@ -235,6 +237,9 @@ class ExplainerComponent(ABC):
         ExplainerComponent will register callbacks of subcomponents in addition
         to component_callbacks() when calling register_callbacks()
     """
+    
+    _state_props = {}
+    
     def __init__(self, explainer, title=None, name=None):
         """initialize the ExplainerComponent
 
@@ -377,7 +382,30 @@ class ExplainerComponent(ABC):
         for comp in self._components:
             _component_imports.extend(comp.component_imports)
         return list(set(_component_imports))
-
+    
+    def get_state_tuples(self):
+        """returns a list of State (id, property) tuples for the component and all subcomponents"""
+        self.register_components()
+        _state_props = [(id_+self.name, prop_) for id_, prop_ in self._state_props.values()]
+        for comp in self._components:
+            _state_props.extend(comp.get_state_tuples())
+        return list(set(_state_props))
+    
+    def get_state_args(self, state_dict=None):
+        """returns _state_dict with correct self.name attached
+        if state_dict is passed then replace the state_id_prop_tuples with their values
+        from state_dict or else as a property.
+        """
+        state_args = {k:(v[0]+self.name, v[1]) for k, v in self._state_props.items()}
+        state_dict = state_dict or {}
+        for param, (id_, prop_) in state_args.items():
+            if (id_, prop_) in state_dict:
+                state_args[param] = state_dict[(id_, prop_)]
+            elif hasattr(self, param):
+                state_args[param] = getattr(self, param)
+            else:
+                del state_args[param]
+        return state_args
 
     @property
     def pos_labels(self):
@@ -413,6 +441,17 @@ class ExplainerComponent(ABC):
         """layout to be defined by the particular ExplainerComponent instance.
         All element id's should append +self.name to make sure they are unique."""
         return None
+      
+    def to_html(self, state_dict:dict=None, add_header=True):
+        """return static html for this component and all subcomponents. 
+        
+        Args:
+            state_dict (dict): dictionary with id_prop_tuple as keys and state as value.
+        """
+        html = to_html.wrap_divs("")
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         """register callbacks specific to this ExplainerComponent."""

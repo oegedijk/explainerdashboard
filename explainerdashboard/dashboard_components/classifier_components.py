@@ -24,9 +24,15 @@ from dash.exceptions import PreventUpdate
 import plotly.graph_objs as go
 
 from ..dashboard_methods import *
+from .. import to_html
 
 
 class ClassifierRandomIndexComponent(ExplainerComponent):
+
+    _state_props = dict(
+        index=('random-index-clas-index-', 'value')
+    )
+
     def __init__(self, explainer, title="Select Random Index", name=None,
                         subtitle="Select from list or pick at random",
                         hide_title=False, hide_subtitle=False, 
@@ -202,6 +208,14 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             ]),
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        
+        html = to_html.card(f"Selected index: {args['index']}", title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('random-index-clas-index-'+self.name, 'value'),
@@ -248,6 +262,12 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
 
 class ClassifierPredictionSummaryComponent(ExplainerComponent):
+
+    _state_props = dict(
+        index=('clas-prediction-index-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
+
     def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False,  hide_subtitle=False,
                     hide_table=False, hide_piechart=False, 
@@ -342,6 +362,39 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
+    def _get_preds_df(index):
+        preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
+        preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
+        preds_df.probability = preds_df.probability + ' %'
+        if 'logodds' in preds_df.columns:
+            preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
+        
+        if self.explainer.model_output != 'logodds':
+            preds_df = preds_df[['label', 'probability']]
+        return preds_df
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+
+        fig = self.explainer.plot_prediction_result(args['index'], showlegend=False)
+        preds_df = self._get_preds_df(args['index'])
+        
+        html= f"""
+        <div class="row">
+            <div class="col">
+            {to_html.table_from_df(preds_df)}
+            </div>
+            <div class="col">
+            {fig.to_html()}
+            </div>
+        </div>
+        """
+        
+        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         if self.feature_input_component is None:
             @app.callback(
@@ -353,16 +406,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 if index is None or not self.explainer.index_exists(index):
                     raise PreventUpdate
                 fig = self.explainer.plot_prediction_result(index, showlegend=False)
-
-                preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
-                preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
-                preds_df.probability = preds_df.probability + ' %'
-                if 'logodds' in preds_df.columns:
-                    preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
-                
-                if self.explainer.model_output != 'logodds':
-                    preds_df = preds_df[['label', 'probability']]
-                    
+                preds_df = self._get_preds_df(index)
                 preds_table = dbc.Table.from_dataframe(preds_df, 
                                     striped=False, bordered=False, hover=False)  
                 return preds_table, fig
@@ -623,6 +667,14 @@ class PrecisionComponent(ExplainerComponent):
 
 
 class ConfusionMatrixComponent(ExplainerComponent):
+    _state_props = dict(
+        cutoff=('confusionmatrix-cutoff-', 'value'),
+        percentage=('confusionmatrix-percentage-', 'value'),
+        normalize=('confusionmatrix-normalize-', 'value'),
+        binary=('confusionmatrix-binary-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
+        
     def __init__(self, explainer, title="Confusion Matrix", name=None,
                     subtitle="How many false positives and false negatives?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -776,6 +828,17 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     ]), hide=self.hide_binary),
             ]), hide=self.hide_footer)
         ])
+    
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        args['binary'] = bool(args['binary'])
+        args['percentage'] = bool(args['percentage'])
+        fig = self.explainer.plot_confusion_matrix(**args)
+        
+        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         @app.callback(
@@ -790,6 +853,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
             return self.explainer.plot_confusion_matrix(
                         cutoff=cutoff, percentage=bool(percentage), normalize=normalize, 
                         binary=bool(binary), pos_label=pos_label)
+
 
 
 class LiftCurveComponent(ExplainerComponent):
@@ -1188,6 +1252,12 @@ class ClassificationComponent(ExplainerComponent):
 
 
 class RocAucComponent(ExplainerComponent):
+
+    _state_props = dict(
+        cutoff=('rocauc-cutoff-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
+
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
                     subtitle="Trade-off between False positives and false negatives",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -1271,6 +1341,15 @@ class RocAucComponent(ExplainerComponent):
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
             ]), hide=self.hide_footer)
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_roc_auc(**args)
+        
+        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         @app.callback(

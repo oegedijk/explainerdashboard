@@ -19,6 +19,14 @@ from ..dashboard_methods import *
 
 
 class ShapSummaryComponent(ExplainerComponent):
+
+    _state_props = dict(
+        summary_type=('shap-summary-type-', 'value'),
+        depth=('shap-summary-depth-', 'value'),
+        index=('shap-summary-index-' 'value'),
+        pos_label=('pos-label-', 'value')
+    )
+
     def __init__(self, explainer, title='Shap Summary', name=None,
                     subtitle="Ordering features by shap value",
                     hide_title=False, hide_subtitle=False, hide_depth=False, 
@@ -146,6 +154,22 @@ class ShapSummaryComponent(ExplainerComponent):
                 ], justify="end"),
             ]),
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        summary_type = args.pop("summary_type")
+        if summary_type == 'aggregate':
+            fig = self.explainer.plot_importances(
+                    kind='shap', topx=args['depth'], pos_label=args['pos_label'])
+        elif summary_type == 'detailed':
+            fig = self.explainer.plot_importances_detailed(
+                    topx=args['depth'], pos_label=args['pos_label'], highlight_index=args['index'], 
+                    max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
+        
+        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
     
     def component_callbacks(self, app):
         @app.callback(
@@ -190,6 +214,17 @@ class ShapSummaryComponent(ExplainerComponent):
 
 
 class ShapDependenceComponent(ExplainerComponent):
+
+    _state_props = dict(
+        col=('shap-dependence-col-', 'value'),
+        color_col=('shap-dependence-color-col-', 'value'),
+        index=('shap-dependence-index-', 'value'),
+        cats_topx=('shap-dependence-n-categories-', 'value'),
+        cats_sort=('shap-dependence-categories-sort-', 'value'),
+        remove_outliers=('shap-dependence-outliers-', 'value'),
+        pos_label=('pos-label-', 'value'),  
+    )
+
     def __init__(self, explainer, title='Shap Dependence', name=None,
                     subtitle="Relationship between feature value and SHAP value",
                     hide_title=False, hide_subtitle=False, hide_col=False, 
@@ -373,6 +408,22 @@ class ShapDependenceComponent(ExplainerComponent):
                     ]) 
                 ]), hide=self.hide_footer),
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+
+        if args['color_col'] =="no_color_col": 
+            args['color_col'], args['index']= None, None
+        fig = self.explainer.plot_dependence(
+                    args['col'], args['color_col'], topx=args['cats_topx'], sort=args['cats_sort'], 
+                    highlight_index=args['index'], max_cat_colors=self.max_cat_colors,
+                    plot_sample=self.plot_sample, remove_outliers=bool(args['remove_outliers']), 
+                    pos_label=args['pos_label']).to_html()
+        
+        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         @app.callback(
@@ -985,6 +1036,15 @@ class InteractionSummaryDependenceConnector(ExplainerComponent):
 
 
 class ShapContributionsGraphComponent(ExplainerComponent):
+
+    _state_props = dict(
+        index=('contributions-graph-index-', 'value'),
+        depth=('contributions-graph-depth-', 'value'),
+        sort=('contributions-graph-sorting-', 'value'),
+        orientation=('contributions-graph-orientation-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
+
     def __init__(self, explainer, title="Contributions Plot", name=None,
                     subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_subtitle=False, hide_index=False, hide_depth=False, 
@@ -1136,6 +1196,19 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 ], justify="end"),
             ]),
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+
+        args['depth'] = None if args['depth'] is None else int(args['depth'])
+        fig = self.explainer.plot_contributions(str(args['index']), topx=args['depth'], 
+                    sort=args['sort'], orientation=args['orientation'], 
+                    pos_label=args['pos_label'], higher_is_better=self.higher_is_better)
+        
+        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
         
     def component_callbacks(self, app):
         
