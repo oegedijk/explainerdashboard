@@ -360,6 +360,10 @@ class BaseExplainer(ABC):
             filepath (str, Path): filepath where to save the Explainer.
         """
         filepath = Path(filepath)
+        if self.shap == 'kernel' and not str(filepath).endswith(".dill"):
+            print("Warning! KernelExplainer does not work with joblib or pickle, "
+                    "but only with dill, so specify e.g. filepath='explainer.dill' "
+                    "to use dill instead of joblib or pickle.", flush=True)
         if hasattr(self, "_lock"): del self._lock # Python Locks are not picklable
         if str(filepath).endswith(".pkl") or str(filepath).endswith(".pickle"):
             import pickle
