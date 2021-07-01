@@ -17,9 +17,15 @@ from ..explainers import RandomForestExplainer, XGBExplainer
 from ..dashboard_methods import *
 from .classifier_components import ClassifierRandomIndexComponent
 from .connectors import IndexConnector, HighlightConnector
+from .. import to_html
 
 
 class DecisionTreesComponent(ExplainerComponent):
+    _state_props = dict(
+       index=('decisiontrees-index-', 'value'),
+       highlight=('decisiontrees-highlight-', 'value'),
+       pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Decision Trees", name=None,
                     subtitle="Displaying individual decision trees",
                     hide_title=False,  hide_subtitle=False,
@@ -136,6 +142,21 @@ class DecisionTreesComponent(ExplainerComponent):
                 ], justify="end"),
             ])   
         ])
+    
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        args['highlight'] = None if args['highlight'] is None else int(args['highlight'])
+        if args['index'] is not None:
+            fig = self.explainer.plot_trees(args['index'], 
+                        highlight_tree=args['highlight'], pos_label=args['pos_label'],
+                        higher_is_better=self.higher_is_better)
+            html = to_html.fig(fig)
+        else:
+            html = "no index selected"
+        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         @app.callback(
@@ -163,6 +184,12 @@ class DecisionTreesComponent(ExplainerComponent):
             raise PreventUpdate
 
 class DecisionPathTableComponent(ExplainerComponent):
+
+    _state_props = dict(
+        index=('decisionpath-table-index-', 'value'),
+        highlight=('decisionpath-table-highlight-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Decision path table", name=None,
                     subtitle="Decision path through decision tree",
                     hide_title=False,  hide_subtitle=False,
@@ -255,6 +282,19 @@ class DecisionPathTableComponent(ExplainerComponent):
             ]),
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        if args['highlight'] is not None:
+            decisionpath_df = self.explainer.get_decisionpath_summary_df(
+                int(args['highlight']), args['index'], pos_label=args['pos_label'])
+            html = to_html.table_from_df(decisionpath_df)
+        else:
+            html = "no tree selected"
+        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output("decisionpath-table-"+self.name, 'children'),
@@ -271,6 +311,7 @@ class DecisionPathTableComponent(ExplainerComponent):
 
 
 class DecisionPathGraphComponent(ExplainerComponent):
+
     def __init__(self, explainer, title="Decision path graph", name=None,
                     subtitle="Visualizing entire decision tree",
                     hide_title=False,  hide_subtitle=False, hide_index=False, 

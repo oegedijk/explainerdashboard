@@ -26,6 +26,9 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+
 from flask import Flask, request, redirect
 from flask_simplelogin import SimpleLogin, login_required
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -37,14 +40,16 @@ from .dashboard_methods import instantiate_component, encode_callables, decode_c
 from .dashboard_components import *
 from .dashboard_tabs import *
 from .explainers import BaseExplainer
+from . import to_html
 
 
-class ExplainerTabsLayout:
+class ExplainerTabsLayout(ExplainerComponent):
     def __init__(self, explainer, tabs,
-                 title='Model Explainer',
+                 title='Model Explainer', name=None,
                  description=None,
                  header_hide_title=False,
                  header_hide_selector=False,
+                 header_hide_download=False,
                  hide_poweredby=False,
                  block_selector_callbacks=False,
                  pos_label=None,
@@ -64,6 +69,8 @@ class ExplainerTabsLayout:
             header_hide_title (bool, optional): Hide the title. Defaults to False.
             header_hide_selector (bool, optional): Hide the positive label selector. 
                         Defaults to False.
+            header_hide_download (bool, optional): Hide the download link. 
+                Defaults to False.
             hide_poweredby (bool, optional): hide the powered by footer
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
@@ -73,12 +80,8 @@ class ExplainerTabsLayout:
                         Defaults to explainer.pos_label
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
-        self.title = title
-        self.description = description
-        self.header_hide_title = header_hide_title
-        self.header_hide_selector = header_hide_selector
-        self.block_selector_callbacks = block_selector_callbacks
-        self.hide_poweredby = hide_poweredby
+        super().__init__(explainer, title, name)
+
         if self.block_selector_callbacks:
             self.header_hide_selector = True
         self.fluid = fluid
@@ -86,6 +89,12 @@ class ExplainerTabsLayout:
         self.selector = PosLabelSelector(explainer, name="0", pos_label=pos_label)
         self.tabs  = [instantiate_component(tab, explainer, name=str(i+1), **kwargs) for i, tab in enumerate(tabs)]
         assert len(self.tabs) > 0, 'When passing a list to tabs, need to pass at least one valid tab!'
+
+        self.register_components(*self.tabs)
+
+        self.downloadable_tabs = [tab for tab in self.tabs if tab.to_html(add_header=False) != "<div></div>"]
+        if not self.downloadable_tabs:
+            self.header_hide_download = True
 
         self.connector = PosLabelConnector(self.selector, self.tabs)
    
@@ -102,6 +111,18 @@ class ExplainerTabsLayout:
                     dbc.Col([
                         self.selector.layout()
                     ], md=3), hide=self.header_hide_selector),
+                make_hideable(
+                    dbc.Col([
+                        html.Div([
+                            dcc.Download('download-page-'+self.name),
+                    dbc.DropdownMenu([
+                            dbc.DropdownMenuItem("All tabs", id="download-button-all"+self.name, n_clicks=None), 
+                            dbc.DropdownMenuItem(divider=True), 
+                            *[dbc.DropdownMenuItem(tab.title, id="download-button-"+tab.name, n_clicks=None)
+                                    for tab in self.downloadable_tabs]
+                        ], label="Download", color="link", right=True),
+                        ], style={'display':'flex', 'justify-content':'flex-end'}),
+                    ], md="auto", className="ml-auto", align="center"), hide=self.header_hide_download),
             ], justify="start", style=dict(marginBottom=10)),
             dcc.Tabs(id="tabs", value=self.tabs[0].name, 
                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
@@ -119,6 +140,15 @@ class ExplainerTabsLayout:
             ], justify="end"),
         ], fluid=self.fluid)
 
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        tabs = {tab.title: tab.to_html(state_dict, add_header=False) for tab in self.tabs}
+        tabs = {tab: html for tab, html in tabs.items() if html != "<div></div>"}
+        html += to_html.tabs(tabs)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def register_callbacks(self, app):
         """Registers callbacks for all tabs"""
         for tab in self.tabs:
@@ -134,6 +164,44 @@ class ExplainerTabsLayout:
                     "If so set block_selector_callbacks=True.")
             self.connector.register_callbacks(app)
 
+        # @app.callback(
+        #     Output('download-page-'+self.name, 'data'),
+        #     [Input('download-page-button-'+self.name, 'n_clicks')],
+        #     [State(id_, prop_) for id_, prop_ in self.get_state_tuples()]
+        # )
+        # def download_html(n_clicks, *args):
+        #     if n_clicks is not None:
+        #         state_dict = dict(zip(self.get_state_tuples(), args))
+        #         return dict(
+        #             content=self.to_html(state_dict, add_header=True), 
+        #             filename="dashboard.html"
+        #         )
+        #     raise PreventUpdate
+
+        @app.callback(
+            Output('download-page-'+self.name, 'data'),
+            [Input('download-button-all'+self.name, 'n_clicks'),
+             *[Input("download-button-"+tab.name, 'n_clicks') for tab in self.downloadable_tabs]],
+            [State(id_, prop_) for id_, prop_ in self.get_state_tuples()]
+        )
+        def download_html(*args):
+            state_dict = dict(zip(self.get_state_tuples(), args[1+len(self.downloadable_tabs):]))
+            
+            ctx = dash.callback_context
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            if button_id == 'download-button-all'+self.name:
+                return dict(
+                    content=self.to_html(state_dict), 
+                    filename="dashboard.html"
+                )
+            for tab in self.downloadable_tabs:
+                if button_id == "download-button-"+tab.name:
+                    return dict(
+                        content=tab.to_html(state_dict), 
+                        filename="dashboard.html"
+                    )
+            raise PreventUpdate
+
     def calculate_dependencies(self):
         """Calculates dependencies for all tabs"""
         for tab in self.tabs:
@@ -145,10 +213,11 @@ class ExplainerTabsLayout:
 
 class ExplainerPageLayout(ExplainerComponent):
     def __init__(self, explainer, component,
-                 title='Model Explainer',
+                 title='Model Explainer', name=None,
                  description=None,
                  header_hide_title=False,
                  header_hide_selector=False,
+                 header_hide_download=False,
                  hide_poweredby=False,
                  block_selector_callbacks=False,
                  pos_label=None,
@@ -170,6 +239,7 @@ class ExplainerPageLayout(ExplainerComponent):
             header_hide_title (bool, optional): Hide the title. Defaults to False.
             header_hide_selector (bool, optional): Hide the positive label selector.
                         Defaults to False.
+            header_hide_download (bool, optional): Hide the download link. Defaults to False.
             hide_poweredby (bool, optional): hide the powered by footer
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
@@ -179,21 +249,25 @@ class ExplainerPageLayout(ExplainerComponent):
                         Defaults to explainer.pos_label
             fluid (bool, optional): Stretch layout to fill space. Defaults to False.
         """
+        super().__init__(explainer, title, name)
         self.title = title
-        self.description = description
-        self.header_hide_title = header_hide_title
-        self.header_hide_selector = header_hide_selector
-        self.hide_poweredby = hide_poweredby
-        self.block_selector_callbacks = block_selector_callbacks
+
         if self.block_selector_callbacks:
             self.header_hide_selector = True
         self.fluid = fluid
         
         self.selector = PosLabelSelector(explainer, name="0", pos_label=pos_label)
         self.page  = instantiate_component(component, explainer, name="1", **kwargs) 
+        self.register_components(self.page)
+
         self.connector = PosLabelConnector(self.selector, self.page)
         
-        self.fluid = fluid
+        self.page_layout = self.page.layout()
+        if hasattr(self.page_layout, "fluid"):
+            self.fluid = self.page_layout.fluid
+
+        if self.page.to_html(add_header=False) == "<div></div>":
+            self.header_hide_download = True
         
     def layout(self):
         """returns single page layout with an ExplainerHeader"""
@@ -203,13 +277,20 @@ class ExplainerPageLayout(ExplainerComponent):
                     dbc.Col([
                         html.H1(self.title, id='dashboard-title'),
                         dbc.Tooltip(self.description, target='dashboard-title')
-                    ], width="auto"), hide=self.header_hide_title),
+                    ], width="auto", align="start"), hide=self.header_hide_title),
                 make_hideable(
                     dbc.Col([
                         self.selector.layout()
-                    ], md=3), hide=self.header_hide_selector),
+                    ], md=3, align="start"), hide=self.header_hide_selector),
+                make_hideable(
+                    dbc.Col([
+                        html.Div([
+                            dbc.Button("Download", id='download-page-button-'+self.name, color="link"),
+                            dcc.Download('download-page-'+self.name),
+                        ], style={'display':'flex', 'justify-content':'flex-end'}),
+                    ], md="auto", className="ml-auto", align="center"), hide=self.header_hide_download),
             ], justify="start"),
-            self.page.layout(),
+            self.page_layout,
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -236,6 +317,20 @@ class ExplainerPageLayout(ExplainerComponent):
                     "If so set block_selector_callbacks=True.")
             self.connector.register_callbacks(app)
 
+        @app.callback(
+            Output('download-page-'+self.name, 'data'),
+            [Input('download-page-button-'+self.name, 'n_clicks')],
+            [State(id_, prop_) for id_, prop_ in self.page.get_state_tuples()]
+        )
+        def download_html(n_clicks, *args):
+            if n_clicks is not None:
+                state_dict = dict(zip(self.get_state_tuples(), args))
+                return dict(
+                    content=self.page.to_html(state_dict, add_header=True), 
+                    filename="dashboard.html"
+                )
+            raise PreventUpdate
+
     def calculate_dependencies(self):
         """Calculate dependencies of page"""
         try:
@@ -255,6 +350,7 @@ class ExplainerDashboard:
                  hide_header:bool=False,
                  header_hide_title:bool=False,
                  header_hide_selector:bool=False,
+                 header_hide_download:bool=False,
                  hide_poweredby:bool=False,
                  block_selector_callbacks:bool=False,
                  pos_label:Union[str, int]=None,
@@ -320,7 +416,10 @@ class ExplainerDashboard:
                 a single page SimplifiedClassifierDashboard or SimplifiedRegressionDashboard.
             hide_header (bool, optional) hide the header (title+selector), defaults to False.
             header_hide_title(bool, optional): hide the title, defaults to False
-            header_hide_selector(bool, optional): hide the positive class selector for classifier models, defaults, to False
+            header_hide_selector(bool, optional): hide the positive class selector 
+                for classifier models, defaults, to False
+            header_hide_download (bool, optional): hide the download link in the header. 
+                Defaults to False.
             hide_poweredby (bool, optional): hide the powered by footer
             block_selector_callbacks (bool, optional): block the callback of the
                         pos label selector. Useful to avoid clashes when you
@@ -429,11 +528,11 @@ class ExplainerDashboard:
 
         if tabs is None:
             if simple:
-                self.hide_header=True
+                self.header_hide_selector=True
                 if explainer.is_classifier:
-                    tabs = SimplifiedClassifierComposite(explainer, title=title, **kwargs)
+                    tabs = SimplifiedClassifierComposite(explainer, title=self.title, hide_title=True, **kwargs)
                 else:
-                    tabs = SimplifiedRegressionComposite(explainer, title=title, **kwargs)
+                    tabs = SimplifiedRegressionComposite(explainer, title=self.title, hide_title=True, **kwargs)
             else:
                 tabs = []
                 if model_summary and explainer.y_missing:
@@ -473,6 +572,7 @@ class ExplainerDashboard:
         if self.hide_header:
             self.header_hide_title = True
             self.header_hide_selector = True
+            self.header_hide_download = True
 
         print("Generating layout...") 
         _, i = yield_id(return_i=True) # store id generator index
@@ -487,6 +587,7 @@ class ExplainerDashboard:
                             **update_kwargs(kwargs, 
                                 header_hide_title=self.header_hide_title, 
                                 header_hide_selector=self.header_hide_selector, 
+                                header_hide_download=self.header_hide_download, 
                                 hide_poweredby=self.hide_poweredby,
                                 block_selector_callbacks=self.block_selector_callbacks,
                                 pos_label=self.pos_label,
@@ -498,6 +599,7 @@ class ExplainerDashboard:
                             **update_kwargs(kwargs,
                                 header_hide_title=self.header_hide_title, 
                                 header_hide_selector=self.header_hide_selector, 
+                                header_hide_download=self.header_hide_download, 
                                 hide_poweredby=self.hide_poweredby,
                                 block_selector_callbacks=self.block_selector_callbacks,
                                 pos_label=self.pos_label,

@@ -22,6 +22,7 @@ from .overview_components import *
 from .connectors import *
 from .shap_components import *
 from .decisiontree_components import *
+from .. import to_html
 
 
 class ImportancesComposite(ExplainerComponent):
@@ -69,6 +70,16 @@ class ImportancesComposite(ExplainerComponent):
                     ]), hide=self.hide_descriptions),
             ], style=dict(margin=25))
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [to_html.hide(self.importances.to_html(state_dict, add_header=False), self.hide_importances)],
+            [to_html.hide(self.feature_descriptions.to_html(state_dict, add_header=False), self.hide_descriptions)],
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
 
 class ClassifierModelStatsComposite(ExplainerComponent):
@@ -169,6 +180,18 @@ class ClassifierModelStatsComposite(ExplainerComponent):
             ], style=dict(marginBottom=25)),
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [self.summary.to_html(state_dict, add_header=False), self.confusionmatrix.to_html(state_dict, add_header=False)],
+            [self.precision.to_html(state_dict, add_header=False), self.classification.to_html(state_dict, add_header=False)],
+            [self.rocauc.to_html(state_dict, add_header=False), self.prauc.to_html(state_dict, add_header=False)],
+            [self.liftcurve.to_html(state_dict, add_header=False), self.cumulative_precision.to_html(state_dict, add_header=False)],
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
 
 class RegressionModelStatsComposite(ExplainerComponent):
     def __init__(self, explainer, title="Regression Stats", name=None,
@@ -233,6 +256,16 @@ class RegressionModelStatsComposite(ExplainerComponent):
                 make_hideable(self.reg_vs_col.layout(), hide=self.hide_regvscol),
             ], style=dict(margin=25))
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [self.modelsummary.to_html(state_dict, add_header=False), self.preds_vs_actual.to_html(state_dict, add_header=False)],
+            [self.residuals.to_html(state_dict, add_header=False), self.reg_vs_col.to_html(state_dict, add_header=False)],
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
 
 class IndividualPredictionsComposite(ExplainerComponent):
@@ -313,6 +346,19 @@ class IndividualPredictionsComposite(ExplainerComponent):
                     ], md=6),
                 ])
         ], fluid=True)
+
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [to_html.hide(self.index.to_html(state_dict, add_header=False), self.hide_predindexselector), 
+             to_html.hide(self.summary.to_html(state_dict, add_header=False), self.hide_predictionsummary)],
+            [to_html.hide(self.contributions.to_html(state_dict, add_header=False), self.hide_contributiongraph),
+             to_html.hide(self.pdp.to_html(state_dict, add_header=False), self.hide_pdp)],
+            [to_html.hide(self.contributions_list.to_html(state_dict, add_header=False), self.hide_contributiontable)]
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
 
 class WhatIfComposite(ExplainerComponent):
@@ -459,6 +505,16 @@ class ShapDependenceComposite(ExplainerComponent):
             ], style=dict(marginTop=25)),
         ], fluid=True)
 
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [to_html.hide(self.shap_summary.to_html(state_dict, add_header=False), self.hide_shapsummary), 
+             to_html.hide(self.shap_dependence.to_html(state_dict, add_header=False), self.hide_shapdependence)],
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
 class ShapInteractionsComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Interactions', name=None,
                     hide_selector=True,
@@ -494,6 +550,16 @@ class ShapInteractionsComposite(ExplainerComponent):
                     make_hideable(self.interaction_dependence.layout(), hide=self.hide_interactiondependence),
                 ], style=dict(marginTop=25))
         ], fluid=True)
+
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [to_html.hide(self.interaction_summary.to_html(state_dict, add_header=False), self.hide_interactionsummary), 
+             to_html.hide(self.interaction_dependence.to_html(state_dict, add_header=False), self.hide_interactiondependence)],
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
 
 class DecisionTreesComposite(ExplainerComponent):
@@ -549,33 +615,7 @@ class DecisionTreesComposite(ExplainerComponent):
             [self.decisionpath_table, self.decisionpath_graph])
         
     def layout(self):
-        if isinstance(self.explainer, XGBExplainer):
-            return html.Div([
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            self.index.layout(), 
-                        ]), hide=self.hide_treeindexselector),
-                ], style=dict(margin=25)),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            self.trees.layout(), 
-                        ], md=8), hide=self.hide_treesgraph),
-                    make_hideable(
-                        dbc.Col([
-                            self.decisionpath_table.layout(), 
-                        ], md=4), hide=self.hide_treepathtable),
-                ], style=dict(margin=25)),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            self.decisionpath_graph.layout()
-                        ]), hide=self.hide_treepathgraph),
-                ], style=dict(margin=25)),
-            ])
-        elif isinstance(self.explainer, RandomForestExplainer):
-            return html.Div([
+        return html.Div([
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -601,13 +641,22 @@ class DecisionTreesComposite(ExplainerComponent):
                         ]), hide=self.hide_treepathgraph),
                 ], style=dict(margin=25)),
             ])
-        else:
-            raise ValueError("explainer is neither a RandomForestExplainer nor an XGBExplainer! "
-                            "Pass decision_trees=False to disable the decision tree tab.")
+    
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [to_html.hide(self.index.to_html(state_dict, add_header=False), self.hide_treeindexselector)],
+            [to_html.hide(self.trees.to_html(state_dict, add_header=False), self.hide_treesgraph)],
+            [to_html.hide(self.decisionpath_table.to_html(state_dict, add_header=False), self.hide_treepathtable)],
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
+        
 
 class SimplifiedClassifierComposite(ExplainerComponent):
     def __init__(self, explainer, title="Simple Classifier Explainer", name=None,
-                 classifier_custom_component='roc_auc', 
+                 hide_title=False, classifier_custom_component='roc_auc', 
                  hide_confusionmatrix=False, hide_classifier_custom_component=False,
                  hide_shapsummary=False, hide_shapdependence=False,
                  hide_predindexselector=False, hide_predictionsummary=False,
@@ -629,6 +678,7 @@ class SimplifiedClassifierComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title. Defaults to False.
             classifier_custom_component (str, optional): custom classifier quality indicator 
                     supported by the ClassifierExplainer object. Valid values are: 
                     'roc_auc', 'metrics', pr_auc', 'precision_graph', 'lift_curve', 
@@ -678,7 +728,7 @@ class SimplifiedClassifierComposite(ExplainerComponent):
             explainer, **update_params(kwargs, title="Shap Feature Importances", 
                                        hide_index=True, hide_selector=True, depth=None, hide_depth=True))
         self.shap_dependence = ShapDependenceComponent( 
-            explainer, **update_params(kwargs, hide_selector=True, hide_index=True))
+            explainer, **update_params(kwargs, hide_selector=True, hide_index=True, color_col="no_color_col"))
 
         # SHAP contribution, along with prediction summary
         self.index = ClassifierRandomIndexComponent(explainer, 
@@ -695,9 +745,10 @@ class SimplifiedClassifierComposite(ExplainerComponent):
     def layout(self):
         return dbc.Container([
             dbc.Row([
-                dbc.Col([
-                    html.H1(self.title, id='simple-classifier-composite-title')
-                ]),
+                make_hideable(
+                    dbc.Col([
+                        html.H1(self.title, id='simple-classifier-composite-title')
+                    ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 dbc.Col([
@@ -736,12 +787,35 @@ class SimplifiedClassifierComposite(ExplainerComponent):
                     ], style=dict(marginBottom=25, marginTop=25))
                 ])
             ]),  
-        ])
+        ], fluid=False)
+
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.row(
+            to_html.card_deck(
+                    self.confusionmatrix.to_html(state_dict, add_header=False),
+                    self.classifier_custom_component.to_html(state_dict, add_header=False)))
+        html += to_html.row(
+            to_html.card_deck(
+                self.shap_summary.to_html(state_dict, add_header=False),
+                self.shap_dependence.to_html(state_dict, add_header=False)))
+        html += to_html.row(
+            to_html.card_deck(
+                    self.index.to_html(state_dict, add_header=False),
+                    self.summary.to_html(state_dict, add_header=False)))
+        html += to_html.row(
+            to_html.card_deck(
+                    self.contributions.to_html(state_dict, add_header=False)))
+
+        html = to_html.wrap_in_div(html)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
 
 class SimplifiedRegressionComposite(ExplainerComponent):
     def __init__(self, explainer, title="Simple Regression Explainer", name=None,
-                 regression_custom_component='vs_col', 
+                 hide_title=False, regression_custom_component='vs_col', 
                  hide_goodness_of_fit=False, hide_regression_custom_component=False,
                  hide_shapsummary=False, hide_shapdependence=False,
                  hide_predindexselector=False, hide_predictionsummary=False,
@@ -762,6 +836,7 @@ class SimplifiedRegressionComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title. Defaults to False.
             regression_custom_component (str, optional): custom classifier quality 
                 indicator supported by the ClassifierExplainer object. Valid values are: 
                 'metrics', 'residuals' or'vs_col' 
@@ -813,9 +888,10 @@ class SimplifiedRegressionComposite(ExplainerComponent):
     def layout(self):
         return dbc.Container([
             dbc.Row([
-                dbc.Col([
-                    html.H1(self.title, id='simple-regression-composite-title'),
-                ])
+                make_hideable(
+                    dbc.Col([
+                        html.H1(self.title, id='simple-regression-composite-title'),
+                    ]), hide=self.hide_title),
             ]),
             dbc.Row([
                 dbc.Col([
@@ -854,4 +930,4 @@ class SimplifiedRegressionComposite(ExplainerComponent):
                     ], style=dict(marginBottom=25, marginTop=25))
                 ])
             ])   
-        ])
+        ], fluid=False)

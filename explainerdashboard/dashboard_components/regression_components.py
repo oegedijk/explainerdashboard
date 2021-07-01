@@ -19,9 +19,13 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from ..dashboard_methods import *
+from .. import to_html
 
 
 class RegressionRandomIndexComponent(ExplainerComponent):
+    _state_props = dict(
+        index=('random-index-reg-index-', 'value')
+    )
     def __init__(self, explainer, title=None, name=None,
                         subtitle="Select from list or pick at random",
                         hide_title=False,   hide_subtitle=False,
@@ -292,6 +296,14 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                     ]),
             ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        
+        html = to_html.card(f"Selected index: <b>{self.explainer.get_index(args['index'])}</b>", title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             [Output('random-index-reg-pred-slider-div-'+self.name, 'style'),
@@ -446,7 +458,20 @@ class RegressionModelSummaryComponent(ExplainerComponent):
             ]),
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        metrics_df = (pd.DataFrame(self.explainer.metrics(show_metrics=self.show_metrics), index=["Score"]).T
+                        .rename_axis(index="metric").reset_index().round(self.round))
+        html = to_html.table_from_df(metrics_df)
+        html = to_html.card(html, title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
 class RegressionPredictionSummaryComponent(ExplainerComponent):
+    
+    _state_props = dict(index=('reg-prediction-index-', 'value'))
+
     def __init__(self, explainer, title="Prediction", name=None,
                     hide_index=False, hide_title=False, 
                     hide_subtitle=False, hide_table=False, 
@@ -514,6 +539,18 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        if args['index'] is not None:
+            preds_df = self.explainer.prediction_result_df(index, round=self.round)
+            html = to_html.table_from_df(preds_df)
+        else:
+            html = "no index selected"
+        html = to_html.card(html, title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         if self.feature_input_component is None:
             @app.callback(
@@ -539,6 +576,10 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 
 
 class PredictedVsActualComponent(ExplainerComponent):
+    _state_props = dict(
+        log_x=('pred-vs-actual-logx-', 'checked'),
+        log_y=('pred-vs-actual-logy-', 'checked')
+    )
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
                     hide_title=False, hide_subtitle=False, 
@@ -651,6 +692,16 @@ class PredictedVsActualComponent(ExplainerComponent):
             ]), 
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_predicted_vs_actual(
+                                    log_x=bool(args['log_x']), log_y=bool(args['log_y']), 
+                                    round=self.round, plot_sample=self.plot_sample)
+        html = to_html.card(to_html.fig(fig), title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('pred-vs-actual-graph-'+self.name, 'figure'),
@@ -663,6 +714,10 @@ class PredictedVsActualComponent(ExplainerComponent):
                                     plot_sample=self.plot_sample)
 
 class ResidualsComponent(ExplainerComponent):
+    _state_props = dict(
+        pred_or_actual=('residuals-pred-or-actual-', 'value'),
+        residuals=('residuals-type-', 'value')
+    )
     def __init__(self, explainer, title="Residuals", name=None,
                     subtitle="How much is the model off?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -778,6 +833,18 @@ class ResidualsComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        vs_actual = args['pred_or_actual']=='vs_actual'
+        fig = self.explainer.plot_residuals(vs_actual=vs_actual, 
+                                        residuals=args['residuals'], 
+                                        round=self.round, plot_sample=self.plot_sample)
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
+        html = to_html.card(to_html.fig(fig), title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('residuals-graph-'+self.name, 'figure'),
@@ -792,6 +859,14 @@ class ResidualsComponent(ExplainerComponent):
 
 
 class RegressionVsColComponent(ExplainerComponent):
+    _state_props = dict(
+        col=('reg-vs-col-col-', 'value'),
+        display=('reg-vs-col-display-type-', 'value'),
+        points=('reg-vs-col-show-points-', 'value'),
+        winsor=('reg-vs-col-winsor-', 'value'),
+        cats_topx=('reg-vs-col-n-categories-', 'value'),
+        cats_sort=('reg-vs-col-categories-sort-', 'value')
+    )
     def __init__(self, explainer, title="Plot vs feature", name=None,
                     subtitle="Are predictions and residuals correlated with features?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -973,6 +1048,29 @@ class RegressionVsColComponent(ExplainerComponent):
                 ])
             ]), hide=self.hide_footer)
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        if args['display'] == 'observed':
+            fig = self.explainer.plot_y_vs_feature(
+                        args['col'], points=bool(args['points']), winsor=args['winsor'], dropna=True,
+                        topx=args['cats_topx'], sort=args['cats_sort'], round=self.round, 
+                        plot_sample=self.plot_sample)
+        elif args['display'] == 'predicted':
+            fig =  self.explainer.plot_preds_vs_feature(
+                    args['col'], points=bool(args['points']), winsor=args['winsor'], dropna=True,
+                    topx=args['cats_topx'], sort=args['cats_sort'], round=self.round, 
+                    plot_sample=self.plot_sample)
+        else:
+            fig = self.explainer.plot_residuals_vs_feature(
+                    args['col'], points=bool(args['points']), winsor=args['winsor'], dropna=True,
+                    topx=args['cats_topx'], sort=args['cats_sort'], round=self.round, 
+                    plot_sample=self.plot_sample)
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
+        html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         @app.callback(

@@ -216,10 +216,10 @@ def plotly_contribution_plot(contrib_df, target="",
             fig.update_xaxes(range=[0, 100])
 
     fig.update_layout(margin=go.layout.Margin(
-                                l=longest_feature_name*7 if orientation=='horizontal' else 50,
-                                r=100,
-                                b=50 if orientation=='horizontal' else longest_feature_name*6 ,
-                                t=50,
+                                l=longest_feature_name*7 if orientation=='horizontal' else 40,
+                                r=40,
+                                b=40 if orientation=='horizontal' else longest_feature_name*6 ,
+                                t=40,
                                 pad=4
                             ),
                         title_x=0.5)
@@ -335,10 +335,10 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
                  )]
         
     fig = go.Figure(data=data, layout=layout)
-    fig.update_layout(legend=dict(orientation="h",
-                                    xanchor="center",
-                                    y=-0.2,
-                                    x=0.5))
+    fig.update_layout(
+        legend=dict(orientation="h",xanchor="center", y=-0.2, x=0.5),
+        margin=dict(t=40, b=40, l=40, r=40)
+    )
     if cutoff is not None:
         fig.update_layout(annotations=[
             go.layout.Annotation(x=cutoff, y=0.1, yref='y2', 
@@ -394,7 +394,9 @@ def plotly_classification_plot(classification_df:pd.DataFrame, round:int=2, perc
     else:
         fig.update_layout(title='Total above and below cutoff')
         
-    fig.update_layout(barmode='stack')
+    fig.update_layout(
+        barmode='stack', 
+        margin=dict(t=40, b=40, l=40, r=40))
 
     fig.update_layout(legend=dict(orientation="h",
                                     xanchor="center",
@@ -556,6 +558,7 @@ def plotly_lift_curve(lift_curve_df, cutoff=None, percentage=False, add_wizard=T
                                         xanchor='left', yanchor='top'
                                         )
         ])
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -621,7 +624,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
                                          text=text,
                                          hoverinfo="text")) 
       
-    fig.update_layout(title=dict(text='Cumulative percentage per category when sampling top X%', 
+    fig.update_layout(title=dict(text='Cumulative percentage per category<br>when sampling top X%', 
                                  x=0.5, 
                                  font=dict(size=18)),
                      yaxis=dict(title='Cumulative precision per category'),
@@ -644,6 +647,7 @@ def plotly_cumulative_precision_plot(lift_curve_df, labels=None, percentile=None
                                  yref='y', ax=60, 
                                  text=f"percentile={100*percentile:.{round}f}")])  
     fig.update_xaxes(nticks=10)
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -816,6 +820,7 @@ def plotly_dependence_plot(X_col, shap_values, interact_col=None,
             ),
         )
     fig.update_traces(selector = dict(mode='markers'))
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -1023,7 +1028,7 @@ def plotly_shap_violin_plot(X_col, shap_values, X_color_col=None, points=False,
         fig.update_layout(title=f'Shap values for {X_col.name}<br>(colored by {X_color_col.name})')
     else:
         fig.update_layout(title=f'Shap values for {X_col.name}')
-    
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -1157,6 +1162,7 @@ def plotly_pdp(pdp_df,
     fig.update_layout(annotations=annotations)
     fig.update_layout(shapes=shapes)
     fig.update_layout(showlegend=False)
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -1217,9 +1223,9 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3,
     fig.update_layout(height=200+len(importance_df)*20,
                       margin=go.layout.Margin(
                                 l=left_margin,
-                                r=50,
-                                b=50,
-                                t=50,
+                                r=40,
+                                b=40,
+                                t=40,
                                 pad=4
                             ))
     return fig
@@ -1308,6 +1314,7 @@ def plotly_confusion_matrix(cm, labels=None, percentage=True, normalize='all'):
             )
                 
     fig.update_layout(annotations=annotations)
+    fig.update_layout(margin=dict(t=40, b=40, l=70, r=40))
     return fig
 
 
@@ -1390,6 +1397,7 @@ def plotly_roc_auc_curve(fpr, tpr, thresholds, score, cutoff=None, round=2):
         fig.update_layout(annotations=annotations)
                                             
     fig.update_layout(shapes=shapes)
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -1463,6 +1471,7 @@ def plotly_pr_auc_curve(precision, recall, thresholds, score, cutoff=None, round
         fig.update_layout(annotations=annotations)
                                             
     fig.update_layout(shapes=shapes)
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -1628,9 +1637,9 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
     fig.update_layout(title=title + "<br>",
                       height=100+len(display_columns)*50,
                       margin=go.layout.Margin(
-                                l=50,
-                                r=50,
-                                b=50,
+                                l=40,
+                                r=40,
+                                b=40,
                                 t=100,
                                 pad=4
                             ),
@@ -1704,6 +1713,7 @@ def plotly_predicted_vs_actual(y, preds, target="" , units="", round=2,
         fig.update_layout(xaxis_type='log')
     if log_y:
         fig.update_layout(yaxis_type='log')
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
 
 
@@ -1786,6 +1796,7 @@ def plotly_plot_residuals(y, preds, vs_actual=False, target="", units="",
     )
     
     fig = go.Figure(data, layout)
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig
     
 
@@ -1893,7 +1904,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
 
         fig.update_layout(title=f'Residuals vs {col_name}', 
                           hovermode = 'closest')
-
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
         return fig
         
     else:
@@ -1934,6 +1945,7 @@ def plotly_residuals_vs_col(y, preds, col, col_name=None, residuals='difference'
         fig = go.Figure(data, layout)
         fig.update_yaxes(range=[np.percentile(residuals_display, winsor), 
                                 np.percentile(residuals_display, 100-winsor)]) 
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
         return fig
 
 
@@ -2026,7 +2038,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
                           yaxis=dict(
                               title=f"Observed {target} ({units})" if units else f"Observed {target}"),
                           hovermode = 'closest')
-
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
         return fig
         
     else:
@@ -2059,6 +2071,7 @@ def plotly_actual_vs_col(y, preds, col, col_name=None,
         fig = go.Figure(data, layout)
         fig.update_yaxes(range=[np.percentile(y, winsor), 
                                 np.percentile(y, 100-winsor)]) 
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
         return fig
 
 
@@ -2150,7 +2163,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
                           yaxis=dict(
                               title=f"Predicted {target} ({units})" if units else f"Predicted {target}"),
                           hovermode = 'closest')
-
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
         return fig
         
     else:
@@ -2183,6 +2196,7 @@ def plotly_preds_vs_col(y, preds, col, col_name=None,
         fig = go.Figure(data, layout)
         fig.update_yaxes(range=[np.percentile(preds, winsor), 
                                 np.percentile(preds, 100-winsor)]) 
+        fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
         return fig
 
 
@@ -2297,7 +2311,7 @@ def plotly_rf_trees(model, observation, y=None, highlight_tree=None,
 
     fig.update_layout(shapes=shapes)
     fig.update_layout(annotations=annotations)
-    
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig 
 
 
@@ -2444,5 +2458,5 @@ def plotly_xgboost_trees(xgboost_preds_df, highlight_tree=None, y=None, round=2,
 
     fig.update_layout(shapes=shapes)
     fig.update_layout(annotations=annotations)
-    
+    fig.update_layout(margin=dict(t=40, b=40, l=40, r=40))
     return fig 

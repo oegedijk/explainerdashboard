@@ -20,6 +20,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from ..dashboard_methods import *
+from .. import to_html
 
 class PredictionSummaryComponent(ExplainerComponent):
     def __init__(self, explainer, title="Prediction Summary", name=None,
@@ -109,6 +110,11 @@ class PredictionSummaryComponent(ExplainerComponent):
 
 
 class ImportancesComponent(ExplainerComponent):
+    _state_props = dict(
+        depth=('importances-depth-', 'value'),
+        importance_type=('importances-permutation-or-shap-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Feature Importances", name=None,
                         subtitle="Which features had the biggest impact?",
                         hide_type=False, hide_depth=False, hide_popout=False,
@@ -235,6 +241,17 @@ class ImportancesComponent(ExplainerComponent):
                 ], justify="end"),
             ])         
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        args['depth'] = None if args['depth'] is None else int(args['depth'])
+        fig =  self.explainer.plot_importances(
+                        kind=args['importance_type'], topx=args['depth'], pos_label=args['pos_label'])
+
+        html = to_html.card(to_html.fig(fig), title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
         
     def component_callbacks(self, app, **kwargs):
         @app.callback(  
@@ -251,6 +268,9 @@ class ImportancesComponent(ExplainerComponent):
 
 
 class FeatureDescriptionsComponent(ExplainerComponent):
+
+    _state_props = dict(sort=('feature-descriptions-table-sort-', 'value'))
+
     def __init__(self, explainer, title="Feature Descriptions", name=None, 
                 hide_title=False, hide_sort=False,
                 sort='alphabet', **kwargs):
@@ -311,6 +331,14 @@ class FeatureDescriptionsComponent(ExplainerComponent):
                 ]),
             ])
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        html = to_html.table_from_df(self.explainer.get_descriptions_df(sort=args['sort']))
+        html = to_html.card(html, title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
     
     def component_callbacks(self, app):
         @app.callback(
@@ -322,6 +350,16 @@ class FeatureDescriptionsComponent(ExplainerComponent):
 
 
 class PdpComponent(ExplainerComponent):
+    _state_props = dict(
+        index=('pdp-index-', 'value'),
+        col=('pdp-col-', 'value'),
+        dropna=('pdp-dropna-', 'value'),
+        sample=('pdp-sample-', 'value'),
+        gridlines=('pdp-gridlines-', 'value'),
+        gridpoints=('pdp-gridpoints-', 'value'),
+        cats_sort=('pdp-categories-sort-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Partial Dependence Plot", name=None,
                     subtitle="How does the prediction change if you change one feature?",
                     hide_col=False, hide_index=False, 
@@ -514,9 +552,19 @@ class PdpComponent(ExplainerComponent):
                 ], form=True),
             ]), hide=self.hide_footer)
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_pdp(args['col'], args['index'], 
+                    drop_na=bool(args['dropna']), sample=args['sample'], 
+                    gridlines=args['gridlines'], gridpoints=args['gridpoints'], 
+                    sort=args['cats_sort'], pos_label=args['pos_label'])
+        html = to_html.card(to_html.fig(fig), title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
                 
     def component_callbacks(self, app):
-
         @app.callback(
             Output('pdp-categories-sort-div-'+self.name, 'style'),
             Input('pdp-col-'+self.name, 'value')
@@ -622,6 +670,9 @@ class FeatureInputComponent(ExplainerComponent):
             self._generate_dash_input(
                 feature, self.explainer.onehot_cols, self.explainer.onehot_dict, self.explainer.categorical_dict) 
                                 for feature in self._input_features]
+
+        self._state_props = {feature: (f'feature-input-{feature}-input-', 'value') 
+                                for feature in self._input_features}
 
         if self.description is None: self.description = """
         Adjust the input values to see predictions for what if scenarios."""

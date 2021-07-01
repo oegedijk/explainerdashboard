@@ -211,7 +211,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
         
-        html = to_html.card(f"Selected index: {args['index']}", title=self.title, subtitle=self.subtitle)
+        html = to_html.card(f"Selected index: <b>{self.explainer.get_index(args['index'])}</b>", title=self.title)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -362,7 +362,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
-    def _get_preds_df(index):
+    def _get_preds_df(self, index):
         preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
         preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
         preds_df.probability = preds_df.probability + ' %'
@@ -375,22 +375,13 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
-
-        fig = self.explainer.plot_prediction_result(args['index'], showlegend=False)
-        preds_df = self._get_preds_df(args['index'])
-        
-        html= f"""
-        <div class="row">
-            <div class="col">
-            {to_html.table_from_df(preds_df)}
-            </div>
-            <div class="col">
-            {fig.to_html()}
-            </div>
-        </div>
-        """
-        
-        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
+        if args['index'] is not None:
+            fig = self.explainer.plot_prediction_result(args['index'], showlegend=False)
+            preds_df = self._get_preds_df(args['index'])
+            html = to_html.row(to_html.table_from_df(preds_df), to_html.fig(fig)) 
+        else:
+            html = "no index selected"
+        html = to_html.card(html, title=self.title)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -436,6 +427,15 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
 
 
 class PrecisionComponent(ExplainerComponent):
+
+    _state_props = dict(
+        bin_size=('precision-binsize-', 'value'),
+        quantiles=('precision-quantiles-', 'value'),
+        quantiles_or_binsize=('precision-binsize-or-quantiles-', 'value'),
+        cutoff=('precision-cutoff-', 'value'),
+        multiclass=('precision-multiclass-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Precision Plot", name=None,
                     subtitle="Does fraction positive increase with predicted probability?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -620,6 +620,22 @@ class PrecisionComponent(ExplainerComponent):
             ]), hide=self.hide_footer)   
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        if args['quantiles_or_binsize'] == 'bin_size':
+            fig = self.explainer.plot_precision(
+                    bin_size=args['bin_size'], cutoff=args['cutoff'], 
+                    multiclass=bool(args['multiclass']), pos_label=args['pos_label'])
+        elif args['quantiles_or_binsize'] == 'quantiles':
+            fig = self.explainer.plot_precision(
+                quantiles=args['quantiles'], cutoff=args['cutoff'], 
+                multiclass=bool(args['multiclass']), pos_label=args['pos_label'])
+
+        html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             [Output('precision-bin-size-div-'+self.name, 'style'),
@@ -673,8 +689,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
         normalize=('confusionmatrix-normalize-', 'value'),
         binary=('confusionmatrix-binary-', 'value'),
         pos_label=('pos-label-', 'value')
-    )
-        
+    )    
     def __init__(self, explainer, title="Confusion Matrix", name=None,
                     subtitle="How many false positives and false negatives?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -834,8 +849,9 @@ class ConfusionMatrixComponent(ExplainerComponent):
         args['binary'] = bool(args['binary'])
         args['percentage'] = bool(args['percentage'])
         fig = self.explainer.plot_confusion_matrix(**args)
+        fig.update_layout(margin=dict(t=30, b=30, l=30, r=30))
         
-        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        html = to_html.card(fig.to_html(include_plotlyjs='cdn', full_html=False), title=self.title, subtitle=self.subtitle)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -855,8 +871,14 @@ class ConfusionMatrixComponent(ExplainerComponent):
                         binary=bool(binary), pos_label=pos_label)
 
 
-
 class LiftCurveComponent(ExplainerComponent):
+
+    _state_props = dict(
+        cutoff=('liftcurve-cutoff-', 'value'),
+        percentage=('liftcurve-percentage-', 'value'),
+        wizard=('liftcurve-wizard-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Lift Curve", name=None,
                     subtitle="Performance how much better than random?",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -985,6 +1007,18 @@ class LiftCurveComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_lift_curve(cutoff=args['cutoff'], 
+                percentage=bool(args['percentage']), pos_label=args['pos_label'], 
+                add_wizard=bool(args['wizard']))
+
+        html = to_html.card(fig.to_html(include_plotlyjs='cdn', full_html=False), 
+                                title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('liftcurve-graph-'+self.name, 'figure'),
@@ -1000,6 +1034,10 @@ class LiftCurveComponent(ExplainerComponent):
 
 
 class CumulativePrecisionComponent(ExplainerComponent):
+    _state_props = dict(
+        percentile=('cumulative-precision-percentile-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Cumulative Precision", name=None,
                     subtitle="Expected distribution for highest scores",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -1111,6 +1149,15 @@ class CumulativePrecisionComponent(ExplainerComponent):
             ]), hide=self.hide_footer)   
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_cumulative_precision(percentile=args['percentile'], pos_label=args['pos_label'])
+
+        html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('cumulative-precision-graph-'+self.name, 'figure'),
@@ -1130,6 +1177,11 @@ class CumulativePrecisionComponent(ExplainerComponent):
 
 
 class ClassificationComponent(ExplainerComponent):
+    _state_props = dict(
+        cutoff=('classification-cutoff-', 'value'),
+        percentage=('classification-percentage-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Classification Plot", name=None,
                     subtitle="Distribution of labels above and below cutoff",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -1239,6 +1291,16 @@ class ClassificationComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_classification(
+                    cutoff=args['cutoff'], percentage=bool(args['percentage']), pos_label=args['pos_label'])
+
+        html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('classification-graph-'+self.name, 'figure'),
@@ -1252,12 +1314,10 @@ class ClassificationComponent(ExplainerComponent):
 
 
 class RocAucComponent(ExplainerComponent):
-
     _state_props = dict(
         cutoff=('rocauc-cutoff-', 'value'),
         pos_label=('pos-label-', 'value')
     )
-
     def __init__(self, explainer, title="ROC AUC Plot", name=None, 
                     subtitle="Trade-off between False positives and false negatives",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -1346,7 +1406,7 @@ class RocAucComponent(ExplainerComponent):
         args = self.get_state_args(state_dict)
         fig = self.explainer.plot_roc_auc(**args)
         
-        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        html = to_html.card(fig.to_html(include_plotlyjs='cdn', full_html=False), title=self.title, subtitle=self.subtitle)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -1362,6 +1422,10 @@ class RocAucComponent(ExplainerComponent):
 
 
 class PrAucComponent(ExplainerComponent):
+    _state_props = dict(
+        cutoff=('prauc-cutoff-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="PR AUC Plot", name=None,
                     subtitle="Trade-off between Precision and Recall",
                     hide_title=False, hide_subtitle=False, hide_footer=False,
@@ -1449,6 +1513,15 @@ class PrAucComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig = self.explainer.plot_pr_auc(cutoff=args['cutoff'], pos_label=args['pos_label'])
+
+        html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('prauc-graph-'+self.name, 'figure'),
@@ -1459,6 +1532,10 @@ class PrAucComponent(ExplainerComponent):
             return self.explainer.plot_pr_auc(cutoff=cutoff, pos_label=pos_label)
 
 class ClassifierModelSummaryComponent(ExplainerComponent):
+    _state_props = dict(
+        cutoff=('clas-model-summary-cutoff-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Model performance metrics", name=None,
                     hide_title=False, hide_subtitle=False, hide_footer=False,
                     hide_cutoff=False, hide_selector=False,
@@ -1536,7 +1613,25 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff), 
             ]), hide=self.hide_footer)
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        metrics_df = self._get_metrics_df(args['cutoff'], args['pos_label'])
+        html = to_html.table_from_df(metrics_df)
+        html = to_html.card(html, title=self.title)
+        if add_header:
+            return to_html.add_header(html)
+        return html
     
+    def _get_metrics_df(self, cutoff, pos_label):
+        metrics_df = (pd.DataFrame(
+                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label, 
+                                                        show_metrics=self.show_metrics), 
+                                index=["Score"])
+                              .T.rename_axis(index="metric").reset_index()
+                              .round(self.round))
+        return metrics_df
+
     def component_callbacks(self, app):
         @app.callback(
             Output('clas-model-summary-div-'+self.name, 'children'),
@@ -1544,18 +1639,11 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
              Input('pos-label-'+self.name, 'value')],
         )
         def update_classifier_summary(cutoff, pos_label):
+            metrics_df = self._get_metrics_df(cutoff, pos_label)
+            metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)
             metrics_dict = self.explainer.metrics_descriptions(cutoff, pos_label)
-            metrics_df = (pd.DataFrame(
-                                self.explainer.metrics(cutoff=cutoff, pos_label=pos_label, 
-                                                        show_metrics=self.show_metrics), 
-                                index=["Score"])
-                              .T.rename_axis(index="metric").reset_index()
-                              .round(self.round))
-            metrics_table = dbc.Table.from_dataframe(metrics_df, striped=False, bordered=False, hover=False)        
-            metrics_table, tooltips = get_dbc_tooltips(metrics_table, 
-                                                   metrics_dict, 
-                                                   "clas-model-summary-div-hover", 
-                                                   self.name)
+            metrics_table, tooltips = get_dbc_tooltips(metrics_table, metrics_dict, 
+                                                   "clas-model-summary-div-hover", self.name)
             return html.Div([
                 metrics_table,
                 *tooltips

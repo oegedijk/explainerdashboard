@@ -386,25 +386,27 @@ class ExplainerComponent(ABC):
     def get_state_tuples(self):
         """returns a list of State (id, property) tuples for the component and all subcomponents"""
         self.register_components()
-        _state_props = [(id_+self.name, prop_) for id_, prop_ in self._state_props.values()]
+        for key, tup in self._state_props.items():
+            if not isinstance(tup, tuple) or len(tup) != 2 or not isinstance(tup[0], str) or not isinstance(tup[1], str):
+                raise ValueError(f"Expected a (id:str, property:str) tuple but {self} has _state_props['{key}'] == {tup}")
+        _state_tuples = [(id_+self.name, prop_) for id_, prop_ in self._state_props.values()]
         for comp in self._components:
-            _state_props.extend(comp.get_state_tuples())
-        return list(set(_state_props))
+            _state_tuples.extend(comp.get_state_tuples())
+        return list(set(_state_tuples))
     
     def get_state_args(self, state_dict=None):
         """returns _state_dict with correct self.name attached
         if state_dict is passed then replace the state_id_prop_tuples with their values
         from state_dict or else as a property.
         """
-        state_args = {k:(v[0]+self.name, v[1]) for k, v in self._state_props.items()}
+        state_tuples = {k:(v[0]+self.name, v[1]) for k, v in self._state_props.items()}
+        state_args = {}
         state_dict = state_dict or {}
-        for param, (id_, prop_) in state_args.items():
+        for param, (id_, prop_) in state_tuples.items():
             if (id_, prop_) in state_dict:
                 state_args[param] = state_dict[(id_, prop_)]
             elif hasattr(self, param):
                 state_args[param] = getattr(self, param)
-            else:
-                del state_args[param]
         return state_args
 
     @property
@@ -448,7 +450,7 @@ class ExplainerComponent(ABC):
         Args:
             state_dict (dict): dictionary with id_prop_tuple as keys and state as value.
         """
-        html = to_html.wrap_divs("")
+        html = to_html.wrap_in_div("")
         if add_header:
             return to_html.add_header(html)
         return html
@@ -497,18 +499,26 @@ class PosLabelSelector(ExplainerComponent):
     def layout(self):
         if self.explainer.is_classifier:
             return html.Div([
-                    dbc.Label("Positive class:", 
-                        html_for="pos-label-"+self.name, 
-                        id="pos-label-label-"+self.name),
-                    dbc.Tooltip("Select the label to be set as the positive class",
-                        target="pos-label-label-"+self.name),
-                    dcc.Dropdown(
-                        id='pos-label-'+self.name,
-                        options = [{'label': label, 'value': i}
-                                for i, label in enumerate(self.explainer.labels)],
-                        value = self.pos_label,
-                        clearable=False,
+                    html.Div([
+                        dbc.Label("Positive class:", 
+                            html_for="pos-label-"+self.name, 
+                            id="pos-label-label-"+self.name,
+                            style = {"font-size":"16"},
+                        ),
+                        dbc.Tooltip("Select the label to be set as the positive class",
+                            target="pos-label-label-"+self.name),
+                    ]),
+                    html.Div([
+                        dcc.Dropdown(
+                            id='pos-label-'+self.name,
+                            options = [{'label': label, 'value': i}
+                                    for i, label in enumerate(self.explainer.labels)],
+                            value = self.pos_label,
+                            optionHeight=24,
+                            clearable=False,
+                            style={'height': '24', 'font-size': '24',}
                         )
+                    ]),   
             ])
         else:
             return html.Div([dcc.Input(id="pos-label-"+self.name)], style=dict(display="none"))

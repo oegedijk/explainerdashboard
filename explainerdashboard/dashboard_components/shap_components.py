@@ -16,6 +16,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from ..dashboard_methods import *
+from .. import to_html
 
 
 class ShapSummaryComponent(ExplainerComponent):
@@ -23,7 +24,7 @@ class ShapSummaryComponent(ExplainerComponent):
     _state_props = dict(
         summary_type=('shap-summary-type-', 'value'),
         depth=('shap-summary-depth-', 'value'),
-        index=('shap-summary-index-' 'value'),
+        index=('shap-summary-index-', 'value'),
         pos_label=('pos-label-', 'value')
     )
 
@@ -166,7 +167,7 @@ class ShapSummaryComponent(ExplainerComponent):
                     topx=args['depth'], pos_label=args['pos_label'], highlight_index=args['index'], 
                     max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
         
-        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        html = to_html.card(fig.to_html(include_plotlyjs='cdn', full_html=False), title=self.title, subtitle=self.subtitle)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -418,9 +419,9 @@ class ShapDependenceComponent(ExplainerComponent):
                     args['col'], args['color_col'], topx=args['cats_topx'], sort=args['cats_sort'], 
                     highlight_index=args['index'], max_cat_colors=self.max_cat_colors,
                     plot_sample=self.plot_sample, remove_outliers=bool(args['remove_outliers']), 
-                    pos_label=args['pos_label']).to_html()
+                    pos_label=args['pos_label'])
         
-        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        html = to_html.card(fig.to_html(include_plotlyjs='cdn', full_html=False), title=self.title, subtitle=self.subtitle)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -500,6 +501,14 @@ class ShapSummaryDependenceConnector(ExplainerComponent):
 
 
 class InteractionSummaryComponent(ExplainerComponent):
+
+    _state_props = dict(
+        col=('interaction-summary-col-', 'value'),
+        depth=('interaction-summary-depth-', 'value'),
+        summary_type=('interaction-summary-type-', 'value'),
+        index=('interaction-summary-index-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
     def __init__(self, explainer, title="Interactions Summary", name=None,
                     subtitle="Ordering features by shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_col=False, hide_depth=False, 
@@ -650,6 +659,20 @@ class InteractionSummaryComponent(ExplainerComponent):
             ]),
         ])
 
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        if args['summary_type']=='aggregate':
+            fig = self.explainer.plot_interactions_importance(args['col'], topx=args['depth'], pos_label=args['pos_label'])
+        else:
+            fig = self.explainer.plot_interactions_detailed(
+                        args['col'], topx=args['depth'], pos_label=args['pos_label'], highlight_index=args['index'], 
+                        max_cat_colors=self.max_cat_colors, plot_sample=self.plot_sample)
+
+        html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def component_callbacks(self, app):
         @app.callback(
             Output('interaction-summary-index-'+self.name, 'value'),
@@ -685,6 +708,15 @@ class InteractionSummaryComponent(ExplainerComponent):
 
 
 class InteractionDependenceComponent(ExplainerComponent):
+    _state_props = dict(
+        col=('interaction-dependence-col-', 'value'),
+        interact_col=('interaction-dependence-interact-col-', 'value'),
+        index=('interaction-dependence-index-', 'value'),
+        cats_topx=('interaction-dependence-top-n-categories-', 'value'),
+        cats_sort=('interaction-dependence-top-categories-sort-', 'value'),
+        remove_outliers=('interaction-dependence-top-outliers-', 'value'),
+        pos_label=('pos-label-', 'value')  
+    )
     def __init__(self, explainer, title="Interaction Dependence", name=None,
                     subtitle="Relation between feature value and shap interaction value",
                     hide_title=False, hide_subtitle=False, hide_col=False, 
@@ -940,8 +972,23 @@ class InteractionDependenceComponent(ExplainerComponent):
             ]),
         ])
 
-    def component_callbacks(self, app):
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        fig_top = self.explainer.plot_interaction(
+                            args['interact_col'], args['col'], highlight_index=args['index'], pos_label=args['pos_label'],
+                            topx=args['cats_topx'], sort=args['cats_sort'], max_cat_colors=self.max_cat_colors,
+                            plot_sample=self.plot_sample, remove_outliers=bool(args['remove_outliers']))
+        fig_bottom = self.explainer.plot_interaction(
+                            args['col'], args['interact_col'], highlight_index=args['index'], pos_label=args['pos_label'],
+                            topx=args['cats_topx'], sort=args['cats_sort'], max_cat_colors=self.max_cat_colors,
+                            plot_sample=self.plot_sample, remove_outliers=bool(args['remove_outliers']))
 
+        html = to_html.card(to_html.fig(fig_top)+to_html.fig(fig_bottom), title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
+    def component_callbacks(self, app):
         @app.callback(
             Output('interaction-dependence-interact-col-'+self.name, 'options'),
             [Input('interaction-dependence-col-'+self.name, 'value'),
@@ -1197,15 +1244,37 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             ]),
         ])
 
+    def get_state_tuples(self):
+        _state_tuples = super().get_state_tuples()
+        if self.feature_input_component is not None:
+            _state_tuples.extend(self.feature_input_component.get_state_tuples())
+        return list(set(_state_tuples))
+
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
-
         args['depth'] = None if args['depth'] is None else int(args['depth'])
-        fig = self.explainer.plot_contributions(str(args['index']), topx=args['depth'], 
-                    sort=args['sort'], orientation=args['orientation'], 
-                    pos_label=args['pos_label'], higher_is_better=self.higher_is_better)
-        
-        html = to_html.card(fig.to_html(), title=self.title, subtitle=self.subtitle)
+        if self.feature_input_component is None:
+            if args['index'] is not None:
+                fig = self.explainer.plot_contributions(args['index'], topx=args['depth'], 
+                            sort=args['sort'], orientation=args['orientation'], 
+                            pos_label=args['pos_label'], higher_is_better=self.higher_is_better)
+                html = to_html.fig(fig)
+            else:
+                html = "<div>no index selected</div>"
+        else:
+            inputs = list(self.feature_input_component.get_state_args(state_dict).values())
+            if len(inputs) == len(self.feature_input_component._input_features) and not any([i is None for i in inputs]):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                shap_values = self.explainer.get_shap_row(X_row=X_row, pos_label=args['pos_label'])
+
+                fig = self.explainer.plot_contributions(X_row=X_row, 
+                            topx=args['depth'], sort=args['sort'], orientation=args['orientation'], 
+                            pos_label=args['pos_label'], higher_is_better=self.higher_is_better)
+                html = to_html.fig(fig)
+            else:
+                html = f"<div>input data incorrect {inputs}<div>"
+
+        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -1248,6 +1317,14 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
 
 class ShapContributionsTableComponent(ExplainerComponent):
+    
+    _state_props = dict(
+        index=('contributions-table-index-', 'value'),
+        depth=('contributions-table-depth-', 'value'),
+        sort=('contributions-table-sorting-', 'value'),
+        pos_label=('pos-label-', 'value')
+    )
+
     def __init__(self, explainer, title="Contributions Table", name=None,
                     subtitle="How has each feature contributed to the prediction?",
                     hide_title=False, hide_subtitle=False, hide_index=False, 
@@ -1368,6 +1445,22 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 ]),
             ]),   
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        
+        if args['index'] is not None:
+            args['depth'] = None if args['depth'] is None else int(args['depth'])
+            contrib_df = self.explainer.get_contrib_summary_df(args['index'], topx=args['depth'], 
+                                    sort=args['sort'], pos_label=args['pos_label'])
+            html = to_html.table_from_df(contrib_df)
+        else:
+            html = "<div>no index selected</div>"
+
+        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
         
     def component_callbacks(self, app):
         if self.feature_input_component is None:
@@ -1432,6 +1525,3 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     output_div = html.Div([contributions_table, *tooltips])
                     return output_div
                 raise PreventUpdate
-
-
-
