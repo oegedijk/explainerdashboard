@@ -1743,7 +1743,7 @@ class ExplainerHub:
         else:
             index_page = dash.Dash(__name__, 
                                 server=self.app, 
-                                url_base_pathname="/index/",
+                                url_base_pathname=f"/{self.base_route}/",
                                 external_stylesheets=[self.bootstrap] if self.bootstrap is not None else None)
             index_page.title = self.title
 
@@ -1770,7 +1770,7 @@ class ExplainerHub:
         <body class="d-flex flex-column min-vh-100">
             <div class="container{'-fluid' if self.fluid else ''}">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="/">{self.title}</a>
+                <a class="navbar-brand" href="/{self.base_route}/hub">{self.title}</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -1787,7 +1787,7 @@ class ExplainerHub:
                             </div>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/logout">Logout</a>
+                            <a class="nav-link" href="/{self.base_route}/logout">Logout</a>
                         </li>
                     </ul>
                 </div>
@@ -1814,10 +1814,10 @@ class ExplainerHub:
             app (flask.Flask): flask app to add routes to.
         """
         if self.users and not self.dbs_open_by_default:
-            @app.route("/")
+            @app.route(f"/{self.base_route}/hub/")
             @login_required
             def index_route():
-                return self._hub_page("/index")
+                return self._hub_page(f"/{self.base_route}/")
             
             def dashboard_route(dashboard):
                 def inner():
@@ -1828,9 +1828,9 @@ class ExplainerHub:
             for dashboard in self.dashboards:
                 app.route(f"/{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
         else:
-            @app.route("/")
+            @app.route(f"/{self.base_route}/hub/")
             def index_route():
-                return self._hub_page("/index")
+                return self._hub_page(f"/{self.base_route}/")
             
             def dashboard_route(dashboard):
                 def inner():
@@ -1896,7 +1896,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}", flush=True)
+        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}/{self.base_route}/hub", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  
