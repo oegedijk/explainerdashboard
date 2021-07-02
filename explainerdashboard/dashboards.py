@@ -1787,7 +1787,7 @@ class ExplainerHub:
                             </div>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/{self.base_route}/logout">Logout</a>
+                            <a class="nav-link" href="/logout">Logout</a>
                         </li>
                     </ul>
                 </div>
