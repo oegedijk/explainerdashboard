@@ -948,8 +948,8 @@ class ExplainerHub:
                     dbs_open_by_default:bool=False, port:int=8050, 
                     min_height:int=3000, secret_key:str=None, no_index:bool=False, 
                     bootstrap:str=None, fluid:bool=True, base_route:str="dashboards", 
-                    max_dashboards:int=None, add_dashboard_route:bool=False, 
-                    add_dashboard_pattern:str=None, **kwargs):
+                    index_to_base_route:bool=False, max_dashboards:int=None, 
+                    add_dashboard_route:bool=False, add_dashboard_pattern:str=None, **kwargs):
         """
     
         Note:
@@ -1001,6 +1001,8 @@ class ExplainerHub:
                 of the browser. Defaults to True.
             base_route (str, optional): Base route for dashboard : /<base_route>/dashboard1. 
                 Defaults to "dashboards".
+            index_to_base_route (bool, optional): Dispatches Hub to "/base_route/index" instead of the default 
+                "/" and "/index". Useful when the host root is not reserved for the ExplainerHub
             max_dashboards (int, optional): Max number of dashboards in the hub. Defaults to None 
                 (for no limitation). If set and you add an additional dashboard, the
                 first dashboard in self.dashboards will be deleted!
@@ -1072,12 +1074,20 @@ class ExplainerHub:
             for dashboard in self.dashboards:
                 if not self.dbs_open_by_default or dashboard.name in self.dashboards_with_users:
                     self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
-        if not self.no_index:    
+        if not self.no_index:
+            if index_to_base_route:
+                self.hub_base_url = f"/{self.base_route}/"
+                self.index_route = f"/{self.base_route}/index"
+            else:
+                self.hub_base_url = "/index/"
+                self.index_route =  "/"
+
             self.index_page = self._get_index_page()
             if self.users and not self.dbs_open_by_default:
                 self._protect_dashviews(self.index_page)
             self._add_flask_routes(self.app)
 
+        
     def remove_dashboard(self, dashboard_name):
         """Remove a dashboard from the hub"""
 
@@ -1743,7 +1753,7 @@ class ExplainerHub:
         else:
             index_page = dash.Dash(__name__, 
                                 server=self.app, 
-                                url_base_pathname=f"/{self.base_route}/",
+                                url_base_pathname=f"{self.hub_base_url}",
                                 external_stylesheets=[self.bootstrap] if self.bootstrap is not None else None)
             index_page.title = self.title
 
@@ -1770,7 +1780,7 @@ class ExplainerHub:
         <body class="d-flex flex-column min-vh-100">
             <div class="container{'-fluid' if self.fluid else ''}">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="/{self.base_route}/hub">{self.title}</a>
+                <a class="navbar-brand" href="{self.index_route}">{self.title}</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -1814,10 +1824,10 @@ class ExplainerHub:
             app (flask.Flask): flask app to add routes to.
         """
         if self.users and not self.dbs_open_by_default:
-            @app.route(f"/{self.base_route}/hub/")
+            @app.route(f"{self.index_route}")
             @login_required
             def index_route():
-                return self._hub_page(f"/{self.base_route}/")
+                return self._hub_page(f"{self.hub_base_url}")
             
             def dashboard_route(dashboard):
                 def inner():
@@ -1828,9 +1838,9 @@ class ExplainerHub:
             for dashboard in self.dashboards:
                 app.route(f"/{self.base_route}/_{dashboard.name}")(login_required(dashboard_route(dashboard)))
         else:
-            @app.route(f"/{self.base_route}/hub/")
+            @app.route(f"{self.index_route}")
             def index_route():
-                return self._hub_page(f"/{self.base_route}/")
+                return self._hub_page(f"{self.hub_base_url}")
             
             def dashboard_route(dashboard):
                 def inner():
@@ -1896,7 +1906,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}/{self.base_route}/hub", flush=True)
+        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}{self.index_route}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  
