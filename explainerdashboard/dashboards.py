@@ -1076,8 +1076,8 @@ class ExplainerHub:
                     self._protect_dashviews(dashboard.app, username=self.get_dashboard_users(dashboard.name))
         if not self.no_index:
             if index_to_base_route:
-                self.hub_base_url = f"/{self.base_route}/"
-                self.index_route = f"/{self.base_route}/index"
+                self.hub_base_url = f"/{self.base_route}/index/"
+                self.index_route = f"/{self.base_route}/hub/"
             else:
                 self.hub_base_url = "/index/"
                 self.index_route =  "/"
