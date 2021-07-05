@@ -392,7 +392,7 @@ class ExplainerComponent(ABC):
         _state_tuples = [(id_+self.name, prop_) for id_, prop_ in self._state_props.values()]
         for comp in self._components:
             _state_tuples.extend(comp.get_state_tuples())
-        return list(set(_state_tuples))
+        return sorted(list(set(_state_tuples)))
     
     def get_state_args(self, state_dict=None):
         """returns _state_dict with correct self.name attached

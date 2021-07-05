@@ -465,6 +465,21 @@ class WhatIfComposite(ExplainerComponent):
                 ])
         ], fluid=True)
 
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += to_html.card_rows(
+            [to_html.hide(self.index.to_html(state_dict, add_header=False), self.hide_whatifindexselector), 
+             to_html.hide(self.prediction.to_html(state_dict, add_header=False), self.hide_whatifprediction)],
+            [to_html.hide(self.input.to_html(state_dict, add_header=False), self.hide_inputeditor)],
+            [to_html.hide(self.contribgraph.to_html(state_dict, add_header=False), self.hide_whatifcontributiongraph),
+            to_html.hide(self.pdp.to_html(state_dict, add_header=False), self.hide_whatifpdp)],
+            [to_html.hide(self.contribtable.to_html(state_dict, add_header=False), self.hide_whatifcontributiontable)]
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
+    
 
 class ShapDependenceComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Dependence', name=None,

@@ -539,13 +539,30 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
+    def get_state_tuples(self):
+        _state_tuples = super().get_state_tuples()
+        if self.feature_input_component is not None:
+            _state_tuples.extend(self.feature_input_component.get_state_tuples())
+        return sorted(list(set(_state_tuples)))
+
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
-        if args['index'] is not None:
-            preds_df = self.explainer.prediction_result_df(index, round=self.round)
-            html = to_html.table_from_df(preds_df)
+        if self.feature_input_component is None:
+            if args['index'] is not None:
+                preds_df = self.explainer.prediction_result_df(index, round=self.round)
+                html = to_html.table_from_df(preds_df)
+            else:
+                html = "no index selected"
         else:
-            html = "no index selected"
+            inputs = {k:v for k,v in self.feature_input_component.get_state_args(state_dict).items() if k != 'index'}
+            inputs = list(inputs.values())
+            if len(inputs) == len(self.feature_input_component._input_features) and not any([i is None for i in inputs]):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round)
+                html = to_html.table_from_df(preds_df)
+            else:
+                html = f"<div>input data incorrect<div>"
+            
         html = to_html.card(html, title=self.title)
         if add_header:
             return to_html.add_header(html)

@@ -553,13 +553,34 @@ class PdpComponent(ExplainerComponent):
             ]), hide=self.hide_footer)
         ])
 
+    def get_state_tuples(self):
+        _state_tuples = super().get_state_tuples()
+        if self.feature_input_component is not None:
+            _state_tuples.extend(self.feature_input_component.get_state_tuples())
+        return sorted(list(set(_state_tuples)))
+
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
-        fig = self.explainer.plot_pdp(args['col'], args['index'], 
-                    drop_na=bool(args['dropna']), sample=args['sample'], 
-                    gridlines=args['gridlines'], gridpoints=args['gridpoints'], 
-                    sort=args['cats_sort'], pos_label=args['pos_label'])
-        html = to_html.card(to_html.fig(fig), title=self.title)
+        if self.feature_input_component is None:
+            fig = self.explainer.plot_pdp(args['col'], args['index'], 
+                        drop_na=bool(args['dropna']), sample=args['sample'], 
+                        gridlines=args['gridlines'], gridpoints=args['gridpoints'], 
+                        sort=args['cats_sort'], pos_label=args['pos_label'])
+            html = to_html.fig(fig)
+        else:
+            inputs = {k:v for k,v in self.feature_input_component.get_state_args(state_dict).items() if k != 'index'}
+            inputs = list(inputs.values())
+            if len(inputs) == len(self.feature_input_component._input_features) and not any([i is None for i in inputs]):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                fig = self.explainer.plot_pdp(args['col'], X_row=X_row, 
+                        drop_na=bool(args['dropna']), sample=args['sample'], 
+                        gridlines=args['gridlines'], gridpoints=args['gridpoints'], 
+                        sort=args['cats_sort'], pos_label=args['pos_label'])
+                html = to_html.fig(fig)
+            else:
+                html = f"<div>input data incorrect<div>"
+
+        html = to_html.card(html, title=self.title)
         if add_header:
             return to_html.add_header(html)
         return html
@@ -673,6 +694,7 @@ class FeatureInputComponent(ExplainerComponent):
 
         self._state_props = {feature: (f'feature-input-{feature}-input-', 'value') 
                                 for feature in self._input_features}
+        self._state_props['index'] = ('feature-input-index-', 'value')
 
         if self.description is None: self.description = """
         Adjust the input values to see predictions for what if scenarios."""
@@ -768,6 +790,20 @@ class FeatureInputComponent(ExplainerComponent):
                 input_row,
             ])
         ])
+
+    def to_html(self, state_dict=None, add_header=True):
+        args = self.get_state_args(state_dict)
+        html_inputs = [to_html.input(feature, args.get(feature, None), disabled=True) for feature in self._input_features]
+        html = to_html.hide(f"Selected: <b>{args['index']}</b>", hide=self.hide_index)
+        if self.fill_row_first:
+            html += to_html.row(*["".join(html_inputs[slicer]) for slicer in self.get_slices_rows_first(len(self._input_features), self.n_input_cols)])
+        else:
+            html += to_html.row(*["".join(html_inputs[slicer]) for slicer in self.get_slices_cols_first(len(self._input_features), self.n_input_cols)])
+        
+        html = to_html.card(html, title=self.title, subtitle=self.subtitle)
+        if add_header:
+            return to_html.add_header(html)
+        return html
 
     def component_callbacks(self, app):
         @app.callback(

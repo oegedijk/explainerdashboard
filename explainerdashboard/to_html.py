@@ -109,7 +109,7 @@ def table_from_df(df):
 
 def hide(html, hide=False):
     if hide:
-        return "<div></div"
+        return "<div></div>"
     return html
 
 def tabs(tabs_dict):
@@ -153,3 +153,11 @@ $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
 """
             
     return html
+
+def input(feature, value, disabled=False):
+    return f"""
+<div style="display:flex;flex-direction:column;">
+    <label for="{feature}">{feature}</label>
+    <input id="{feature}" type="text" value="{value}" name="{feature}" {'disabled' if disabled else ''}>
+</div>
+    """

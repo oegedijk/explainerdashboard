@@ -362,8 +362,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             ])
         ])
 
-    def _get_preds_df(self, index):
-        preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)                
+    def _format_preds_df(self, preds_df):              
         preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
         preds_df.probability = preds_df.probability + ' %'
         if 'logodds' in preds_df.columns:
@@ -373,14 +372,34 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
             preds_df = preds_df[['label', 'probability']]
         return preds_df
 
+    def get_state_tuples(self):
+        _state_tuples = super().get_state_tuples()
+        if self.feature_input_component is not None:
+            _state_tuples.extend(self.feature_input_component.get_state_tuples())
+        return sorted(list(set(_state_tuples)))
+
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
-        if args['index'] is not None:
-            fig = self.explainer.plot_prediction_result(args['index'], showlegend=False)
-            preds_df = self._get_preds_df(args['index'])
-            html = to_html.row(to_html.table_from_df(preds_df), to_html.fig(fig)) 
+        if self.feature_input_component is None:
+            if args['index'] is not None:
+                fig = self.explainer.plot_prediction_result(args['index'], showlegend=False)
+                preds_df = self.explainer.prediction_result_df(args['index'], round=self.round, logodds=True)  
+                preds_df = self._format_preds_df(preds_df)
+                html = to_html.row(to_html.table_from_df(preds_df), to_html.fig(fig)) 
+            else:
+                html = "no index selected"
         else:
-            html = "no index selected"
+            inputs = {k:v for k,v in self.feature_input_component.get_state_args(state_dict).items() if k != 'index'}
+            inputs = list(inputs.values())
+            if len(inputs) == len(self.feature_input_component._input_features) and not any([i is None for i in inputs]):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                fig = self.explainer.plot_prediction_result(X_row=X_row, showlegend=False)
+                preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round, logodds=True)  
+                preds_df = self._format_preds_df(preds_df)
+                html = to_html.row(to_html.table_from_df(preds_df), to_html.fig(fig)) 
+            else:
+                html = f"<div>input data incorrect<div>"
+
         html = to_html.card(html, title=self.title)
         if add_header:
             return to_html.add_header(html)
@@ -397,7 +416,8 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 if index is None or not self.explainer.index_exists(index):
                     raise PreventUpdate
                 fig = self.explainer.plot_prediction_result(index, showlegend=False)
-                preds_df = self._get_preds_df(index)
+                preds_df = self.explainer.prediction_result_df(index, round=self.round, logodds=True)  
+                preds_df = self._format_preds_df(preds_df)
                 preds_table = dbc.Table.from_dataframe(preds_df, 
                                     striped=False, bordered=False, hover=False)  
                 return preds_table, fig
@@ -413,14 +433,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 fig = self.explainer.plot_prediction_result(X_row=X_row, showlegend=False)
 
                 preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round, logodds=True)                
-                preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
-                preds_df.probability = preds_df.probability + ' %'
-                if 'logodds' in preds_df.columns:
-                    preds_df.logodds = np.round(preds_df.logodds.values, self.round).astype(str)
-                
-                if self.explainer.model_output!='logodds':
-                    preds_df = preds_df[['label', 'probability']]
-                    
+                preds_df = self._format_preds_df(preds_df)
                 preds_table = dbc.Table.from_dataframe(preds_df, 
                                     striped=False, bordered=False, hover=False)  
                 return preds_table, fig

@@ -1248,7 +1248,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         _state_tuples = super().get_state_tuples()
         if self.feature_input_component is not None:
             _state_tuples.extend(self.feature_input_component.get_state_tuples())
-        return list(set(_state_tuples))
+        return sorted(list(set(_state_tuples)))
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1262,7 +1262,8 @@ class ShapContributionsGraphComponent(ExplainerComponent):
             else:
                 html = "<div>no index selected</div>"
         else:
-            inputs = list(self.feature_input_component.get_state_args(state_dict).values())
+            inputs = {k:v for k,v in self.feature_input_component.get_state_args(state_dict).items() if k != 'index'}
+            inputs = list(inputs.values())
             if len(inputs) == len(self.feature_input_component._input_features) and not any([i is None for i in inputs]):
                 X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
                 shap_values = self.explainer.get_shap_row(X_row=X_row, pos_label=args['pos_label'])
@@ -1272,7 +1273,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             pos_label=args['pos_label'], higher_is_better=self.higher_is_better)
                 html = to_html.fig(fig)
             else:
-                html = f"<div>input data incorrect {inputs}<div>"
+                html = f"<div>input data incorrect<div>"
 
         html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:
@@ -1446,16 +1447,35 @@ class ShapContributionsTableComponent(ExplainerComponent):
             ]),   
         ])
 
+    def get_state_tuples(self):
+        _state_tuples = super().get_state_tuples()
+        # also get state_tuples from feature_input_component as they are needed
+        # to generate html from state:
+        if self.feature_input_component is not None:
+            _state_tuples.extend(self.feature_input_component.get_state_tuples())
+        return sorted(list(set(_state_tuples)))
+
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
+        args['depth'] = None if args['depth'] is None else int(args['depth'])
         
-        if args['index'] is not None:
-            args['depth'] = None if args['depth'] is None else int(args['depth'])
-            contrib_df = self.explainer.get_contrib_summary_df(args['index'], topx=args['depth'], 
-                                    sort=args['sort'], pos_label=args['pos_label'])
-            html = to_html.table_from_df(contrib_df)
+        if self.feature_input_component is None:
+            if args['index'] is not None:
+                contrib_df = self.explainer.get_contrib_summary_df(args['index'], topx=args['depth'], 
+                                        sort=args['sort'], pos_label=args['pos_label'])
+                html = to_html.table_from_df(contrib_df)
+            else:
+                html = "<div>no index selected</div>"
         else:
-            html = "<div>no index selected</div>"
+            inputs = {k:v for k,v in self.feature_input_component.get_state_args(state_dict).items() if k != 'index'}
+            inputs = list(inputs.values())
+            if len(inputs) == len(self.feature_input_component._input_features) and not any([i is None for i in inputs]):
+                X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
+                contrib_df = self.explainer.get_contrib_summary_df(X_row=X_row, topx=args['depth'], 
+                                        sort=args['sort'], pos_label=args['pos_label'])
+                html = to_html.table_from_df(contrib_df)
+            else:
+                html = f"<div>input data incorrect<div>"
 
         html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:
