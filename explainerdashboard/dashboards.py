@@ -939,7 +939,7 @@ class ExplainerHub:
     add and delete users.
         
     """
-    __reserved_names = {'login', 'logout', 'admin'}
+    __reserved_names = {'login', 'logout', 'admin', 'index', 'hub'}
 
     def __init__(self, dashboards:List[ExplainerDashboard], title:str="ExplainerHub", 
                     description:str=None, masonry:bool=False, n_dashboard_cols:int=3, 
@@ -1341,7 +1341,8 @@ class ExplainerHub:
                 dashboard_name = f"dashboard{i+1}"
             else:
                 dashboard_name = dashboard.name
-
+            if dashboard_name in self.__reserved_names:
+                raise ValueError(f"ERROR! dashboard .name should not be in {self.__reserved_names}, but found '{dashboard_name}'!")
             update_params = dict(
                 server=self.app, 
                 name=dashboard_name, 
