@@ -450,10 +450,20 @@ class ExplainerComponent(ABC):
         Args:
             state_dict (dict): dictionary with id_prop_tuple as keys and state as value.
         """
-        html = to_html.wrap_in_div("")
+        html = to_html.div("")
         if add_header:
             return to_html.add_header(html)
         return html
+
+    def save_html(self, filename:Union[str, Path]):
+        """Store output of to_html to a file
+
+        Args:
+            filename (str, Path): filename to store html
+        """
+        html = self.to_html(add_header=True)
+        with open(filename, "w") as file:
+            file.write(html)
 
     def component_callbacks(self, app):
         """register callbacks specific to this ExplainerComponent."""

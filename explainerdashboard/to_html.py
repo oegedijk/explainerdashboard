@@ -1,5 +1,28 @@
+"""Helper module to define static html outputs"""
 
-def add_header(html:str, title="explainerdashboard"):
+__all__ = [
+    'add_header',
+    'row',
+    'rows',
+    'fig',
+    'card',
+    'card_deck',
+    'card_rows',
+    'title',
+    'wrap_in_div',
+    'table_from_df',
+    'hide',
+    'tabs',
+    'input'
+]
+
+
+def add_header(html:str, title="explainerdashboard")->str:
+    """Turns a html snippet into a full html layout by adding <html>, <head> and <body> tags.
+    
+    Loads bootstrap css and javascript and triggers a resize event in order to prevent
+    plotly figs from overflowing their div containers.
+    """
     return f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +49,13 @@ window.dispatchEvent(new Event('resize'));
 """
 
 
-def row(*cols):
+def row(*cols)->str:
+    """Turns a series of html snippets into a bootstrap row with equally sized
+    columns for each snippet.
+
+    Example:
+        to_html.row("<div>first snippet</div>", "<div>second snippet</div>")
+    """
     row = '<div class="row" style="margin-top: 20px;">'
     for col in cols:
         row += '<div class="col-sm">'
@@ -35,15 +64,34 @@ def row(*cols):
     row += '</div>'
     return row
 
-def rows(*col_lists):
+def rows(*col_lists)->str:
+    """Turns a list of lists of html snippets into a series of bootstrap rows
+    with equally sized columns for each snippet.
+
+    Example:
+        to_html.row(["<div>first snippet</div>", "<div>second snippet</div>"],
+                    ["<div>second row snippet snippet</div>", "<div>second row snippet two</div>"])
+    """
     rows = [row(*cols) for cols in col_lists]
     rows = "".join(rows)
     return wrap_in_div(rows)
 
-def fig(fig):
-    return fig.to_html(include_plotlyjs='cdn', full_html=False)
+def fig(fig, include_plotlyjs='cdn', full_html:bool=False)->str:
+    """Returns html for a plotly figure. By default the plotly javascript is not
+    included but imported from the plotly cdn, and the full html wrapper is not included.
 
-def card(html, title=None, subtitle=None):
+    Args:
+        include_plotlyjs (bool, str): how to import the necessary javascript for the plotly
+            fig. Defaults to 'cdn'. If set to True then a 3MB javascript snippet is included.
+            For other options check https://plotly.com/python-api-reference/generated/plotly.io.to_html.html
+        full_html (bool): include <html>, <head> and <body> tags. Defaults to False.
+    """ 
+    return fig.to_html(include_plotlyjs=include_plotlyjs, full_html=full_html)
+
+def card(html:str, title:str=None, subtitle:str=None)->str:
+    """Wrap to html snippet in a bootstrap card. You can optionally add a title
+    and subtitle to the card.
+    """
     if title:
         card_header = f"""<div class="card-header"><h3 class="card-title">{title}</h3>"""
         if subtitle:
@@ -64,7 +112,9 @@ def card(html, title=None, subtitle=None):
 """
 
 
-def card_deck(*cards):
+def card_deck(*cards)->str:
+    """turn a list of bootstrap cards into an equally spaced card deck.
+    """
     cards = list(cards)
     cards = "".join(cards)
     return f"""
@@ -74,20 +124,26 @@ def card_deck(*cards):
     """
 
 
-def card_rows(*card_lists):
+def card_rows(*card_lists)->str:
+    """Turn a list of lists of bootstrap cards into a series of bootstrap rows
+    with card decks"""
     card_decks = [[card_deck(*cards)] for cards in card_lists]
     return rows(*card_decks)
 
 
-def title(title):
+def title(title:str)->str:
+    """wrap a title string in div and <H1></H1>"""
     return f"<div><H1>{title}</H1></div>"
 
     
-def wrap_in_div(html:str):
+def div(html:str)->str:
+    """wrap an html snippet in a <div></div>"""
     return f'<div>{html}</div>'
 
 
-def table_from_df(df):
+def table_from_df(df)-str:
+    """Generate a html table from a pandas DataFrame"""
+
     header_row = '\n'.join([f'      <th scope="col">{col}</th>' for col in df.columns])
     body_rows = ""
     for i, row in df.iterrows():
@@ -107,12 +163,16 @@ def table_from_df(df):
     """
     return table
 
-def hide(html, hide=False):
+def hide(html:str, hide:bool=False)->str:
+    """optionally hide an html snippet (return empty div) if parameter hide=True"""
     if hide:
         return "<div></div>"
     return html
 
-def tabs(tabs_dict):
+def tabs(tabs_dict:dict)->str:
+    """Generate a series of bootstrap tabs for a dictionary tabs_dict with the
+    name of the tab of key and the html contents of the tab as value.
+    """
     html = '<ul class="nav nav-tabs" id="myTab" role="tablist">'
     for i, tab_name in enumerate(tabs_dict.keys()):
         if i == 0:
@@ -154,7 +214,16 @@ $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             
     return html
 
-def input(feature, value, disabled=False):
+
+def input(feature:str, value, disabled:bool=False)->str:
+    """
+    Return a html feature input with a feature name and default value.
+
+    Args:
+        feature (str): name of feature
+        value (str): default value
+        disabled (bool): disable the input. Defaults to False.
+    """
     return f"""
 <div style="display:flex;flex-direction:column;">
     <label for="{feature}">{feature}</label>

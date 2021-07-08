@@ -72,7 +72,7 @@ class ImportancesComposite(ExplainerComponent):
         ])
 
     def to_html(self, state_dict=None, add_header=True):
-        html = to_html.title(self.title)
+        html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
         html += to_html.card_rows(
             [to_html.hide(self.importances.to_html(state_dict, add_header=False), self.hide_importances)],
             [to_html.hide(self.feature_descriptions.to_html(state_dict, add_header=False), self.hide_descriptions)],
@@ -181,12 +181,16 @@ class ClassifierModelStatsComposite(ExplainerComponent):
         ])
 
     def to_html(self, state_dict=None, add_header=True):
-        html = to_html.title(self.title)
+        html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
         html += to_html.card_rows(
-            [self.summary.to_html(state_dict, add_header=False), self.confusionmatrix.to_html(state_dict, add_header=False)],
-            [self.precision.to_html(state_dict, add_header=False), self.classification.to_html(state_dict, add_header=False)],
-            [self.rocauc.to_html(state_dict, add_header=False), self.prauc.to_html(state_dict, add_header=False)],
-            [self.liftcurve.to_html(state_dict, add_header=False), self.cumulative_precision.to_html(state_dict, add_header=False)],
+            [to_html.hide(self.summary.to_html(state_dict, add_header=False), hide=self.hide_modelsummary),
+             to_html.hide(self.confusionmatrix.to_html(state_dict, add_header=False), hide=self.hide_confusionmatrix)],
+            [to_html.hide(self.precision.to_html(state_dict, add_header=False), hide=self.hide_precision), 
+             to_html.hide(self.classification.to_html(state_dict, add_header=False), hide=self.hide_classification)],
+            [to_html.hide(self.rocauc.to_html(state_dict, add_header=False), hide=self.hide_rocauc),
+             to_html.hide(self.prauc.to_html(state_dict, add_header=False), hide=self.hide_prauc)],
+            [to_html.hide(self.liftcurve.to_html(state_dict, add_header=False), hide=self.hide_liftcurve),
+             to_html.hide(self.cumulative_precision.to_html(state_dict, add_header=False), hide=self.hide_cumprecision)]
         )
         if add_header:
             return to_html.add_header(html)
@@ -258,10 +262,12 @@ class RegressionModelStatsComposite(ExplainerComponent):
         ])
 
     def to_html(self, state_dict=None, add_header=True):
-        html = to_html.title(self.title)
+        html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
         html += to_html.card_rows(
-            [self.modelsummary.to_html(state_dict, add_header=False), self.preds_vs_actual.to_html(state_dict, add_header=False)],
-            [self.residuals.to_html(state_dict, add_header=False), self.reg_vs_col.to_html(state_dict, add_header=False)],
+            [to_html.hide(self.modelsummary.to_html(state_dict, add_header=False), hide=self.hide_modelsummary),
+             to_html.hide(self.preds_vs_actual.to_html(state_dict, add_header=False), hide=self.hide_predsvsactual)],
+            [to_html.hide(self.residuals.to_html(state_dict, add_header=False), hide=self.hide_residuals),
+             to_html.hide(self.reg_vs_col.to_html(state_dict, add_header=False), hide=self.hide_regvscol)],
         )
         if add_header:
             return to_html.add_header(html)
@@ -805,24 +811,16 @@ class SimplifiedClassifierComposite(ExplainerComponent):
         ], fluid=False)
 
     def to_html(self, state_dict=None, add_header=True):
-        html = to_html.title(self.title)
-        html += to_html.row(
-            to_html.card_deck(
-                    self.confusionmatrix.to_html(state_dict, add_header=False),
-                    self.classifier_custom_component.to_html(state_dict, add_header=False)))
-        html += to_html.row(
-            to_html.card_deck(
-                self.shap_summary.to_html(state_dict, add_header=False),
-                self.shap_dependence.to_html(state_dict, add_header=False)))
-        html += to_html.row(
-            to_html.card_deck(
-                    self.index.to_html(state_dict, add_header=False),
-                    self.summary.to_html(state_dict, add_header=False)))
-        html += to_html.row(
-            to_html.card_deck(
-                    self.contributions.to_html(state_dict, add_header=False)))
-
-        html = to_html.wrap_in_div(html)
+        html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
+        html += to_html.card_rows(
+            [to_html.hide(self.confusionmatrix.to_html(state_dict, add_header=False), hide=self.hide_confusionmatrix),
+             to_html.hide(self.classifier_custom_component.to_html(state_dict, add_header=False), hide=self.hide_classifier_custom_component)],
+            [to_html.hide(self.shap_summary.to_html(state_dict, add_header=False), hide=self.hide_shapsummary),
+             to_html.hide(self.shap_dependence.to_html(state_dict, add_header=False), hide=self.hide_shapdependence)],
+            [to_html.hide(self.index.to_html(state_dict, add_header=False), hide=self.hide_predindexselector),
+             to_html.hide(self.summary.to_html(state_dict, add_header=False), hide=self.hide_predictionsummary)],
+            [to_html.hide(self.contributions.to_html(state_dict, add_header=False), hide=self.hide_contributiongraph)]
+        )
         if add_header:
             return to_html.add_header(html)
         return html
@@ -946,3 +944,18 @@ class SimplifiedRegressionComposite(ExplainerComponent):
                 ])
             ])   
         ], fluid=False)
+
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
+        html += to_html.card_rows(
+            [to_html.hide(self.goodness_of_fit.to_html(state_dict, add_header=False), hide=self.hide_goodness_of_fit),
+             to_html.hide(self.classifier_custom_component.to_html(state_dict, add_header=False), hide=self.hide_regression_custom_component)],
+            [to_html.hide(self.shap_summary.to_html(state_dict, add_header=False), hide=self.hide_shapsummary),
+             to_html.hide(self.shap_dependence.to_html(state_dict, add_header=False), hude=self.hide_shapdependence)],
+            [to_html.hide(self.index.to_html(state_dict, add_header=False), hide=self.hide_predindexselector),
+             to_html.hide(self.summary.to_html(state_dict, add_header=False), hide=self.hide_predictionsummary)],
+            [to_html.hide(self.contributions.to_html(state_dict, add_header=False), hide=self.hide_contributiongraph)]
+        )
+        if add_header:
+            return to_html.add_header(html)
+        return html
