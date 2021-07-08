@@ -1,25 +1,21 @@
 # Release Notes
 
 ## Version 0.3.6:
-### Breaking Changes
-- 
-- 
+
 
 ### New Features
--
--
+- Static html export! You can export a static version of the dashboard using the default values
+    that you specified in the components or through kwargs with `dashboard.to_html()`.
+    - for custom components you need to define your own custom `to_html()` methods, see the documentation.
+- A toggle is added to the dashboard header that allows you to download a static export
+    of the current live state of the dashboard.
+- adds a new toggle and parameter to the ConfusionmatrixComponent to either average
+    the percentage over the entire matrix, over the rows or over the columns.
+    Set normalize='all', normalize='true', or normalize='pred'. 
+- `ExplainerHub` adds a new parameter `index_to_base_route`: 
+    Dispatches Hub to `/base_route/index` instead of the default `/` and `/index`. 
+    Useful when the host root is not reserved for the ExplainerHub
 
-### Bug Fixes
--
--
-
-### Improvements
--
--
-
-### Other Changes
--
--
 
 ## Version 0.3.5:
 ### Breaking Changes
