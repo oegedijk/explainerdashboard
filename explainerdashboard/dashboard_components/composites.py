@@ -723,7 +723,7 @@ class SimplifiedClassifierComposite(ExplainerComponent):
         super().__init__(explainer, title=title, name=name)
         
         self.confusionmatrix = ConfusionMatrixComponent(explainer, 
-                                    **update_params(kwargs, hide_percentage=True, hide_selector=True))
+                                    **update_params(kwargs, hide_percentage=True, hide_selector=True, hide_normalize=True))
 
         # select custom classifier report metric
         if classifier_custom_component == 'metrics':

@@ -12,6 +12,7 @@
 - adds a new toggle and parameter to the ConfusionmatrixComponent to either average
     the percentage over the entire matrix, over the rows or over the columns.
     Set normalize='all', normalize='true', or normalize='pred'. 
+- also adds a `save_html(filename)` method to all `ExplainerComponents` and `ExplainerDashboard`
 - `ExplainerHub` adds a new parameter `index_to_base_route`: 
     Dispatches Hub to `/base_route/index` instead of the default `/` and `/index`. 
     Useful when the host root is not reserved for the ExplainerHub
