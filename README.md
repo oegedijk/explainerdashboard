@@ -21,7 +21,7 @@ and explanations (thanks to the modular design of the library). And you can comb
 a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
 Dashboards can be exported to static html directly from a running dashboard, or 
-programmatically as part of an automated deployment process.
+programmatically as an artifact as part of an automated CI/CD deployment process.
 
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
