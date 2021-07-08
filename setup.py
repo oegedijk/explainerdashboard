@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='explainerdashboard',
-    version='0.3.5',
+    version='0.3.6.1',
     description='Quickly build Explainable AI dashboards that show the inner workings of so-called "blackbox" machine learning models.',
     long_description="""
 
