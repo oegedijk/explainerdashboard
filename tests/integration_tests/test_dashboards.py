@@ -147,7 +147,7 @@ def test_simple_classification_dashboard(dash_duo):
     assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
-    dash_duo.wait_for_text_to_equal("#simple-classifier-composite-title", "testing", timeout=20)
+    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
 
 
@@ -158,7 +158,7 @@ def test_simple_regression_dashboard(dash_duo):
     assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
-    dash_duo.wait_for_text_to_equal("#simple-regression-composite-title", "testing", timeout=20)
+    dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
 
 
