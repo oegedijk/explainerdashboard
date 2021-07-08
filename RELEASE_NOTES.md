@@ -1,5 +1,26 @@
 # Release Notes
 
+## Version 0.3.6:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.3.5:
 ### Breaking Changes
 - 
