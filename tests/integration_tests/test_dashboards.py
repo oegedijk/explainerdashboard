@@ -122,7 +122,7 @@ def get_catboost_regressor():
 def test_classification_dashboard(dash_duo):
     explainer = get_classification_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
-    html - db.to_html()
+    html = db.to_html()
     assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
     
     dash_duo.start_server(db.app)
@@ -133,7 +133,7 @@ def test_classification_dashboard(dash_duo):
 def test_regression_dashboard(dash_duo):
     explainer = get_regression_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
-    html - db.to_html()
+    html = db.to_html()
     assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
@@ -143,7 +143,7 @@ def test_regression_dashboard(dash_duo):
 def test_simple_classification_dashboard(dash_duo):
     explainer = get_classification_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False, simple=True)
-    html - db.to_html()
+    html = db.to_html()
     assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
@@ -154,7 +154,7 @@ def test_simple_classification_dashboard(dash_duo):
 def test_simple_regression_dashboard(dash_duo):
     explainer = get_regression_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False, simple=True)
-    html - db.to_html()
+    html = db.to_html()
     assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
