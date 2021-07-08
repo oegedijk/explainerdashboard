@@ -20,6 +20,9 @@ Or design a dashboard with your own [custom layout](https://explainerdashboard.r
 and explanations (thanks to the modular design of the library). And you can combine multiple dashboards into
 a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
+Dashboards can be exported to static html directly from a running dashboard, or 
+programmatically as part of an automated deployment process.
+
  Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
  detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
  example notebook on how to launch dashboard for different models [here](notebooks/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](notebooks/explainer_examples.ipynb).
@@ -141,6 +144,8 @@ ExplainerDashboard(explainer).run()
 
 `y_test` is actually optional, although some parts of the dashboard like performance
 metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.
+
+You can export a dashboard to static html with `db.save_html('dashboard.html')`.
 
 For a simplified single page dashboard try `ExplainerDashboard(explainer, simple=True)`.
 
