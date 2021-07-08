@@ -9,7 +9,7 @@ __all__ = [
     'card_deck',
     'card_rows',
     'title',
-    'wrap_in_div',
+    'div',
     'table_from_df',
     'hide',
     'tabs',
@@ -74,7 +74,7 @@ def rows(*col_lists)->str:
     """
     rows = [row(*cols) for cols in col_lists]
     rows = "".join(rows)
-    return wrap_in_div(rows)
+    return div(rows)
 
 def fig(fig, include_plotlyjs='cdn', full_html:bool=False)->str:
     """Returns html for a plotly figure. By default the plotly javascript is not
@@ -141,7 +141,7 @@ def div(html:str)->str:
     return f'<div>{html}</div>'
 
 
-def table_from_df(df)-str:
+def table_from_df(df)->str:
     """Generate a html table from a pandas DataFrame"""
 
     header_row = '\n'.join([f'      <th scope="col">{col}</th>' for col in df.columns])

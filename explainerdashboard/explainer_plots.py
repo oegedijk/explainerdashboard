@@ -1312,9 +1312,9 @@ def plotly_confusion_matrix(cm, labels=None, percentage=True, normalize='all'):
                     font=dict(size=12)
                 )]
             )
-                
+    longest_label = max([len(label) for label in labels])    
     fig.update_layout(annotations=annotations)
-    fig.update_layout(margin=dict(t=40, b=40, l=70, r=40))
+    fig.update_layout(margin=dict(t=40, b=40, l=longest_label*7, r=40))
     return fig
 
 

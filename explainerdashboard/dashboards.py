@@ -164,20 +164,6 @@ class ExplainerTabsLayout(ExplainerComponent):
                     "If so set block_selector_callbacks=True.")
             self.connector.register_callbacks(app)
 
-        # @app.callback(
-        #     Output('download-page-'+self.name, 'data'),
-        #     [Input('download-page-button-'+self.name, 'n_clicks')],
-        #     [State(id_, prop_) for id_, prop_ in self.get_state_tuples()]
-        # )
-        # def download_html(n_clicks, *args):
-        #     if n_clicks is not None:
-        #         state_dict = dict(zip(self.get_state_tuples(), args))
-        #         return dict(
-        #             content=self.to_html(state_dict, add_header=True), 
-        #             filename="dashboard.html"
-        #         )
-        #     raise PreventUpdate
-
         @app.callback(
             Output('download-page-'+self.name, 'data'),
             [Input('download-button-all'+self.name, 'n_clicks'),
@@ -304,6 +290,13 @@ class ExplainerPageLayout(ExplainerComponent):
             ], justify="end")
         ], fluid=self.fluid)
 
+    def to_html(self, state_dict=None, add_header=True):
+        html = to_html.title(self.title)
+        html += self.page.to_html(state_dict, add_header=False)
+        if add_header:
+            return to_html.add_header(html)
+        return html
+
     def register_callbacks(self, app):
         """Register callbacks of page"""
         try:
@@ -326,11 +319,11 @@ class ExplainerPageLayout(ExplainerComponent):
             if n_clicks is not None:
                 state_dict = dict(zip(self.get_state_tuples(), args))
                 return dict(
-                    content=self.page.to_html(state_dict, add_header=True), 
+                    content=self.to_html(state_dict, add_header=True), 
                     filename="dashboard.html"
                 )
             raise PreventUpdate
-
+    
     def calculate_dependencies(self):
         """Calculate dependencies of page"""
         try:
@@ -616,6 +609,22 @@ class ExplainerDashboard:
                 flush=True)
         print("Registering callbacks...", flush=True)
         self.explainer_layout.register_callbacks(self.app)
+
+    def to_html(self):
+        """return static html output of dashboard"""
+        return self.explainer_layout.to_html()
+
+    def save_html(self, filename:Union[str, Path]=None):
+        """Store output of to_html to a file
+
+        Args:
+            filename (str, Path): filename to store html
+        """
+        html = self.to_html()
+        if filename is None:
+            return html
+        with open(filename, "w") as f:
+            f.write(html)
 
     @classmethod
     def from_config(cls, arg1, arg2=None, **update_params):

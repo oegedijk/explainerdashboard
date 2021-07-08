@@ -22,6 +22,8 @@ import sys
 from abc import ABC
 import inspect
 import types
+from typing import Union, List, Tuple
+from pathlib import Path
 from importlib import import_module
 import socket
 
@@ -444,7 +446,7 @@ class ExplainerComponent(ABC):
         All element id's should append +self.name to make sure they are unique."""
         return None
       
-    def to_html(self, state_dict:dict=None, add_header=True):
+    def to_html(self, state_dict:dict=None, add_header:bool=True):
         """return static html for this component and all subcomponents. 
         
         Args:
@@ -455,7 +457,7 @@ class ExplainerComponent(ABC):
             return to_html.add_header(html)
         return html
 
-    def save_html(self, filename:Union[str, Path]):
+    def save_html(self, filename:Union[str, Path]): # noqa: E821
         """Store output of to_html to a file
 
         Args:

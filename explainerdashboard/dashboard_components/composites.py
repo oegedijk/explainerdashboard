@@ -27,7 +27,7 @@ from .. import to_html
 
 class ImportancesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
-                    hide_importances=False, hide_descriptions=False,
+                    hide_title=False, hide_importances=False, hide_descriptions=False,
                     hide_selector=True, **kwargs):
         """Overview tab of feature importances
 
@@ -41,6 +41,7 @@ class ImportancesComposite(ExplainerComponent):
             name (str, optional): unique name to add to Component elements. 
                         If None then random uuid is generated to make sure 
                         it's unique. Defaults to None.
+            hide_title (bool, optional): hide the title
             hide_importances (bool, optional): hide the ImportancesComponent
             hide_descriptions (bool, optional): hide the FeatureDescriptionsComponent
             hide_selector (bool, optional): hide the post label selector. 
@@ -57,6 +58,11 @@ class ImportancesComposite(ExplainerComponent):
 
     def layout(self):
         return html.Div([
+            dbc.Row([
+                make_hideable(
+                    dbc.Col([
+                     html.H2(self.title)]), hide=self.hide_title),
+            ]),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
@@ -949,9 +955,9 @@ class SimplifiedRegressionComposite(ExplainerComponent):
         html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
         html += to_html.card_rows(
             [to_html.hide(self.goodness_of_fit.to_html(state_dict, add_header=False), hide=self.hide_goodness_of_fit),
-             to_html.hide(self.classifier_custom_component.to_html(state_dict, add_header=False), hide=self.hide_regression_custom_component)],
+             to_html.hide(self.regression_custom_component.to_html(state_dict, add_header=False), hide=self.hide_regression_custom_component)],
             [to_html.hide(self.shap_summary.to_html(state_dict, add_header=False), hide=self.hide_shapsummary),
-             to_html.hide(self.shap_dependence.to_html(state_dict, add_header=False), hude=self.hide_shapdependence)],
+             to_html.hide(self.shap_dependence.to_html(state_dict, add_header=False), hide=self.hide_shapdependence)],
             [to_html.hide(self.index.to_html(state_dict, add_header=False), hide=self.hide_predindexselector),
              to_html.hide(self.summary.to_html(state_dict, add_header=False), hide=self.hide_predictionsummary)],
             [to_html.hide(self.contributions.to_html(state_dict, add_header=False), hide=self.hide_contributiongraph)]

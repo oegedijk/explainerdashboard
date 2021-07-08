@@ -862,7 +862,6 @@ class ConfusionMatrixComponent(ExplainerComponent):
         args['binary'] = bool(args['binary'])
         args['percentage'] = bool(args['percentage'])
         fig = self.explainer.plot_confusion_matrix(**args)
-        fig.update_layout(margin=dict(t=30, b=30, l=30, r=30))
         
         html = to_html.card(fig.to_html(include_plotlyjs='cdn', full_html=False), title=self.title, subtitle=self.subtitle)
         if add_header:

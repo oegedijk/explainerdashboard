@@ -549,7 +549,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
         args = self.get_state_args(state_dict)
         if self.feature_input_component is None:
             if args['index'] is not None:
-                preds_df = self.explainer.prediction_result_df(index, round=self.round)
+                preds_df = self.explainer.prediction_result_df(args['index'], round=self.round)
                 html = to_html.table_from_df(preds_df)
             else:
                 html = "no index selected"

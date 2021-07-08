@@ -122,6 +122,9 @@ def get_catboost_regressor():
 def test_classification_dashboard(dash_duo):
     explainer = get_classification_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
+    html - db.to_html()
+    assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
+    
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
@@ -130,6 +133,9 @@ def test_classification_dashboard(dash_duo):
 def test_regression_dashboard(dash_duo):
     explainer = get_regression_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False)
+    html - db.to_html()
+    assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
+
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
@@ -137,6 +143,9 @@ def test_regression_dashboard(dash_duo):
 def test_simple_classification_dashboard(dash_duo):
     explainer = get_classification_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False, simple=True)
+    html - db.to_html()
+    assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
+
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("#simple-classifier-composite-title", "testing", timeout=20)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
@@ -145,6 +154,9 @@ def test_simple_classification_dashboard(dash_duo):
 def test_simple_regression_dashboard(dash_duo):
     explainer = get_regression_explainer()
     db = ExplainerDashboard(explainer, title="testing", responsive=False, simple=True)
+    html - db.to_html()
+    assert html.startswith('\n<!DOCTYPE html>\n<html'), "failed to generate dashboard to_html"
+
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("#simple-regression-composite-title", "testing", timeout=20)
     assert dash_duo.get_logs() == [], "browser console should contain no error"
