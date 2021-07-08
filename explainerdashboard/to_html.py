@@ -69,8 +69,10 @@ def rows(*col_lists)->str:
     with equally sized columns for each snippet.
 
     Example:
-        to_html.row(["<div>first snippet</div>", "<div>second snippet</div>"],
-                    ["<div>second row snippet snippet</div>", "<div>second row snippet two</div>"])
+        to_html.row(
+            ["<div>first snippet</div>", "<div>second snippet</div>"],
+            ["<div>second row snippet snippet</div>", "<div>second row snippet two</div>"]
+        )
     """
     rows = [row(*cols) for cols in col_lists]
     rows = "".join(rows)
@@ -82,7 +84,8 @@ def fig(fig, include_plotlyjs='cdn', full_html:bool=False)->str:
 
     Args:
         include_plotlyjs (bool, str): how to import the necessary javascript for the plotly
-            fig. Defaults to 'cdn'. If set to True then a 3MB javascript snippet is included.
+            fig. Defaults to 'cdn', which means the figure just links to javascript file
+            hosted by plotly. If set to True then a 3MB javascript snippet is included.
             For other options check https://plotly.com/python-api-reference/generated/plotly.io.to_html.html
         full_html (bool): include <html>, <head> and <body> tags. Defaults to False.
     """ 
@@ -114,6 +117,9 @@ def card(html:str, title:str=None, subtitle:str=None)->str:
 
 def card_deck(*cards)->str:
     """turn a list of bootstrap cards into an equally spaced card deck.
+
+    Example:
+        to_html.card_deck(to_html.card("card1"), to_html.card("card2"))
     """
     cards = list(cards)
     cards = "".join(cards)
@@ -126,7 +132,15 @@ def card_deck(*cards)->str:
 
 def card_rows(*card_lists)->str:
     """Turn a list of lists of bootstrap cards into a series of bootstrap rows
-    with card decks"""
+    with card decks.
+    
+    Example:
+        to_html.card_rows(
+            [to_html.card("card1"), to_html.card("card2")], 
+            [to_html.card("card3"), to_html.card("card4")], 
+        )
+        
+        """
     card_decks = [[card_deck(*cards)] for cards in card_lists]
     return rows(*card_decks)
 
@@ -171,7 +185,7 @@ def hide(html:str, hide:bool=False)->str:
 
 def tabs(tabs_dict:dict)->str:
     """Generate a series of bootstrap tabs for a dictionary tabs_dict with the
-    name of the tab of key and the html contents of the tab as value.
+    name of each tab as the dict key and the html contents of the tab as the dict value.
     """
     html = '<ul class="nav nav-tabs" id="myTab" role="tablist">'
     for i, tab_name in enumerate(tabs_dict.keys()):

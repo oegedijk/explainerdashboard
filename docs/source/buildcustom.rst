@@ -21,15 +21,15 @@ but you want to hide a few toggles::
     from explainerdashboard.custom import *
 
     class CustomDashboard(ExplainerComponent):
-        def __init__(self, explainer, name=None):
+        def __init__(self, explainer, name=None, **kwargs):
             super().__init__(explainer, title="Custom Dashboard")
-            self.confusion = ConfusionMatrixComponent(explainer, name=self.name+"cm",
+            self.confusion = ConfusionMatrixComponent(explainer, 
                                 hide_selector=True, hide_percentage=True,
-                                cutoff=0.75)
-            self.contrib = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
+                                cutoff=0.75, **kwargs)
+            self.contrib = ShapContributionsGraphComponent(explainer, 
                                 hide_selector=True, hide_cats=True, 
                                 hide_depth=True, hide_sort=True,
-                                index='Rugg, Miss. Emily')
+                                index='Rugg, Miss. Emily', **kwargs)
             
         def layout(self):
             return dbc.Container([
@@ -70,16 +70,13 @@ So you need to
    ``self.confusion = ConfusionMatrixComponent(explainer)`` and 
    ``self.contrib = ShapContributionsGraphComponent(explainer)``
 
-6. Pass a unique name to each subcomponent, using the name of your component, 
-   e.g. ``name=self.name+"dep"``.
+6. Define a ``layout()`` method that returns a custom layout.
 
-7. Define a ``layout()`` method that returns a custom layout.
-
-8. Build your layout using ``html`` and bootstrap (``dbc``) elements and 
+7. Build your layout using ``html`` and bootstrap (``dbc``) elements and 
    include your components' layout in this overall layout with ``self.confusion.layout()``
    and ``self.contrib.layout()``.
 
-9. Pass the class to an ``ExplainerDashboard`` and ``run()`` it. 
+8. Pass the class to an ``ExplainerDashboard`` and ``run()`` it. 
 
 
 You can find the list of all ``ExplainerComponents`` in the :ref:`documentation<ExplainerComponents>`.
@@ -171,16 +168,16 @@ and :ref:`HighlightConnector<HighlightConnector>` in the :ref:`Connector documen
     class CustomModelTab(ExplainerComponent):
         def __init__(self, explainer, name=None):
             super().__init__(explainer, title="Titanic Explainer")
-            self.precision = PrecisionComponent(explainer, name=self.name+"precision",
+            self.precision = PrecisionComponent(explainer, 
                                     hide_cutoff=True, hide_binsize=True, 
                                     hide_binmethod=True, hide_multiclass=True,
                                     hide_selector=True,
                                     cutoff=None)
-            self.shap_summary = ShapSummaryComponent(explainer, name=self.name+"summary",
+            self.shap_summary = ShapSummaryComponent(explainer, 
                                     hide_title=True, hide_selector=True,
                                     hide_depth=True, depth=8, 
                                     hide_cats=True, cats=True)
-            self.shap_dependence = ShapDependenceComponent(explainer, name=self.name+"dep",
+            self.shap_dependence = ShapDependenceComponent(explainer,
                                     hide_title=True, hide_selector=True,
                                     hide_cats=True, cats=True, 
                                     hide_index=True,
@@ -277,20 +274,20 @@ called FLATLY as a custom css file::
         def __init__(self, explainer, name=None):
             super().__init__(explainer, title="Predictions")
             
-            self.index = ClassifierRandomIndexComponent(explainer, name=self.name+"index",
+            self.index = ClassifierRandomIndexComponent(explainer, 
                                                         hide_title=True, hide_index=False, 
                                                         hide_slider=True, hide_labels=True, 
                                                         hide_pred_or_perc=True, 
                                                         hide_selector=True, hide_button=False)
             
-            self.contributions = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
+            self.contributions = ShapContributionsGraphComponent(explainer, 
                                                                 hide_title=True, hide_index=True, 
                                                                 hide_depth=True, hide_sort=True, 
                                                                 hide_orientation=True, hide_cats=True, 
                                                                 hide_selector=True,  
                                                                 sort='importance')
             
-            self.trees = DecisionTreesComponent(explainer, name=self.name+"trees",
+            self.trees = DecisionTreesComponent(explainer, 
                                                 hide_title=True, hide_index=True, 
                                                 hide_highlight=True, hide_selector=True)
 
@@ -312,7 +309,6 @@ called FLATLY as a custom css file::
 
                 ]),
                 dbc.Row([
-
                     dbc.Col([
                         html.H3("Every tree in the Random Forest:"),
                         self.trees.layout()
@@ -378,3 +374,129 @@ passing it on to the ``ExplainerDashboard``::
     tab = ConfusionComparison(explainer1, explainer2)
 
     ExplainerDashboard(explainer1, tab).run()
+
+
+Custom static html export
+=========================
+
+To enable your custom dashboard to be exported to html you need to define a ``to_html`` method
+that returns an html layout. There are helper functions in ``explainerdashboard.to_html`` to
+help you construct this html using python code, which get automatically loaded when 
+you ``from explainerdashboard.custom import *``::
+
+    from explainerdashboard.custom import *
+
+    class CustomDashboard(ExplainerComponent):
+        def __init__(self, explainer, name=None, **kwargs):
+            super().__init__(explainer, title="Custom Dashboard")
+            self.confusion = ConfusionMatrixComponent(explainer, **kwargs)
+            self.contrib = ShapContributionsGraphComponent(explainer, **kwargs)
+            
+        def layout(self):
+            return dbc.Container([
+                dbc.Row([
+                    dbc.Col([
+                        html.H1("Custom Demonstration:"),
+                        html.H3("How to build your own layout using ExplainerComponents.")
+                    ])
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        self.confusion.layout(),
+                    ]),
+                    dbc.Col([
+                        self.contrib.layout(),
+                    ])
+                ])
+            ])
+
+        def to_html(self, state_dict=None, add_header=True):
+            html = to_html.title(self.title)
+            html += to_html.card_deck(
+                self.confusion.to_html(state_dict, add_header=False), 
+                self.contrib.to_html(state_dict, add_header=False)
+            )
+            if add_header:
+                return to_html.add_header(html)
+            return html
+
+
+So the arguments of ``to_html()`` should be ``(self, state_dict=None, add_header=True)``, and you
+should pass ``(state_dict, add_header=False)`` to all sub-components. Only the top-level
+component should add a html header (which links to bootstrap css and javascript and
+triggers a window resize in order to fix plotly figure overflow issues). 
+
+If you build your own components whose display depend on the state of various toggles
+that you put in the dash layout, you need to define input component id's as a ``_state_props``
+class attribute. This should be a dict with the keys equal to ``__init__`` parameters,
+and the values a tuple identifying the dash component id and property. The id's should
+be without `+self.name` as this will get automatically added behind the scenes. (and since it's 
+a class attribute it doesn't have access to ``self`` in any case).
+
+You can then call ``args = self.get_state_args(state_dict)`` to get the current values
+of the parameters inside your ``to_html`` method. When you call the method directly 
+from the component (e.g. inside a jupyter notebook), it will gather the arguments 
+from the instance properties (so wil e.g. return ``{'cutoff': self.cutoff}``), so it 
+will output html based on the initial values.
+When clicking the download button on a running dashboard, it will substitute the current
+values of the dashboard state. These values get collected in ``state_dict``, which is 
+why it is important to pass ``state_dict`` down to subcomponents. 
+
+An example is the ``ConfusionMatrixComponent``::
+
+    class ConfusionMatrixComponent(ExplainerComponent):
+        _state_props = dict(
+            cutoff=('confusionmatrix-cutoff-', 'value'),
+            percentage=('confusionmatrix-percentage-', 'value'),
+            normalize=('confusionmatrix-normalize-', 'value'),
+            binary=('confusionmatrix-binary-', 'value'),
+            pos_label=('pos-label-', 'value')
+        )   
+
+        def __init__(self, explainer, title="Confusion Matrix", name=None,
+                        subtitle="How many false positives and false negatives?",
+                        hide_title=False, hide_subtitle=False, hide_footer=False,
+                        hide_cutoff=False, hide_percentage=False, hide_binary=False,
+                        hide_selector=False, hide_popout=False, hide_normalize=False,
+                        normalize='all', pos_label=None, cutoff=0.5, 
+                        percentage=True, binary=True, description=None,
+                        **kwargs):
+            pass # removed the init and layout function here for brevity
+            
+        
+        def to_html(self, state_dict=None, add_header=True):
+            args = self.get_state_args(state_dict)
+            fig = self.explainer.plot_confusion_matrix(cutoff=args['cutoff'], 
+                        percentage=bool(args['percentage']), binary=bool(args['binary']), 
+                        normalize=args['normalize'], pos_label=args['pos_label'])
+            
+            html = to_html.card(to_html.fig(fig), title=self.title, subtitle=self.subtitle)
+            if add_header:
+                return to_html.add_header(html)
+            return html
+
+        def component_callbacks(self, app):
+            @app.callback(
+                Output('confusionmatrix-graph-'+self.name, 'figure'),
+                [Input('confusionmatrix-cutoff-'+self.name, 'value'),
+                Input('confusionmatrix-percentage-'+self.name, 'value'),
+                Input('confusionmatrix-normalize-'+self.name, 'value')],
+                Input('confusionmatrix-binary-'+self.name, 'value'),
+                Input('pos-label-'+self.name, 'value'),
+            )
+            def update_confusionmatrix_graph(cutoff, percentage, normalize, binary, pos_label):
+                return self.explainer.plot_confusion_matrix(
+                            cutoff=cutoff, percentage=bool(percentage), normalize=normalize, 
+                            binary=bool(binary), pos_label=pos_label)
+
+
+
+``to_html`` helper functions
+============================
+
+The ``explainerdashboard.to_html`` module contains a number of useful functions that you 
+can use inside your custom ``to_html()`` methods:
+
+.. automodule:: explainerdashboard.to_html
+   :members:
+
