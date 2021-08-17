@@ -71,7 +71,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
     install_requires=['dash>=1.20', 'dash-bootstrap-components', 'jupyter_dash', 'dash-auth',
                     'dtreeviz>=1.3', 'numpy', 'pandas>=1.1', 'scikit-learn', 
                     'shap>=0.37', 'joblib', 'oyaml', 'click', 'waitress',
-                    'flask_simplelogin'],
+                    'flask_simplelogin', 'orjson'],
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
