@@ -3,7 +3,9 @@
 
 - add get_descriptions_df tests
 - do multiclass pdp
-- turn print statements into log statements
+- add manual add shap values functionality
+- experiment with dash_draggable: https://github.com/MehdiChelh/dash-draggable
+- add ExplainerHub.to_html()
 ## Bugs:
 
 ## Plots:

@@ -127,17 +127,14 @@ class ExplainerTabsLayout(ExplainerComponent):
             dcc.Tabs(id="tabs", value=self.tabs[0].name, 
                         children=[dcc.Tab(label=tab.title, id=tab.name, value=tab.name,
                                         children=tab.layout()) for tab in self.tabs]),
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        html.Div([
-                            html.Small("powered by: "),
-                            html.Small(html.A("explainerdashboard", 
-                                    className="text-muted", target='_blank',
-                                    href="https://github.com/oegedijk/explainerdashboard"))
-                        ], className="text-right"),
-                    ]), hide=self.hide_poweredby),
-            ], justify="end"),
+            make_hideable(
+                html.Div([
+                    html.Small("powered by: "),
+                    html.Small(html.A("explainerdashboard", 
+                            className="text-muted", target='_blank',
+                            href="https://github.com/oegedijk/explainerdashboard"))
+                ], style={'display':'flex', 'justify-content':'flex-end', 'text-align':'right'}),
+                hide=self.hide_poweredby),
         ], fluid=self.fluid)
 
     def to_html(self, state_dict=None, add_header=True):
