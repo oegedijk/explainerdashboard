@@ -115,12 +115,12 @@ class ExplainerTabsLayout(ExplainerComponent):
                     dbc.Col([
                         html.Div([
                             dcc.Download('download-page-'+self.name),
-                    dbc.DropdownMenu([
-                            dbc.DropdownMenuItem("All tabs", id="download-button-all"+self.name, n_clicks=None), 
-                            dbc.DropdownMenuItem(divider=True), 
-                            *[dbc.DropdownMenuItem(tab.title, id="download-button-"+tab.name, n_clicks=None)
-                                    for tab in self.downloadable_tabs]
-                        ], label="Download", color="link", right=True),
+                            dbc.DropdownMenu([
+                                    dbc.DropdownMenuItem("All tabs", id="download-button-all"+self.name, n_clicks=None), 
+                                    dbc.DropdownMenuItem(divider=True), 
+                                    *[dbc.DropdownMenuItem(tab.title, id="download-button-"+tab.name, n_clicks=None)
+                                            for tab in self.downloadable_tabs]
+                                ], label="Download", color="link", right=True),
                         ], style={'display':'flex', 'justify-content':'flex-end'}),
                     ], md="auto", className="ml-auto", align="center"), hide=self.header_hide_download),
             ], justify="start", style=dict(marginBottom=10)),

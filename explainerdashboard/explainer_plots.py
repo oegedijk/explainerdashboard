@@ -1186,7 +1186,7 @@ def plotly_importances_plot(importance_df, descriptions=None, round=3,
     importance_name = importance_df.columns[1] # can be "MEAN_ABS_SHAP", "Permutation Importance", etc
     if title is None:
         title = importance_name
-    longest_feature_name = importance_df['Feature'].str.len().max()
+    longest_feature_name = max(importance_df['Feature'], key=len)
 
     imp = importance_df.sort_values(importance_name)
 

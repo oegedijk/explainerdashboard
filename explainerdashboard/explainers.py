@@ -2041,6 +2041,10 @@ class ClassifierExplainer(BaseExplainer):
                     "Changing class type to XGBClassifierExplainer...", 
                     flush=True)
             self.__class__ = XGBClassifierExplainer
+            if len(self.labels) > 2 and self.model_output == 'probability':
+                print(f"model_output=='probability' does not work with multiclass "
+                        "XGBClassifier models, so settings model_output='logodds'...")
+                self.model_output = 'logodds'
 
         _ = self.shap_explainer
 
