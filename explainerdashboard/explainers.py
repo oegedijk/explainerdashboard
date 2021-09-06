@@ -947,16 +947,22 @@ class BaseExplainer(ABC):
         return self._shap_base_value
 
     @insert_pos_label
-    def get_shap_values_df(self, pos_label=None):
+    def get_shap_values_df(self, pos_label=None, **kwargs):
         """SHAP values calculated using the shap library"""
+        if "check_additivity" in kwargs.keys():
+            check_additivity = kwargs["check_additivity"]
+        else:
+            check_additivity = True
         if not hasattr(self, '_shap_values_df'):
             print("Calculating shap values...", flush=True)
             if self.shap == 'skorch':
                 import torch
-                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(torch.tensor(self.X.values)), 
+                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(torch.tensor(self.X.values),
+                                                                                    check_additivity=check_additivity),
                                     columns=self.columns)
             else:
-                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
+                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X,
+                                                                                    check_additivity=check_additivity),
                                     columns=self.columns)
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
@@ -1019,17 +1025,17 @@ class BaseExplainer(ABC):
         return self._shap_interaction_values
 
     @insert_pos_label
-    def mean_abs_shap_df(self, pos_label=None):
+    def mean_abs_shap_df(self, pos_label=None, **kwargs):
         """Mean absolute SHAP values per feature."""
         if not hasattr(self, '_mean_abs_shap_df'):
-            self._mean_abs_shap_df = (self.get_shap_values_df(pos_label)[self.merged_cols].abs().mean()
+            self._mean_abs_shap_df = (self.get_shap_values_df(pos_label, **kwargs)[self.merged_cols].abs().mean()
                     .sort_values(ascending=False)
                     .to_frame().rename_axis(index="Feature").reset_index()
                     .rename(columns={0:"MEAN_ABS_SHAP"}))
         return self._mean_abs_shap_df
 
     @insert_pos_label
-    def columns_ranked_by_shap(self, pos_label=None):
+    def columns_ranked_by_shap(self, pos_label=None, **kwargs):
         """returns the columns of X, ranked by mean abs shap value
 
         Args:
@@ -1040,7 +1046,7 @@ class BaseExplainer(ABC):
         list of columns
 
         """
-        return self.mean_abs_shap_df(pos_label).Feature.tolist()
+        return self.mean_abs_shap_df(pos_label, **kwargs).Feature.tolist()
 
     @insert_pos_label
     def get_mean_abs_shap_df(self, topx=None, cutoff=None, pos_label=None):

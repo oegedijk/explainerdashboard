@@ -935,7 +935,7 @@ class RegressionVsColComponent(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         if self.col is None:
-            self.col = self.explainer.columns_ranked_by_shap()[0]
+            self.col = self.explainer.columns_ranked_by_shap(**kwargs)[0]
         
         assert self.display in {'observed', 'predicted', 'difference', 'ratio', 'log-ratio'}, \
             ("parameter display should in {'observed', 'predicted', 'difference', 'ratio', 'log-ratio'}"
