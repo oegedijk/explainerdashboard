@@ -6,6 +6,7 @@ __all__ = [
     'rows',
     'fig',
     'card',
+    'dashboard_card',
     'card_deck',
     'card_rows',
     'title',
@@ -13,17 +14,20 @@ __all__ = [
     'table_from_df',
     'hide',
     'tabs',
-    'input'
+    'input',
+    'jumbotron'
 ]
 
-
-def add_header(html:str, title="explainerdashboard")->str:
+def add_header(html:str, title="explainerdashboard", resize=True)->str:
     """Turns a html snippet into a full html layout by adding <html>, <head> and <body> tags.
     
     Loads bootstrap css and javascript and triggers a resize event in order to prevent
     plotly figs from overflowing their div containers.
+
+    resize adds a javascript snippet that simulates a window resize in order to
+    properly size the plotly figs. (bit of a hack, but it works :)
     """
-    return f"""
+    full_html = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,12 +46,18 @@ def add_header(html:str, title="explainerdashboard")->str:
 </div>
 
 </body>
+"""
+    if resize:
+        full_html += """
 <script type="text/javascript">
 window.dispatchEvent(new Event('resize'));
 </script>
+        """
+    full_html += """
 </html>
-"""
-
+    """
+    return full_html 
+    
 
 def row(*cols)->str:
     """Turns a series of html snippets into a bootstrap row with equally sized
@@ -56,12 +66,18 @@ def row(*cols)->str:
     Example:
         to_html.row("<div>first snippet</div>", "<div>second snippet</div>")
     """
-    row = '<div class="row" style="margin-top: 20px;">'
+    row = """
+<div class="row" style="margin-top: 20px;">
+    """
     for col in cols:
-        row += '<div class="col-sm">'
-        row += col
-        row += '</div>'
-    row += '</div>'
+        row += f"""
+<div class="col-sm">
+{col}
+</div>
+        """
+    row += """
+</div> 
+    """
     return row
 
 def rows(*col_lists)->str:
@@ -75,8 +91,7 @@ def rows(*col_lists)->str:
         )
     """
     rows = [row(*cols) for cols in col_lists]
-    rows = "".join(rows)
-    return div(rows)
+    return "".join(rows)
 
 def fig(fig, include_plotlyjs='cdn', full_html:bool=False)->str:
     """Returns html for a plotly figure. By default the plotly javascript is not
@@ -91,7 +106,7 @@ def fig(fig, include_plotlyjs='cdn', full_html:bool=False)->str:
     """ 
     return fig.to_html(include_plotlyjs=include_plotlyjs, full_html=full_html)
 
-def card(html:str, title:str=None, subtitle:str=None)->str:
+def card(html:str, title:str=None, subtitle:str=None, border=True)->str:
     """Wrap to html snippet in a bootstrap card. You can optionally add a title
     and subtitle to the card.
     """
@@ -104,11 +119,33 @@ def card(html:str, title:str=None, subtitle:str=None)->str:
     else:
         card_header = ""
     return f"""
-<div class="card">
+<div class="card" {'' if border else 'border-0'}>
   {card_header}
   <div class="card-body">
     <div class="w-100">
     {row(html)}
+    </div>
+  </div>
+</div>
+"""
+
+def dashboard_card(title:str=None, description:str=None, url:str=None)->str:
+    """Generate a dashboard description car for ExplainerHub. 
+    Consists of title, description and url.
+    """
+    return f"""
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{title}</h3>
+  </div>
+  <div class="card-body">
+    <div class="w-100">
+    {description}
+    </div>
+  </div>
+  <div class="card-footer">
+    <div class="w-100">
+    <a href="{url}" class="stretched-link">Go to dashboard</a>
     </div>
   </div>
 </div>
@@ -243,4 +280,15 @@ def input(feature:str, value, disabled:bool=False)->str:
     <label for="{feature}">{feature}</label>
     <input id="{feature}" type="text" value="{value}" name="{feature}" {'disabled' if disabled else ''}>
 </div>
+    """
+
+def jumbotron(title:str, description:str)->str:
+    """display a bootstrap jumbotron with title and description"""
+    return f"""
+<div class="jumbotron">
+    <h1 class="display-4">{title}</h1>
+    <hr class="my-2">
+    <p class="lead">{description}</p>
+</div>
+
     """

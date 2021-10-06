@@ -561,7 +561,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
                 preds_df = self.explainer.prediction_result_df(X_row=X_row, round=self.round)
                 html = to_html.table_from_df(preds_df)
             else:
-                html = f"<div>input data incorrect<div>"
+                html = f"<div>input data incorrect</div>"
             
         html = to_html.card(html, title=self.title)
         if add_header:

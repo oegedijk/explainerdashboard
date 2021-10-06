@@ -398,7 +398,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 preds_df = self._format_preds_df(preds_df)
                 html = to_html.row(to_html.table_from_df(preds_df), to_html.fig(fig)) 
             else:
-                html = f"<div>input data incorrect<div>"
+                html = f"<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title)
         if add_header:

@@ -60,6 +60,7 @@
 - automatic reloads with watchdog
 - add reloader=None, debug=None, options
 - make example deployment on heroku
+- add to_html option
 
 
 ### Components
@@ -67,13 +68,10 @@
     - https://github.com/oegedijk/explainerdashboard/issues/85
 - add circular callbacks to cutoff - cutoff percentile
 - Add side-by-side option to cutoff selector component
-- add `index_dropdown=True` parameter. Alternative: free entry input.
 - add filter to index selector using pattern matching callbacks:
     - https://dash.plotly.com/pattern-matching-callbacks
-- add querystring method to ExplainerComponents
 - add pos_label_name property to PosLabelConnector search
 - add "number of indexes" indicator to RandomIndexComponents for current restrictions
-- set equivalent_col when toggling cats in dependence/interactions
 - whatif:
     - Add a constraints function to whatif component:
         - tests if current feature input is allowed

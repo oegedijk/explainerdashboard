@@ -1872,24 +1872,77 @@ class ExplainerHub:
             *dashboard_rows 
         ], fluid=self.fluid)
         return index_page
+
+    def to_html(self):
+        def dashboard_cards(dashboards, n_cols):
+            full_rows = int(len(dashboards)/ n_cols)
+            n_last_row = len(dashboards) % n_cols
+            card_decks = []
+            for i in range(0, full_rows*n_cols, n_cols):
+                card_decks.append([to_html.dashboard_card(dashboard.title, dashboard.description, dashboard.name+".html") 
+                                        for dashboard in dashboards[i:i+n_cols]])
+            if n_last_row > 0:
+                last_row = [to_html.dashboard_card(dashboard.title, dashboard.description, dashboard.name+".html") 
+                                for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
+                for i in range(len(last_row), n_cols):
+                    last_row.append(to_html.card("", border=False))
+                card_decks.append(last_row)
+            return card_decks
+
+        html = to_html.jumbotron(self.title, self.description)
+        html += to_html.card_rows(*dashboard_cards(self.dashboards, self.n_dashboard_cols))
+        #return to_html.add_header(html)
+        return self._hub_page(html, static=True)
+
+    def save_html(self, filename:Union[str, Path]=None, save_dashboards:bool=True):
+        """Store output of to_html to a file
+
+        Args:
+            filename (str, Path): filename to store html
+            save_dashboard (bool): save dashboards the make up the hub into
+                individual static html files.
+        """
+        html = self.to_html()
+        if filename is None:
+            return html
+        with open(filename, "w") as f:
+            print(f"Saving hub to {filename}...")
+            f.write(html)
+        if save_dashboards:
+            for db in self.dashboards:
+                print(f"Saving dashboard {db.name} to {db.name}.html...")
+                db.save_html(db.name+".html")
+
     
-    def _hub_page(self, route):
+    def _hub_page(self, route, static=False):
         """Returns a html bootstrap wrapper around a particular flask route (hosting an ExplainerDashbaord)
         It contains:
         - a NavBar with links to all dashboards
         - an iframe containing the flask route
         - a footer with a link to github.com/oegedijk/explainerdashboard
         """
-        return f"""
-        <script type="text/javascript" src="/static/jquery-3.5.1.slim.min.js"></script>
-        <script type="text/javascript" src="/static/bootstrap.min.js"></script>
-        <link type="text/css" rel="stylesheet" href="{'/static/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
-        <link rel="shortcut icon" href="/static/favicon.ico">
+        if static:
+            page = """
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+            """
+            dbs = [(f"{db.name}.html", db.title) for db in self.dashboards]
+        else:
+            page = f"""
+            <script type="text/javascript" src="/static/jquery-3.5.1.slim.min.js"></script>
+            <script type="text/javascript" src="/static/bootstrap.min.js"></script>
+            <link type="text/css" rel="stylesheet" href="{'/static/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
+            <link rel="shortcut icon" href="/static/favicon.ico">
+            """
+            dbs = [(f"/{self.base_route}/_{db.name}", db.title) for db in self.dashboards]
+
+        page += f"""
         <title>{self.title}</title>
         <body class="d-flex flex-column min-vh-100">
             <div class="container{'-fluid' if self.fluid else ''}">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="{self.index_route}">{self.title}</a>
+                <a class="navbar-brand" href="{self.index_route if not static else '#'}">{self.title}</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -1901,16 +1954,18 @@ class ExplainerHub:
                                 Dashboards
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink2">
-                            {"".join([f'<a class="dropdown-item" href="/{self.base_route}/_{db.name}">{db.title}</a>' 
-                                            for db in self.dashboards])}
+                            {"".join([f'<a class="dropdown-item" href="{url}">{name}</a>' for url, name in dbs])}
                             </div>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/logout">Logout</a>
-                        </li>
+                        {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static else ''}
                     </ul>
                 </div>
             </nav>
+        """
+        if static:
+            page += f"\n<div>\n{route}\n</div>\n"
+        else:
+            page += f"""
             
             <div class="embed-responsive" style="min-height: {self.min_height}px">
                  <iframe 
@@ -1918,10 +1973,11 @@ class ExplainerHub:
                          style="overflow-x: hidden; overflow-y: visible; position: absolute; width: 95%; height: 100%; background: transparent"
                 ></iframe>
             </div>
-
-            </div>
+            """
+        page += """</div>
         </body>
         """
+        return page
     
     def _add_flask_routes(self, app):
         """ adds the index route "/" with the index_page

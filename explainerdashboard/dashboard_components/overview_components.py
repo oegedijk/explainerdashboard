@@ -578,7 +578,7 @@ class PdpComponent(ExplainerComponent):
                         sort=args['cats_sort'], pos_label=args['pos_label'])
                 html = to_html.fig(fig)
             else:
-                html = f"<div>input data incorrect<div>"
+                html = f"<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title)
         if add_header:

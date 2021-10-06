@@ -484,15 +484,15 @@ class WhatIfComposite(ExplainerComponent):
              to_html.hide(self.prediction.to_html(state_dict, add_header=False), self.hide_whatifprediction)],
             [to_html.hide(self.input.to_html(state_dict, add_header=False), self.hide_inputeditor)],
             [to_html.hide(self.contribgraph.to_html(state_dict, add_header=False), self.hide_whatifcontributiongraph),
-            to_html.hide(self.pdp.to_html(state_dict, add_header=False), self.hide_whatifpdp)],
+             to_html.hide(self.pdp.to_html(state_dict, add_header=False), self.hide_whatifpdp)],
             [to_html.hide(self.contribtable.to_html(state_dict, add_header=False), self.hide_whatifcontributiontable)]
         )
+        html = to_html.div(html)
         if add_header:
             return to_html.add_header(html)
         return html
 
     
-
 class ShapDependenceComposite(ExplainerComponent):
     def __init__(self, explainer, title='Feature Dependence', name=None,
                     hide_selector=True, 

@@ -1273,7 +1273,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             pos_label=args['pos_label'], higher_is_better=self.higher_is_better)
                 html = to_html.fig(fig)
             else:
-                html = f"<div>input data incorrect<div>"
+                html = f"<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:
@@ -1475,7 +1475,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                                         sort=args['sort'], pos_label=args['pos_label'])
                 html = to_html.table_from_df(contrib_df)
             else:
-                html = f"<div>input data incorrect<div>"
+                html = f"<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:
