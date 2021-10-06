@@ -1,5 +1,27 @@
 # Release Notes
 
+
+## Version 0.3.7
+### Breaking Changes
+- 
+- 
+
+### New Features
+- Export your ExplainerHub to static html with `hub.to_html()` and `hub.save_html()` methods
+- Export your ExplainerHub to a zip file with static html exports with `to_zip()` method
+
+### Bug Fixes
+-
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ## Version 0.3.6:
 
 

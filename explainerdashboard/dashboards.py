@@ -1891,7 +1891,6 @@ class ExplainerHub:
 
         html = to_html.jumbotron(self.title, self.description)
         html += to_html.card_rows(*dashboard_cards(self.dashboards, self.n_dashboard_cols))
-        #return to_html.add_header(html)
         return self._hub_page(html, static=True)
 
     def save_html(self, filename:Union[str, Path]=None, save_dashboards:bool=True):
@@ -1913,7 +1912,22 @@ class ExplainerHub:
                 print(f"Saving dashboard {db.name} to {db.name}.html...")
                 db.save_html(db.name+".html")
 
-    
+    def to_zip(self, filename:Union[str, Path], name:str="explainerhub"):
+        """Store static version of ExplainerHub to a zipfile along with static 
+        versions of all underlying dashboards.
+
+        Args:
+            filename (Union[str, Path], optional): filename of zip file, eg. "hub.zip". 
+            name (str): name for the directory inside the zipfile
+        """
+        import zipfile
+        zf = zipfile.ZipFile(Path(filename), 'w')
+        zf.writestr(f'/{name}/index.html', self.to_html())
+        for db in self.dashboards: 
+            zf.writestr(f'/{name}/' + db.name+".html", db.to_html())
+        zf.close()
+        print(f"Saved static html version of ExplainerHub to {filename}...")
+
     def _hub_page(self, route, static=False):
         """Returns a html bootstrap wrapper around a particular flask route (hosting an ExplainerDashbaord)
         It contains:
