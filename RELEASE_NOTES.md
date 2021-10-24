@@ -9,9 +9,11 @@
 ### New Features
 - Export your ExplainerHub to static html with `hub.to_html()` and `hub.save_html()` methods
 - Export your ExplainerHub to a zip file with static html exports with `to_zip()` method
+- Manually add pre-calculated shap values with `explainer.set_shap_values()`
+- Manually add pre-calculated shap interaction values with `explainer.set_shap_interaction_values()`
 
 ### Bug Fixes
--
+- Fixed bug with What if tab components static html export (missing `</div>`)
 -
 
 ### Improvements
