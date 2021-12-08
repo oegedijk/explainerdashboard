@@ -720,7 +720,7 @@ BaseExplainer
 
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
    :members: get_shap_values_df, get_mean_abs_shap_df, get_permutation_importances_df, 
-            get_importances_df, contrib_df, plot_importances, plot_contributions, 
+            get_importances_df, contrib_df, set_shap_values, set_shap_interaction_values, plot_importances, plot_contributions, 
             plot_importances_detailed, plot_interactions_detailed, plot_interactions_importances, 
             plot_dependence, plot_interaction, plot_pdp
    :member-order: bysource
@@ -740,6 +740,7 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
 
 .. autoclass:: explainerdashboard.explainers.ClassifierExplainer
    :members: random_index, get_precision_df, get_classification_df, get_liftcurve_df,
+        set_shap_values, set_shap_interaction_values,
         plot_precision, plot_cumulative_precision, plot_classification, 
         plot_lift_curve, plot_confusion_matrix, plot_roc_auc, plot_pr_auc
    :member-order: bysource
