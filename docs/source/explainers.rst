@@ -258,6 +258,16 @@ You can set the precision of the calculated shap values, predictions, etc, in
 order to save on memory usage. Default is ``'float64'``, but ``'float32'`` is probably
 fine, maybe even ``'float16'`` for your application.
 
+Pre-calculated shap values
+==========================
+
+Perhaps you already have calculated the shap values somewhere, or you can calculate 
+them off on a giant cluster somewhere, or your model supports `GPU generated shap values <https://github.com/rapidsai/gputreeshap>`_. 
+    
+You can simply add these pre-calculated shap values to the explainer with 
+``explainer.set_shap_values()`` and ``explainer.set_shap_interaction_values()`` methods.
+
+
 Plots
 =====
 
