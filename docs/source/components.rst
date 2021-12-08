@@ -272,6 +272,13 @@ CumulativePrecisionComponent
    :members:
 
 
+ClassifierModelSummaryComponent
+-------------------------------
+
+.. autoclass:: explainerdashboard.dashboard_components.classifier_components.ClassifierModelSummaryComponent
+   :members:
+
+
 regression_components
 =====================
 
