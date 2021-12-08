@@ -173,6 +173,14 @@ If you pass ``integrate_dashboard_yamls=True``, then the configuration of the
 dashboards get integrated into a single ``hub.yaml`` file instead of being
 stored in separate files. 
 
+Storing to static html
+======================
+
+You can store the hub front-end and the underlying dashboards to static html with
+e.g. `hub.to_html("hub.html")`. This will also generate individual `.html` files for
+every dashboard e.g. `dashboard1.html`, `dashboard2.html`, etc, etc. 
+
+This might become a bit messy, so instead you can save straight to a zipfile with `hub.to_zip("hub.zip")`.
 
 explainerhub CLI
 ================

@@ -210,7 +210,12 @@ There are a few tricks to make this less painful:
     number of trees, `L` is the maximum number of leaves in any tree and 
     `D` the maximal depth of any tree. So reducing the number of leaves or average
     depth in the decision tree can really speed up SHAP calculations.
-4. Plotting only a random sample of points. When you have a lots of observations,
+4. Pre-computing shap values. Perhaps you already have calculated the shap values
+    somewhere, or you can calculate them off on a giant cluster somewhere, or
+    your model supports [GPU generated shap values](https://github.com/rapidsai/gputreeshap). 
+    You can simply add these pre-calculated shap values to the explainer 
+    with `explainer.set_shap_values()` and `explainer.set_shap_interaction_values()` methods.
+5. Plotting only a random sample of points. When you have a lots of observations,
     simply rendering the plots may get slow as well. You can pass the `plot_sample`
     parameter to render a (different each time) random sample of observations
     for the various scatter plots in the dashboard. E.g.: 
