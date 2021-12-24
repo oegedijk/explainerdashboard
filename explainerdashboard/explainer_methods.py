@@ -101,7 +101,8 @@ def guess_shap(model):
 
     skorch_models = ['skorch.net.NeuralNet',
                      'skorch.regressor.NeuralNetRegressor',
-                     'skorch.classifier.NeuralNetClassifier']
+                     'skorch.classifier.NeuralNetClassifier',
+                     'skorch.classifier.NeuralNetBinaryClassifier']
     
     for tree_model in tree_models:
         if str(type(model)).endswith(tree_model + "'>"):

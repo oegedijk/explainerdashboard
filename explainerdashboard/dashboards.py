@@ -1328,7 +1328,7 @@ class ExplainerHub:
         return cls(dashboards, **update_kwargs(config, **update_params))
                 
     def to_yaml(self, filepath:Path=None, dump_explainers=True, 
-                return_dict=False, integrate_dashboard_yamls=False):
+                return_dict=False, integrate_dashboard_yamls=False, pickle_type="joblib"):
         """Store ExplainerHub to configuration .yaml, store the users to users.json 
         and dump the underlying dashboard .yamls and explainers. 
 
@@ -1347,6 +1347,8 @@ class ExplainerHub:
                 separate_dashboard_yamls=True. Defaults to False.
             integrate_dashboard_yamls(bool, optional): Do not generate an individual 
                 .yaml file for each dashboard, but integrate them in hub.yaml. 
+            pickle_type ({'joblib', 'dill', 'pkl'}, optional). Format to dump explainers in. 
+                Defaults to "joblib". Alternatives are "dill" and "pkl".
 
         Returns:
             {dict, yaml, None}
@@ -1368,7 +1370,7 @@ class ExplainerHub:
             for dashboard in self.dashboards:
                 print(f"Storing {dashboard.name}_dashboard.yaml...")
                 dashboard.to_yaml(filepath.parent / (dashboard.name+"_dashboard.yaml"),
-                        explainerfile=filepath.parent / (dashboard.name+"_explainer.joblib"),
+                        explainerfile=filepath.parent / (dashboard.name+f"_explainer.{pickle_type}"),
                         dump_explainer=dump_explainers)
             hub_config = dict(
                 explainerhub=dict(

@@ -3,9 +3,11 @@
 
 - add get_descriptions_df tests
 - do multiclass pdp
-- add manual add shap values functionality
+
 - experiment with dash_draggable: https://github.com/MehdiChelh/dash-draggable
-- add ExplainerHub.to_html()
+- add set_shap_values tests
+- add hub.to_yaml() dashboard dump option, e.g. 'joblib', 'dill' or 'pkl'
+- add how to create `ExplainerComponent` to docs (see closed issue)
 ## Bugs:
 
 ## Plots:
