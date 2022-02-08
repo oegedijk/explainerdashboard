@@ -257,7 +257,7 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
     trace1 = go.Bar(
         x=(0.5*(precision_df['p_min']+precision_df['p_max'])).values,
         y=precision_df['count'].values,
-        width=bin_widths,
+        width=bin_widths.values,
         name='counts'
     )
     
