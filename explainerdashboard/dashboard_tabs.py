@@ -8,7 +8,7 @@ __all__ = [
     'DecisionTreesTab',
 ]
 
-import dash_html_components as html
+from dash import html
 
 from .dashboard_components import *
 

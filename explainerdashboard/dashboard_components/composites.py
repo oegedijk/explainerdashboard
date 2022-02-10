@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 import dash_bootstrap_components as dbc
-import dash_html_components as html
+from dash import html
 
 from ..explainers import RandomForestExplainer, XGBExplainer
 from ..dashboard_methods import *

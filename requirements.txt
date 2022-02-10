@@ -1,4 +1,4 @@
-dash
+dash>=2
 dash-bootstrap-components
 dash-auth
 jupyter_dash
