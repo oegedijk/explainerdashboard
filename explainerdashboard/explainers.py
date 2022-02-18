@@ -139,35 +139,9 @@ class BaseExplainer(ABC):
                 try:
                     self.X, self.model  = split_pipeline(model, X)
                     if X_background is not None:
-                        self.X_background = pd.DataFrame(pipeline_transformer.transform(X_background), columns=X.columns)
+                        self.X_background = pd.DataFrame(model.steps[:-1].transform(X_background), columns=X.columns)
                     print(f"Detected sklearn Pipeline and succesfully extracted final "
                     "output dataframe with column names and final model...")
-                # pipeline_model = model.steps[-1][1] 
-                # pipeline_transformer = Pipeline(model.steps[:-1])
-                # if hasattr(model, "predict") and hasattr(pipeline_transformer, "transform"):
-                #     X_transformed = pipeline_transformer.transform(X)
-                #     if X_transformed.shape == X.shape:
-                #         print("Warning: Extracting final model from Pipeline and "
-                #             "transforming X using transformation steps. The dashboard will "
-                #             "show the transformed features. To use the original "
-                #             "features set shap='kernel' to use the (probably slower) "
-                #             "shap.KernelExplainer.")
-                #         self.model = pipeline_model
-                #         self.X = pd.DataFrame(X_transformed, columns=X.columns)
-                #         if X_background is not None:
-                #             self.X_background = pd.DataFrame(pipeline_transformer.transform(X_background), columns=X.columns)
-                #     else:
-                #         print("Warning: Pipeline does not output the same number "
-                #             "of columns as input, so not able to extract model, "
-                #             "transformer and assign column names. So setting "
-                #             "shap='kernel' to use the (slower and approximate) "
-                #             "model-agnostic shap.KernelExplainer. To override "
-                #             " this please pre-process your data yourself and only "
-                #             "pass the final model and transformed data to the explainer.")
-                #         shap = 'kernel'
-                #     del pipeline_model
-                #     del pipeline_transformer
-                #     del X_transformed
                 except:
                     print("Warning: Failed to extract a data transformer with column names and final "
                         "model from the Pipeline. So setting shap='kernel' to use "
