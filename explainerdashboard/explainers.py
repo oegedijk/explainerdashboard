@@ -1423,7 +1423,7 @@ class BaseExplainer(ABC):
             if index is not None or X_row is not None:
                 val, pred = self.get_col_value_plus_prediction(col, index, X_row)
                 if val not in grid_values:
-                    grid_values = np.append(grid_values, val).sort()
+                    grid_values = np.sort(np.append(grid_values, val))
 
         if index is not None:
             X_row = self.get_X_row(index)
