@@ -3651,10 +3651,10 @@ class TreeExplainer(BaseExplainer):
         """ """
         if not hasattr(self, '_graphviz_available'):
             try:
-                import graphviz.backend as be
+                import graphviz.backend.execute as be
                 cmd = ["dot", "-V"]
-                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
-            except:
+                be.run_check(cmd, capture_output=True, check=True, quiet=True)
+            except Exception as e:
                 print("""
                 WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
                 so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
