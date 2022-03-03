@@ -1,5 +1,6 @@
 __all__ = [
     'IndexNotFoundError',
+    'append_dict_to_df',
     'safe_isinstance',
     'guess_shap',
     'mape_score',
@@ -48,6 +49,22 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from joblib import Parallel, delayed
+
+
+def append_dict_to_df(df, row_dict):
+    """Appends a row to the dataframe 'df' and returns the new
+    dataframe.
+    
+    Args:
+        df (pd.DataFrame) data frame
+    
+        row_dict (dict): row data
+
+    Returns:
+        pd.DataFrame
+    """
+    return pd.concat([df, pd.DataFrame([row_dict])],
+                     ignore_index=True)
 
 
 class IndexNotFoundError(Exception):
@@ -1095,8 +1112,8 @@ def get_contrib_summary_df(contrib_df, model_output="raw", round=2, units="", na
         else:
             effect +=  str(np.round(row['contribution'], round)) + f" {units}"
 
-        contrib_summary_df = contrib_summary_df.append(
-            dict(Reason=reason, Effect=effect), ignore_index=True)
+        contrib_summary_df = append_dict_to_df(contrib_summary_df,
+            dict(Reason=reason, Effect=effect))
     
     return contrib_summary_df.reset_index(drop=True)
 
@@ -1163,7 +1180,7 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1):
             return node.class_counts()[pos_label]/ sum(node.class_counts())
         for node in nodes:
             if not node.isleaf():
-                decisiontree_df = decisiontree_df.append({
+                decisiontree_df = append_dict_to_df(decisiontree_df, {
                     'node_id' : node.id,
                     'average' : node_pred_proba(node),
                     'feature' : node.feature_name(),
@@ -1175,14 +1192,14 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1):
                     'diff' : node_pred_proba(node.left) - node_pred_proba(node) \
                                 if observation[node.feature_name()] < node.split() \
                                 else node_pred_proba(node.right) - node_pred_proba(node)
-                }, ignore_index=True)
+                })
 
     else:
         def node_mean(node):
             return decision_tree.tree_model.tree_.value[node.id].item()
         for node in nodes:
             if not node.isleaf():
-                decisiontree_df = decisiontree_df.append({
+                decisiontree_df = append_dict_to_df(decisiontree_df, {
                     'node_id' : node.id,
                     'average' : node_mean(node),
                     'feature' : node.feature_name(),
@@ -1194,7 +1211,7 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1):
                     'diff' : node_mean(node.left) - node_mean(node) \
                                 if observation[node.feature_name()] < node.split() \
                                 else node_mean(node.right) - node_mean(node)
-                }, ignore_index=True)
+                })
     return decisiontree_df
 
 
@@ -1222,35 +1239,35 @@ def get_decisiontree_summary_df(decisiontree_df, classifier=False, round=2, unit
 
 
     decisiontree_summary_df = pd.DataFrame(columns=['Feature', 'Condition', 'Adjustment', 'New Prediction'])
-    decisiontree_summary_df = decisiontree_summary_df.append({
+    decisiontree_summary_df = append_dict_to_df(decisiontree_summary_df, {
                             'Feature' : "",
                             'Condition' : "",
                             'Adjustment' : "Starting average",
                             'New Prediction' : str(np.round(base_value, round)) + ('%' if classifier else f' {units}')
-                        }, ignore_index=True)
+                        })
 
     for _, row in decisiontree_df.iterrows():
         if classifier:
-            decisiontree_summary_df = decisiontree_summary_df.append({
+            decisiontree_summary_df = append_dict_to_df(decisiontree_summary_df, {
                             'Feature' : row['feature'],
                             'Condition' : str(row['value']) + str(' >= ' if row['direction'] == 'right' else ' < ') + str(row['split']).ljust(10),
                             'Adjustment' : str('+' if row['diff'] >= 0 else '') + str(np.round(100*row['diff'], round)) +'%',
                             'New Prediction' : str(np.round(100*(row['average']+row['diff']), round)) + '%'
-                        }, ignore_index=True)
+                        })
         else:
-            decisiontree_summary_df = decisiontree_summary_df.append({
+            decisiontree_summary_df = append_dict_to_df(decisiontree_summary_df, {
                             'Feature' : row['feature'],
                             'Condition' : str(row['value']) + str(' >= ' if row['direction'] == 'right' else ' < ') + str(row['split']).ljust(10),
                             'Adjustment' : str('+' if row['diff'] >= 0 else '') + str(np.round(row['diff'], round)),
                             'New Prediction' : str(np.round((row['average']+row['diff']), round)) + f" {units}"
-                        }, ignore_index=True)
+                        })
 
-    decisiontree_summary_df = decisiontree_summary_df.append({
+    decisiontree_summary_df = append_dict_to_df( decisiontree_summary_df, {
                         'Feature' : "",
                         'Condition' : "",
                         'Adjustment' : "Final Prediction",
                         'New Prediction' : str(np.round(prediction, round)) + ('%' if classifier else '') + f" {units}"
-                    }, ignore_index=True)
+                    })
 
     return decisiontree_summary_df
 
@@ -1317,20 +1334,20 @@ def get_xgboost_path_df(xgbmodel, X_row, n_tree=None):
     
     node = node_dict[0]
     while not node['is_leaf']:
-        prediction_path_df = prediction_path_df.append(
+        prediction_path_df = append_dict_to_df(prediction_path_df,
             dict(
                 node=node['node'], 
                 feature=node['feature'], 
                 cutoff=node['cutoff'], 
                 value=float(X_row[node['feature']])
-            ), ignore_index=True)
+            ))
         if np.isnan(X_row[node['feature']]) or X_row[node['feature']] < node['cutoff']:
             node = node_dict[node['left_node']]
         else:
             node = node_dict[node['right_node']]
     
     if node['is_leaf']:
-        prediction_path_df = prediction_path_df.append(dict(node=node['node'], feature="_PREDICTION", value=node['leaf_value']), ignore_index=True)
+        prediction_path_df = append_dict_to_df(prediction_path_df, dict(node=node['node'], feature="_PREDICTION", value=node['leaf_value']))
     return prediction_path_df
 
 
@@ -1349,25 +1366,25 @@ def get_xgboost_path_summary_df(xgboost_path_df, output="margin"):
 
     for row in xgboost_path_df.itertuples():
         if row.feature == "_PREDICTION":
-            xgboost_path_summary_df = xgboost_path_summary_df.append(
+            xgboost_path_summary_df = append_dict_to_df(xgboost_path_summary_df,
                 dict(
                     node=row.node, 
                     split_condition=f"prediction ({output}) = {row.value}" 
-                ), ignore_index=True
-            )   
+                )
+            )
         elif row.value < row.cutoff:
-            xgboost_path_summary_df = xgboost_path_summary_df.append(
+            xgboost_path_summary_df = append_dict_to_df(xgboost_path_summary_df,
                 dict(
                     node=row.node, 
                     split_condition=f"{row.feature} = {row.value} < {row.cutoff}"
-                ), ignore_index=True
+                )
             )
         else:
-            xgboost_path_summary_df = xgboost_path_summary_df.append(
+            xgboost_path_summary_df = append_dict_to_df(xgboost_path_summary_df,
                 dict(
                     node=row.node, 
                     split_condition=f"{row.feature} = {row.value} >= {row.cutoff}"
-                ), ignore_index=True
+                )
             )
     return xgboost_path_summary_df
 
