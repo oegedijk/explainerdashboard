@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
 
+with open("requirements.txt", "rt") as requirements_file:
+    requirements = list(filter(None, map(str.strip,
+                                         requirements_file.readlines())))
+
 setup(
     name='explainerdashboard',
     version='0.3.8',
@@ -68,10 +72,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
-    install_requires=['dash>=2', 'dash-bootstrap-components<1', 'jupyter_dash', 'dash-auth',
-                    'dtreeviz>=1.3', 'numpy', 'pandas>=1.1', 'scikit-learn', 
-                    'shap>=0.37', 'joblib', 'oyaml', 'click', 'waitress',
-                    'flask_simplelogin', 'orjson'],
+    install_requires=requirements,
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
