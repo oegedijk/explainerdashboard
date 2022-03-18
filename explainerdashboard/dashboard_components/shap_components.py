@@ -106,7 +106,7 @@ class ShapSummaryComponent(ExplainerComponent):
                         ], md=2), self.hide_depth),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                                 [
                                     dbc.Label("Summary Type", id='shap-summary-type-label-'+self.name),
                                     dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
@@ -140,7 +140,7 @@ class ShapSummaryComponent(ExplainerComponent):
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
                     
-                    ], form=True),
+                    ]),
                 dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
                         children=[dcc.Graph(id="shap-summary-graph-"+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
@@ -151,7 +151,7 @@ class ShapSummaryComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -347,7 +347,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                                 for idx in self.explainer.idxs],
                                 value=self.index)
                         ], md=4), hide=self.hide_index),          
-                ], form=True),
+                ]),
                 dcc.Loading(id="loading-dependence-graph-"+self.name, 
                             children=[
                                 dcc.Graph(id='shap-dependence-graph-'+self.name,
@@ -364,7 +364,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     dbc.Row([
                         make_hideable(
                             dbc.Col([
-                                dbc.FormGroup([
+                                dbc.Row([
                                     dbc.Tooltip("Remove outliers in feature (and color feature) from plot.",
                                             target='shap-dependence-outliers-'+self.name),
                                     dbc.Checklist(
@@ -405,7 +405,7 @@ class ShapDependenceComponent(ExplainerComponent):
                             ], md=4), hide=self.hide_cats_sort),
                     ]) 
                 ]), hide=self.hide_footer),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -606,7 +606,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], md=2), self.hide_depth),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                                 [
                                     dbc.Label("Summary Type", id='interaction-summary-type-label-'+self.name),
                                     dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
@@ -639,7 +639,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
-                    ], form=True),
+                    ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
@@ -654,7 +654,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"), 
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -821,8 +821,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                             dbc.Select(id='interaction-dependence-col-'+self.name,
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()],
-                                value=self.col
-                            ),
+                                value=self.col),
                         ], md=3), hide=self.hide_col), 
                     make_hideable(
                         dbc.Col([
@@ -833,8 +832,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                             dbc.Select(id='interaction-dependence-interact-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.top_shap_interactions(col=self.col)],
-                                value=self.interact_col
-                            ),
+                                value=self.interact_col),
                         ], md=3), hide=self.hide_interact_col), 
                     make_hideable(
                             dbc.Col([
@@ -848,7 +846,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                                                     for idx in self.explainer.idxs],
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
-                    ], form=True),
+                    ]),
                 dbc.Row([
                     dbc.Col([
                         make_hideable(
@@ -868,7 +866,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Tooltip("Remove outliers (> 1.5*IQR) in feature and interaction feature from plot.",
                                         target='interaction-dependence-top-outliers-'+self.name),
                                 dbc.Checklist(
@@ -926,7 +924,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Tooltip("Remove outliers (> 1.5*IQR) in feature and interaction feature from plot.",
                                         target='interaction-dependence-bottom-outliers-'+self.name),
                                 dbc.Checklist(
@@ -967,7 +965,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         ], md=4), hide=self.hide_cats_sort), 
                 ])
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1224,7 +1222,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                             {'label': 'Horizontal', 'value': 'horizontal'}],
                                 value=self.orientation)
                         ], md=2), hide=self.hide_orientation),
-                    ], form=True),
+                    ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-contributions-graph-'+self.name, 
@@ -1239,7 +1237,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
             ]),
-        ])
+        ], class_name="h-100")
 
     def get_state_tuples(self):
         _state_tuples = super().get_state_tuples()
@@ -1434,7 +1432,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
-                ], form=True),
+                ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-contributions-table-'+self.name, 
@@ -1442,7 +1440,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     ]),
                 ]),
             ]),   
-        ])
+        ], class_name="h-100")
 
     def get_state_tuples(self):
         _state_tuples = super().get_state_tuples()

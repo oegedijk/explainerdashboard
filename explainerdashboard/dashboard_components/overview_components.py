@@ -72,7 +72,7 @@ class PredictionSummaryComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             dbc.Label("Show Percentile:"),
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 dbc.RadioButton(
                                     id='modelprediction-percentile-'+self.name, 
@@ -91,7 +91,7 @@ class PredictionSummaryComponent(ExplainerComponent):
                     ], md=12)
                 ])
             ])
-        ])
+        ], class_name="h-100")
 
     def component_callbacks(self, app):
         @app.callback(
@@ -189,29 +189,26 @@ class ImportancesComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
                                 dbc.Label("Importances type:"),
                                 dbc.Select(
                                     options=[
-                                        {'label': 'Permutation Importances', 
-                                        'value': 'permutation'},
-                                        {'label': 'SHAP values', 
-                                        'value': 'shap'}
+                                        {'label': 'Permutation Importances',
+                                         'value': 'permutation'},
+                                        {'label': 'SHAP values',
+                                         'value': 'shap'}
                                     ],
                                     value=self.importance_type,
                                     id='importances-permutation-or-shap-'+self.name,
-                                    #inline=True,
                                 ),
-                                
-                            ], id='importances-permutation-or-shap-form-'+self.name),
-                            dbc.Tooltip("Select Feature importance type: \n"
-                                    "Permutation Importance: How much does performance metric decrease when shuffling this feature?\n"
-                                    "SHAP values: What is the average SHAP contribution (positive or negative) of this feature?",
-                                    target='importances-permutation-or-shap-form-'+self.name),
-                        ], md=3), self.hide_type),
+                                dbc.Tooltip("Select Feature importance type: \n"
+                                            "Permutation Importance: How much does performance metric decrease when shuffling this feature?\n"
+                                            "SHAP values: What is the average SHAP contribution (positive or negative) of this feature?",
+                                            target='importances-permutation-or-shap-form-'+self.name),
+                                ], md=3, id='importances-permutation-or-shap-form-'+self.name),
+                        self.hide_type),
                     make_hideable(
                         dbc.Col([
-                            html.Label('Depth:', id='importances-depth-label-'+self.name),
+                            dbc.Label('Depth:', id='importances-depth-label-'+self.name),
                             dbc.Select(id='importances-depth-'+self.name,
                                         options = [{'label': str(i+1), 'value':i+1} 
                                                     for i in range(self.explainer.n_features)],
@@ -221,7 +218,7 @@ class ImportancesComponent(ExplainerComponent):
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector)    
-                ], form=True),
+                ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='importances-graph-loading-'+self.name,
@@ -236,7 +233,7 @@ class ImportancesComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
             ])         
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -302,7 +299,7 @@ class FeatureDescriptionsComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Label("Sort Features:"),
                                 dbc.Select(
                                     options=[
@@ -319,14 +316,14 @@ class FeatureDescriptionsComponent(ExplainerComponent):
                                         "mean absolute SHAP value to lowest.",
                                     target='feature-descriptions-table-sort-'+self.name),
                         ], md=3), self.hide_sort),   
-                ], form=True),
+                ]),
                 dbc.Row([
                     dbc.Col([
                         html.Div(id='feature-descriptions-table-'+self.name)
                     ]),
                 ]),
             ])
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -469,7 +466,7 @@ class PdpComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([self.selector.layout()
                     ], width=2), hide=self.hide_selector),
-                ], form=True),
+                ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-pdp-graph-'+self.name, 
@@ -489,7 +486,7 @@ class PdpComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Label("Drop fill:"),
                                 dbc.Tooltip("Drop all observations with feature values "
                                         f"equal to {self.explainer.na_fill} from the plot. "
@@ -545,9 +542,9 @@ class PdpComponent(ExplainerComponent):
                             id='pdp-categories-sort-div-'+self.name,
                             style={} if self.col in self.explainer.cat_cols else dict(display="none")
                         ), hide=self.hide_cats_sort),
-                ], form=True),
+                ]),
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
 
     def get_state_tuples(self):
         _state_tuples = super().get_state_tuples()
@@ -698,10 +695,11 @@ class FeatureInputComponent(ExplainerComponent):
     def _generate_dash_input(self, col, onehot_cols, onehot_dict, cat_dict):
         if col in cat_dict:
             col_values = cat_dict[col]
-            return dbc.FormGroup([
+            return html.Div([
                     dbc.Label(col),
                     dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
                              options=[dict(label=col_val, value=col_val) for col_val in col_values],
+                             style={"width": "100%"},
                              clearable=False),
                     dbc.FormText(f"Select any {col}") if not self.hide_range else None,
                 ])   
@@ -713,18 +711,19 @@ class FeatureInputComponent(ExplainerComponent):
             if any(self.explainer.X[self.explainer.onehot_dict[col]].sum(axis=1) == 0):
                 col_values.append(self.explainer.onehot_notencoded[col])
                 display_values.append(self.explainer.onehot_notencoded[col])
-            return dbc.FormGroup([
+            return html.Div([
                     dbc.Label(col),
                     dcc.Dropdown(id='feature-input-'+col+'-input-'+self.name, 
                              options=[dict(label=display, value=col_val) 
                                         for display, col_val in zip(display_values, col_values)],
+                             style={"width": "100%"},
                              clearable=False),
                     dbc.FormText(f"Select any {col}") if not self.hide_range else None,
                 ])   
         else:
             min_range = np.round(self.explainer.X[col][lambda x: x != self.explainer.na_fill].min(), 2)
             max_range = np.round(self.explainer.X[col][lambda x: x != self.explainer.na_fill].max(), 2)
-            return dbc.FormGroup([
+            return html.Div([
                     dbc.Label(col),
                     dbc.Input(id='feature-input-'+col+'-input-'+self.name, type="number"),
                     dbc.FormText(f"Range: {min_range}-{max_range}") if not self.hide_range else None
@@ -782,10 +781,10 @@ class FeatureInputComponent(ExplainerComponent):
                                                     for idx in self.explainer.get_index_list()],
                                     value=self.index)
                             ], md=4), hide=self.hide_index), 
-                    ], form=True),
+                    ]),
                 input_row,
             ])
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)

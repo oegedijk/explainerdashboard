@@ -193,11 +193,11 @@ def make_hideable(element, hide=False):
 
     Args:
         hide(bool): wrap the element inside a hidden html.div. If the element 
-                    is a dbc.Col or a dbc.FormGroup, wrap element.children in
+                    is a dbc.Col or a dbc.Row, wrap element.children in
                     a hidden html.Div instead. Defaults to False.
     """ 
     if hide:
-        if isinstance(element, dbc.Col) or isinstance(element, dbc.FormGroup):
+        if isinstance(element, dbc.Col) or isinstance(element, dbc.Row):
             return html.Div(element.children, style=dict(display="none"))
         else:
             return html.Div(element, style=dict(display="none"))
@@ -596,10 +596,14 @@ class GraphPopout(ExplainerComponent):
     def layout(self):
         return html.Div(
             [
-                dbc.Button(self.button_text, id=self.name+'modal-open', size=self.button_size, outline=self.button_outline),
+                dbc.Button(self.button_text, id=self.name+'modal-open', size=self.button_size,
+                           color="secondary", outline=self.button_outline),
                 dbc.Modal([
-                    dbc.ModalHeader(self.title),
-                    dcc.Graph(id=self.name+'-modal-graph', style={"max-height": "none", "height": "80%"}),
+                    # ToDo the X on the top right is not rendered properly, disabling
+                    dbc.ModalHeader(dbc.ModalTitle(self.title), close_button=True),
+                    dbc.ModalBody(
+                        dcc.Graph(id=self.name+'-modal-graph', style={"max-height": "none", "height": "80%"})
+                    ),
                     dbc.ModalFooter([   
                         html.Div([
                             html.Div([
@@ -613,14 +617,14 @@ class GraphPopout(ExplainerComponent):
                                             is_in=True,
                                             appear=True), 
                                 ], style=dict(display="none" if not self.description else None))
-                            ], className="text-left"),  
+                            ], className="text-left"),
                             html.Div([
                                 dbc.Button("Close", id=self.name+'-modal-close', className="mr-auto")            
                             ], className="text-right", style=dict(float='right')),   
                             
                         ], style={"display":"flex"}),             
                     ], className="justify-content-between")       
-                ], id=self.name+'-modal', style={"max-width": "none", "width": "80%"}) 
+                ], id=self.name+'-modal', size="xl") 
             ], style={"display":"flex", "justify-content":"flex-end"})
     
     def component_callbacks(self, app):

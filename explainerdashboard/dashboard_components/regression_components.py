@@ -165,11 +165,11 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         ], md=8), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
-                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name, block=True),
+                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name),
                             dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
                                             target='random-index-reg-button-'+self.name),
                         ], md=4), hide=self.hide_button),
-                    ], form=True),
+                    ]),
                     dbc.Row([
                         make_hideable(
                         dbc.Col([
@@ -659,7 +659,7 @@ class PredictedVsActualComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 # html.Label("Log y"),
                                 dbc.RadioButton(
@@ -682,7 +682,7 @@ class PredictedVsActualComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 dbc.RadioButton(
                                     id='pred-vs-actual-logx-'+self.name,
@@ -815,7 +815,7 @@ class ResidualsComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 dbc.Label("Horizontal axis:", html_for='residuals-pred-or-actual-'+self.name),
                                 dbc.Select(
@@ -1020,7 +1020,7 @@ class RegressionVsColComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             html.Div([
-                                dbc.FormGroup([
+                                dbc.Row([
                                     dbc.Label("Scatter:"),
                                     dbc.Tooltip("For categorical features, display "
                                             "a point cloud next to the violin plots.", 

@@ -108,6 +108,7 @@ class ExplainerTabsLayout(ExplainerComponent):
                     dbc.Col([
                         self.selector.layout()
                     ], md=3), hide=self.header_hide_selector),
+                dbc.Col([], class_name="me-auto"),
                 make_hideable(
                     dbc.Col([
                         html.Div([
@@ -1812,7 +1813,7 @@ class ExplainerHub:
                                             href=f"/{self.base_route}/{dashboard.name}", 
                                             external_link=True),   
                             ])]) for dashboard in dashboards[i:i+n_cols]
-                    ]
+                    ], class_name="h-100"
                 )
             if n_last_row > 0:
                 last_row = [
@@ -1828,20 +1829,20 @@ class ExplainerHub:
                                         href=f"/{self.base_route}/{dashboard.name}", 
                                         external_link=True),   
                         ])
-                    ]) for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
+                    ], class_name="h-100")
+                    for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
                 for i in range(len(last_row), n_cols):
                     last_row.append(dbc.Card([], style=dict(border="none")))
                 card_decks.append(last_row)
             return card_decks
 
-            
         header = html.Div([
-            dbc.Jumbotron([
+            dbc.Container([
                 html.H1(self.title, className="display-3"),
                 html.Hr(className="my-2"),
                 html.P(self.description, className="lead"),
-            ])
-        ], style=dict(marginTop=40))
+            ], fluid=True, class_name="py-3")
+        ], className="p-3 bg-light rounded-3", style=dict(marginTop=40))
         
         if self.masonry:
             dashboard_rows = [
@@ -1853,7 +1854,7 @@ class ExplainerHub:
             ]
         else:
             dashboard_rows = [
-                dbc.Row([dbc.CardDeck(deck)], style=dict(marginBottom=30)) 
+                dbc.Row([dbc.Col(card) for card in deck], class_name="mt-4 g-4")
                     for deck in dashboard_decks(self.dashboards, self.n_dashboard_cols)]
         
         if hasattr(self, "index_page"):
@@ -1936,14 +1937,12 @@ class ExplainerHub:
         """
         if static:
             page = """
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
             """
             dbs = [(f"{db.name}.html", db.title) for db in self.dashboards]
         else:
             page = f"""
-            <script type="text/javascript" src="/static/jquery-3.5.1.slim.min.js"></script>
             <script type="text/javascript" src="/static/bootstrap.min.js"></script>
             <link type="text/css" rel="stylesheet" href="{'/static/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
             <link rel="shortcut icon" href="/static/favicon.ico">
@@ -2084,7 +2083,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}{self.index_route}", flush=True)
+        print(f"Starting ExplainerHub on http://{host}:{port}{self.index_route}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  
