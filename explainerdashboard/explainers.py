@@ -1191,10 +1191,9 @@ class BaseExplainer(ABC):
 
         memory_df = pd.DataFrame(columns=['property', 'type', 'bytes', 'size'])
         for k, v in self.__dict__.items():
-            memory_df = memory_df.append(dict(
+            memory_df = append_dict_to_df(memory_df, dict(
                 property=f"self.{k}", type=v.__class__.__name__, 
-                bytes=get_size(v), size=size_to_string(get_size(v))), 
-                ignore_index=True)
+                bytes=get_size(v), size=size_to_string(get_size(v))))
         
         print("Explainer total memory usage (approximate): ", 
                     size_to_string(memory_df.bytes.sum()), flush=True)
@@ -2390,10 +2389,10 @@ class ClassifierExplainer(BaseExplainer):
                 raise ValueError(f"Expected shap values to have {len(self.X)} rows!")
             if sv.shape[1] != len(self.original_cols):
                 raise ValueError(f"Expected shap values to have {len(self.original_columns)} columns!")
-            self._shap_values_df.append(
+            self._shap_values_df = pd.concat([self._shap_values_df,
                 merge_categorical_shap_values(
                     pd.DataFrame(sv, columns=self.columns), 
-                    self.onehot_dict, self.merged_cols).astype(self.precision)
+                    self.onehot_dict, self.merged_cols).astype(self.precision)]
             )
         if len(self.labels) == 2:
             self._shap_values_df = self._shap_values_df[1]
@@ -3343,18 +3342,15 @@ class RegressionExplainer(BaseExplainer):
             X_row = X_row.values.astype("float32")
         pred = self.model.predict(X_row).item()
         preds_df = pd.DataFrame(columns = ["", self.target])
-        preds_df = preds_df.append(
-                pd.Series(("Predicted", f"{pred:.{round}f} {self.units}"), 
-                        index=preds_df.columns), ignore_index=True)
+        preds_df = append_dict_to_df(preds_df,
+                {"": "Predicted", self.target: f"{pred:.{round}f} {self.units}"})
         if index is not None:
             try:
                 y_true = self.get_y(index)
-                preds_df = preds_df.append(
-                    pd.Series(("Observed", f"{y_true:.{round}f} {self.units}"), 
-                        index=preds_df.columns), ignore_index=True)
-                preds_df = preds_df.append(
-                    pd.Series(("Residual", f"{(y_true-pred):.{round}f} {self.units}"), 
-                        index=preds_df.columns), ignore_index=True)
+                preds_df = append_dict_to_df(preds_df,
+                    {"": "Observed", self.target: f"{y_true:.{round}f} {self.units}"})
+                preds_df = append_dict_to_df(preds_df,
+                    {"": "Residual", self.target: f"{(y_true-pred):.{round}f} {self.units}"})
             except Exception as e:
                 pass
         return preds_df
@@ -3635,10 +3631,10 @@ class TreeExplainer(BaseExplainer):
         """ """
         if not hasattr(self, '_graphviz_available'):
             try:
-                import graphviz.backend as be
+                import graphviz.backend.execute as be
                 cmd = ["dot", "-V"]
-                stdout, stderr = be.run(cmd, capture_output=True, check=True, quiet=True)
-            except:
+                be.run_check(cmd, capture_output=True, check=True, quiet=True)
+            except Exception as e:
                 print("""
                 WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
                 so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
