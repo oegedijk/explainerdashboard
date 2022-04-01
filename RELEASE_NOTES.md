@@ -1,5 +1,39 @@
 # Release Notes
 
+## Version 0.3.8.1:
+### Breaking Changes
+- 
+- 
+
+### New Features
+- Adds support for sklearn Pipelines that add new features (such as those including OneHotEncoder)
+    as long as they support the new `get_features_out()` method. Not all estimators and transformers
+    have this method implemented yet, but if all estimators in your pipeline do, then
+    explainerdashboard will extract the final dataframe and the model from your pipelines.
+    For now this does result in a lot of "this model was fitted on a numpy array but you provided a dataframe"
+    warnings.
+-
+
+### Bug Fixes
+-   Fixed a bug with sorting pdp features
+-   Fixed werkzeug<=2.0.3 due to some new features that broke JupyterDash
+-   Changes use of pd.append that will be deprecated soon and is currently generated warnings.
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+## Version 0.3.8:
+### Breaking Changes
+- Forces dash v2 dependency
+### Bug Fixes
+- fixes bug introduced by breaking change in pandas 1.40
+### Other Changes
+- Switches do dash v2 style imports
 
 ## Version 0.3.7
 ### Breaking Changes
