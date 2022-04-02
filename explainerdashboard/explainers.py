@@ -2389,10 +2389,10 @@ class ClassifierExplainer(BaseExplainer):
                 raise ValueError(f"Expected shap values to have {len(self.X)} rows!")
             if sv.shape[1] != len(self.original_cols):
                 raise ValueError(f"Expected shap values to have {len(self.original_columns)} columns!")
-            self._shap_values_df = pd.concat([self._shap_values_df,
+            self._shap_values_df.append(
                 merge_categorical_shap_values(
                     pd.DataFrame(sv, columns=self.columns), 
-                    self.onehot_dict, self.merged_cols).astype(self.precision)]
+                    self.onehot_dict, self.merged_cols).astype(self.precision)
             )
         if len(self.labels) == 2:
             self._shap_values_df = self._shap_values_df[1]
