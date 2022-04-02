@@ -6,7 +6,7 @@ with open("requirements.txt", "rt") as requirements_file:
 
 setup(
     name='explainerdashboard',
-    version='0.3.8.1',
+    version='0.3.8.2',
     description='Quickly build Explainable AI dashboards that show the inner workings of so-called "blackbox" machine learning models.',
     long_description="""
 
