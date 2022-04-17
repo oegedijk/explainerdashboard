@@ -1494,9 +1494,9 @@ class ExplainerHub:
                 raise ValueError("users_file should end with either .json or .yaml!")
                 
             assert 'users' in users_db, \
-                f"{self.users_file} should contain a 'users' dict!"
+                f"{users_file} should contain a 'users' dict!"
             assert 'dashboard_users' in users_db, \
-                f"{self.users_file} should contain a 'dashboard_users' dict!"
+                f"{users_file} should contain a 'dashboard_users' dict!"
                
     def _hash_logins(self, logins:List[List], add_to_users_file:bool=False):
         """Turn a list of [user, password] pairs into a Flask-Login style user 
@@ -1524,15 +1524,15 @@ class ExplainerHub:
                     username=username, 
                     password=password
                 )
-                if add_to_user_file and self.users_file is not None:
-                    self._add_user_to_file(self.users_file, user, password, already_hashed=True)
+                if add_to_users_file and self.users_file is not None:
+                    self._add_user_to_file(self.users_file, username, password, already_hashed=True)
             else:
                 logins_dict[username] = dict(
                     username=username, 
                     password=generate_password_hash(password, method='pbkdf2:sha256')
                 )
                 if add_to_users_file and self.users_jfile is not None:
-                    self._add_user_to_file(self.users_file, user, password)
+                    self._add_user_to_file(self.users_file, username, password)
         return logins_dict
     
     @staticmethod
@@ -1949,37 +1949,44 @@ class ExplainerHub:
             """
             dbs = [(f"/{self.base_route}/_{db.name}", db.title) for db in self.dashboards]
 
+        page_login_required = self.users and not self.dbs_open_by_default
+        
         page += f"""
         <title>{self.title}</title>
-        <body class="d-flex flex-column min-vh-100">
-            <div class="container{'-fluid' if self.fluid else ''}">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="{self.index_route if not static else '#'}">{self.title}</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-                    <ul class="navbar-nav ml-auto">
-
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Dashboards
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink2">
-                            {"".join([f'<a class="dropdown-item" href="{url}">{name}</a>' for url, name in dbs])}
+        <body>
+            <div class="container{'-fluid' if self.fluid else ''} px-4">
+                <nav class="navbar navbar-expand navbar-light bg-light">
+                    <div class="container-fluid">
+                        <a href="{self.index_route if not static else '#'}" class="navbar-brand">
+                        <h1>{self.title}</h1>
+                        </a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <form class="d-flex">
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                                    <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Dashboards
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                        {"".join([f'<li><a n_clicks_timestamp="-1" data-rr-ui-dropdown-item="" class="dropdown-item" href="{url}">{name}</a></li>' for url, name in dbs])}
+                                    </ul>
+                                    </li>
+                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ''}
+                                </ul>
                             </div>
-                        </li>
-                        {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static else ''}
-                    </ul>
-                </div>
-            </nav>
+                        </form>
+                    </div>
+                </nav>
         """
         if static:
             page += f"\n<div>\n{route}\n</div>\n"
         else:
             page += f"""
             
-            <div class="embed-responsive" style="min-height: {self.min_height}px">
+            <div class="mt-4 embed-responsive" style="min-height: {self.min_height}px">
                  <iframe 
                          src="{route}"
                          style="overflow-x: hidden; overflow-y: visible; position: absolute; width: 95%; height: 100%; background: transparent"
