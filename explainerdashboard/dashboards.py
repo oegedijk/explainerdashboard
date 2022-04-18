@@ -1812,8 +1812,8 @@ class ExplainerHub:
                                 dbc.CardLink("Go to dashboard", 
                                             href=f"/{self.base_route}/{dashboard.name}", 
                                             external_link=True),   
-                            ])]) for dashboard in dashboards[i:i+n_cols]
-                    ], class_name="h-100"
+                            ])], class_name="h-100")
+                     for dashboard in dashboards[i:i+n_cols]]
                 )
             if n_last_row > 0:
                 last_row = [
