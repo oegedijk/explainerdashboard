@@ -1053,7 +1053,9 @@ class ExplainerHub:
                     dbs_open_by_default:bool=False, port:int=8050, 
                     min_height:int=3000, secret_key:str=None, no_index:bool=False, 
                     bootstrap:str=None, fluid:bool=True, base_route:str="dashboards", 
-                    index_to_base_route:bool=False, max_dashboards:int=None, 
+                    index_to_base_route:bool=False,
+                    static_to_base_route:bool=False,
+                    max_dashboards:int=None, 
                     add_dashboard_route:bool=False, add_dashboard_pattern:str=None, **kwargs):
         """
     
@@ -1108,6 +1110,8 @@ class ExplainerHub:
                 Defaults to "dashboards".
             index_to_base_route (bool, optional): Dispatches Hub to "/base_route/index" instead of the default 
                 "/" and "/index". Useful when the host root is not reserved for the ExplainerHub
+            static_to_base_route(bool, optional): Dispatches Hub to "/base_route/static" instead of the default 
+                "/static". Useful when the host root is not reserved for the ExplainerHub
             max_dashboards (int, optional): Max number of dashboards in the hub. Defaults to None 
                 (for no limitation). If set and you add an additional dashboard, the
                 first dashboard in self.dashboards will be deleted!
@@ -1150,7 +1154,9 @@ class ExplainerHub:
         self.db_users = db_users if db_users is not None else {}                    
         self._validate_users_file(self.users_file)
         
-        self.app = Flask(__name__)
+        static_url_path = f"/{base_route}/static" if static_to_base_route else None
+        self.app = Flask(__name__, static_url_path=static_url_path)
+
         if secret_key is not None:
             self.app.config['SECRET_KEY'] = secret_key
         SimpleLogin(self.app, login_checker=self._validate_user)
@@ -1943,10 +1949,10 @@ class ExplainerHub:
             dbs = [(f"{db.name}.html", db.title) for db in self.dashboards]
         else:
             page = f"""
-            <script type="text/javascript" src="/static/jquery-3.5.1.slim.min.js"></script>
-            <script type="text/javascript" src="/static/bootstrap.min.js"></script>
-            <link type="text/css" rel="stylesheet" href="{'/static/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
-            <link rel="shortcut icon" href="/static/favicon.ico">
+            <script type="text/javascript" src=f"{self.app.static_url_path}/jquery-3.5.1.slim.min.js"></script>
+            <script type="text/javascript" src=f"{self.app.static_url_path}/bootstrap.min.js"></script>
+            <link type="text/css" rel="stylesheet" href="{f'{self.app.static_url_path}/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
+            <link rel="shortcut icon" href=f"{self.app.static_url_path}/favicon.ico">
             """
             dbs = [(f"/{self.base_route}/_{db.name}", db.title) for db in self.dashboards]
 
@@ -2049,7 +2055,7 @@ class ExplainerHub:
                             dashboard_path = self.add_dashboard_pattern.format(dashboard_path)
                         if dashboard_path.endswith(".yaml") and Path(dashboard_path).exists():
                             db = ExplainerDashboard.from_config(dashboard_path)
-                            dashboard_name = self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
+                            dashboard_name = self.add_dashboard(db, bootstrap=f"{self.app.static_url_path}/bootstrap.min.css")
                             return redirect(f"/dashboards/_{dashboard_name}", code=302)
                     except:
                         print("ERROR: Failed to add dashboard!", flush=True)
