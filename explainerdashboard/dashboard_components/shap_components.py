@@ -326,7 +326,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                 value=self.col)
                         ], md=3), self.hide_col),
                     make_hideable(dbc.Col([
-                            html.Label('Color feature:', id='shap-dependence-color-col-label-'+self.name),
+                            dbc.Label('Color feature:', id='shap-dependence-color-col-label-'+self.name),
                             dbc.Tooltip("Select feature to color the scatter markers by. This "
                                         "allows you to see interactions between various features in the graph.", 
                                         target='shap-dependence-color-col-label-'+self.name),
