@@ -77,7 +77,7 @@ class PredictionSummaryComponent(ExplainerComponent):
                                 dbc.RadioButton(
                                     id='modelprediction-percentile-'+self.name, 
                                     className="form-check-input",
-                                    checked=self.percentile),
+                                    value=self.percentile),
                                 dbc.Label("Show percentile",
                                         html_for='modelprediction-percentile'+self.name, 
                                         className="form-check-label"),
@@ -97,7 +97,7 @@ class PredictionSummaryComponent(ExplainerComponent):
         @app.callback(
             Output('modelprediction-'+self.name, 'children'),
             [Input('modelprediction-index-'+self.name, 'value'),
-             Input('modelprediction-percentile-'+self.name, 'checked'),
+             Input('modelprediction-percentile-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')])
         def update_output_div(index, include_percentile, pos_label):
             if index is not None:

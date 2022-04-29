@@ -591,8 +591,8 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 
 class PredictedVsActualComponent(ExplainerComponent):
     _state_props = dict(
-        log_x=('pred-vs-actual-logx-', 'checked'),
-        log_y=('pred-vs-actual-logy-', 'checked')
+        log_x=('pred-vs-actual-logx-', 'value'),
+        log_y=('pred-vs-actual-logy-', 'value')
     )
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
@@ -631,8 +631,6 @@ class PredictedVsActualComponent(ExplainerComponent):
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
 
-        
-
         if self.description is None: self.description = f"""
         Plot shows the observed {self.explainer.target} and the predicted 
         {self.explainer.target} in the same plot. A perfect model would have
@@ -665,14 +663,14 @@ class PredictedVsActualComponent(ExplainerComponent):
                                 dbc.RadioButton(
                                     id='pred-vs-actual-logy-'+self.name,
                                     className="form-check-input",
-                                    checked=self.log_y),
+                                    value=self.log_y),
                                 dbc.Tooltip("By using a log axis, it is easier to see relative "
                                         "errors instead of absolute errors.",
                                         target='pred-vs-actual-logy-'+self.name),
                                 dbc.Label("Log y",
                                         html_for='pred-vs-actual-logy-'+self.name,
                                         className="form-check-label"), 
-                            ], check=True),
+                            ]),
                         ], md=1, align="center"), hide=self.hide_log_y),
                     dbc.Col([
                         dcc.Graph(id='pred-vs-actual-graph-'+self.name,
@@ -687,14 +685,14 @@ class PredictedVsActualComponent(ExplainerComponent):
                                 dbc.RadioButton(
                                     id='pred-vs-actual-logx-'+self.name,
                                     className="form-check-input",
-                                    checked=self.log_x),
+                                    value=self.log_x),
                                 dbc.Tooltip("By using a log axis, it is easier to see relative "
                                         "errors instead of absolute errors.",
                                         target='pred-vs-actual-logx-'+self.name),
                                 dbc.Label("Log x",
                                         html_for='pred-vs-actual-logx-'+self.name,
                                         className="form-check-label"),   
-                            ], check=True),
+                            ]),
                         ], md=2), hide=self.hide_log_x),
                 ], justify="center"),
                 dbc.Row([
@@ -719,8 +717,8 @@ class PredictedVsActualComponent(ExplainerComponent):
     def component_callbacks(self, app):
         @app.callback(
             Output('pred-vs-actual-graph-'+self.name, 'figure'),
-            [Input('pred-vs-actual-logx-'+self.name, 'checked'),
-             Input('pred-vs-actual-logy-'+self.name, 'checked')],
+            [Input('pred-vs-actual-logx-'+self.name, 'value'),
+             Input('pred-vs-actual-logy-'+self.name, 'value')],
         )
         def update_predicted_vs_actual_graph(log_x, log_y):
             return self.explainer.plot_predicted_vs_actual(
