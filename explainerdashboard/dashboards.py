@@ -17,6 +17,7 @@ import requests
 from typing import List, Union
 from pathlib import Path
 from copy import copy, deepcopy
+import warnings
 
 import oyaml as yaml
 
@@ -39,6 +40,14 @@ from .dashboard_tabs import *
 from .explainers import BaseExplainer
 from . import to_html
 
+# with pipelines we extract the final model that is fitted on raw numpy arrays and so will throw
+# this error when receiving a pandas dataframe. So we suppress the warnings.
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    "X has feature names, but DecisionTreeClassifier was fitted without feature names",
+    UserWarning
+)
 
 class ExplainerTabsLayout(ExplainerComponent):
     def __init__(self, explainer, tabs,
