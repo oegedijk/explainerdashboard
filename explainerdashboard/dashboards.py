@@ -25,6 +25,14 @@ import dash
 from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    r"\nThe dash_\w+_components package is deprecated",
+    UserWarning,
+    "dash_auth.plotly_auth",
+)
 import dash_auth
 
 from flask import Flask, request, redirect
