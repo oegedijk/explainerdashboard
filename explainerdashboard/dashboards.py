@@ -53,7 +53,7 @@ from . import to_html
 warnings.filterwarnings(
     "ignore",
     # NB the \n at the beginning of the message :-/
-    "X has feature names, but DecisionTreeClassifier was fitted without feature names",
+    r"X has feature names, but \w+ was fitted without feature names",
     UserWarning
 )
 
