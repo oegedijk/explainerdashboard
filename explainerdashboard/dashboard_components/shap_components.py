@@ -102,6 +102,7 @@ class ShapSummaryComponent(ExplainerComponent):
                             dbc.Select(id='shap-summary-depth-'+self.name,
                                 options=[{'label': str(i+1), 'value': i+1} for i in 
                                             range(self.explainer.n_features)],
+                                size='sm',
                                 value=self.depth)
                         ], md=2), self.hide_depth),
                     make_hideable(
@@ -118,6 +119,7 @@ class ShapSummaryComponent(ExplainerComponent):
                                             {"label": "Detailed", "value": "detailed"},
                                         ],
                                         value=self.summary_type,
+                                        size='sm',
                                         id="shap-summary-type-"+self.name,
                                     ),
                                 ]
@@ -133,6 +135,8 @@ class ShapSummaryComponent(ExplainerComponent):
                                 dcc.Dropdown(id='shap-summary-index-'+self.name, 
                                     options = [{'label': str(idx), 'value':idx} 
                                                     for idx in self.explainer.idxs],
+                                    optionHeight=12,
+                                    style={'height': '12', 'font-size': '12'},
                                     value=self.index),
                             ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
@@ -323,7 +327,9 @@ class ShapDependenceComponent(ExplainerComponent):
                             dbc.Select(id='shap-dependence-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()],
-                                value=self.col)
+                                value=self.col,
+                                size='sm'
+                            )
                         ], md=3), self.hide_col),
                     make_hideable(dbc.Col([
                             dbc.Label('Color feature:', id='shap-dependence-color-col-label-'+self.name),
@@ -333,7 +339,9 @@ class ShapDependenceComponent(ExplainerComponent):
                             dbc.Select(id='shap-dependence-color-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()]+[dict(label="None", value="no_color_col")],
-                                value=self.color_col),   
+                                value=self.color_col,
+                                size='sm'
+                            ),   
                     ], md=3), self.hide_color_col),
                     make_hideable(
                         dbc.Col([
@@ -395,11 +403,14 @@ class ShapDependenceComponent(ExplainerComponent):
                                     dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='shap-dependence-categories-sort-label-'+self.name),
-                                    dbc.Select(id='shap-dependence-categories-sort-'+self.name,
-                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
-                                                        {'label': 'Frequency', 'value': 'freq'},
-                                                        {'label': 'Shap impact', 'value': 'shap'}],
-                                            value=self.cats_sort),
+                                    dbc.Select(
+                                        id='shap-dependence-categories-sort-'+self.name,
+                                        options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                    {'label': 'Frequency', 'value': 'freq'},
+                                                    {'label': 'Shap impact', 'value': 'shap'}],
+                                        value=self.cats_sort,
+                                        size='sm'
+                                    ),
                                 ], id='shap-dependence-categories-div2-'+self.name,
                                     style={} if self.col in self.explainer.cat_cols else dict(display="none"))
                             ], md=4), hide=self.hide_cats_sort),
@@ -1195,7 +1206,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Select(id='contributions-graph-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features)],
-                                value=None if self.depth is None else str(self.depth))
+                                value=None if self.depth is None else str(self.depth),
+                                size='sm',
+                            )
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
                         dbc.Col([
@@ -1210,7 +1223,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                             {'label': 'High to Low', 'value': 'high-to-low'},
                                             {'label': 'Low to High', 'value': 'low-to-high'},
                                             {'label': 'Importance', 'value': 'importance'}],
-                                value=self.sort)
+                                value=self.sort,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_sort),
                     make_hideable(
                         dbc.Col([
@@ -1220,7 +1235,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Select(id='contributions-graph-orientation-'+self.name, 
                                 options = [{'label': 'Vertical', 'value': 'vertical'},
                                             {'label': 'Horizontal', 'value': 'horizontal'}],
-                                value=self.orientation)
+                                value=self.orientation,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_orientation),
                     ]),
                 dbc.Row([
@@ -1412,7 +1429,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Select(id='contributions-table-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features)],
-                                value=self.depth)
+                                value=self.depth,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
                         dbc.Col([
@@ -1427,7 +1446,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
                                             {'label': 'High to Low', 'value': 'high-to-low'},
                                             {'label': 'Low to High', 'value': 'low-to-high'},
                                             {'label': 'Importance', 'value': 'importance'}],
-                                value=self.sort)
+                                value=self.sort,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_sort),
                     make_hideable(
                             dbc.Col([self.selector.layout()

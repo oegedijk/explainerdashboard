@@ -607,6 +607,7 @@ class PrecisionComponent(ExplainerComponent):
                                     'value': 'quantiles'}
                                 ],
                                 value=self.quantiles_or_binsize,
+                                size='sm',
                                 ),
                             dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bins),"
                                         " or bins with the same number of observations (counts) in each bin: quantiles",

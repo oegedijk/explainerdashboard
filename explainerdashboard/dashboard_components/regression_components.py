@@ -669,7 +669,8 @@ class PredictedVsActualComponent(ExplainerComponent):
                                         target='pred-vs-actual-logy-'+self.name),
                                 dbc.Label("Log y",
                                         html_for='pred-vs-actual-logy-'+self.name,
-                                        className="form-check-label"), 
+                                        className="form-check-label",
+                                        size='sm'), 
                             ]),
                         ], md=1, align="center"), hide=self.hide_log_y),
                     dbc.Col([
@@ -691,7 +692,8 @@ class PredictedVsActualComponent(ExplainerComponent):
                                         target='pred-vs-actual-logx-'+self.name),
                                 dbc.Label("Log x",
                                         html_for='pred-vs-actual-logx-'+self.name,
-                                        className="form-check-label"),   
+                                        className="form-check-label",
+                                        size='sm'),   
                             ]),
                         ], md=2), hide=self.hide_log_x),
                 ], justify="center"),
@@ -823,6 +825,7 @@ class ResidualsComponent(ExplainerComponent):
                                     ],
                                     value=self.pred_or_actual,
                                     id='residuals-pred-or-actual-'+self.name,
+                                    size='sm',
                                 ),
                             ], id='residuals-pred-or-actual-form-'+self.name),
                             dbc.Tooltip("Select what you would like to put on the x-axis:"
@@ -831,17 +834,24 @@ class ResidualsComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_pred_or_actual),
                     make_hideable(
                         dbc.Col([
-                            html.Label('Residual type:', id='residuals-type-label-'+self.name),
-                            dbc.Tooltip("Type of residuals to display: y-preds (difference), "
-                                        "y/preds (ratio) or log(y/preds) (logratio).", 
-                                        target='residuals-type-label-'+self.name),
-                            dbc.Select(id='residuals-type-'+self.name,
-                                    options = [{'label': 'Difference', 'value': 'difference'},
-                                                {'label': 'Ratio', 'value': 'ratio'},
-                                                {'label': 'Log ratio', 'value': 'log-ratio'}],
-                                    value=self.residuals),
+                            dbc.Row([
+                                dbc.Label('Residual type:', 
+                                    id='residuals-type-label-'+self.name,
+                                    html_for='residuals-type-'+self.name,
+                                ),
+                                dbc.Tooltip("Type of residuals to display: y-preds (difference), "
+                                            "y/preds (ratio) or log(y/preds) (logratio).", 
+                                            target='residuals-type-label-'+self.name),
+                                dbc.Select(id='residuals-type-'+self.name,
+                                        options=[{'label': 'Difference', 'value': 'difference'},
+                                                    {'label': 'Ratio', 'value': 'ratio'},
+                                                    {'label': 'Log ratio', 'value': 'log-ratio'}],
+                                        value=self.residuals,
+                                        size='sm',
+                                ),
+                            ]),
                         ], md=3), hide=self.hide_ratio),
-                ]),
+                ], justify='evenly'),
             ]), hide=self.hide_footer)
         ])
 
@@ -971,7 +981,7 @@ class RegressionVsColComponent(ExplainerComponent):
                         ], md=4), hide=self.hide_col),
                     make_hideable(
                             dbc.Col([
-                                html.Label('Display:', id='reg-vs-col-display-type-label-'+self.name),
+                                dbc.Label('Display:', id='reg-vs-col-display-type-label-'+self.name),
                                 dbc.Tooltip(f"Select what to display on the y axis: observed {self.explainer.target}, "
                                             f"predicted {self.explainer.target} or residuals. Residuals can either "
                                             "be calculated by takind the difference (y-preds), "

@@ -198,6 +198,7 @@ class ImportancesComponent(ExplainerComponent):
                                          'value': 'shap'}
                                     ],
                                     value=self.importance_type,
+                                    size='sm',
                                     id='importances-permutation-or-shap-'+self.name,
                                 ),
                                 dbc.Tooltip("Select Feature importance type: \n"
@@ -212,6 +213,7 @@ class ImportancesComponent(ExplainerComponent):
                             dbc.Select(id='importances-depth-'+self.name,
                                         options = [{'label': str(i+1), 'value':i+1} 
                                                     for i in range(self.explainer.n_features)],
+                                        size='sm',
                                         value=self.depth),
                             dbc.Tooltip("Select how many features to display", target='importances-depth-label-'+self.name)
                         ], md=2), self.hide_depth),   
@@ -309,6 +311,7 @@ class FeatureDescriptionsComponent(ExplainerComponent):
                                         'value': 'shap'}
                                     ],
                                     value=self.sort,
+                                    size='sm',
                                     id='feature-descriptions-table-sort-'+self.name,
                                 ), 
                             ]),
@@ -454,7 +457,9 @@ class PdpComponent(ExplainerComponent):
                             dbc.Select(id='pdp-col-'+self.name,       
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()],
-                                value=self.col),
+                                value=self.col,
+                                size='sm'
+                            ),
                         ], md=4), hide=self.hide_col),
                     make_hideable(
                         dbc.Col([
@@ -533,11 +538,14 @@ class PdpComponent(ExplainerComponent):
                                     dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='pdp-categories-sort-label-'+self.name),
-                                    dbc.Select(id='pdp-categories-sort-'+self.name,
-                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
-                                                        {'label': 'Frequency', 'value': 'freq'},
-                                                        {'label': 'Shap impact', 'value': 'shap'}],
-                                            value=self.cats_sort),
+                                    dbc.Select(
+                                        id='pdp-categories-sort-'+self.name,
+                                        options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                    {'label': 'Frequency', 'value': 'freq'},
+                                                    {'label': 'Shap impact', 'value': 'shap'}],
+                                        value=self.cats_sort,
+                                        size='sm'
+                                    ),
                                 ])], 
                             id='pdp-categories-sort-div-'+self.name,
                             style={} if self.col in self.explainer.cat_cols else dict(display="none")
