@@ -274,7 +274,7 @@ def get_transformed_X(transformer_pipeline:Pipeline, X:pd.DataFrame, verbose:int
             if verbose:
                 print("Failed to retrieve new column names from transformer_pipeline.get_feature_names_out()!")
     
-    elif X_transformed.shape == X.values.shape:
+    if X_transformed.shape == X.values.shape:
         if verbose:
             print("transformer pipeline outputs a DataFrame with the same number of columns"
               f"so trying to assign column names from X.columns: {X.columns.tolist()}, so"
