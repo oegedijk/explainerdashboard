@@ -270,65 +270,6 @@ def split_pipeline(pipeline:Pipeline, X:pd.DataFrame, verbose:int=1):
     return X_transformed, model
 
 
-# def split_pipeline(pipeline, X, verbose=1):
-#     """Returns an X_transformed dataframe and model from a fitted 
-#     sklearn.pipelines.Pipeline and input dataframe X. Currently only supports
-#     Pipelines that do not change or reorder the columns in the input dataframe.
-    
-#     Args:
-#         pipeline (sklearn.Pipeline): a fitted pipeline with an estimator 
-#             with .predict method as the last step.
-#         X (pd.DataFrame): input dataframe
-        
-#     Returns:
-#         X_transformed, model
-    
-#     """
-#     if verbose:
-#         print("Warning: there is currently limited support for sklearn.Pipelines in explainerdashboard. "
-#             "Only pipelines that return the same number of columns in the same order are supported, "
-#             "until sklearn properly implements a pipeline.get_feature_names() method.", flush=True)
-#     assert hasattr(pipeline.steps[-1][1], 'predict'), \
-#         ("When passing an sklearn.Pipeline, the last step of the pipeline should be a model, "
-#          f"but {pipeline.steps[-1][1]} does not have a .predict() function!")
-#     model = pipeline.steps[-1][1]
-    
-#     if X is None:
-#         return X, model
-    
-#     X_transformed, columns = Pipeline(pipeline.steps[:-1]).transform(X), None
-    
-#     if hasattr(pipeline, "get_feature_names"):
-#         try:
-#             columns = pipeline.get_feature_names()
-#         except:
-#             pass
-#         else:
-#             if len(columns) != X_transformed.shape[0]:
-#                 print(f"len(pipeline.get_feature_names())={len(columns)} does"
-#                       f" not equal X_transformed.shape[0]={X_transformed.shape[0]}!", flush=True)
-#                 columns = None
-#     if columns is None and X_transformed.shape == X.values.shape:
-#         for i, pipe in enumerate(pipeline):
-#             if hasattr(pipe, "n_features_in_"):
-#                 assert pipe.n_features_in_ == len(X.columns), \
-#                     (f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}!"
-#                      "For now explainerdashboard only supports sklearn Pipelines that have a "
-#                      ".get_feature_names() method or do not add/drop any columns...")
-#         print("Note: sklearn.Pipeline output shape is equal to X input shape, "
-#               f"so assigning column names from X.columns: {X.columns.tolist()}, so"
-#               " make sure that your pipeline does not add, remove or reorders columns!", flush=True)
-#         columns = X.columns
-#     else:
-#         raise ValueError("Pipeline does not return same number of columns as input, "
-#                         "nor does it have a proper .get_feature_names() method! "
-#                         "Try passing the final estimator in the pipeline seperately "
-#                         "together with an already transformed dataframe.")
-        
-#     X_transformed = pd.DataFrame(X_transformed, columns=columns)
-#     return X_transformed, model
-
-
 def retrieve_onehot_value(X, encoded_col, onehot_cols, not_encoded="NOT_ENCODED", sep="_"):
     """
     Reverses a onehot encoding. 
