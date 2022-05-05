@@ -134,14 +134,15 @@ class BaseExplainer(ABC):
             if cv is None: 
                 cv = permutation_cv
 
-        if isinstance(model, Pipeline):
+        if safe_isinstance(model, "sklearn.pipeline.Pipeline", "imblearn.pipeline.Pipeline"):
             if shap != 'kernel':
                 try:
-                    self.X, self.model  = split_pipeline(model, X)
+                    transformer_pipeline, self.model  = split_pipeline(model)
+                    self.X = get_transformed_X(transformer_pipeline, X)
                     if X_background is not None:
-                        self.X_background = pd.DataFrame(model.steps[:-1].transform(X_background), columns=X.columns)
-                    print(f"Detected sklearn Pipeline and succesfully extracted final "
-                    "output dataframe with column names and final model...")
+                        self.X_background = get_transformed_X(transformer_pipeline, X_background)
+                    print(f"Detected sklearn/imblearn Pipeline and succesfully extracted final "
+                            "output dataframe with column names and final model...")
                 except:
                     print("Warning: Failed to extract a data transformer with column names and final "
                         "model from the Pipeline. So setting shap='kernel' to use "
