@@ -13,90 +13,56 @@ from explainerdashboard.explainers import ClassifierExplainer
 from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names
 
 
-class ClassifierBunchTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_survive()
-        train_names, test_names = titanic_names()
-        _, self.names = titanic_names()
+def test_rfclas_graphviz_available(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.graphviz_available, bool)
 
-        model = RandomForestClassifier(n_estimators=5, max_depth=2)
-        model.fit(X_train, y_train)
+def test_rfclas_shadow_trees(precalculated_rf_classifier_explainer):
+    dt = precalculated_rf_classifier_explainer.shadow_trees
+    assert isinstance(dt, list)
+    assert isinstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-        self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, 
-                            cats=['Sex', 'Deck', 'Embarked'],
-                            labels=['Not survived', 'Survived'])
+def test_rfclas_decisionpath_df(precalculated_rf_classifier_explainer, test_names):
+    df = precalculated_rf_classifier_explainer.get_decisionpath_df(tree_idx=0, index=0)
+    assert isinstance(df, pd.DataFrame)
 
-    def test_graphviz_available(self):
-        self.assertIsInstance(self.explainer.graphviz_available, bool)
+    df = precalculated_rf_classifier_explainer.get_decisionpath_df(tree_idx=0, index=test_names[0])
+    assert isinstance(df, pd.DataFrame)
 
-    def test_shadow_trees(self):
-        dt = self.explainer.shadow_trees
-        self.assertIsInstance(dt, list)
-        self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
+def test_rfclas_plot_trees(precalculated_rf_classifier_explainer, test_names):
+    fig = precalculated_rf_classifier_explainer.plot_trees(index=0)
+    assert isinstance(fig, go.Figure)
 
-    def test_decisionpath_df(self):
-        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
-        self.assertIsInstance(df, pd.DataFrame)
+    fig = precalculated_rf_classifier_explainer.plot_trees(index=test_names[0])
+    assert isinstance(fig, go.Figure)
 
-        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
-        self.assertIsInstance(df, pd.DataFrame)
+    fig = precalculated_rf_classifier_explainer.plot_trees(index=test_names[0], highlight_tree=0)
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_trees(self):
-        fig = self.explainer.plot_trees(index=0)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_trees(index=self.names[0])
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_trees(index=self.names[0], highlight_tree=0)
-        self.assertIsInstance(fig, go.Figure)
-
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties()
+def test_rfclas_calculate_properties(precalculated_rf_classifier_explainer):
+    precalculated_rf_classifier_explainer.calculate_properties()
 
 
-class RegressionBunchTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_fare()
-        self.test_len = len(X_test)
+def test_rfreg_shadow_trees(precalculated_rf_regression_explainer):
+    dt = precalculated_rf_regression_explainer.shadow_trees
+    assert isinstance(dt, list)
+    assert isinstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
 
-        train_names, test_names = titanic_names()
-        _, self.names = titanic_names()
+def test_rfreg_decisionpath_df(precalculated_rf_regression_explainer, test_names):
+    df = precalculated_rf_regression_explainer.get_decisionpath_df(tree_idx=0, index=0)
+    assert isinstance(df, pd.DataFrame)
 
-        model = RandomForestRegressor(n_estimators=5, max_depth=2)
-        model.fit(X_train, y_train)
+    df = precalculated_rf_regression_explainer.get_decisionpath_df(tree_idx=0, index=test_names[0])
+    assert isinstance(df, pd.DataFrame)
 
-        self.explainer = RegressionExplainer(
-                            model, X_test, y_test,
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                            idxs=test_names)
+def test_rfreg_plot_trees(precalculated_rf_regression_explainer, test_names):
+    fig = precalculated_rf_regression_explainer.plot_trees(index=0)
+    assert isinstance(fig, go.Figure)
 
-    def test_graphviz_available(self):
-        self.assertIsInstance(self.explainer.graphviz_available, bool)
+    fig = precalculated_rf_regression_explainer.plot_trees(index=test_names[0])
+    assert isinstance(fig, go.Figure)
 
-    def test_shadow_trees(self):
-        dt = self.explainer.shadow_trees
-        self.assertIsInstance(dt, list)
-        self.assertIsInstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
+    fig = precalculated_rf_regression_explainer.plot_trees(index=test_names[0], highlight_tree=0)
+    assert isinstance(fig, go.Figure)
 
-    def test_decisionpath_df(self):
-        df = self.explainer.get_decisionpath_df(tree_idx=0, index=0)
-        self.assertIsInstance(df, pd.DataFrame)
-
-        df = self.explainer.get_decisionpath_df(tree_idx=0, index=self.names[0])
-        self.assertIsInstance(df, pd.DataFrame)
-
-    def test_plot_trees(self):
-        fig = self.explainer.plot_trees(index=0)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_trees(index=self.names[0])
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_trees(index=self.names[0], highlight_tree=0)
-        self.assertIsInstance(fig, go.Figure)
-
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties()
+def test_rfreg_calculate_properties(precalculated_rf_regression_explainer):
+    precalculated_rf_regression_explainer.calculate_properties()

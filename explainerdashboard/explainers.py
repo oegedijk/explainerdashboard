@@ -2466,7 +2466,7 @@ class ClassifierExplainer(BaseExplainer):
             else:
                 assert len(self._shap_interaction_values)==len(self.labels),\
                     (f"len(self.label)={len(self.labels)}, but "
-                     f"shap returned shap values for {len(_shap_values)} classes! "
+                     f"shap returned shap values for {len(self._shap_interaction_values)} classes! "
                      "Adjust the labels parameter accordingly!")
 
             self._shap_interaction_values = \
