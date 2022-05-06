@@ -1,264 +1,241 @@
-import unittest
-
 import pandas as pd
 import numpy as np
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
-from sklearn.ensemble import RandomForestClassifier
 
 import plotly.graph_objects as go
 
-from explainerdashboard.explainers import ClassifierExplainer
-from explainerdashboard.datasets import titanic_survive, titanic_names
-
-
-class ClassifierBaseExplainerTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_survive()
-        train_names, test_names = titanic_names()
-
-        model = RandomForestClassifier(n_estimators=5, max_depth=2)
-        model.fit(X_train, y_train)
-
-        self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, 
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                            cats_notencoded={'Gender':'No Gender'},
-                            target='Survival',
-                            labels=['Not survived', 'Survived'],
-                            idxs=test_names)
-
-    def test_explainer_len(self):
-        self.assertEqual(len(self.explainer), len(titanic_survive()[2]))
-
-    def test_int_idx(self):
-        self.assertEqual(self.explainer.get_idx(titanic_names()[1][0]), 0)
-
-    def test_random_index(self):
-        self.assertIsInstance(self.explainer.random_index(), int)
-        self.assertIsInstance(self.explainer.random_index(return_str=True), str)
-
-    def test_index_exists(self):
-        self.assertTrue(self.explainer.index_exists(0))
-        self.assertTrue(self.explainer.index_exists(self.explainer.idxs[0]))
-        self.assertTrue(not self.explainer.index_exists('bla'))
-
 
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
-
-    def test_cats_notencoded(self):
-        self.assertEqual(self.explainer.get_contrib_df(0).query("col=='Gender'")['value'].item(), 'No Gender')
-
-    def test_row_from_input(self):
-        input_row = self.explainer.get_row_from_input(
-            self.explainer.X.iloc[[0]].values.tolist())
-        self.assertIsInstance(input_row, pd.DataFrame)
-
-        input_row = self.explainer.get_row_from_input(
-            self.explainer.X_merged.iloc[[0]].values.tolist())
-        self.assertIsInstance(input_row, pd.DataFrame)
-
-        input_row = self.explainer.get_row_from_input(
-            self.explainer.X_merged
-            [self.explainer.columns_ranked_by_shap()]
-            .iloc[[0]].values.tolist(), ranked_by_shap=True)
-        self.assertIsInstance(input_row, pd.DataFrame)
-        
-    def test_pred_percentiles(self):
-        self.assertIsInstance(self.explainer.pred_percentiles(), np.ndarray)
-
-    def test_columns_ranked_by_shap(self):
-        self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
-
-    def test_get_col(self):
-        self.assertIsInstance(self.explainer.get_col("Gender"), pd.Series)
-        self.assertTrue(is_categorical_dtype(self.explainer.get_col("Gender")))
-
-        self.assertIsInstance(self.explainer.get_col("Deck"), pd.Series)
-        self.assertTrue(is_categorical_dtype(self.explainer.get_col("Deck")))
-
-        self.assertIsInstance(self.explainer.get_col("Age"), pd.Series)
-        self.assertTrue(is_numeric_dtype(self.explainer.get_col("Age")))
-
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.permutation_importances(), pd.DataFrame)
-        
-    def test_X_cats(self):
-        self.assertIsInstance(self.explainer.X_cats, pd.DataFrame)
+def test_explainer_len(precalculated_rf_classifier_explainer, testlen):
+    assert len(precalculated_rf_classifier_explainer) == testlen
 
-    def test_metrics(self):
-        self.assertIsInstance(self.explainer.metrics(), dict)
+def test_int_idx(precalculated_rf_classifier_explainer, test_names):
+    assert precalculated_rf_classifier_explainer.get_idx(test_names[0]) == 0
 
-    def test_mean_abs_shap_df(self):
-        self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
+def test_random_index(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.random_index(), int)
+    assert isinstance(precalculated_rf_classifier_explainer.random_index(return_str=True), str)
 
-    def test_top_interactions(self):
-        self.assertIsInstance(self.explainer.top_shap_interactions("Age"), list)
-        self.assertIsInstance(self.explainer.top_shap_interactions("Age", topx=4), list)
+def test_index_exists(precalculated_rf_classifier_explainer):
+    assert (precalculated_rf_classifier_explainer.index_exists(0))
+    assert (precalculated_rf_classifier_explainer.index_exists(precalculated_rf_classifier_explainer.idxs[0]))
+    assert (not precalculated_rf_classifier_explainer.index_exists('bla'))
 
 
-    def test_permutation_importances_df(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(cutoff=0.01), pd.DataFrame)
+def test_preds(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.preds, np.ndarray)
 
-    def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(0, topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(0, sort='high-to-low'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(0, sort='low-to-high'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(0, sort='importance'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+def test_cats_notencoded(precalculated_rf_classifier_explainer):
+    assert precalculated_rf_classifier_explainer.get_contrib_df(0).query("col=='Gender'")['value'].item() == 'No Gender'
 
-    def test_contrib_summary_df(self):
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, topx=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, round=3), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, sort='low-to-high'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, sort='high-to-low'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(0, sort='importance'), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_summary_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+def test_row_from_input(precalculated_rf_classifier_explainer):
+    input_row = precalculated_rf_classifier_explainer.get_row_from_input(
+        precalculated_rf_classifier_explainer.X.iloc[[0]].values.tolist())
+    assert isinstance(input_row, pd.DataFrame)
+
+    input_row = precalculated_rf_classifier_explainer.get_row_from_input(
+        precalculated_rf_classifier_explainer.X_merged.iloc[[0]].values.tolist())
+    assert isinstance(input_row, pd.DataFrame)
+
+    input_row = precalculated_rf_classifier_explainer.get_row_from_input(
+        precalculated_rf_classifier_explainer.X_merged
+        [precalculated_rf_classifier_explainer.columns_ranked_by_shap()]
+        .iloc[[0]].values.tolist(), ranked_by_shap=True)
+    assert isinstance(input_row, pd.DataFrame)
+    
+def test_pred_percentiles(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.pred_percentiles(), np.ndarray)
 
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
+def test_columns_ranked_by_shap(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.columns_ranked_by_shap(), list)
 
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+def test_get_col(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.get_col("Gender"), pd.Series)
+    assert (is_categorical_dtype(precalculated_rf_classifier_explainer.get_col("Gender")))
 
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_col("Deck"), pd.Series)
+    assert (is_categorical_dtype(precalculated_rf_classifier_explainer.get_col("Deck")))
 
-    def test_shap_interaction_values(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values(), np.ndarray)
+    assert isinstance(precalculated_rf_classifier_explainer.get_col("Age"), pd.Series)
+    assert (is_numeric_dtype(precalculated_rf_classifier_explainer.get_col("Age")))
 
-    def test_mean_abs_shap_df(self):
-        self.assertIsInstance(self.explainer.mean_abs_shap_df(), pd.DataFrame)
+def test_permutation_importances(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.permutation_importances(), pd.DataFrame)
+    
+def test_X_cats(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.X_cats, pd.DataFrame)
 
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties()
+def test_metrics(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.metrics(), dict)
 
-    def test_shap_interaction_values_by_col(self):
-        self.assertIsInstance(self.explainer.shap_interaction_values_for_col("Age"), np.ndarray)
-        self.assertEqual(self.explainer.shap_interaction_values_for_col("Age").shape, 
-                        self.explainer.get_shap_values_df().shape)
+def test_mean_abs_shap_df(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.mean_abs_shap_df(), pd.DataFrame)
 
-    def test_prediction_result_df(self):
-        df = self.explainer.prediction_result_df(0)
-        self.assertIsInstance(df, pd.DataFrame)
+def test_top_interactions(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.top_shap_interactions("Age"), list)
+    assert isinstance(precalculated_rf_classifier_explainer.top_shap_interactions("Age", topx=4), list)
 
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
 
-    def test_memory_usage(self):
-        self.assertIsInstance(self.explainer.memory_usage(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.memory_usage(cutoff=1000), pd.DataFrame)
+def test_permutation_importances_df(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.get_permutation_importances_df(), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_permutation_importances_df(topx=3), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_permutation_importances_df(cutoff=0.01), pd.DataFrame)
 
-    def test_plot_importances(self):
-        fig = self.explainer.plot_importances()
-        self.assertIsInstance(fig, go.Figure)
+def test_contrib_df(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_df(0), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_df(0, topx=3), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_df(0, sort='high-to-low'), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_df(0, sort='low-to-high'), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_df(0, sort='importance'), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_df(X_row=precalculated_rf_classifier_explainer.X.iloc[[0]]), pd.DataFrame)
 
-        fig = self.explainer.plot_importances(kind='permutation')
-        self.assertIsInstance(fig, go.Figure)
+def test_contrib_summary_df(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(0), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(0, topx=3), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(0, round=3), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(0, sort='low-to-high'), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(0, sort='high-to-low'), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(0, sort='importance'), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.get_contrib_summary_df(X_row=precalculated_rf_classifier_explainer.X.iloc[[0]]), pd.DataFrame)
 
-        fig = self.explainer.plot_importances(topx=3)
-        self.assertIsInstance(fig, go.Figure)
+def test_shap_base_value(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.shap_base_value(), (np.floating, float))
 
-    def test_plot_interactions(self):
-        fig = self.explainer.plot_interactions_importance("Age")
-        self.assertIsInstance(fig, go.Figure)
+def test_shap_values_shape(precalculated_rf_classifier_explainer):
+    assert (precalculated_rf_classifier_explainer.get_shap_values_df().shape == (len(precalculated_rf_classifier_explainer), len(precalculated_rf_classifier_explainer.merged_cols)))
 
-        fig = self.explainer.plot_interactions_importance("Gender")
-        self.assertIsInstance(fig, go.Figure)
+def test_shap_values(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.get_shap_values_df(), pd.DataFrame)
 
-    def test_plot_contributions(self):
-        fig = self.explainer.plot_contributions(0)
-        self.assertIsInstance(fig, go.Figure)
+def test_shap_interaction_values(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.shap_interaction_values(), np.ndarray)
 
-        fig = self.explainer.plot_contributions(0, topx=3)
-        self.assertIsInstance(fig, go.Figure)
+def test_mean_abs_shap_df(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.mean_abs_shap_df(), pd.DataFrame)
 
-        fig = self.explainer.plot_contributions(0, cutoff=0.05)
-        self.assertIsInstance(fig, go.Figure)
+def test_calculate_properties(precalculated_rf_classifier_explainer):
+    precalculated_rf_classifier_explainer.calculate_properties()
 
-        fig = self.explainer.plot_contributions(0, sort='high-to-low')
-        self.assertIsInstance(fig, go.Figure)
+def test_shap_interaction_values_by_col(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.shap_interaction_values_for_col("Age"), np.ndarray)
+    assert (precalculated_rf_classifier_explainer.shap_interaction_values_for_col("Age").shape == 
+                    precalculated_rf_classifier_explainer.get_shap_values_df().shape)
 
-        fig = self.explainer.plot_contributions(0, sort='low-to-high')
-        self.assertIsInstance(fig, go.Figure)
+def test_prediction_result_df(precalculated_rf_classifier_explainer):
+    df = precalculated_rf_classifier_explainer.prediction_result_df(0)
+    assert isinstance(df, pd.DataFrame)
 
-        fig = self.explainer.plot_contributions(0, sort='importance')
-        self.assertIsInstance(fig, go.Figure)
+def test_pdp_df(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.pdp_df("Age"), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.pdp_df("Gender"), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.pdp_df("Deck"), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.pdp_df("Age", index=0), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.pdp_df("Gender", index=0), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.pdp_df("Age", X_row=precalculated_rf_classifier_explainer.X.iloc[[0]]), pd.DataFrame)
 
-        fig = self.explainer.plot_contributions(X_row=self.explainer.X.iloc[[0]], sort='importance')
-        self.assertIsInstance(fig, go.Figure)
+def test_memory_usage(precalculated_rf_classifier_explainer):
+    assert isinstance(precalculated_rf_classifier_explainer.memory_usage(), pd.DataFrame)
+    assert isinstance(precalculated_rf_classifier_explainer.memory_usage(cutoff=1000), pd.DataFrame)
 
-    def test_plot_shap_detailed(self):
-        fig = self.explainer.plot_importances_detailed()
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_importances(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_importances()
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_importances_detailed(topx=3)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_importances(kind='permutation')
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_interactions_detailed(self):
-        fig = self.explainer.plot_interactions_detailed("Age")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_importances(topx=3)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions_detailed("Age", topx=3)
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_interactions(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_interactions_importance("Age")
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions_detailed("Age")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_interactions_importance("Gender")
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interactions_detailed("Gender")
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_contributions(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_contributions(0)
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_dependence(self):
-        fig = self.explainer.plot_dependence("Age")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_contributions(0, topx=3)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_dependence("Age", "Gender")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_contributions(0, cutoff=0.05)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_dependence("Age", highlight_index=0)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_contributions(0, sort='high-to-low')
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_dependence("Gender", highlight_index=0)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_contributions(0, sort='low-to-high')
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_interaction(self):
+    fig = precalculated_rf_classifier_explainer.plot_contributions(0, sort='importance')
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interaction("Gender", "Age")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_contributions(X_row=precalculated_rf_classifier_explainer.X.iloc[[0]], sort='importance')
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_interaction("Age", "Gender", highlight_index=0)
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_shap_detailed(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_importances_detailed()
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_pdp(self):
-        fig = self.explainer.plot_pdp("Age")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_importances_detailed(topx=3)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_pdp("Gender")
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_interactions_detailed(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_interactions_detailed("Age")
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_pdp("Gender", index=0)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_interactions_detailed("Age", topx=3)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_pdp("Age", index=0)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_interactions_detailed("Age")
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_pdp("Age", X_row=self.explainer.X.iloc[[0]])
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_classifier_explainer.plot_interactions_detailed("Gender")
+    assert isinstance(fig, go.Figure)
 
-    def test_yaml(self):
-        yaml = self.explainer.to_yaml()
-        self.assertIsInstance(yaml, str)
+def test_plot_dependence(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_dependence("Age")
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_dependence("Age", "Gender")
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_dependence("Age", highlight_index=0)
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_dependence("Gender", highlight_index=0)
+    assert isinstance(fig, go.Figure)
+
+def test_plot_interaction(precalculated_rf_classifier_explainer):
+
+    fig = precalculated_rf_classifier_explainer.plot_interaction("Gender", "Age")
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_interaction("Age", "Gender", highlight_index=0)
+    assert isinstance(fig, go.Figure)
+
+def test_plot_pdp(precalculated_rf_classifier_explainer):
+    fig = precalculated_rf_classifier_explainer.plot_pdp("Age")
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_pdp("Gender")
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_pdp("Gender", index=0)
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_pdp("Age", index=0)
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_rf_classifier_explainer.plot_pdp("Age", X_row=precalculated_rf_classifier_explainer.X.iloc[[0]])
+    assert isinstance(fig, go.Figure)
+
+def test_yaml(precalculated_rf_classifier_explainer):
+    yaml = precalculated_rf_classifier_explainer.to_yaml()
+    assert isinstance(yaml, str)
 
 
 
