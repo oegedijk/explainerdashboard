@@ -1,5 +1,7 @@
 import pytest
 
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from xgboost import XGBClassifier, XGBRegressor
 from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
@@ -215,4 +217,113 @@ def catboost_regression_explainer():
 def precalculated_catboost_regression_explainer(catboost_regression_explainer):
     ExplainerDashboard(catboost_regression_explainer)
     return catboost_regression_explainer
+
+
+
+@pytest.fixture(scope="session")
+def fitted_dt_classifier_model():
+    X_train, y_train, _, _ = titanic_survive()
+    model = DecisionTreeClassifier(max_depth=2)
+    model.fit(X_train, y_train)
+    return model
+
+
+@pytest.fixture(scope="session")
+def dt_classifier_explainer(fitted_dt_classifier_model):
+    _, _, X_test, y_test = titanic_survive()
+    explainer = ClassifierExplainer(
+        fitted_dt_classifier_model, 
+        X_test, 
+        y_test, 
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        cats_notencoded={'Gender': 'No Gender'},
+        labels=['Not survived', 'Survived']
+    )
+    return explainer
+
+
+@pytest.fixture(scope="session")
+def precalculated_dt_classifier_explainer(dt_classifier_explainer):
+    _ = ExplainerDashboard(dt_classifier_explainer)
+    return dt_classifier_explainer
+
+
+@pytest.fixture(scope="session")
+def fitted_dt_regression_model():
+    X_train, y_train, _, _ = titanic_fare()
+    model = DecisionTreeRegressor(max_depth=2)
+    model.fit(X_train, y_train)
+    return model
+
+
+@pytest.fixture(scope="session")
+def dt_regression_explainer(fitted_dt_regression_model):
+    _, _, X_test, y_test = titanic_fare()
+    _, test_names = titanic_names()
+    explainer = RegressionExplainer(
+        fitted_dt_regression_model, 
+        X_test, y_test,
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        idxs=test_names)
+    return explainer
+
+
+@pytest.fixture(scope="session")
+def precalculated_dt_regression_explainer(dt_regression_explainer):
+    db = ExplainerDashboard(dt_regression_explainer)
+    return dt_regression_explainer
+
+
+@pytest.fixture(scope="session")
+def fitted_et_classifier_model():
+    X_train, y_train, _, _ = titanic_survive()
+    model = ExtraTreesClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+    return model
+
+
+@pytest.fixture(scope="session")
+def et_classifier_explainer(fitted_et_classifier_model):
+    _, _, X_test, y_test = titanic_survive()
+    explainer = ClassifierExplainer(
+        fitted_et_classifier_model, 
+        X_test, 
+        y_test, 
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        cats_notencoded={'Gender': 'No Gender'},
+        labels=['Not survived', 'Survived']
+    )
+    return explainer
+
+
+@pytest.fixture(scope="session")
+def precalculated_et_classifier_explainer(et_classifier_explainer):
+    _ = ExplainerDashboard(et_classifier_explainer)
+    return et_classifier_explainer
+
+
+@pytest.fixture(scope="session")
+def fitted_et_regression_model():
+    X_train, y_train, _, _ = titanic_fare()
+    model = ExtraTreesRegressor(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+    return model
+
+
+@pytest.fixture(scope="session")
+def et_regression_explainer(fitted_et_regression_model):
+    _, _, X_test, y_test = titanic_fare()
+    _, test_names = titanic_names()
+    explainer = RegressionExplainer(
+        fitted_et_regression_model, 
+        X_test, y_test,
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        idxs=test_names)
+    return explainer
+
+
+@pytest.fixture(scope="session")
+def precalculated_et_regression_explainer(et_regression_explainer):
+    db = ExplainerDashboard(et_regression_explainer)
+    return et_regression_explainer
 
