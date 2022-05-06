@@ -27,7 +27,7 @@ from .. import to_html
 
 class ImportancesComposite(ExplainerComponent):
     def __init__(self, explainer, title="Feature Importances", name=None,
-                    hide_title=False, hide_importances=False, hide_descriptions=False,
+                    hide_title=True, hide_importances=False, hide_descriptions=False,
                     hide_selector=True, **kwargs):
         """Overview tab of feature importances
 
@@ -57,25 +57,23 @@ class ImportancesComposite(ExplainerComponent):
             self.hide_descriptions=True
 
     def layout(self):
-        return html.Div([
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                     html.H2(self.title)]), hide=self.hide_title),
-            ]),
+        return dbc.Container([
+            make_hideable(
+                dbc.Row(html.H2(self.title), class_name="mt-4"),
+                hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
                         self.importances.layout(),
                     ]), hide=self.hide_importances),
-            ], style=dict(margin=25)),
+            ], class_name="mt-4"),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
                         self.feature_descriptions.layout(),
                     ]), hide=self.hide_descriptions),
-            ], style=dict(margin=25))
-        ])
+            ], class_name="mt-4")
+        ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
@@ -156,35 +154,42 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                  self.cumulative_precision, self.classification, self.rocauc, self.prauc])
 
     def layout(self):
-        return html.Div([
-            dbc.Row([
+        return dbc.Container([
                 make_hideable(
-                    dbc.Col([
-                     html.H2('Model Performance:')]), hide=self.hide_title),
-            ]),
+                    dbc.Row(
+                        html.H2('Model Performance:'), class_name="mt-4 gx-4"),
+                    hide=self.hide_title),
             dbc.Row([
                 make_hideable(
                     dbc.Col([
                         self.cutoffpercentile.layout(),
                     ]), hide=self.hide_globalcutoff),
-            ], style=dict(marginTop=25, marginBottom=25)),
-            dbc.CardDeck([
-                make_hideable(self.summary.layout(), hide=self.hide_modelsummary),
-                make_hideable(self.confusionmatrix.layout(), hide=self.hide_confusionmatrix),
-            ], style=dict(marginBottom=25)),
-            dbc.CardDeck([
-                make_hideable(self.precision.layout(), hide=self.hide_precision),
-                make_hideable(self.classification.layout(), hide=self.hide_classification)
-            ], style=dict(marginBottom=25)),
-            dbc.CardDeck([
-                make_hideable(self.rocauc.layout(), hide=self.hide_rocauc),
-                make_hideable(self.prauc.layout(), hide=self.hide_prauc),
-            ], style=dict(marginBottom=25)),
-            dbc.CardDeck([
-                make_hideable(self.liftcurve.layout(), self.hide_liftcurve),
-                make_hideable(self.cumulative_precision.layout(), self.hide_cumprecision),
-            ], style=dict(marginBottom=25)),
-        ])
+            ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                    make_hideable(dbc.Col(self.summary.layout()),
+                                  hide=self.hide_modelsummary),
+                    make_hideable(dbc.Col(self.confusionmatrix.layout()),
+                                  hide=self.hide_confusionmatrix),
+                    ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                make_hideable(dbc.Col(self.precision.layout()),
+                              hide=self.hide_precision),
+                make_hideable(dbc.Col(self.classification.layout()),
+                              hide=self.hide_classification),
+            ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                make_hideable(dbc.Col(self.rocauc.layout()),
+                              hide=self.hide_rocauc),
+                make_hideable(dbc.Col(self.prauc.layout()),
+                              hide=self.hide_prauc),
+            ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                make_hideable(dbc.Col(self.liftcurve.layout()),
+                              self.hide_liftcurve),
+                make_hideable(dbc.Col(self.cumulative_precision.layout()),
+                              self.hide_cumprecision),
+            ], class_name="mt-4 gx-4"),
+        ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
@@ -251,21 +256,20 @@ class RegressionModelStatsComposite(ExplainerComponent):
                     logs=logs, **kwargs)
 
     def layout(self):
-        return html.Div([
+        return dbc.Container([
+            make_hideable(
+                dbc.Row(html.H2('Model Performance:'), 
+                        class_name="mt-4 gx-4"),
+                hide=self.hide_title),
             dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        html.H2('Model Performance:')]), hide=self.hide_title)
-            ]),
-            dbc.CardDeck([
-                make_hideable(self.modelsummary.layout(), hide=self.hide_modelsummary),
-                make_hideable(self.preds_vs_actual.layout(), hide=self.hide_predsvsactual),
-            ], style=dict(margin=25)),
-            dbc.CardDeck([
-                make_hideable(self.residuals.layout(), hide=self.hide_residuals),
-                make_hideable(self.reg_vs_col.layout(), hide=self.hide_regvscol),
-            ], style=dict(margin=25))
-        ])
+                make_hideable(dbc.Col(self.modelsummary.layout()), hide=self.hide_modelsummary),
+                make_hideable(dbc.Col(self.preds_vs_actual.layout()), hide=self.hide_predsvsactual),
+            ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                make_hideable(dbc.Col(self.residuals.layout()), hide=self.hide_residuals),
+                make_hideable(dbc.Col(self.reg_vs_col.layout()), hide=self.hide_regvscol),
+            ], class_name="mt-4 gx-4")
+        ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
@@ -341,22 +345,24 @@ class IndividualPredictionsComposite(ExplainerComponent):
 
     def layout(self):
         return dbc.Container([
-                dbc.CardDeck([
-                    make_hideable(self.index.layout(), hide=self.hide_predindexselector),
-                    make_hideable(self.summary.layout(), hide=self.hide_predictionsummary),
-                ], style=dict(marginBottom=25, marginTop=25)),
-                dbc.CardDeck([
-                    make_hideable(self.contributions.layout(), hide=self.hide_contributiongraph),
-                    make_hideable(self.pdp.layout(), hide=self.hide_pdp),
-                ], style=dict(marginBottom=25, marginTop=25)),
                 dbc.Row([
-                    dbc.Col([
-                        make_hideable(self.contributions_list.layout(), hide=self.hide_contributiontable),
-                    ], md=6),
+                    make_hideable(dbc.Col(self.index.layout()),
+                                  hide=self.hide_predindexselector),
+                    make_hideable(dbc.Col(self.summary.layout()),
+                                  hide=self.hide_predictionsummary),
+                ], class_name="mt-4 g-x4"),
+                dbc.Row([
+                    make_hideable(dbc.Col(self.contributions.layout()),
+                                  hide=self.hide_contributiongraph),
+                    make_hideable(dbc.Col(self.pdp.layout()), hide=self.hide_pdp),
+                ], class_name="mt-4 gx-4"),
+                dbc.Row([
+                        make_hideable(dbc.Col(self.contributions_list.layout(), md=6),
+                                              hide=self.hide_contributiontable),
                     dbc.Col([
                         html.Div([]),
                     ], md=6),
-                ])
+                ], class_name="mt-4 gx-4")
         ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
@@ -445,36 +451,37 @@ class WhatIfComposite(ExplainerComponent):
 
     def layout(self):
         return dbc.Container([
-                dbc.Row([
+            make_hideable(
+                dbc.Row(
+                    html.H1(self.title), class_name="mt-4 gx-4"),
+                hide=self.hide_title),
+            dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            html.H1(self.title)
-                        ]), hide=self.hide_title),
-                ]),
-                dbc.Row([
-                    make_hideable(
-                        dbc.Col([
-                            self.index.layout(), 
-                        ], md=7), hide=self.hide_whatifindexselector),
+                            self.index.layout(),
+                        ], md=6), hide=self.hide_whatifindexselector),
                     make_hideable(
                         dbc.Col([
                             self.prediction.layout(),
-                        ], md=5), hide=self.hide_whatifprediction),
-                ], style=dict(marginBottom=15, marginTop=15)),
-                dbc.CardDeck([
-                    make_hideable(self.input.layout(), hide=self.hide_inputeditor),
-                ], style=dict(marginBottom=15, marginTop=15)),
-                dbc.CardDeck([
-                    make_hideable(self.contribgraph.layout(), hide=self.hide_whatifcontributiongraph),
-                    make_hideable(self.pdp.layout(), hide=self.hide_whatifpdp),
-                ], style=dict(marginBottom=15, marginTop=15)),
-                dbc.Row([
+                        ], md=6), hide=self.hide_whatifprediction),
+                    ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                    make_hideable(dbc.Col(self.input.layout()),
+                                  hide=self.hide_inputeditor),
+                    ], class_name="mt-4 gx-4"),
+            dbc.Row([
+                    make_hideable(dbc.Col(self.contribgraph.layout()),
+                                  hide=self.hide_whatifcontributiongraph),
+                    make_hideable(dbc.Col(self.pdp.layout()),
+                                  hide=self.hide_whatifpdp),
+                    ], class_name="mt-4 gx-4"),
+            dbc.Row([
                     make_hideable(
                         dbc.Col([
                             self.contribtable.layout()
                         ], md=6), hide=self.hide_whatifcontributiontable),
                     dbc.Col([], md=6),
-                ])
+                    ], class_name="mt-4 gx-4")
         ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
@@ -526,11 +533,13 @@ class ShapDependenceComposite(ExplainerComponent):
 
     def layout(self):
         return dbc.Container([
-            dbc.CardDeck([
-                make_hideable(self.shap_summary.layout(), hide=self.hide_shapsummary),
-                make_hideable(self.shap_dependence.layout(), hide=self.hide_shapdependence),
-            ], style=dict(marginTop=25)),
-        ], fluid=True)
+            dbc.Row([
+                make_hideable(dbc.Col(self.shap_summary.layout()),
+                              hide=self.hide_shapsummary),
+                make_hideable(dbc.Col(self.shap_dependence.layout()),
+                              hide=self.hide_shapdependence),
+            ]),
+        ], class_name="my-4 g-4", fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.title(self.title)
@@ -572,10 +581,12 @@ class ShapInteractionsComposite(ExplainerComponent):
         
     def layout(self):
         return dbc.Container([
-                dbc.CardDeck([
-                    make_hideable(self.interaction_summary.layout(), hide=self.hide_interactionsummary),
-                    make_hideable(self.interaction_dependence.layout(), hide=self.hide_interactiondependence),
-                ], style=dict(marginTop=25))
+                dbc.Row([
+                    make_hideable(dbc.Col(self.interaction_summary.layout()),
+                                  hide=self.hide_interactionsummary),
+                    make_hideable(dbc.Col(self.interaction_dependence.layout()),
+                                  hide=self.hide_interactiondependence),
+                ], class_name="mt-4 gx-4")
         ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
@@ -642,32 +653,32 @@ class DecisionTreesComposite(ExplainerComponent):
             [self.decisionpath_table, self.decisionpath_graph])
         
     def layout(self):
-        return html.Div([
+        return dbc.Container([
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
                             self.index.layout(), 
                         ]), hide=self.hide_treeindexselector),
-                ], style=dict(margin=25)),
+                ], class_name="mt-4 gx-4"),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
                             self.trees.layout(), 
                         ]), hide=self.hide_treesgraph),
-                ], style=dict(margin=25)),
+                ], class_name="mt-4 g-x4"),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
                             self.decisionpath_table.layout(), 
                         ]), hide=self.hide_treepathtable),
-                ], style=dict(margin=25)),
+                ], class_name="mt-4 gx-4"),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
                             self.decisionpath_graph.layout()
                         ]), hide=self.hide_treepathgraph),
-                ], style=dict(margin=25)),
-            ])
+                ], class_name="mt-4 g-x4"),
+            ], fluid=True)
     
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.title(self.title)
@@ -771,50 +782,48 @@ class SimplifiedClassifierComposite(ExplainerComponent):
 
     def layout(self):
         return dbc.Container([
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        html.H1(self.title, id='simple-classifier-composite-title')
-                    ]), hide=self.hide_title),
-            ]),
+            make_hideable(
+                dbc.Row(
+                    html.H1(self.title, id='simple-classifier-composite-title'),
+                    class_name="mt-4 gx-4"), hide=self.hide_title),
             dbc.Row([
                 dbc.Col([
                     html.H2("Model performance"),
-                    dbc.CardDeck([
-                        make_hideable(self.confusionmatrix.layout(),
-                                    hide=self.hide_confusionmatrix),
-                        make_hideable(self.classifier_custom_component.layout(),
-                                    hide=self.hide_classifier_custom_component),
-                    ], style=dict(marginTop=25, marginBottom=25)),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.confusionmatrix.layout()),
+                                      hide=self.hide_confusionmatrix),
+                        make_hideable(dbc.Col(self.classifier_custom_component.layout()),
+                                      hide=self.hide_classifier_custom_component),
+                    ]),
                 ])
-            ]),
+            ], class_name="mt-4 gx-4"),
             dbc.Row([
                 dbc.Col([
                     html.H3("SHAP values"),
-                    dbc.CardDeck([
-                        make_hideable(self.shap_summary.layout(),
-                                    hide=self.hide_shapsummary),
-                        make_hideable(self.shap_dependence.layout(),
-                                    hide=self.hide_shapdependence),
-                    ], style=dict(marginTop=25, marginBottom=25)),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.shap_summary.layout()),
+                                      hide=self.hide_shapsummary),
+                        make_hideable(dbc.Col(self.shap_dependence.layout()),
+                                      hide=self.hide_shapdependence),
+                    ]),
                 ])
-            ]),
+            ], class_name="mt-4 gx-4"),
             dbc.Row([
                 dbc.Col([
                     html.H2("Individual predictions"),
-                    dbc.CardDeck([
-                        make_hideable(self.index.layout(),
-                                    hide=self.hide_predindexselector),
-                        make_hideable(self.summary.layout(),
-                                    hide=self.hide_predictionsummary),
-                    ], style=dict(marginBottom=25, marginTop=25)),
-                    dbc.CardDeck([
-                        make_hideable(self.contributions.layout(),
-                                    hide=self.hide_contributiongraph),
-                    ], style=dict(marginBottom=25, marginTop=25))
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.index.layout()),
+                                      hide=self.hide_predindexselector),
+                        make_hideable(dbc.Col(self.summary.layout()),
+                                      hide=self.hide_predictionsummary),
+                    ], ),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.contributions.layout()),
+                                      hide=self.hide_contributiongraph),
+                    ])
                 ])
-            ]),  
-        ], fluid=False)
+            ], class_name="mt-4 gx-4"),
+        ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.hide(to_html.title(self.title), hide=self.hide_title)
@@ -906,50 +915,48 @@ class SimplifiedRegressionComposite(ExplainerComponent):
 
     def layout(self):
         return dbc.Container([
-            dbc.Row([
-                make_hideable(
-                    dbc.Col([
-                        html.H1(self.title, id='simple-regression-composite-title'),
-                    ]), hide=self.hide_title),
-            ]),
+            make_hideable(
+                dbc.Row(html.H1(self.title, id='simple-regression-composite-title'),
+                        class_name="mt-4 gx-4"),
+            hide=self.hide_title),
             dbc.Row([
                 dbc.Col([
                     html.H2("Model performance"),
-                    dbc.CardDeck([
-                        make_hideable(self.goodness_of_fit.layout(),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.goodness_of_fit.layout()),
                                     hide=self.hide_goodness_of_fit),
-                        make_hideable(self.regression_custom_component.layout(),
+                        make_hideable(dbc.Col(self.regression_custom_component.layout()),
                                     hide=self.hide_regression_custom_component),
-                    ], style=dict(marginTop=25, marginBottom=25)),
+                    ]),
                 ])
-            ]),
+            ], class_name="mt-4 gx-4"),
             dbc.Row([
                 dbc.Col([
                     html.H3("SHAP values"),
-                    dbc.CardDeck([
-                        make_hideable(self.shap_summary.layout(),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.shap_summary.layout()),
                                     hide=self.hide_shapsummary),
-                        make_hideable(self.shap_dependence.layout(),
+                        make_hideable(dbc.Col(self.shap_dependence.layout()),
                                     hide=self.hide_shapdependence),
-                    ], style=dict(marginTop=25, marginBottom=25)),
+                    ]),
                 ])
-            ]),
+            ], class_name="mt-4 gx-4"),
             dbc.Row([
                 dbc.Col([
                     html.H2("Individual predictions"),
-                    dbc.CardDeck([
-                        make_hideable(self.index.layout(),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.index.layout()),
                                     hide=self.hide_predindexselector),
-                        make_hideable(self.summary.layout(),
+                        make_hideable(dbc.Col(self.summary.layout()),
                                     hide=self.hide_predictionsummary),
-                    ], style=dict(marginBottom=25, marginTop=25)),
-                    dbc.CardDeck([
-                        make_hideable(self.contributions.layout(),
+                    ]),
+                    dbc.Row([
+                        make_hideable(dbc.Col(self.contributions.layout()),
                                     hide=self.hide_contributiongraph),
-                    ], style=dict(marginBottom=25, marginTop=25))
+                    ])
                 ])
-            ])   
-        ], fluid=False)
+            ], class_name="mt-4 gx-4")   
+        ], fluid=True)
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.hide(to_html.title(self.title), hide=self.hide_title)

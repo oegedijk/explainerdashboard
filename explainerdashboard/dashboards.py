@@ -17,6 +17,7 @@ import requests
 from typing import List, Union
 from pathlib import Path
 from copy import copy, deepcopy
+import warnings
 
 import oyaml as yaml
 
@@ -24,6 +25,14 @@ import dash
 from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    r"\nThe dash_\w+_components package is deprecated",
+    UserWarning,
+    "dash_auth.plotly_auth",
+)
 import dash_auth
 
 from flask import Flask, request, redirect
@@ -39,6 +48,14 @@ from .dashboard_tabs import *
 from .explainers import BaseExplainer
 from . import to_html
 
+# with pipelines we extract the final model that is fitted on raw numpy arrays and so will throw
+# this error when receiving a pandas dataframe. So we suppress the warnings.
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    r"X has feature names, but \w+ was fitted without feature names",
+    UserWarning
+)
 
 class ExplainerTabsLayout(ExplainerComponent):
     def __init__(self, explainer, tabs,
@@ -108,6 +125,7 @@ class ExplainerTabsLayout(ExplainerComponent):
                     dbc.Col([
                         self.selector.layout()
                     ], md=3), hide=self.header_hide_selector),
+                dbc.Col([], class_name="me-auto"),
                 make_hideable(
                     dbc.Col([
                         html.Div([
@@ -1499,9 +1517,9 @@ class ExplainerHub:
                 raise ValueError("users_file should end with either .json or .yaml!")
                 
             assert 'users' in users_db, \
-                f"{self.users_file} should contain a 'users' dict!"
+                f"{users_file} should contain a 'users' dict!"
             assert 'dashboard_users' in users_db, \
-                f"{self.users_file} should contain a 'dashboard_users' dict!"
+                f"{users_file} should contain a 'dashboard_users' dict!"
                
     def _hash_logins(self, logins:List[List], add_to_users_file:bool=False):
         """Turn a list of [user, password] pairs into a Flask-Login style user 
@@ -1529,15 +1547,15 @@ class ExplainerHub:
                     username=username, 
                     password=password
                 )
-                if add_to_user_file and self.users_file is not None:
-                    self._add_user_to_file(self.users_file, user, password, already_hashed=True)
+                if add_to_users_file and self.users_file is not None:
+                    self._add_user_to_file(self.users_file, username, password, already_hashed=True)
             else:
                 logins_dict[username] = dict(
                     username=username, 
                     password=generate_password_hash(password, method='pbkdf2:sha256')
                 )
                 if add_to_users_file and self.users_jfile is not None:
-                    self._add_user_to_file(self.users_file, user, password)
+                    self._add_user_to_file(self.users_file, username, password)
         return logins_dict
     
     @staticmethod
@@ -1817,8 +1835,8 @@ class ExplainerHub:
                                 dbc.CardLink("Go to dashboard", 
                                             href=f"/{self.base_route}/{dashboard.name}", 
                                             external_link=True),   
-                            ])]) for dashboard in dashboards[i:i+n_cols]
-                    ]
+                            ])], class_name="h-100")
+                     for dashboard in dashboards[i:i+n_cols]]
                 )
             if n_last_row > 0:
                 last_row = [
@@ -1834,20 +1852,20 @@ class ExplainerHub:
                                         href=f"/{self.base_route}/{dashboard.name}", 
                                         external_link=True),   
                         ])
-                    ]) for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
+                    ], class_name="h-100")
+                    for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
                 for i in range(len(last_row), n_cols):
                     last_row.append(dbc.Card([], style=dict(border="none")))
                 card_decks.append(last_row)
             return card_decks
 
-            
         header = html.Div([
-            dbc.Jumbotron([
+            dbc.Container([
                 html.H1(self.title, className="display-3"),
                 html.Hr(className="my-2"),
                 html.P(self.description, className="lead"),
-            ])
-        ], style=dict(marginTop=40))
+            ], fluid=True, class_name="py-3")
+        ], className="p-3 bg-light rounded-3", style=dict(marginTop=40))
         
         if self.masonry:
             dashboard_rows = [
@@ -1859,7 +1877,7 @@ class ExplainerHub:
             ]
         else:
             dashboard_rows = [
-                dbc.Row([dbc.CardDeck(deck)], style=dict(marginBottom=30)) 
+                dbc.Row([dbc.Col(card) for card in deck], class_name="mt-4 g-4")
                     for deck in dashboard_decks(self.dashboards, self.n_dashboard_cols)]
         
         if hasattr(self, "index_page"):
@@ -1942,9 +1960,8 @@ class ExplainerHub:
         """
         if static:
             page = """
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
             """
             dbs = [(f"{db.name}.html", db.title) for db in self.dashboards]
         else:
@@ -1956,37 +1973,44 @@ class ExplainerHub:
             """
             dbs = [(f"/{self.base_route}/_{db.name}", db.title) for db in self.dashboards]
 
+        page_login_required = self.users and not self.dbs_open_by_default
+        
         page += f"""
         <title>{self.title}</title>
-        <body class="d-flex flex-column min-vh-100">
-            <div class="container{'-fluid' if self.fluid else ''}">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="{self.index_route if not static else '#'}">{self.title}</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-                    <ul class="navbar-nav ml-auto">
-
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Dashboards
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink2">
-                            {"".join([f'<a class="dropdown-item" href="{url}">{name}</a>' for url, name in dbs])}
+        <body>
+            <div class="container{'-fluid' if self.fluid else ''} px-4">
+                <nav class="navbar navbar-expand navbar-light bg-light">
+                    <div class="container-fluid">
+                        <a href="{self.index_route if not static else '#'}" class="navbar-brand">
+                        <h1>{self.title}</h1>
+                        </a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <form class="d-flex">
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                                    <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Dashboards
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                        {"".join([f'<li><a n_clicks_timestamp="-1" data-rr-ui-dropdown-item="" class="dropdown-item" href="{url}">{name}</a></li>' for url, name in dbs])}
+                                    </ul>
+                                    </li>
+                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ''}
+                                </ul>
                             </div>
-                        </li>
-                        {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static else ''}
-                    </ul>
-                </div>
-            </nav>
+                        </form>
+                    </div>
+                </nav>
         """
         if static:
             page += f"\n<div>\n{route}\n</div>\n"
         else:
             page += f"""
             
-            <div class="embed-responsive" style="min-height: {self.min_height}px">
+            <div class="mt-4 embed-responsive" style="min-height: {self.min_height}px">
                  <iframe 
                          src="{route}"
                          style="overflow-x: hidden; overflow-y: visible; position: absolute; width: 95%; height: 100%; background: transparent"
@@ -2090,7 +2114,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}{self.index_route}", flush=True)
+        print(f"Starting ExplainerHub on http://{host}:{port}{self.index_route}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  

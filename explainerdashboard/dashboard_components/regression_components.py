@@ -165,11 +165,11 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                         ], md=8), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
-                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name, block=True),
+                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-reg-button-'+self.name),
                             dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
                                             target='random-index-reg-button-'+self.name),
                         ], md=4), hide=self.hide_button),
-                    ], form=True),
+                    ]),
                     dbc.Row([
                         make_hideable(
                         dbc.Col([
@@ -591,8 +591,8 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
 
 class PredictedVsActualComponent(ExplainerComponent):
     _state_props = dict(
-        log_x=('pred-vs-actual-logx-', 'checked'),
-        log_y=('pred-vs-actual-logy-', 'checked')
+        log_x=('pred-vs-actual-logx-', 'value'),
+        log_y=('pred-vs-actual-logy-', 'value')
     )
     def __init__(self, explainer, title="Predicted vs Actual", name=None,
                     subtitle="How close is the predicted value to the observed?",
@@ -631,8 +631,6 @@ class PredictedVsActualComponent(ExplainerComponent):
         
         self.logs, self.log_x, self.log_y = logs, log_x, log_y
 
-        
-
         if self.description is None: self.description = f"""
         Plot shows the observed {self.explainer.target} and the predicted 
         {self.explainer.target} in the same plot. A perfect model would have
@@ -659,20 +657,21 @@ class PredictedVsActualComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 # html.Label("Log y"),
                                 dbc.RadioButton(
                                     id='pred-vs-actual-logy-'+self.name,
                                     className="form-check-input",
-                                    checked=self.log_y),
+                                    value=self.log_y),
                                 dbc.Tooltip("By using a log axis, it is easier to see relative "
                                         "errors instead of absolute errors.",
                                         target='pred-vs-actual-logy-'+self.name),
                                 dbc.Label("Log y",
                                         html_for='pred-vs-actual-logy-'+self.name,
-                                        className="form-check-label"), 
-                            ], check=True),
+                                        className="form-check-label",
+                                        size='sm'), 
+                            ]),
                         ], md=1, align="center"), hide=self.hide_log_y),
                     dbc.Col([
                         dcc.Graph(id='pred-vs-actual-graph-'+self.name,
@@ -682,19 +681,20 @@ class PredictedVsActualComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 dbc.RadioButton(
                                     id='pred-vs-actual-logx-'+self.name,
                                     className="form-check-input",
-                                    checked=self.log_x),
+                                    value=self.log_x),
                                 dbc.Tooltip("By using a log axis, it is easier to see relative "
                                         "errors instead of absolute errors.",
                                         target='pred-vs-actual-logx-'+self.name),
                                 dbc.Label("Log x",
                                         html_for='pred-vs-actual-logx-'+self.name,
-                                        className="form-check-label"),   
-                            ], check=True),
+                                        className="form-check-label",
+                                        size='sm'),   
+                            ]),
                         ], md=2), hide=self.hide_log_x),
                 ], justify="center"),
                 dbc.Row([
@@ -719,8 +719,8 @@ class PredictedVsActualComponent(ExplainerComponent):
     def component_callbacks(self, app):
         @app.callback(
             Output('pred-vs-actual-graph-'+self.name, 'figure'),
-            [Input('pred-vs-actual-logx-'+self.name, 'checked'),
-             Input('pred-vs-actual-logy-'+self.name, 'checked')],
+            [Input('pred-vs-actual-logx-'+self.name, 'value'),
+             Input('pred-vs-actual-logy-'+self.name, 'value')],
         )
         def update_predicted_vs_actual_graph(log_x, log_y):
             return self.explainer.plot_predicted_vs_actual(
@@ -815,7 +815,7 @@ class ResidualsComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                             [
                                 dbc.Label("Horizontal axis:", html_for='residuals-pred-or-actual-'+self.name),
                                 dbc.Select(
@@ -825,6 +825,7 @@ class ResidualsComponent(ExplainerComponent):
                                     ],
                                     value=self.pred_or_actual,
                                     id='residuals-pred-or-actual-'+self.name,
+                                    size='sm',
                                 ),
                             ], id='residuals-pred-or-actual-form-'+self.name),
                             dbc.Tooltip("Select what you would like to put on the x-axis:"
@@ -833,17 +834,24 @@ class ResidualsComponent(ExplainerComponent):
                         ], md=3), hide=self.hide_pred_or_actual),
                     make_hideable(
                         dbc.Col([
-                            html.Label('Residual type:', id='residuals-type-label-'+self.name),
-                            dbc.Tooltip("Type of residuals to display: y-preds (difference), "
-                                        "y/preds (ratio) or log(y/preds) (logratio).", 
-                                        target='residuals-type-label-'+self.name),
-                            dbc.Select(id='residuals-type-'+self.name,
-                                    options = [{'label': 'Difference', 'value': 'difference'},
-                                                {'label': 'Ratio', 'value': 'ratio'},
-                                                {'label': 'Log ratio', 'value': 'log-ratio'}],
-                                    value=self.residuals),
+                            dbc.Row([
+                                dbc.Label('Residual type:', 
+                                    id='residuals-type-label-'+self.name,
+                                    html_for='residuals-type-'+self.name,
+                                ),
+                                dbc.Tooltip("Type of residuals to display: y-preds (difference), "
+                                            "y/preds (ratio) or log(y/preds) (logratio).", 
+                                            target='residuals-type-label-'+self.name),
+                                dbc.Select(id='residuals-type-'+self.name,
+                                        options=[{'label': 'Difference', 'value': 'difference'},
+                                                    {'label': 'Ratio', 'value': 'ratio'},
+                                                    {'label': 'Log ratio', 'value': 'log-ratio'}],
+                                        value=self.residuals,
+                                        size='sm',
+                                ),
+                            ]),
                         ], md=3), hide=self.hide_ratio),
-                ]),
+                ], justify='evenly'),
             ]), hide=self.hide_footer)
         ])
 
@@ -973,7 +981,7 @@ class RegressionVsColComponent(ExplainerComponent):
                         ], md=4), hide=self.hide_col),
                     make_hideable(
                             dbc.Col([
-                                html.Label('Display:', id='reg-vs-col-display-type-label-'+self.name),
+                                dbc.Label('Display:', id='reg-vs-col-display-type-label-'+self.name),
                                 dbc.Tooltip(f"Select what to display on the y axis: observed {self.explainer.target}, "
                                             f"predicted {self.explainer.target} or residuals. Residuals can either "
                                             "be calculated by takind the difference (y-preds), "
@@ -1020,7 +1028,7 @@ class RegressionVsColComponent(ExplainerComponent):
                     make_hideable(
                         dbc.Col([
                             html.Div([
-                                dbc.FormGroup([
+                                dbc.Row([
                                     dbc.Label("Scatter:"),
                                     dbc.Tooltip("For categorical features, display "
                                             "a point cloud next to the violin plots.", 

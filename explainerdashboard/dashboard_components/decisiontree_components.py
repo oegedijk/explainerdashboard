@@ -118,7 +118,9 @@ class DecisionTreesComponent(ExplainerComponent):
                             dbc.Select(id='decisiontrees-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
-                                value=self.highlight)
+                                value=self.highlight,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_highlight), 
                     make_hideable(
                             dbc.Col([self.selector.layout()
@@ -264,7 +266,9 @@ class DecisionPathTableComponent(ExplainerComponent):
                             dbc.Select(id='decisionpath-table-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
-                                value=self.highlight)
+                                value=self.highlight,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_highlight),
                         make_hideable(
                             dbc.Col([self.selector.layout()
@@ -385,7 +389,9 @@ class DecisionPathGraphComponent(ExplainerComponent):
                             dbc.Select(id='decisionpath-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
-                                value=self.highlight)
+                                value=self.highlight,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_highlight), 
                         make_hideable(
                             dbc.Col([self.selector.layout()
