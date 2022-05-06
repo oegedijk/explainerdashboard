@@ -7,7 +7,7 @@
 - 
 
 ### New Features
-- Upgraded to bootstrap5 and dash-bootstrap-components v1 (which is also based on bootstrap5)
+- Upgrades the dashboard to bootstrap5 and dash-bootstrap-components v1 (which is also based on bootstrap5)
 - Both sklearn and imblearn Pipelines are now supported, as long as the transformers have a `.get_feature_names_out()` method
 
 ### Bug Fixes
@@ -15,7 +15,7 @@
 -
 
 ### Improvements
-- 
+- No longer limiting werkzeug version due to upstream bug fixes of `dash` and `jupyter-dash`
 -
 
 ### Other Changes
