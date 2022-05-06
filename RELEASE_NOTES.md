@@ -1,5 +1,27 @@
 # Release Notes
 
+
+## Version 0.4: upgrade bootstrap5 and pipeline support
+### Breaking Changes
+- 
+- 
+
+### New Features
+- Upgraded to bootstrap5 and dash-bootstrap-components v1 (which is also based on bootstrap5)
+- Both sklearn and imblearn Pipelines are now supported, as long as the transformers have a `.get_feature_names_out()` method
+
+### Bug Fixes
+- Suppresses warnings when extracting final model from pipeline that was not fitted on a dataframe. 
+-
+
+### Improvements
+- 
+-
+
+### Other Changes
+- Some dropdowns now better aligned. 
+-
+
 ## Version 0.3.8.1:
 ### Breaking Changes
 - 
