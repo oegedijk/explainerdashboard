@@ -400,7 +400,7 @@ def rf_multiclass_explainer_no_y(fitted_rf_multiclass_model):
 @pytest.fixture(scope="session")
 def precalculated_rf_multiclass_explainer_no_y(rf_multiclass_explainer_no_y):
     _ = ExplainerDashboard(rf_multiclass_explainer_no_y)
-    return rf_multiclass_explainer
+    return rf_multiclass_explainer_no_y
 
 
 @pytest.fixture(scope="session")
