@@ -1,16 +1,9 @@
-import unittest
+
 
 import pandas as pd
-import numpy as np
-
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 import plotly.graph_objects as go
 import dtreeviz 
-
-from explainerdashboard.explainers import RegressionExplainer
-from explainerdashboard.explainers import ClassifierExplainer
-from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names
 
 
 def test_rfclas_graphviz_available(precalculated_rf_classifier_explainer):
@@ -40,7 +33,6 @@ def test_rfclas_plot_trees(precalculated_rf_classifier_explainer, test_names):
 
 def test_rfclas_calculate_properties(precalculated_rf_classifier_explainer):
     precalculated_rf_classifier_explainer.calculate_properties()
-
 
 def test_rfreg_shadow_trees(precalculated_rf_regression_explainer):
     dt = precalculated_rf_regression_explainer.shadow_trees

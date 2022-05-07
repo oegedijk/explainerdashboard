@@ -1,113 +1,84 @@
-import unittest
-
 import pandas as pd
-from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
-from sklearn.ensemble import RandomForestRegressor
+
 import plotly.graph_objects as go
 
-from explainerdashboard.explainers import RegressionExplainer
-from explainerdashboard.datasets import titanic_fare, titanic_names
 
+def test_residuals(precalculated_rf_regression_explainer):
+    assert isinstance(precalculated_rf_regression_explainer.residuals, pd.Series)
 
-class RegressionBunchTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_fare()
-        self.test_len = len(X_test)
+def test_metrics(precalculated_rf_regression_explainer):
+    metrics_dict = precalculated_rf_regression_explainer.metrics()
+    assert isinstance(metrics_dict, dict)
+    assert ('root-mean-squared-error' in metrics_dict)
+    assert ('mean-absolute-error' in metrics_dict)
+    assert ('R-squared' in metrics_dict)
+    assert isinstance(precalculated_rf_regression_explainer.metrics_descriptions(), dict) 
 
-        train_names, test_names = titanic_names()
-        _, self.names = titanic_names()
+def test_plot_predicted_vs_actual(precalculated_rf_regression_explainer):
+    fig = precalculated_rf_regression_explainer.plot_predicted_vs_actual(logs=False)
+    assert isinstance(fig, go.Figure)
 
-        model = RandomForestRegressor(n_estimators=5, max_depth=2)
-        model.fit(X_train, y_train)
+    fig = precalculated_rf_regression_explainer.plot_predicted_vs_actual(logs=True)
+    assert isinstance(fig, go.Figure)
 
-        self.explainer = RegressionExplainer(
-                            model, X_test, y_test, 
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                            cats_notencoded={'Gender':'No Gender'},
-                            idxs=test_names)
+    fig = precalculated_rf_regression_explainer.plot_predicted_vs_actual(log_x=True, log_y=True)
+    assert isinstance(fig, go.Figure)
 
-    def test_residuals(self):
-        self.assertIsInstance(self.explainer.residuals, pd.Series)
+def test_plot_residuals(precalculated_rf_regression_explainer):
+    fig = precalculated_rf_regression_explainer.plot_residuals()
+    assert isinstance(fig, go.Figure)
 
-    def test_metrics(self):
-        metrics_dict = self.explainer.metrics()
-        self.assertIsInstance(metrics_dict, dict)
-        self.assertTrue('root-mean-squared-error' in metrics_dict)
-        self.assertTrue('mean-absolute-error' in metrics_dict)
-        self.assertTrue('R-squared' in metrics_dict)
-        self.assertIsInstance(self.explainer.metrics_descriptions(), dict) 
+    fig = precalculated_rf_regression_explainer.plot_residuals(vs_actual=True)
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_predicted_vs_actual(self):
-        fig = self.explainer.plot_predicted_vs_actual(logs=False)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals(residuals='ratio')
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_predicted_vs_actual(logs=True)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals(residuals='log-ratio')
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_predicted_vs_actual(log_x=True, log_y=True)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals(residuals='log-ratio', vs_actual=True)
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_residuals(self):
-        fig = self.explainer.plot_residuals()
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_residuals_vs_feature(precalculated_rf_regression_explainer):
+    fig = precalculated_rf_regression_explainer.plot_residuals_vs_feature("Age")
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals(vs_actual=True)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals_vs_feature("Age", residuals='log-ratio')
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals(residuals='ratio')
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals_vs_feature("Age", dropna=True)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals(residuals='log-ratio')
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals_vs_feature("Gender", points=False)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals(residuals='log-ratio', vs_actual=True)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_residuals_vs_feature("Gender", winsor=10)
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_residuals_vs_feature(self):
-        fig = self.explainer.plot_residuals_vs_feature("Age")
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_y_vs_feature(precalculated_rf_regression_explainer):
+    fig = precalculated_rf_regression_explainer.plot_y_vs_feature("Age")
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Age", residuals='log-ratio')
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_y_vs_feature("Age", dropna=True)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Age", dropna=True)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_y_vs_feature("Gender", points=False)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Gender", points=False)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_y_vs_feature("Gender", winsor=10)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_residuals_vs_feature("Gender", winsor=10)
-        self.assertIsInstance(fig, go.Figure)
+def test_plot_preds_vs_feature(precalculated_rf_regression_explainer):
+    fig = precalculated_rf_regression_explainer.plot_preds_vs_feature("Age")
+    assert isinstance(fig, go.Figure)
 
-    def test_plot_y_vs_feature(self):
-        fig = self.explainer.plot_y_vs_feature("Age")
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_preds_vs_feature("Age", dropna=True)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_y_vs_feature("Age", dropna=True)
-        self.assertIsInstance(fig, go.Figure)
+    fig = precalculated_rf_regression_explainer.plot_preds_vs_feature("Gender", points=False)
+    assert isinstance(fig, go.Figure)
 
-        fig = self.explainer.plot_y_vs_feature("Gender", points=False)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_y_vs_feature("Gender", winsor=10)
-        self.assertIsInstance(fig, go.Figure)
-
-    def test_plot_preds_vs_feature(self):
-        fig = self.explainer.plot_preds_vs_feature("Age")
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_preds_vs_feature("Age", dropna=True)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_preds_vs_feature("Gender", points=False)
-        self.assertIsInstance(fig, go.Figure)
-
-        fig = self.explainer.plot_preds_vs_feature("Gender", winsor=10)
-        self.assertIsInstance(fig, go.Figure)
-
-
-if __name__ == '__main__':
-    unittest.main()
-
+    fig = precalculated_rf_regression_explainer.plot_preds_vs_feature("Gender", winsor=10)
+    assert isinstance(fig, go.Figure)

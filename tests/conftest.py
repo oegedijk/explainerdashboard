@@ -8,7 +8,7 @@ from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
 from catboost import CatBoostClassifier, CatBoostRegressor
 
 from explainerdashboard import RegressionExplainer, ClassifierExplainer, ExplainerDashboard
-from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names
+from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names, titanic_embarked
 
 @pytest.fixture()
 def test_names():
@@ -40,11 +40,31 @@ def rf_classifier_explainer(fitted_rf_classifier_model):
     )
     return explainer
 
+@pytest.fixture(scope="session")
+def rf_classifier_explainer_no_y(fitted_rf_classifier_model):
+    _, _, X_test, _ = titanic_survive()
+    explainer = ClassifierExplainer(
+        fitted_rf_classifier_model, 
+        X_test, 
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        cats_notencoded={'Gender': 'No Gender'},
+        labels=['Not survived', 'Survived']
+    )
+    return explainer
+
+
+
 
 @pytest.fixture(scope="session")
 def precalculated_rf_classifier_explainer(rf_classifier_explainer):
     db = ExplainerDashboard(rf_classifier_explainer)
     return rf_classifier_explainer
+
+
+@pytest.fixture(scope="session")
+def precalculated_rf_classifier_explainer_no_y(rf_classifier_explainer_no_y):
+    db = ExplainerDashboard(rf_classifier_explainer_no_y)
+    return rf_classifier_explainer_no_y
 
 
 @pytest.fixture(scope="session")
@@ -66,11 +86,28 @@ def rf_regression_explainer(fitted_rf_regression_model):
         idxs=test_names)
     return explainer
 
+@pytest.fixture(scope="session")
+def rf_regression_explainer_no_y(fitted_rf_regression_model):
+    _, _, X_test, _ = titanic_fare()
+    _, test_names = titanic_names()
+    explainer = RegressionExplainer(
+        fitted_rf_regression_model, 
+        X_test, 
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        idxs=test_names)
+    return explainer
+
 
 @pytest.fixture(scope="session")
 def precalculated_rf_regression_explainer(rf_regression_explainer):
-    db = ExplainerDashboard(rf_regression_explainer)
+    _ = ExplainerDashboard(rf_regression_explainer)
     return rf_regression_explainer
+
+
+@pytest.fixture(scope="session")
+def precalculated_rf_regression_explainer_no_y(rf_regression_explainer_no_y):
+    _ = ExplainerDashboard(rf_regression_explainer_no_y)
+    return rf_regression_explainer_no_y
 
 
 @pytest.fixture(scope="session")
@@ -324,6 +361,28 @@ def et_regression_explainer(fitted_et_regression_model):
 
 @pytest.fixture(scope="session")
 def precalculated_et_regression_explainer(et_regression_explainer):
-    db = ExplainerDashboard(et_regression_explainer)
+    _ = ExplainerDashboard(et_regression_explainer)
     return et_regression_explainer
 
+
+@pytest.fixture(scope="session")
+def fitted_rf_multiclass_model():
+    X_train, y_train, _, _ = titanic_embarked()
+    model = RandomForestClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+    return model
+
+@pytest.fixture(scope="session")
+def rf_multiclass_explainer(fitted_rf_multiclass_model):
+    _, _, X_test, y_test = titanic_embarked()
+    _, test_names = titanic_names()
+    explainer = ClassifierExplainer(fitted_rf_multiclass_model, X_test, y_test,  
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck'],
+                            idxs=test_names, 
+                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
+    return explainer
+
+@pytest.fixture(scope="session")
+def precalculated_rf_multiclass_explainer(rf_multiclass_explainer):
+    _ = ExplainerDashboard(rf_multiclass_explainer)
+    return rf_multiclass_explainer
