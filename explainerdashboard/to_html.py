@@ -221,7 +221,6 @@ def tabs(tabs_dict: dict) -> str:
     """Generate a series of bootstrap tabs for a dictionary tabs_dict with the
     name of each tab as the dict key and the html contents of the tab as the dict value.
     """
-    # see https://getbootstrap.com/docs/5.1/components/navs-tabs/#using-data-attributes
     tabs_id = "myTab"
     html = f'<ul class="nav nav-tabs" id="{tabs_id}" role="tablist">'
     for i, tab_name in enumerate(tabs_dict.keys()):
@@ -245,7 +244,21 @@ def tabs(tabs_dict: dict) -> str:
 </div>
 """
     html += "\n</div>"
+    # https://getbootstrap.com/docs/5.1/components/navs-tabs/#via-javascript
+    html += f"""
+<script type="text/javascript">
+var triggerTabList = [].slice.call(document.querySelectorAll('#{tabs_id} button'))
+triggerTabList.forEach(function (triggerEl) {{
+  var tabTrigger = new bootstrap.Tab(triggerEl)
 
+  triggerEl.addEventListener('click', function (event) {{
+    event.preventDefault()
+    tabTrigger.show()
+    window.dispatchEvent(new Event('resize'));
+  }})
+}})
+</script>
+"""
     return html
 
 
