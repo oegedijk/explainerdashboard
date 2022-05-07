@@ -377,12 +377,50 @@ def rf_multiclass_explainer(fitted_rf_multiclass_model):
     _, _, X_test, y_test = titanic_embarked()
     _, test_names = titanic_names()
     explainer = ClassifierExplainer(fitted_rf_multiclass_model, X_test, y_test,  
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck'],
-                            idxs=test_names, 
-                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck'],
+        idxs=test_names, 
+        labels=['Queenstown', 'Southampton', 'Cherbourg'])
     return explainer
 
 @pytest.fixture(scope="session")
 def precalculated_rf_multiclass_explainer(rf_multiclass_explainer):
     _ = ExplainerDashboard(rf_multiclass_explainer)
     return rf_multiclass_explainer
+
+@pytest.fixture(scope="session")
+def rf_multiclass_explainer_no_y(fitted_rf_multiclass_model):
+    _, _, X_test, _ = titanic_embarked()
+    _, test_names = titanic_names()
+    explainer = ClassifierExplainer(fitted_rf_multiclass_model, X_test, 
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck'],
+        idxs=test_names, 
+        labels=['Queenstown', 'Southampton', 'Cherbourg'])
+    return explainer
+
+@pytest.fixture(scope="session")
+def precalculated_rf_multiclass_explainer_no_y(rf_multiclass_explainer_no_y):
+    _ = ExplainerDashboard(rf_multiclass_explainer_no_y)
+    return rf_multiclass_explainer
+
+
+@pytest.fixture(scope="session")
+def fitted_xgb_multiclass_model():
+    X_train, y_train, _, _ = titanic_embarked()
+    model = XGBClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+    return model
+
+@pytest.fixture(scope="session")
+def xgb_multiclass_explainer(fitted_xgb_multiclass_model):
+    _, _, X_test, y_test = titanic_embarked()
+    _, test_names = titanic_names()
+    explainer = ClassifierExplainer(fitted_xgb_multiclass_model, X_test, y_test,  
+                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck'],
+                            idxs=test_names, 
+                            labels=['Queenstown', 'Southampton', 'Cherbourg'])
+    return explainer
+
+@pytest.fixture(scope="session")
+def precalculated_xgb_multiclass_explainer(xgb_multiclass_explainer):
+    _ = ExplainerDashboard(xgb_multiclass_explainer)
+    return xgb_multiclass_explainer
