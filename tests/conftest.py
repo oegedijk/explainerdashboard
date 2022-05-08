@@ -1,5 +1,6 @@
 import pytest
 
+from pathlib import Path
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -7,7 +8,7 @@ from xgboost import XGBClassifier, XGBRegressor
 from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
 from catboost import CatBoostClassifier, CatBoostRegressor
 
-from explainerdashboard import RegressionExplainer, ClassifierExplainer, ExplainerDashboard
+from explainerdashboard import RegressionExplainer, ClassifierExplainer, ExplainerDashboard, ExplainerHub
 from explainerdashboard.custom import ShapDependenceComposite
 from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names, titanic_embarked
 
@@ -446,4 +447,21 @@ def dashboard_dumps_folder(tmp_path_factory, precalculated_rf_classifier_explain
     precalculated_rf_classifier_explainer.dump(dump_path / "explainer.joblib")
     precalculated_rf_classifier_explainer.to_yaml(dump_path / "explainer.yaml")
     custom_dashboard.to_yaml(dump_path / "dashboard.yaml", explainerfile=str(dump_path / "explainer.joblib"))
+    return dump_path
+
+@pytest.fixture(scope="session")
+def explainer_hub(precalculated_rf_classifier_explainer, precalculated_rf_regression_explainer):
+    hub = ExplainerHub([
+                ExplainerDashboard(precalculated_rf_classifier_explainer, description="Super interesting dashboard"),
+                ExplainerDashboard(precalculated_rf_regression_explainer, title="Dashboard Two", 
+                        name='db2', logins=[['user2', 'password2']])
+            ], 
+            users_file=str(Path.cwd() / "tests" / "test_assets" / "users.yaml")
+    )
+    return hub
+
+@pytest.fixture(scope="session")
+def explainer_hub_dump_folder(tmp_path_factory, explainer_hub):
+    dump_path = tmp_path_factory.mktemp("hub_dump")
+    explainer_hub.to_yaml(dump_path / "hub.yaml")
     return dump_path
