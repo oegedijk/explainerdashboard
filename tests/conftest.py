@@ -8,6 +8,7 @@ from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
 from catboost import CatBoostClassifier, CatBoostRegressor
 
 from explainerdashboard import RegressionExplainer, ClassifierExplainer, ExplainerDashboard
+from explainerdashboard.custom import ShapDependenceComposite
 from explainerdashboard.datasets import titanic_survive, titanic_fare, titanic_names, titanic_embarked
 
 @pytest.fixture()
@@ -424,3 +425,25 @@ def xgb_multiclass_explainer(fitted_xgb_multiclass_model):
 def precalculated_xgb_multiclass_explainer(xgb_multiclass_explainer):
     _ = ExplainerDashboard(xgb_multiclass_explainer)
     return xgb_multiclass_explainer
+
+
+@pytest.fixture(scope="session")
+def custom_dashboard(precalculated_rf_classifier_explainer):
+    custom_dashboard = ExplainerDashboard(precalculated_rf_classifier_explainer, 
+            [
+                ShapDependenceComposite(precalculated_rf_classifier_explainer, title="Test Tab!"),
+                ShapDependenceComposite, 
+                "importances"
+            ], title="Test Title!"
+    )
+    return custom_dashboard
+
+
+@pytest.fixture(scope="session")
+def dashboard_dumps_folder(tmp_path_factory, precalculated_rf_classifier_explainer, custom_dashboard):
+    dump_path = tmp_path_factory.mktemp("dump_tests")
+
+    precalculated_rf_classifier_explainer.dump(dump_path / "explainer.joblib")
+    precalculated_rf_classifier_explainer.to_yaml(dump_path / "explainer.yaml")
+    custom_dashboard.to_yaml(dump_path / "dashboard.yaml", explainerfile=str(dump_path / "explainer.joblib"))
+    return dump_path
