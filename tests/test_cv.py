@@ -26,8 +26,6 @@ def regression_explainer_with_cv(fitted_rf_regression_model):
         cv=3
     )
 
-
-
 def test_clas_cv_permutation_importances(classifier_explainer_with_cv):
     assert isinstance(classifier_explainer_with_cv.permutation_importances(), pd.DataFrame)
     assert isinstance(classifier_explainer_with_cv.permutation_importances(pos_label=0), pd.DataFrame)

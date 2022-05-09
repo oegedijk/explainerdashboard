@@ -1,9 +1,7 @@
-
+import pytest
 
 import pandas as pd
 import numpy as np
-
-from sklearn.metrics import roc_auc_score
 
 import plotly.graph_objects as go
 
