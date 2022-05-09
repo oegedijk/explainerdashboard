@@ -44,3 +44,17 @@ and on OSX allow it to be run with `$ xattr -d com.apple.quarantine /usr/local/b
 The tests should now run in the base directory with
 
 `$ pytest .`
+
+### Skipping selenium and cli test
+
+If you would like to skip the abovementioned selenium based integration tests, you can skip all tests marked 
+(i.e. labeled with pytest.mark) with `selenium` by running e.g.:
+
+```sh
+$ pytest . -m "not selenium"
+```
+
+for also skipping all cli tests, run
+
+```sh
+$ pytest . -m "not selenium and not cli"
