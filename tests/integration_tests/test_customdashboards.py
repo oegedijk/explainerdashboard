@@ -1,9 +1,9 @@
-import dash
-from sklearn.ensemble import RandomForestClassifier
+import pytest
 
-from explainerdashboard import *
-from explainerdashboard.datasets import *
+from explainerdashboard import ExplainerDashboard
 from explainerdashboard.custom import *
+
+pytestmark = pytest.mark.selenium
 
 class CustomDashboard(ExplainerComponent):
     def __init__(self, explainer, title="Custom Dashboard", name=None):

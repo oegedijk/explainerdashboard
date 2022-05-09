@@ -1,6 +1,9 @@
 
+import pytest
+
 from explainerdashboard.dashboards import ExplainerDashboard
 
+pytestmark = pytest.mark.selenium
 
 def test_classification_dashboard(dash_duo, precalculated_rf_classifier_explainer):
     db = ExplainerDashboard(precalculated_rf_classifier_explainer, title="testing", responsive=False)
