@@ -251,12 +251,11 @@ def logistic_regression_kernel_explainer(fitted_logistic_regression_model, class
     _, _, X_test, y_test = classifier_data
     explainer = ClassifierExplainer(
         fitted_logistic_regression_model, 
-        X_test, 
-        y_test, 
+        X_test.iloc[:10], y_test.iloc[:10],
         cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
         cats_notencoded={'Gender': 'No Gender'},
         labels=['Not survived', 'Survived'],
-        shap='kernel', model_output='probability'
+        shap='kernel', 
     )
     return explainer
 
@@ -299,9 +298,8 @@ def linear_regression_kernel_explainer(fitted_linear_regression_model, regressio
     _, _, X_test, y_test = regression_data
     explainer = RegressionExplainer(
         fitted_linear_regression_model, 
-        X_test, y_test,
+        X_test.iloc[:10], y_test.iloc[:10],
         cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
-        idxs=test_names,
         shap='kernel')
     return explainer
 

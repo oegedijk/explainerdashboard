@@ -1,4 +1,5 @@
 
+import pytest
 
 import pandas as pd
 import numpy as np
@@ -135,12 +136,12 @@ def test_logreg_lift_curve_df(precalculated_logistic_regression_explainer):
 
 
 
+##### KERNEL TESTS
 
 def test_logistic_regression_kernel_shap_values(logistic_regression_kernel_explainer):
     assert isinstance(logistic_regression_kernel_explainer.shap_base_value(), (np.floating, float))
     assert (logistic_regression_kernel_explainer.get_shap_values_df().shape == (len(logistic_regression_kernel_explainer), len(logistic_regression_kernel_explainer.merged_cols)))
     assert isinstance(logistic_regression_kernel_explainer.get_shap_values_df(), pd.DataFrame)
-
 
 def test_linear_regression_kernel_shap_values(linear_regression_kernel_explainer):
     assert isinstance(linear_regression_kernel_explainer.shap_base_value(), (np.floating, float))
