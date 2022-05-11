@@ -7,6 +7,8 @@ __all__ = ['ShapSummaryComponent',
             'ShapContributionsTableComponent',
             'ShapContributionsGraphComponent']
 
+import itertools
+
 import dash
 from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -133,8 +135,6 @@ class ShapSummaryComponent(ExplainerComponent):
                                             "You can also select by clicking on a scatter point in the graph.", 
                                             target='shap-summary-index-label-'+self.name),
                                 dcc.Dropdown(id='shap-summary-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
                                     optionHeight=12,
                                     style={'height': '12', 'font-size': '12'},
                                     value=self.index),
@@ -174,6 +174,17 @@ class ShapSummaryComponent(ExplainerComponent):
         return html
     
     def component_callbacks(self, app):
+        @app.callback(
+            Output(f'shap-summary-index-{self.name}', "options"),
+            Input(f'shap-summary-index-{self.name}', "search_value"),
+        )
+        def update_options(search_value):
+            if search_value is None:
+                search_value = ""
+            return list(itertools.islice((str(o) for o in self.explainer.get_index_list() 
+                                            if search_value in o),
+                        1_000))
+
         @app.callback(
             Output('shap-summary-index-'+self.name, 'value'),
             [Input('shap-summary-graph-'+self.name, 'clickData')])
@@ -351,9 +362,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                         " shap summary plot (detailed).", 
                                         target='shap-dependence-index-label-'+self.name),
                             dcc.Dropdown(id='shap-dependence-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index)
+                                         value=self.index)
                         ], md=4), hide=self.hide_index),          
                 ]),
                 dcc.Loading(id="loading-dependence-graph-"+self.name, 
@@ -435,6 +444,17 @@ class ShapDependenceComponent(ExplainerComponent):
         return html
 
     def component_callbacks(self, app):
+        @app.callback(
+            Output(f'shap-dependence-index-{self.name}', "options"),
+            Input(f'shap-dependence-index-{self.name}', "search_value"),
+        )
+        def update_options(search_value):
+            if search_value is None:
+                search_value = ""
+            return list(itertools.islice((str(o) for o in self.explainer.get_index_list() 
+                                            if search_value in o),
+                        1_000))
+        
         @app.callback(
             [Output('shap-dependence-color-col-'+self.name, 'options'),
              Output('shap-dependence-color-col-'+self.name, 'value'),
