@@ -1,11 +1,12 @@
-__all__ = ['BaseExplainer', 
-            'ClassifierExplainer', 
-            'RegressionExplainer', 
-            'RandomForestClassifierExplainer', 
-            'RandomForestRegressionExplainer',
-            'XGBClassifierExplainer',
-            'XGBRegressionExplainer',
-            ]
+__all__ = [
+    'BaseExplainer', 
+    'ClassifierExplainer', 
+    'RegressionExplainer', 
+    'RandomForestClassifierExplainer', 
+    'RandomForestRegressionExplainer',
+    'XGBClassifierExplainer',
+    'XGBRegressionExplainer',
+]
 
 import sys
 import inspect
@@ -34,8 +35,10 @@ from sklearn.metrics import precision_recall_curve, precision_score, recall_scor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.metrics import average_precision_score 
 
+
 from .explainer_methods import *
 from .explainer_plots import *
+
 
 import plotly.io as pio
 pio.templates.default = "none"
@@ -294,7 +297,7 @@ class BaseExplainer(ABC):
             self.interactions_should_work = True
 
         
-        self.__version__ = "0.3.3"
+        self.__version__ = "0.4.0"
 
     def get_lock(self):
         if not hasattr(self, "_lock"):
