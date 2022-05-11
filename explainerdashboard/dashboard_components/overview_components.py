@@ -5,6 +5,7 @@ __all__ = [
     'FeatureInputComponent',
     'PdpComponent',
 ]
+import itertools
 from math import ceil
 
 import numpy as np
@@ -785,9 +786,7 @@ class FeatureInputComponent(ExplainerComponent):
                             dbc.Col([
                                 dbc.Label(f"{self.explainer.index_name}:"),
                                 dcc.Dropdown(id='feature-input-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
-                                    value=self.index)
+                                value=self.index)
                             ], md=4), hide=self.hide_index), 
                     ]),
                 input_row,
@@ -809,6 +808,17 @@ class FeatureInputComponent(ExplainerComponent):
         return html
 
     def component_callbacks(self, app):
+        @app.callback(
+            Output(f'feature-input-index-{self.name}', "options"),
+            Input(f'feature-input-index-{self.name}', "search_value"),
+        )
+        def update_options(search_value):
+            if search_value is None:
+                search_value = ""
+            return list(itertools.islice((str(o) for o in self.explainer.get_index_list() 
+                                            if search_value in o),
+                        1_000))
+
         @app.callback(
             [*self._feature_callback_outputs],
             [Input('feature-input-index-'+self.name, 'value')]

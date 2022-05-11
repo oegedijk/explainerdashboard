@@ -21,6 +21,7 @@ __all__ = [
 import sys
 from abc import ABC
 import inspect
+import itertools
 import types
 from typing import Union, List, Tuple
 from pathlib import Path
@@ -555,12 +556,14 @@ class IndexSelector(ExplainerComponent):
         if self.index_dropdown:
             @app.callback(
                 Output(self.name, "options"),
-                Input(self.name, "search_value")
+                Input(self.name, "search_value"),
             )
             def update_options(search_value):
-                if not search_value:
-                    raise PreventUpdate
-                return [o for o in self.explainer.get_index_list() if search_value in o]
+                if search_value is None:
+                    search_value = ""
+                return list(itertools.islice((str(o) for o in self.explainer.get_index_list() 
+                                              if search_value in o),
+                            1_000))
         else:
             @app.callback(
                 [Output(self.name, 'valid'),
