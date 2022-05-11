@@ -544,7 +544,6 @@ class IndexSelector(ExplainerComponent):
     def layout(self):
         if self.index_dropdown:
             return dcc.Dropdown(id=self.name, 
-                                options = [{'label': str(idx), 'value': str(idx)} for idx in self.explainer.get_index_list()],
                                 placeholder=f"Select {self.explainer.index_name} here...",
                                 value=self.index
                                )
@@ -553,7 +552,16 @@ class IndexSelector(ExplainerComponent):
                              value=self.index, debounce=True, type="text")
         
     def component_callbacks(self, app):
-        if not self.index_dropdown:
+        if self.index_dropdown:
+            @app.callback(
+                Output(self.name, "options"),
+                Input(self.name, "search_value")
+            )
+            def update_options(search_value):
+                if not search_value:
+                    raise PreventUpdate
+                return [o for o in self.explainer.get_index_list() if search_value in o]
+        else:
             @app.callback(
                 [Output(self.name, 'valid'),
                  Output(self.name, 'invalid')],
