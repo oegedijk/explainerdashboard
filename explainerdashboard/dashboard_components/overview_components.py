@@ -632,6 +632,30 @@ class PdpComponent(ExplainerComponent):
                     gridpoints=gridpoints, sort=sort, pos_label=pos_label)
 
 
+class IndexDropdownComponent(ExplainerComponent):
+    def __init__(self, explainer, prefix, name=None, index=None, display_n_idxs=1000, **kwargs):
+        super().__init__(explainer, name=name)
+        self.index_name = self.prefix + self.name
+        print(f"DELETEME!IndexDropdownComponent{self.index_name}", flush=True)
+        
+    def layout(self):
+        return html.Div([
+            dbc.Label(f"{self.explainer.index_name}:"),
+            dcc.Dropdown(id=self.prefix+self.name, value=self.index) 
+        ])
+    
+    def component_callbacks(self, app):
+        @app.callback(
+            Output(self.prefix + self.name, "options"),
+            Input(self.prefix + self.name, "search_value"),
+        )
+        def update_options(search_value):
+            if search_value is None:
+                return self.explainer.get_index_list()[:self.display_n_idxs].tolist()
+            return self.explainer.get_index_list()[
+                self.explainer.get_index_list().str.contains(search_value, case=False)][:self.display_n_idxs].tolist()
+
+
 class FeatureInputComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Input", name=None,
                     subtitle="Adjust the feature values to change the prediction",
@@ -671,6 +695,7 @@ class FeatureInputComponent(ExplainerComponent):
         assert len(explainer.columns) == len(set(explainer.columns)), \
             "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
             
+        self.index_input = IndexDropdownComponent(explainer, prefix='feature-input-index-', name=self.name, **kwargs)
         self.index_name = 'feature-input-index-'+self.name
         
         
@@ -784,9 +809,7 @@ class FeatureInputComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                             dbc.Col([
-                                dbc.Label(f"{self.explainer.index_name}:"),
-                                dcc.Dropdown(id='feature-input-index-'+self.name, 
-                                value=self.index)
+                                self.index_input.layout()
                             ], md=4), hide=self.hide_index), 
                     ]),
                 input_row,
@@ -808,20 +831,10 @@ class FeatureInputComponent(ExplainerComponent):
         return html
 
     def component_callbacks(self, app):
-        @app.callback(
-            Output(f'feature-input-index-{self.name}', "options"),
-            Input(f'feature-input-index-{self.name}', "search_value"),
-        )
-        def update_options(search_value):
-            if search_value is None:
-                search_value = ""
-            return list(itertools.islice((str(o) for o in self.explainer.get_index_list() 
-                                            if search_value in o),
-                        1_000))
 
         @app.callback(
             [*self._feature_callback_outputs],
-            [Input('feature-input-index-'+self.name, 'value')]
+            [Input(self.index_name, 'value')]
         )
         def update_whatif_inputs(index):
             if index is None or not self.explainer.index_exists(index):

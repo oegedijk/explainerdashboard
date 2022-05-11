@@ -420,7 +420,7 @@ class WhatIfComposite(ExplainerComponent):
 
         self.input = FeatureInputComponent(explainer, name=self.name+"0",
                         hide_selector=hide_selector, n_input_cols=self.n_input_cols,
-                        **update_params(kwargs, hide_index=True))
+                        **update_params(kwargs, hide_index=False))
         
         if self.explainer.is_classifier:
             self.index = ClassifierRandomIndexComponent(explainer, name=self.name+"1",
