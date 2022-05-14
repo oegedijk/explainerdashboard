@@ -433,7 +433,7 @@ class PdpComponent(ExplainerComponent):
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'pdp-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         self.popout = GraphPopout('pdp-'+self.name+'popout', 'pdp-graph-'+self.name, self.title, self.description)
 
@@ -632,28 +632,7 @@ class PdpComponent(ExplainerComponent):
                     gridpoints=gridpoints, sort=sort, pos_label=pos_label)
 
 
-class IndexDropdownComponent(ExplainerComponent):
-    def __init__(self, explainer, prefix, name=None, index=None, display_n_idxs=1000, **kwargs):
-        super().__init__(explainer, name=name)
-        self.index_name = self.prefix + self.name
-        print(f"DELETEME!IndexDropdownComponent{self.index_name}", flush=True)
-        
-    def layout(self):
-        return html.Div([
-            dbc.Label(f"{self.explainer.index_name}:"),
-            dcc.Dropdown(id=self.prefix+self.name, value=self.index) 
-        ])
-    
-    def component_callbacks(self, app):
-        @app.callback(
-            Output(self.prefix + self.name, "options"),
-            Input(self.prefix + self.name, "search_value"),
-        )
-        def update_options(search_value):
-            if search_value is None:
-                return self.explainer.get_index_list()[:self.display_n_idxs].tolist()
-            return self.explainer.get_index_list()[
-                self.explainer.get_index_list().str.contains(search_value, case=False)][:self.display_n_idxs].tolist()
+
 
 
 class FeatureInputComponent(ExplainerComponent):
@@ -695,7 +674,7 @@ class FeatureInputComponent(ExplainerComponent):
         assert len(explainer.columns) == len(set(explainer.columns)), \
             "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
             
-        self.index_input = IndexDropdownComponent(explainer, prefix='feature-input-index-', name=self.name, **kwargs)
+        self.index_input = IndexSelector(explainer, name='feature-input-index-'+self.name, **kwargs)
         self.index_name = 'feature-input-index-'+self.name
         
         

@@ -257,7 +257,7 @@ class IndexConnector(ExplainerComponent):
             self.output_index_names = [self.output_index_names]
 
     @staticmethod
-    def index_name(indexes):#, multi=False):
+    def index_name(indexes):
         def get_index_name(o):
             if isinstance(o, str): return o
             elif isinstance(o, ExplainerComponent):
@@ -277,15 +277,13 @@ class IndexConnector(ExplainerComponent):
     def component_callbacks(self, app):
         @app.callback(
             [Output(index_name, 'value') for index_name in self.output_index_names],
-            [Input(self.input_index_name, 'value')]
+            [Input(self.input_index_name, 'value')],
         )
         def update_indexes(index):
             if self.explainer is not None:
                 if self.explainer.index_exists(index):
-                    return tuple(index for i in range(len(self.output_index_names)))
-                else:
-                    raise PreventUpdate
-            return tuple(index for i in range(len(self.output_index_names)))
+                    return tuple([index for _ in self.output_index_names])
+            raise PreventUpdate
 
 
 class HighlightConnector(ExplainerComponent):
