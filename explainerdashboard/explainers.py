@@ -523,6 +523,11 @@ class BaseExplainer(ABC):
         else:
             return self.idxs
 
+    def reset_index_list(self):
+        """resets the available indexes using the function provided by explainer.set_index_list_func()"""
+        if self._get_index_list_func is not None:
+            self._index_list = pd.Index(self._get_index_list_func())
+
     def set_index_list_func(self, func):
         """Sets an external function all available indexes from an external source.
 

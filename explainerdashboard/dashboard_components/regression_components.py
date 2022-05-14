@@ -88,7 +88,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
 
         self.index_name = 'random-index-reg-index-'+self.name
         self.index_selector = IndexSelector(explainer, self.index_name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         if self.explainer.y_missing:
             self.hide_residual_slider = True

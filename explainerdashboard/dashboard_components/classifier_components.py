@@ -93,7 +93,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'random-index-clas-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         assert (len(self.slider) == 2 and
                 self.slider[0] >= 0 and self.slider[0] <=1 and
@@ -312,7 +312,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
         self.index_name = 'clas-prediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'clas-prediction-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
