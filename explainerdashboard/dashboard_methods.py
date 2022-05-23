@@ -1,6 +1,8 @@
 __all__ = [
     'delegates_kwargs',
     'delegates_doc',
+    'update_params',
+    'update_kwargs',
     'DummyComponent',
     'ExplainerComponent',
     'PosLabelSelector',
@@ -8,8 +10,6 @@ __all__ = [
     'IndexSelector',
     'make_hideable',
     'get_dbc_tooltips',
-    'update_params',
-    'update_kwargs',
     'encode_callables',
     'decode_callables',
     'reset_id_generator',
