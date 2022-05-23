@@ -31,11 +31,10 @@ def test_pipeline_shap_values(classifier_pipeline_explainer):
     assert isinstance(classifier_pipeline_explainer.get_shap_values_df(), pd.DataFrame)
 
 def test_pipeline_pdp_df(classifier_pipeline_explainer):
-    assert isinstance(classifier_pipeline_explainer.pdp_df("age"), pd.DataFrame)
-    assert isinstance(classifier_pipeline_explainer.pdp_df("sex"), pd.DataFrame)
-    assert isinstance(classifier_pipeline_explainer.pdp_df("age", index=0), pd.DataFrame)
-    assert isinstance(classifier_pipeline_explainer.pdp_df("sex", index=0), pd.DataFrame)
-
+    assert isinstance(classifier_pipeline_explainer.pdp_df("num__age"), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.pdp_df("cat__sex"), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.pdp_df("num__age", index=0), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.pdp_df("cat__sex", index=0), pd.DataFrame)
 
 def test_pipeline_kernel_columns_ranked_by_shap(classifier_pipeline_kernel_explainer):
     assert isinstance(classifier_pipeline_kernel_explainer.columns_ranked_by_shap(), list)
