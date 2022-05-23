@@ -7,6 +7,7 @@ __all__ = [
     "fig",
     "card",
     "dashboard_card",
+    "card_row",
     "card_rows",
     "title",
     "div",
@@ -70,7 +71,7 @@ def row(*cols) -> str:
     """
     for col in cols:
         row += f"""
-<div class="col-sm">
+<div class="col">
 {col}
 </div>
         """
@@ -90,8 +91,16 @@ def rows(*col_lists) -> str:
             ["<div>second row snippet snippet</div>", "<div>second row snippet two</div>"]
         )
     """
-    rows = [row(*cols) for cols in col_lists]
-    return "".join(rows)
+    rows = """"
+<div>
+    <div>
+    """
+    rows += "    </div><div>".join([row(*cols) for cols in col_lists])
+    rows += """
+    </div>
+</div>
+    """
+    return rows
 
 
 def fig(fig, include_plotlyjs="cdn", full_html: bool = False) -> str:
@@ -135,6 +144,41 @@ def card(
 </div>
 """
 
+def card_row(*cards) -> str:
+    """Turns a series of bootstrap into a row with equally sized
+    columns for each card.
+
+    Example:
+        to_html.card_row('<div class="card">first card</div>", '<div class="card">second snippet</div>')
+    """
+    row = f"""
+<div class="row row-cols-{len(cards)} g-4" style="margin-top: 20px;">
+    """
+    for card in cards:
+        row += f"""
+<div class="col">
+{card}
+</div>
+        """
+    row += """
+</div> 
+    """
+    return row
+
+
+def card_rows(*cardrows_list) -> str:
+    """Turn a list of lists of bootstrap cards into a series of bootstrap rows
+    with cards.
+
+    Example:
+        to_html.card_rows(
+            [to_html.card("card1"), to_html.card("card2")],
+            [to_html.card("card3"), to_html.card("card4")],
+        )
+    """
+    card_decks = [[card_row(*cards)] for cards in cardrows_list]
+    return rows(*card_decks)
+
 
 def dashboard_card(title: str = None, description: str = None, url: str = None) -> str:
     """Generate a dashboard description car for ExplainerHub.
@@ -157,20 +201,6 @@ def dashboard_card(title: str = None, description: str = None, url: str = None) 
   </div>
 </div>
 """
-
-
-def card_rows(*card_lists) -> str:
-    """Turn a list of lists of bootstrap cards into a series of bootstrap rows
-    with cards.
-
-    Example:
-        to_html.card_rows(
-            [to_html.card("card1"), to_html.card("card2")],
-            [to_html.card("card3"), to_html.card("card4")],
-        )
-    """
-    card_decks = [[row(*cards)] for cards in card_lists]
-    return rows(*card_decks)
 
 
 def title(title: str) -> str:
