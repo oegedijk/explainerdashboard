@@ -73,7 +73,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
     install_requires=requirements,
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     entry_points={
         'console_scripts': [
             'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',
