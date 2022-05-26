@@ -720,7 +720,7 @@ class ExplainerDashboard:
             return cls(explainer, **dashboard_params, **kwargs)
 
     def to_yaml(self, filepath=None, return_dict=False,
-                explainerfile="explainer.joblib", dump_explainer=False):
+                explainerfile="explainer.joblib", explainerfile_absolute_path=True, dump_explainer=False):
         """Returns a yaml configuration of the current ExplainerDashboard
         that can be used by the explainerdashboard CLI. Recommended filename
         is `dashboard.yaml`.
@@ -734,6 +734,8 @@ class ExplainerDashboard:
                 to `explainer.joblib`.
             dump_explainer (bool, optional): dump the explainer along with the yaml.
                 You must pass explainerfile parameter for the filename. Defaults to False.
+            explainerfile_absolute_path (bool, optional): save explainerfile in yaml with
+                path prefix the same as in filepath.
                 
         """
         import oyaml as yaml
@@ -749,6 +751,9 @@ class ExplainerDashboard:
         if filepath is not None:
             dashboard_path = Path(filepath).absolute().parent
             dashboard_path.mkdir(parents=True, exist_ok=True)
+            
+            if explainerfile_absolute_path:
+                dashboard_config["dashboard"]["explainerfile"] = str(dashboard_path) + '/' + str(explainerfile)
 
             print(f"Dumping configuration .yaml to {Path(filepath).absolute()}...", flush=True)
             yaml.dump(dashboard_config, open(filepath, "w"))
