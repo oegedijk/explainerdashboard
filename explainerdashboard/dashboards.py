@@ -753,7 +753,7 @@ class ExplainerDashboard:
             dashboard_path.mkdir(parents=True, exist_ok=True)
             
             if explainerfile_absolute_path:
-                dashboard_config["dashboard"]["explainerfile"] = str(dashboard_path) + '/' + str(explainerfile)
+                dashboard_config["dashboard"]["explainerfile"] = os.path.join(dashboard_path, explainerfile)
 
             print(f"Dumping configuration .yaml to {Path(filepath).absolute()}...", flush=True)
             yaml.dump(dashboard_config, open(filepath, "w"))
