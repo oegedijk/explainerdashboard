@@ -21,7 +21,6 @@ __all__ = [
 import sys
 from abc import ABC
 import inspect
-import itertools
 import types
 from typing import Union, List, Tuple
 from pathlib import Path
@@ -30,7 +29,6 @@ import socket
 
 import dash
 from dash import html, dcc, Input, Output, State
-from dash.exceptions import PreventUpdate
 
 import dash_bootstrap_components as dbc
 
@@ -543,40 +541,42 @@ class IndexSelector(ExplainerComponent):
         super().__init__(explainer)
         
     def layout(self):
-        if self.index_dropdown and len(self.explainer.get_index_list()) < self.max_idxs_in_dropdown:
-            return dcc.Dropdown(id=self.name, 
-                                placeholder=f"Select {self.explainer.index_name} here...",
-                                options = [str(idx) for idx in self.explainer.get_index_list()],
-                                value=self.index,
-                               )
-        elif self.index_dropdown and len(self.explainer.get_index_list()) > self.max_idxs_in_dropdown:
-            return dcc.Dropdown(id=self.name, 
-                                placeholder=f"Search {self.explainer.index_name} here...",
-                                value=self.index,
-                                clearable=False
-                               )
+        if self.index_dropdown:
+            indedx_list = self.explainer.get_index_list()
+            if len(indedx_list) > self.max_idxs_in_dropdown:
+                return dcc.Dropdown(id=self.name, 
+                                    placeholder=f"Search {self.explainer.index_name} here...",
+                                    value=self.index,
+                                    clearable=False
+                                )
+            else:
+                return dcc.Dropdown(id=self.name, 
+                                    placeholder=f"Select {self.explainer.index_name} here...",
+                                    options = indedx_list.astype(str).to_list(),
+                                    value=self.index,
+                                )
         else:
             return dbc.Input(id=self.name, placeholder=f"Type {self.explainer.index_name} here...", 
                              value=self.index, debounce=True, type="text")
         
     def component_callbacks(self, app):
-        if self.index_dropdown and len(self.explainer.get_index_list()) > self.max_idxs_in_dropdown:
-            @app.callback(
-                Output(self.name, "options"),
-                Input(self.name, "search_value"),
-                Input(self.name, "value")
-            )
-            def update_options(search_value, index):
-                trigger_id, trigger_prop = dash.callback_context.triggered[0]['prop_id'].split('.')
-                print(f"DELETEME! {trigger_id, trigger_prop}", flush=True)
-                if trigger_prop == 'value':
-                    return [index]
-                if not search_value:
-                    return self.explainer.get_index_list()[:self.max_idxs_in_dropdown].tolist()
-                return self.explainer.get_index_list()[
-                    self.explainer.get_index_list().str.contains(search_value, case=False)][:self.max_idxs_in_dropdown].tolist()
-        
-        elif not self.index_dropdown:
+        if self.index_dropdown:
+            if len(self.explainer.get_index_list()) > self.max_idxs_in_dropdown:
+                @app.callback(
+                    Output(self.name, "options"),
+                    Input(self.name, "search_value"),
+                    Input(self.name, "value")
+                )
+                def update_options(search_value, index):
+                    trigger_prop = dash.callback_context.triggered[0]['prop_id'].split('.')[-1]
+                    index_list = self.explainer.get_index_list().astype(str)
+                    if search_value:
+                        index_list = index_list[index_list.str.contains(search_value, case=False)]
+                    index_list = index_list[:self.max_idxs_in_dropdown].tolist()
+                    if trigger_prop == 'value' and index not in index_list:
+                        return [*index_list, index]
+                    return index_list
+        else:
             @app.callback(
                 [Output(self.name, 'valid'),
                  Output(self.name, 'invalid')],

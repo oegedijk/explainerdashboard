@@ -515,7 +515,7 @@ class BaseExplainer(ABC):
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
 
-    def get_index_list(self):
+    def get_index_list(self) -> pd.Series:
         if self._get_index_list_func is not None:
             if not hasattr(self, '_index_list'):
                 self._index_list = pd.Index(self._get_index_list_func())
