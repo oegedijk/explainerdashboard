@@ -91,7 +91,7 @@ def rows(*col_lists) -> str:
             ["<div>second row snippet snippet</div>", "<div>second row snippet two</div>"]
         )
     """
-    rows = """"
+    rows = """
 <div>
     <div>
     """
