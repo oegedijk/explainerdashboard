@@ -5,7 +5,6 @@ __all__ = [
     'FeatureInputComponent',
     'PdpComponent',
 ]
-import itertools
 from math import ceil
 
 import numpy as np

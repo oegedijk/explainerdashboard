@@ -21,7 +21,6 @@ __all__ = [
 import sys
 from abc import ABC
 import inspect
-import itertools
 import types
 from typing import Union, List, Tuple
 from pathlib import Path

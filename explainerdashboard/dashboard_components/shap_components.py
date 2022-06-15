@@ -6,8 +6,7 @@ __all__ = ['ShapSummaryComponent',
             'InteractionSummaryDependenceConnector',
             'ShapContributionsTableComponent',
             'ShapContributionsGraphComponent']
-
-import itertools
+            
 
 import dash
 from dash import html, dcc, Input, Output, State
