@@ -79,7 +79,7 @@ class BaseExplainer(ABC):
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:dict=None, 
                     n_jobs:int=None, permutation_cv:int=None, cv:int=None, na_fill:float=-999,
-                    precision:str="float64"):
+                    precision:str="float64", shap_kwargs:Dict=None):
         """Defines the basic functionality that is shared by both
         ClassifierExplainer and RegressionExplainer. 
 
@@ -124,11 +124,14 @@ class BaseExplainer(ABC):
                 Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
+            shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
+                most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
         """
         self._params_dict = dict(
             shap=shap, model_output=model_output, cats=cats, 
             descriptions=descriptions, target=target, n_jobs=n_jobs, 
-            permutation_cv=permutation_cv, cv=cv, na_fill=na_fill, precision=precision)
+            permutation_cv=permutation_cv, cv=cv, na_fill=na_fill, 
+            precision=precision, shap_kwargs=shap_kwargs)
 
         if permutation_cv is not None:
             warnings.warn("Parameter permutation_cv has been deprecated! Please use "
@@ -249,7 +252,7 @@ class BaseExplainer(ABC):
             print(f"WARNING: For shap='{self.shap}', shap interaction values can unfortunately "
                     "not be calculated!")
             self.interactions_should_work = False
-
+        self.shap_kwargs = shap_kwargs if shap_kwargs else {}
         self.model_output = model_output
 
         if idxs is not None:
@@ -512,7 +515,7 @@ class BaseExplainer(ABC):
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
 
-    def get_index_list(self):
+    def get_index_list(self) -> pd.Series:
         if self._get_index_list_func is not None:
             if not hasattr(self, '_index_list'):
                 self._index_list = pd.Index(self._get_index_list_func())
@@ -942,11 +945,15 @@ class BaseExplainer(ABC):
             print("Calculating shap values...", flush=True)
             if self.shap == 'skorch':
                 import torch
-                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(torch.tensor(self.X.values)), 
-                                    columns=self.columns)
+                self._shap_values_df = pd.DataFrame(
+                    self.shap_explainer.shap_values(torch.tensor(self.X.values), **self.shap_kwargs), 
+                    columns=self.columns
+                )
             else:
-                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
-                                    columns=self.columns)
+                self._shap_values_df = pd.DataFrame(
+                    self.shap_explainer.shap_values(self.X, **self.shap_kwargs), 
+                    columns=self.columns
+                )
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
         return self._shap_values_df
@@ -982,8 +989,9 @@ class BaseExplainer(ABC):
                     import torch
                     X_row = torch.tensor(X_row.values.astype("float32"))
                 with self.get_lock():
+                    shap_kwargs = dict(self.shap_kwargs, silent=True) if self.shap == 'kernel' else self.shap_kwargs
                     shap_row = pd.DataFrame(
-                        self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
+                        self.shap_explainer.shap_values(X_row, **self.shap_kwargs), 
                         columns=self.columns)
                 shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -994,8 +1002,9 @@ class BaseExplainer(ABC):
                 import torch
                 X_row = torch.tensor(X_row.values.astype("float32"))
             with self.get_lock():
+                shap_kwargs = dict(self.shap_kwargs, silent=True) if self.shap == 'kernel' else self.shap_kwargs
                 shap_row = pd.DataFrame(
-                    self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
+                    self.shap_explainer.shap_values(X_row, **self.shap_kwargs), 
                     columns=self.columns)
             shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -1963,7 +1972,8 @@ class ClassifierExplainer(BaseExplainer):
                     index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, 
                     permutation_cv:int=None, cv:int=None, na_fill:float=-999,
-                    precision:str="float64", labels:List=None, pos_label:int=1):
+                    precision:str="float64", shap_kwargs:Dict=None, 
+                    labels:List=None, pos_label:int=1):
         """
         Explainer for classification models. Defines the shap values for
         each possible class in the classification.
@@ -2016,6 +2026,8 @@ class ClassifierExplainer(BaseExplainer):
                 Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
+            shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
+                most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
             labels(list): list of str labels for the different classes, 
                         defaults to e.g. ['0', '1'] for a binary classification
             pos_label: class that should be used as the positive class, 
@@ -2025,7 +2037,7 @@ class ClassifierExplainer(BaseExplainer):
                             shap, X_background, model_output, 
                             cats, cats_notencoded, idxs, index_name, target, 
                             descriptions, n_jobs, permutation_cv, cv, na_fill, 
-                            precision)
+                            precision, shap_kwargs)
 
         assert hasattr(model, "predict_proba"), \
                 ("for ClassifierExplainer, model should be a scikit-learn "
@@ -2302,9 +2314,9 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating shap values...", flush=True)
             if self.shap == 'skorch':
                 import torch
-                _shap_values = self.shap_explainer.shap_values(torch.tensor(self.X.values.astype("float32")))
+                _shap_values = self.shap_explainer.shap_values(torch.tensor(self.X.values.astype("float32")), **self.shap_kwargs)
             else:
-                _shap_values = self.shap_explainer.shap_values(self.X.values)
+                _shap_values = self.shap_explainer.shap_values(self.X.values, **self.shap_kwargs)
 
             if len(self.labels) == 2:
                 if not isinstance(_shap_values, list):
@@ -2414,7 +2426,8 @@ class ClassifierExplainer(BaseExplainer):
                 import torch
                 X_row = torch.tensor(X_row.values.astype("float32"))
             with self.get_lock():
-                sv = self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {}))
+                shap_kwargs = dict(self.shap_kwargs, silent=True) if self.shap == 'kernel' else self.shap_kwargs
+                sv = self.shap_explainer.shap_values(X_row, **shap_kwargs)
             if isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
             elif len(self.labels) == 2:
@@ -3178,7 +3191,8 @@ class RegressionExplainer(BaseExplainer):
                     cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
-                    cv:int=None, na_fill:float=-999, precision:str="float64", units:str=""):
+                    cv:int=None, na_fill:float=-999, precision:str="float64", 
+                    shap_kwargs:Dict=None, units:str=""):
         """Explainer for regression models.
 
         In addition to BaseExplainer defines a number of plots specific to 
@@ -3227,13 +3241,15 @@ class RegressionExplainer(BaseExplainer):
                 Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
+            shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
+                most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
             units(str): units to display for regression quantity
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
                             cats, cats_notencoded, idxs, index_name, target, 
                             descriptions, n_jobs, permutation_cv, cv, na_fill, 
-                            precision)
+                            precision, shap_kwargs)
 
         self._params_dict = {**self._params_dict, **dict(units=units)}
         self.units = units
