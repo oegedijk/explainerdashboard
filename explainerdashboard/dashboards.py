@@ -719,10 +719,15 @@ class ExplainerDashboard:
         else:
             return cls(explainer, **dashboard_params, **kwargs)
 
-    def to_yaml(self, filepath=None, return_dict=False,
-                explainerfile="explainer.joblib", dump_explainer=False):
+    def to_yaml(self, 
+                filepath:Union[str, Path]=None, 
+                return_dict:bool=False,
+                explainerfile:str="explainer.joblib",
+                dump_explainer:bool=False,
+                explainerfile_absolute_path:Union[str, Path, bool]=None):
         """Returns a yaml configuration of the current ExplainerDashboard
-        that can be used by the explainerdashboard CLI. Recommended filename
+        that can be used by the explainerdashboard CLI or to reinstate an identical 
+        dashboard from the (dumped) explainer and saved configuration. Recommended filename
         is `dashboard.yaml`.
 
         Args:
@@ -731,9 +736,13 @@ class ExplainerDashboard:
             return_dict (bool, optional): instead of yaml return dict with 
                 config.
             explainerfile (str, optional): filename of explainer dump. Defaults
-                to `explainer.joblib`.
+                to `explainer.joblib`. Should en in either .joblib .dill or .pkl
             dump_explainer (bool, optional): dump the explainer along with the yaml.
                 You must pass explainerfile parameter for the filename. Defaults to False.
+            explainerfile_absolute_path (str, Path, bool, optional): absolute path to save explainerfile if 
+                not in the same directory as the yaml file. You can also pass True which still
+                saves the explainerfile to the filepath directory, but adds an absolute path 
+                to the yaml file. 
                 
         """
         import oyaml as yaml
@@ -749,13 +758,20 @@ class ExplainerDashboard:
         if filepath is not None:
             dashboard_path = Path(filepath).absolute().parent
             dashboard_path.mkdir(parents=True, exist_ok=True)
+            
+            if explainerfile_absolute_path:
+                if isinstance(explainerfile_absolute_path, bool):
+                    explainerfile_absolute_path = dashboard_path / explainerfile
+                dashboard_config["dashboard"]["explainerfile"] = str(Path(explainerfile_absolute_path).absolute())
+            else:
+                explainerfile_absolute_path = dashboard_path / explainerfile
 
             print(f"Dumping configuration .yaml to {Path(filepath).absolute()}...", flush=True)
             yaml.dump(dashboard_config, open(filepath, "w"))
 
             if dump_explainer:
-                print(f"Dumping explainer to {dashboard_path / explainerfile}...", flush=True)
-                self.explainer.dump(dashboard_path / explainerfile)
+                print(f"Dumping explainer to {explainerfile_absolute_path}...", flush=True)
+                self.explainer.dump(explainerfile_absolute_path)
             return
         return yaml.dump(dashboard_config)
 
