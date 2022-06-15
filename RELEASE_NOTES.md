@@ -10,6 +10,7 @@
 - Upgrades the dashboard to bootstrap5 and dash-bootstrap-components v1 (which is also based on bootstrap5)
 - Both sklearn and imblearn Pipelines are now supported, as long as the transformers have a `.get_feature_names_out()` method
 - Adds `shap_kwargs` parameter to the explainers that allow you to pass additional kwargs to the shap values generating call, e.g. `shap_kwargs=dict(check_addivity=False)`
+- Can now specify absolute path for `explainerfile` when dumping `dashboard.yaml`
 
 ### Bug Fixes
 - Suppresses warnings when extracting final model from pipeline that was not fitted on a dataframe. 
