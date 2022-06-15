@@ -29,7 +29,6 @@ import socket
 
 import dash
 from dash import html, dcc, Input, Output, State
-from dash.exceptions import PreventUpdate
 
 import dash_bootstrap_components as dbc
 
@@ -538,22 +537,64 @@ class PosLabelSelector(ExplainerComponent):
 
 class IndexSelector(ExplainerComponent):
     """Either shows a dropdown or a free text input field for selecting an index"""
-    def __init__(self, explainer, name=None, index=None, index_dropdown=True):
-        super().__init__(explainer)
+    def __init__(self, explainer, name:str=None, index:str=None, index_dropdown:bool=True, max_idxs_in_dropdown:int=1000, **kwargs):
+        """generates an index selector, either (dynamic) dropdown or free text field with input checker
+
+        Args:
+            explainer (BaseExplainer): explainer
+            name (str, optional): dash id to assign to the component. Defaults to None, in which case a unique identifier gets generated.
+            index (str, optional): initial index to select and display. Defaults to None.
+            index_dropdown (bool, optional): if set to false, input is an open text input instead of a dropdown. Defaults to True.
+            max_idxs_in_dropdown (int, optional): If the number of rows (idxs) in X_test is larger than this, 
+                use a servers-side dynamically updating set of dropdown options instead of storing all index 
+                    options client side. Defaults to 1000.
+        """
+        super().__init__(explainer, name=name)
         
     def layout(self):
         if self.index_dropdown:
-            return dcc.Dropdown(id=self.name, 
-                                options = [{'label': str(idx), 'value': str(idx)} for idx in self.explainer.get_index_list()],
-                                placeholder=f"Select {self.explainer.index_name} here...",
-                                value=self.index
-                               )
+            index_list = self.explainer.get_index_list()
+            if len(index_list) > self.max_idxs_in_dropdown:
+                return dcc.Dropdown(
+                    id=self.name, 
+                    placeholder=f"Search {self.explainer.index_name} here...",
+                    value=self.index,
+                    clearable=False
+                )
+            else:
+                return dcc.Dropdown(
+                    id=self.name, 
+                    placeholder=f"Select {self.explainer.index_name} here...",
+                    options = index_list.astype(str).to_list(),
+                    value=self.index,
+                )
         else:
-            return dbc.Input(id=self.name, placeholder=f"Type {self.explainer.index_name} here...", 
-                             value=self.index, debounce=True, type="text")
+            return dbc.Input(
+                id=self.name, 
+                placeholder=f"Type {self.explainer.index_name} here...", 
+                value=self.index, 
+                debounce=True, 
+                type="text"
+            )
         
     def component_callbacks(self, app):
-        if not self.index_dropdown:
+        if self.index_dropdown:
+            if len(self.explainer.get_index_list()) > self.max_idxs_in_dropdown:
+                @app.callback(
+                    Output(self.name, "options"),
+                    Input(self.name, "search_value"),
+                    Input(self.name, "value")
+                )
+                def update_options(search_value, index):
+                    trigger_prop = dash.callback_context.triggered[0]['prop_id'].split('.')[-1]
+                    if trigger_prop == 'value':
+                        return [index]
+                    index_list = self.explainer.get_index_list()
+                    if search_value:
+                        index_list = index_list[index_list.str.contains(search_value, case=False)]
+                    index_list = index_list[:self.max_idxs_in_dropdown].tolist()
+                    return index_list
+        else:
             @app.callback(
                 [Output(self.name, 'valid'),
                  Output(self.name, 'invalid')],

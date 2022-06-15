@@ -1,11 +1,12 @@
-__all__ = ['BaseExplainer', 
-            'ClassifierExplainer', 
-            'RegressionExplainer', 
-            'RandomForestClassifierExplainer', 
-            'RandomForestRegressionExplainer',
-            'XGBClassifierExplainer',
-            'XGBRegressionExplainer',
-            ]
+__all__ = [
+    'BaseExplainer', 
+    'ClassifierExplainer', 
+    'RegressionExplainer', 
+    'RandomForestClassifierExplainer', 
+    'RandomForestRegressionExplainer',
+    'XGBClassifierExplainer',
+    'XGBRegressionExplainer',
+]
 
 import sys
 import inspect
@@ -34,8 +35,10 @@ from sklearn.metrics import precision_recall_curve, precision_score, recall_scor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.metrics import average_precision_score 
 
+
 from .explainer_methods import *
 from .explainer_plots import *
+
 
 import plotly.io as pio
 pio.templates.default = "none"
@@ -296,7 +299,8 @@ class BaseExplainer(ABC):
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
 
-        self.__version__ = "0.3.3"
+        
+        self.__version__ = "0.4.0"
 
     def get_lock(self):
         if not hasattr(self, "_lock"):
@@ -510,14 +514,18 @@ class BaseExplainer(ABC):
                              f"or a method {func.__name__}(self, index)! Instead you "
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
-
-    def get_index_list(self):
+    def get_index_list(self) -> pd.Series:
         if self._get_index_list_func is not None:
             if not hasattr(self, '_index_list'):
-                self._index_list = pd.Index(self._get_index_list_func())
+                self._index_list = pd.Index(self._get_index_list_func()).astype(str)
             return self._index_list
         else:
             return self.idxs
+
+    def reset_index_list(self):
+        """resets the available indexes using the function provided by explainer.set_index_list_func()"""
+        if self._get_index_list_func is not None:
+            self._index_list = pd.Index(self._get_index_list_func())
 
     def set_index_list_func(self, func):
         """Sets an external function all available indexes from an external source.

@@ -64,7 +64,7 @@ class DecisionTreesComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisiontrees-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         
         
         if isinstance(self.explainer, RandomForestExplainer):
@@ -232,7 +232,7 @@ class DecisionPathTableComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisionpath-table-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         
         if self.description is None: self.description = """
         Shows the path that an observation took down a specific decision tree.
@@ -359,7 +359,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisionpath-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         self.register_dependencies("shadow_trees")
 
     def layout(self):

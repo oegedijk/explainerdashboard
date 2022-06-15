@@ -6,6 +6,7 @@ __all__ = ['ShapSummaryComponent',
             'InteractionSummaryDependenceConnector',
             'ShapContributionsTableComponent',
             'ShapContributionsGraphComponent']
+            
 
 import dash
 from dash import html, dcc, Input, Output, State
@@ -68,6 +69,8 @@ class ShapSummaryComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features)
 
+        self.index_selector = IndexSelector(explainer, 'shap-summary-index-'+self.name, 
+            index=index, **kwargs)
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         assert self.summary_type in {'aggregate', 'detailed'}
@@ -132,12 +135,7 @@ class ShapSummaryComponent(ExplainerComponent):
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
                                             "You can also select by clicking on a scatter point in the graph.", 
                                             target='shap-summary-index-label-'+self.name),
-                                dcc.Dropdown(id='shap-summary-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    optionHeight=12,
-                                    style={'height': '12', 'font-size': '12'},
-                                    value=self.index),
+                                self.index_selector.layout()
                             ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
                     make_hideable(
@@ -174,6 +172,7 @@ class ShapSummaryComponent(ExplainerComponent):
         return html
     
     def component_callbacks(self, app):
+
         @app.callback(
             Output('shap-summary-index-'+self.name, 'value'),
             [Input('shap-summary-graph-'+self.name, 'clickData')])
@@ -288,6 +287,8 @@ class ShapDependenceComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         
+        self.index_selector = IndexSelector(explainer, 'shap-dependence-index-'+self.name, 
+            index=index, **kwargs)
         self.index_name = 'shap-dependence-index-'+self.name
 
         if self.description is None: self.description = """
@@ -350,10 +351,7 @@ class ShapDependenceComponent(ExplainerComponent):
                                         "You can also select by clicking on a scatter marker in the accompanying"
                                         " shap summary plot (detailed).", 
                                         target='shap-dependence-index-label-'+self.name),
-                            dcc.Dropdown(id='shap-dependence-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index)
+                            self.index_selector.layout(),
                         ], md=4), hide=self.hide_index),          
                 ]),
                 dcc.Loading(id="loading-dependence-graph-"+self.name, 
@@ -435,6 +433,7 @@ class ShapDependenceComponent(ExplainerComponent):
         return html
 
     def component_callbacks(self, app):
+        
         @app.callback(
             [Output('shap-dependence-color-col-'+self.name, 'options'),
              Output('shap-dependence-color-col-'+self.name, 'value'),
@@ -566,6 +565,9 @@ class InteractionSummaryComponent(ExplainerComponent):
             self.col = self.explainer.columns_ranked_by_shap()[0]
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features-1)
+
+        self.index_selector = IndexSelector(explainer, 'interaction-summary-index-'+self.name, 
+            index=index, **kwargs)
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         
@@ -641,10 +643,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
                                             "You can also select by clicking on a scatter point in the graph.", 
                                             target='interaction-summary-index-label-'+self.name),
-                                dcc.Dropdown(id='interaction-summary-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index),
+                                self.index_selector.layout(),
                             ], id='interaction-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
                     make_hideable(
@@ -793,6 +792,9 @@ class InteractionDependenceComponent(ExplainerComponent):
         if self.interact_col is None:
             self.interact_col = explainer.top_shap_interactions(self.col)[1]
         
+        self.index_selector = IndexSelector(explainer, 'interaction-dependence-index-'+self.name, 
+            index=index, **kwargs)
+        self.index_name = 'interaction-dependence-index-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.popout_top = GraphPopout(self.name+'popout-top', 
@@ -852,10 +854,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                                             "You can also select by clicking on a scatter marker in the accompanying"
                                             " shap interaction summary plot (detailed).", 
                                             target='interaction-dependence-index-label-'+self.name),
-                                dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index)
+                                self.index_selector.layout(),
                             ], md=4), hide=self.hide_index), 
                     ]),
                 dbc.Row([
@@ -1168,7 +1167,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'contributions-graph-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         self.popout = GraphPopout('contributions-graph-'+self.name+'popout', 
                             'contributions-graph-'+self.name, self.title, self.description)
@@ -1398,7 +1397,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'contributions-table-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         
         self.register_dependencies('shap_values_df')
 

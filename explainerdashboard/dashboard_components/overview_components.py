@@ -432,7 +432,7 @@ class PdpComponent(ExplainerComponent):
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'pdp-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         self.popout = GraphPopout('pdp-'+self.name+'popout', 'pdp-graph-'+self.name, self.title, self.description)
 
@@ -631,6 +631,9 @@ class PdpComponent(ExplainerComponent):
                     gridpoints=gridpoints, sort=sort, pos_label=pos_label)
 
 
+
+
+
 class FeatureInputComponent(ExplainerComponent):
     def __init__(self, explainer, title="Feature Input", name=None,
                     subtitle="Adjust the feature values to change the prediction",
@@ -670,6 +673,7 @@ class FeatureInputComponent(ExplainerComponent):
         assert len(explainer.columns) == len(set(explainer.columns)), \
             "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
             
+        self.index_input = IndexSelector(explainer, name='feature-input-index-'+self.name, **kwargs)
         self.index_name = 'feature-input-index-'+self.name
         
         
@@ -783,11 +787,7 @@ class FeatureInputComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                             dbc.Col([
-                                dbc.Label(f"{self.explainer.index_name}:"),
-                                dcc.Dropdown(id='feature-input-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.get_index_list()],
-                                    value=self.index)
+                                self.index_input.layout()
                             ], md=4), hide=self.hide_index), 
                     ]),
                 input_row,
@@ -809,9 +809,10 @@ class FeatureInputComponent(ExplainerComponent):
         return html
 
     def component_callbacks(self, app):
+
         @app.callback(
             [*self._feature_callback_outputs],
-            [Input('feature-input-index-'+self.name, 'value')]
+            [Input(self.index_name, 'value')]
         )
         def update_whatif_inputs(index):
             if index is None or not self.explainer.index_exists(index):
