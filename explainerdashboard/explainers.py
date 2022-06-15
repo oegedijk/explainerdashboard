@@ -514,11 +514,10 @@ class BaseExplainer(ABC):
                              f"or a method {func.__name__}(self, index)! Instead you "
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
-
     def get_index_list(self) -> pd.Series:
         if self._get_index_list_func is not None:
             if not hasattr(self, '_index_list'):
-                self._index_list = pd.Index(self._get_index_list_func())
+                self._index_list = pd.Index(self._get_index_list_func()).astype(str)
             return self._index_list
         else:
             return self.idxs
