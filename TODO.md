@@ -89,16 +89,8 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add hub to html test
 - add pipeline with X_background test
-- add test dataframe y (passing + failing)
 - test explainer.dump and explainer.from_file with .pkl or .dill
-- explainer.to_yaml return_dict=True
-- explainer.__contains__
-- explainer.get_idx(int) and explainer.get_idx not found
-- explainer.get_index(str)
-- test index_exists_func with method
-- reset_index_list
 - add get_descriptions_df tests -> sort='shap'
 - set_shap_values test
 - set_shap_interaction_values test

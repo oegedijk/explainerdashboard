@@ -1,3 +1,5 @@
+import pytest
+
 import pandas as pd
 import numpy as np
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
@@ -5,12 +7,52 @@ from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 import plotly.graph_objects as go
 
+from explainerdashboard import ClassifierExplainer, ExplainerDashboard
+from explainerdashboard.explainer_methods import IndexNotFoundError
+
+
+
+def test_explainer_with_dataframe_y(fitted_rf_classifier_model, classifier_data):
+    _, _, X_test, y_test = classifier_data
+    explainer = ClassifierExplainer(
+        fitted_rf_classifier_model, 
+        X_test, 
+        y_test.to_frame(), 
+        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked'],
+        cats_notencoded={'Gender': 'No Gender'},
+        labels=['Not survived', 'Survived']
+    )
+    _ = ExplainerDashboard(explainer)
+
+def test_explainer_contains(precalculated_rf_classifier_explainer, test_names):
+    assert 1 in precalculated_rf_classifier_explainer
+    assert test_names[0] in precalculated_rf_classifier_explainer
+    assert 1000 not in precalculated_rf_classifier_explainer
+    assert "randomname" not in precalculated_rf_classifier_explainer
 
 def test_explainer_len(precalculated_rf_classifier_explainer, testlen):
     assert len(precalculated_rf_classifier_explainer) == testlen
 
 def test_int_idx(precalculated_rf_classifier_explainer, test_names):
     assert precalculated_rf_classifier_explainer.get_idx(test_names[0]) == 0
+
+def test_getindex(precalculated_rf_classifier_explainer, test_names):
+    assert precalculated_rf_classifier_explainer.get_index(0) == test_names[0]
+    assert precalculated_rf_classifier_explainer.get_index(test_names[0]) == test_names[0]
+    assert precalculated_rf_classifier_explainer.get_index(-1) is None
+    assert precalculated_rf_classifier_explainer.get_index(10_000) is None
+    assert precalculated_rf_classifier_explainer.get_index("Non existent index") is None
+
+def test_get_idx(precalculated_rf_classifier_explainer, test_names):
+    assert precalculated_rf_classifier_explainer.get_idx(test_names[0]) == 0
+    assert precalculated_rf_classifier_explainer.get_idx(5) == 5
+    with pytest.raises(IndexNotFoundError):
+        precalculated_rf_classifier_explainer.get_idx(-1)
+    with pytest.raises(IndexNotFoundError):
+        precalculated_rf_classifier_explainer.get_idx(1000)
+    with pytest.raises(IndexNotFoundError):
+        precalculated_rf_classifier_explainer.get_idx("randomname")
+
 
 def test_random_index(precalculated_rf_classifier_explainer):
     assert isinstance(precalculated_rf_classifier_explainer.random_index(), int)
@@ -20,7 +62,6 @@ def test_index_exists(precalculated_rf_classifier_explainer):
     assert (precalculated_rf_classifier_explainer.index_exists(0))
     assert (precalculated_rf_classifier_explainer.index_exists(precalculated_rf_classifier_explainer.idxs[0]))
     assert (not precalculated_rf_classifier_explainer.index_exists('bla'))
-
 
 def test_preds(precalculated_rf_classifier_explainer):
     assert isinstance(precalculated_rf_classifier_explainer.preds, np.ndarray)
@@ -236,6 +277,10 @@ def test_plot_pdp(precalculated_rf_classifier_explainer):
 def test_yaml(precalculated_rf_classifier_explainer):
     yaml = precalculated_rf_classifier_explainer.to_yaml()
     assert isinstance(yaml, str)
+
+def test_yaml_return_dict(precalculated_rf_classifier_explainer):
+    return_dict = precalculated_rf_classifier_explainer.to_yaml(return_dict=True)
+    assert isinstance(return_dict, dict)
 
 
 

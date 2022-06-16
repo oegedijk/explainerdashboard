@@ -420,8 +420,11 @@ class BaseExplainer(ABC):
         return len(self.X)
 
     def __contains__(self, index):
-        if self.get_idx(index) is not None:
-            return True
+        try:
+            if self.get_idx(index) is not None:
+                return True
+        except IndexNotFoundError:
+            return False
         return False
 
     def get_idx(self, index):

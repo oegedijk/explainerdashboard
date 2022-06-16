@@ -44,7 +44,6 @@ import plotly.io as pio
 
 from .dashboard_methods import instantiate_component, encode_callables, decode_callables
 from .dashboard_components import *
-from .dashboard_tabs import *
 from .explainers import BaseExplainer
 from . import to_html
 
@@ -1913,6 +1912,9 @@ class ExplainerHub:
         return index_page
 
     def to_html(self):
+        """
+        returns static html version of the hub landing page
+        """
         def dashboard_cards(dashboards, n_cols):
             full_rows = int(len(dashboards)/ n_cols)
             n_last_row = len(dashboards) % n_cols
@@ -2142,8 +2144,14 @@ class InlineExplainer:
     """
     Run a single tab inline in a Jupyter notebook using specific method calls.
     """
-    def __init__(self, explainer, mode='inline', width=1000, height=800, 
-                    port=8050, **kwargs):
+    def __init__(
+        self, 
+        explainer:BaseExplainer, 
+        mode:str='inline', 
+        width:int=1000, 
+        height:int=800, 
+        port:int=8050, 
+        **kwargs):
         """
         :param explainer: an Explainer object
         :param mode: either 'inline', 'jupyterlab' or 'external' 
@@ -2275,53 +2283,56 @@ class InlineExplainerComponent:
 
 class InlineExplainerTabs(InlineExplainerComponent):
     
-    @delegates_kwargs(ImportancesTab)
-    @delegates_doc(ImportancesTab)
+    @delegates_kwargs(ImportancesComposite)
+    @delegates_doc(ImportancesComposite)
     def importances(self,  title='Importances', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        tab = ImportancesTab(self._explainer, **kwargs)
+        tab = ImportancesComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ModelSummaryTab)
-    @delegates_doc(ModelSummaryTab)
+    @delegates_kwargs(RegressionModelStatsComposite)
+    @delegates_doc(RegressionModelStatsComposite)
     def modelsummary(self, title='Model Summary', **kwargs):
         """Runs model_summary tab inline in notebook"""
-        tab = ModelSummaryTab(self._explainer, **kwargs)
+        if self._explainer.is_classifier:
+            tab = ClassifierModelStatsComposite(self._explainer, **kwargs)
+        else:
+            tab = RegressionModelStatsComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ContributionsTab)
-    @delegates_doc(ContributionsTab)
+    @delegates_kwargs(IndividualPredictionsComposite)
+    @delegates_doc(IndividualPredictionsComposite)
     def contributions(self,  title='Contributions', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        tab = ContributionsTab(self._explainer, **kwargs)
+        tab = IndividualPredictionsComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
     
-    @delegates_kwargs(WhatIfTab)
-    @delegates_doc(WhatIfTab)
+    @delegates_kwargs(WhatIfComposite)
+    @delegates_doc(WhatIfComposite)
     def whatif(self,  title='What if...', **kwargs):
         """Show What if... tab inline in notebook"""
-        tab = WhatIfTab(self._explainer, **kwargs)
+        tab = WhatIfComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ShapDependenceTab)
-    @delegates_doc(ShapDependenceTab)
+    @delegates_kwargs(ShapDependenceComposite)
+    @delegates_doc(ShapDependenceComposite)
     def dependence(self, title='Shap Dependence', **kwargs):
         """Runs shap_dependence tab inline in notebook"""
-        tab = ShapDependenceTab(self._explainer, **kwargs)
+        tab = ShapDependenceComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ShapInteractionsTab)
-    @delegates_doc(ShapInteractionsTab)
+    @delegates_kwargs(ShapInteractionsComposite)
+    @delegates_doc(ShapInteractionsComposite)
     def interactions(self, title='Shap Interactions', **kwargs):
         """Runs shap_interactions tab inline in notebook"""
-        tab = ShapInteractionsTab(self._explainer, **kwargs)
+        tab = ShapInteractionsComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(DecisionTreesTab)
-    @delegates_doc(DecisionTreesTab)
+    @delegates_kwargs(DecisionTreesComposite)
+    @delegates_doc(DecisionTreesComposite)
     def decisiontrees(self, title='Decision Trees', **kwargs):
         """Runs shap_interactions tab inline in notebook"""
-        tab = DecisionTreesTab(self._explainer, **kwargs)
+        tab = DecisionTreesComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
 
@@ -2511,24 +2522,3 @@ class InlineDecisionTreesExplainer(InlineExplainerComponent):
         """Runs decision_trees tab inline in notebook"""
         comp = DecisionPathTableComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
-
-
-
-class JupyterExplainerDashboard(ExplainerDashboard):
-    def __init__(self, *args, **kwargs):
-        raise ValueError("JupyterExplainerDashboard has been deprecated. "
-                    "Use e.g. ExplainerDashboard(mode='inline') instead.")
-
-class ExplainerTab:
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ExplainerTab has been deprecated. "
-                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab) instead.")
-
-
-class JupyterExplainerTab(ExplainerTab):
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ExplainerTab has been deprecated. "
-                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab, mode='inline') instead.")
-
-   
-
