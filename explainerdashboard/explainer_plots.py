@@ -1552,7 +1552,8 @@ def plotly_shap_scatter_plot(X, shap_values_df, display_columns=None, title="Sha
                               opacity=0.3,
                               colorbar=dict(
                                 title="feature value <br> (red is high)", 
-                                showticklabels=False),
+                                tickfont=dict(color="rgba(0, 0, 0, 0)"),
+                                ),
                             ),
                             name=col,
                             showlegend=False,
