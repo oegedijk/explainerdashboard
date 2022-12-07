@@ -89,8 +89,17 @@
 - Add this method? : https://arxiv.org/abs/2006.04750?
 
 ## Tests:
-- add get_descriptions_df tests
+- add pipeline with X_background test
+- test explainer.dump and explainer.from_file with .pkl or .dill
+- add get_descriptions_df tests -> sort='shap'
+- set_shap_values test
+- set_shap_interaction_values test
 - add cv metrics tests
+- random_index tests
+- get_idx_sample
+- y_binary with self.y_missing
+- percentile_from_cutoff
+- decisiontree
 - add tests for InterpretML EBM (shap 0.37)
 - write tests for explainerhub CLI add user
 - test model_output='probability' and 'raw' or 'logodds' seperately

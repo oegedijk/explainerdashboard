@@ -6,7 +6,7 @@ with open("requirements.txt", "rt") as requirements_file:
 
 setup(
     name='explainerdashboard',
-    version='0.3.8.1',
+    version='0.4.0',
     description='Quickly build Explainable AI dashboards that show the inner workings of so-called "blackbox" machine learning models.',
     long_description="""
 
@@ -73,7 +73,7 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Intended Audience :: Education",
         "Topic :: Scientific/Engineering :: Artificial Intelligence"],
     install_requires=requirements,
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     entry_points={
         'console_scripts': [
             'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',

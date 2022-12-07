@@ -64,7 +64,7 @@ class DecisionTreesComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisiontrees-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         
         
         if isinstance(self.explainer, RandomForestExplainer):
@@ -118,7 +118,9 @@ class DecisionTreesComponent(ExplainerComponent):
                             dbc.Select(id='decisiontrees-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
-                                value=self.highlight)
+                                value=self.highlight,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_highlight), 
                     make_hideable(
                             dbc.Col([self.selector.layout()
@@ -230,7 +232,7 @@ class DecisionPathTableComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisionpath-table-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         
         if self.description is None: self.description = """
         Shows the path that an observation took down a specific decision tree.
@@ -264,7 +266,9 @@ class DecisionPathTableComponent(ExplainerComponent):
                             dbc.Select(id='decisionpath-table-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
-                                value=self.highlight)
+                                value=self.highlight,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_highlight),
                         make_hideable(
                             dbc.Col([self.selector.layout()
@@ -355,7 +359,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'decisionpath-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         self.register_dependencies("shadow_trees")
 
     def layout(self):
@@ -385,7 +389,9 @@ class DecisionPathGraphComponent(ExplainerComponent):
                             dbc.Select(id='decisionpath-highlight-'+self.name, 
                                 options = [{'label': str(tree), 'value': tree} 
                                                 for tree in range(self.explainer.no_of_trees)],
-                                value=self.highlight)
+                                value=self.highlight,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_highlight), 
                         make_hideable(
                             dbc.Col([self.selector.layout()

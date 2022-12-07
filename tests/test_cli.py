@@ -7,8 +7,9 @@ from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.datasets import titanic_survive
 from explainerdashboard.custom import ShapDependenceComposite
 
+pytestmark = pytest.mark.cli
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def generate_assets():
     X_train, y_train, X_test, y_test = titanic_survive()
 

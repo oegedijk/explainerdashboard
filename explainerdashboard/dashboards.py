@@ -17,6 +17,7 @@ import requests
 from typing import List, Union
 from pathlib import Path
 from copy import copy, deepcopy
+import warnings
 
 import oyaml as yaml
 
@@ -24,6 +25,14 @@ import dash
 from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    r"\nThe dash_\w+_components package is deprecated",
+    UserWarning,
+    "dash_auth.plotly_auth",
+)
 import dash_auth
 
 from flask import Flask, request, redirect
@@ -35,10 +44,17 @@ import plotly.io as pio
 
 from .dashboard_methods import instantiate_component, encode_callables, decode_callables
 from .dashboard_components import *
-from .dashboard_tabs import *
 from .explainers import BaseExplainer
 from . import to_html
 
+# with pipelines we extract the final model that is fitted on raw numpy arrays and so will throw
+# this error when receiving a pandas dataframe. So we suppress the warnings.
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    r"X has feature names, but \w+ was fitted without feature names",
+    UserWarning
+)
 
 class ExplainerTabsLayout(ExplainerComponent):
     def __init__(self, explainer, tabs,
@@ -108,6 +124,7 @@ class ExplainerTabsLayout(ExplainerComponent):
                     dbc.Col([
                         self.selector.layout()
                     ], md=3), hide=self.header_hide_selector),
+                dbc.Col([], class_name="me-auto"),
                 make_hideable(
                     dbc.Col([
                         html.Div([
@@ -701,10 +718,15 @@ class ExplainerDashboard:
         else:
             return cls(explainer, **dashboard_params, **kwargs)
 
-    def to_yaml(self, filepath=None, return_dict=False,
-                explainerfile="explainer.joblib", dump_explainer=False):
+    def to_yaml(self, 
+                filepath:Union[str, Path]=None, 
+                return_dict:bool=False,
+                explainerfile:str="explainer.joblib",
+                dump_explainer:bool=False,
+                explainerfile_absolute_path:Union[str, Path, bool]=None):
         """Returns a yaml configuration of the current ExplainerDashboard
-        that can be used by the explainerdashboard CLI. Recommended filename
+        that can be used by the explainerdashboard CLI or to reinstate an identical 
+        dashboard from the (dumped) explainer and saved configuration. Recommended filename
         is `dashboard.yaml`.
 
         Args:
@@ -713,9 +735,13 @@ class ExplainerDashboard:
             return_dict (bool, optional): instead of yaml return dict with 
                 config.
             explainerfile (str, optional): filename of explainer dump. Defaults
-                to `explainer.joblib`.
+                to `explainer.joblib`. Should en in either .joblib .dill or .pkl
             dump_explainer (bool, optional): dump the explainer along with the yaml.
                 You must pass explainerfile parameter for the filename. Defaults to False.
+            explainerfile_absolute_path (str, Path, bool, optional): absolute path to save explainerfile if 
+                not in the same directory as the yaml file. You can also pass True which still
+                saves the explainerfile to the filepath directory, but adds an absolute path 
+                to the yaml file. 
                 
         """
         import oyaml as yaml
@@ -731,13 +757,20 @@ class ExplainerDashboard:
         if filepath is not None:
             dashboard_path = Path(filepath).absolute().parent
             dashboard_path.mkdir(parents=True, exist_ok=True)
+            
+            if explainerfile_absolute_path:
+                if isinstance(explainerfile_absolute_path, bool):
+                    explainerfile_absolute_path = dashboard_path / explainerfile
+                dashboard_config["dashboard"]["explainerfile"] = str(Path(explainerfile_absolute_path).absolute())
+            else:
+                explainerfile_absolute_path = dashboard_path / explainerfile
 
             print(f"Dumping configuration .yaml to {Path(filepath).absolute()}...", flush=True)
             yaml.dump(dashboard_config, open(filepath, "w"))
 
             if dump_explainer:
-                print(f"Dumping explainer to {dashboard_path / explainerfile}...", flush=True)
-                self.explainer.dump(dashboard_path / explainerfile)
+                print(f"Dumping explainer to {explainerfile_absolute_path}...", flush=True)
+                self.explainer.dump(explainerfile_absolute_path)
             return
         return yaml.dump(dashboard_config)
 
@@ -1053,7 +1086,9 @@ class ExplainerHub:
                     dbs_open_by_default:bool=False, port:int=8050, 
                     min_height:int=3000, secret_key:str=None, no_index:bool=False, 
                     bootstrap:str=None, fluid:bool=True, base_route:str="dashboards", 
-                    index_to_base_route:bool=False, max_dashboards:int=None, 
+                    index_to_base_route:bool=False,
+                    static_to_base_route:bool=False,
+                    max_dashboards:int=None, 
                     add_dashboard_route:bool=False, add_dashboard_pattern:str=None, **kwargs):
         """
     
@@ -1108,6 +1143,8 @@ class ExplainerHub:
                 Defaults to "dashboards".
             index_to_base_route (bool, optional): Dispatches Hub to "/base_route/index" instead of the default 
                 "/" and "/index". Useful when the host root is not reserved for the ExplainerHub
+            static_to_base_route(bool, optional): Dispatches Hub to "/base_route/static" instead of the default 
+                "/static". Useful when the host root is not reserved for the ExplainerHub
             max_dashboards (int, optional): Max number of dashboards in the hub. Defaults to None 
                 (for no limitation). If set and you add an additional dashboard, the
                 first dashboard in self.dashboards will be deleted!
@@ -1150,7 +1187,9 @@ class ExplainerHub:
         self.db_users = db_users if db_users is not None else {}                    
         self._validate_users_file(self.users_file)
         
-        self.app = Flask(__name__)
+        static_url_path = f"/{base_route}/static" if static_to_base_route else None
+        self.app = Flask(__name__, static_url_path=static_url_path)
+
         if secret_key is not None:
             self.app.config['SECRET_KEY'] = secret_key
         SimpleLogin(self.app, login_checker=self._validate_user)
@@ -1493,9 +1532,9 @@ class ExplainerHub:
                 raise ValueError("users_file should end with either .json or .yaml!")
                 
             assert 'users' in users_db, \
-                f"{self.users_file} should contain a 'users' dict!"
+                f"{users_file} should contain a 'users' dict!"
             assert 'dashboard_users' in users_db, \
-                f"{self.users_file} should contain a 'dashboard_users' dict!"
+                f"{users_file} should contain a 'dashboard_users' dict!"
                
     def _hash_logins(self, logins:List[List], add_to_users_file:bool=False):
         """Turn a list of [user, password] pairs into a Flask-Login style user 
@@ -1523,15 +1562,15 @@ class ExplainerHub:
                     username=username, 
                     password=password
                 )
-                if add_to_user_file and self.users_file is not None:
-                    self._add_user_to_file(self.users_file, user, password, already_hashed=True)
+                if add_to_users_file and self.users_file is not None:
+                    self._add_user_to_file(self.users_file, username, password, already_hashed=True)
             else:
                 logins_dict[username] = dict(
                     username=username, 
                     password=generate_password_hash(password, method='pbkdf2:sha256')
                 )
                 if add_to_users_file and self.users_jfile is not None:
-                    self._add_user_to_file(self.users_file, user, password)
+                    self._add_user_to_file(self.users_file, username, password)
         return logins_dict
     
     @staticmethod
@@ -1811,8 +1850,8 @@ class ExplainerHub:
                                 dbc.CardLink("Go to dashboard", 
                                             href=f"/{self.base_route}/{dashboard.name}", 
                                             external_link=True),   
-                            ])]) for dashboard in dashboards[i:i+n_cols]
-                    ]
+                            ])], class_name="h-100")
+                     for dashboard in dashboards[i:i+n_cols]]
                 )
             if n_last_row > 0:
                 last_row = [
@@ -1828,20 +1867,20 @@ class ExplainerHub:
                                         href=f"/{self.base_route}/{dashboard.name}", 
                                         external_link=True),   
                         ])
-                    ]) for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
+                    ], class_name="h-100")
+                    for dashboard in dashboards[full_rows*n_cols:full_rows*n_cols+n_last_row]]
                 for i in range(len(last_row), n_cols):
                     last_row.append(dbc.Card([], style=dict(border="none")))
                 card_decks.append(last_row)
             return card_decks
 
-            
         header = html.Div([
-            dbc.Jumbotron([
+            dbc.Container([
                 html.H1(self.title, className="display-3"),
                 html.Hr(className="my-2"),
                 html.P(self.description, className="lead"),
-            ])
-        ], style=dict(marginTop=40))
+            ], fluid=True, class_name="py-3")
+        ], className="p-3 bg-light rounded-3", style=dict(marginTop=40))
         
         if self.masonry:
             dashboard_rows = [
@@ -1853,7 +1892,7 @@ class ExplainerHub:
             ]
         else:
             dashboard_rows = [
-                dbc.Row([dbc.CardDeck(deck)], style=dict(marginBottom=30)) 
+                dbc.Row([dbc.Col(card) for card in deck], class_name="mt-4 g-4")
                     for deck in dashboard_decks(self.dashboards, self.n_dashboard_cols)]
         
         if hasattr(self, "index_page"):
@@ -1873,6 +1912,9 @@ class ExplainerHub:
         return index_page
 
     def to_html(self):
+        """
+        returns static html version of the hub landing page
+        """
         def dashboard_cards(dashboards, n_cols):
             full_rows = int(len(dashboards)/ n_cols)
             n_last_row = len(dashboards) % n_cols
@@ -1936,51 +1978,57 @@ class ExplainerHub:
         """
         if static:
             page = """
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
             """
             dbs = [(f"{db.name}.html", db.title) for db in self.dashboards]
         else:
             page = f"""
-            <script type="text/javascript" src="/static/jquery-3.5.1.slim.min.js"></script>
-            <script type="text/javascript" src="/static/bootstrap.min.js"></script>
-            <link type="text/css" rel="stylesheet" href="{'/static/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
-            <link rel="shortcut icon" href="/static/favicon.ico">
+            <script type="text/javascript" src=f"{self.app.static_url_path}/jquery-3.5.1.slim.min.js"></script>
+            <script type="text/javascript" src=f"{self.app.static_url_path}/bootstrap.min.js"></script>
+            <link type="text/css" rel="stylesheet" href="{f'{self.app.static_url_path}/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
+            <link rel="shortcut icon" href=f"{self.app.static_url_path}/favicon.ico">
             """
             dbs = [(f"/{self.base_route}/_{db.name}", db.title) for db in self.dashboards]
 
+        page_login_required = self.users and not self.dbs_open_by_default
+        
         page += f"""
         <title>{self.title}</title>
-        <body class="d-flex flex-column min-vh-100">
-            <div class="container{'-fluid' if self.fluid else ''}">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <a class="navbar-brand" href="{self.index_route if not static else '#'}">{self.title}</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-                    <ul class="navbar-nav ml-auto">
-
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Dashboards
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink2">
-                            {"".join([f'<a class="dropdown-item" href="{url}">{name}</a>' for url, name in dbs])}
+        <body>
+            <div class="container{'-fluid' if self.fluid else ''} px-4">
+                <nav class="navbar navbar-expand navbar-light bg-light">
+                    <div class="container-fluid">
+                        <a href="{self.index_route if not static else '#'}" class="navbar-brand">
+                        <h1>{self.title}</h1>
+                        </a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <form class="d-flex">
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                                    <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Dashboards
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                        {"".join([f'<li><a n_clicks_timestamp="-1" data-rr-ui-dropdown-item="" class="dropdown-item" href="{url}">{name}</a></li>' for url, name in dbs])}
+                                    </ul>
+                                    </li>
+                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ''}
+                                </ul>
                             </div>
-                        </li>
-                        {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static else ''}
-                    </ul>
-                </div>
-            </nav>
+                        </form>
+                    </div>
+                </nav>
         """
         if static:
             page += f"\n<div>\n{route}\n</div>\n"
         else:
             page += f"""
             
-            <div class="embed-responsive" style="min-height: {self.min_height}px">
+            <div class="mt-4 embed-responsive" style="min-height: {self.min_height}px">
                  <iframe 
                          src="{route}"
                          style="overflow-x: hidden; overflow-y: visible; position: absolute; width: 95%; height: 100%; background: transparent"
@@ -2049,7 +2097,7 @@ class ExplainerHub:
                             dashboard_path = self.add_dashboard_pattern.format(dashboard_path)
                         if dashboard_path.endswith(".yaml") and Path(dashboard_path).exists():
                             db = ExplainerDashboard.from_config(dashboard_path)
-                            dashboard_name = self.add_dashboard(db, bootstrap="/static/bootstrap.min.css")
+                            dashboard_name = self.add_dashboard(db, bootstrap=f"{self.app.static_url_path}/bootstrap.min.css")
                             return redirect(f"/dashboards/_{dashboard_name}", code=302)
                     except:
                         print("ERROR: Failed to add dashboard!", flush=True)
@@ -2084,7 +2132,7 @@ class ExplainerHub:
         """
         if port is None:
             port = self.port
-        print(f"Starting ExplainerHub on http://{get_local_ip_adress()}:{port}{self.index_route}", flush=True)
+        print(f"Starting ExplainerHub on http://{host}:{port}{self.index_route}", flush=True)
         if use_waitress:
             import waitress
             waitress.serve(self.app, host=host, port=port, **kwargs)  
@@ -2096,8 +2144,14 @@ class InlineExplainer:
     """
     Run a single tab inline in a Jupyter notebook using specific method calls.
     """
-    def __init__(self, explainer, mode='inline', width=1000, height=800, 
-                    port=8050, **kwargs):
+    def __init__(
+        self, 
+        explainer:BaseExplainer, 
+        mode:str='inline', 
+        width:int=1000, 
+        height:int=800, 
+        port:int=8050, 
+        **kwargs):
         """
         :param explainer: an Explainer object
         :param mode: either 'inline', 'jupyterlab' or 'external' 
@@ -2229,53 +2283,56 @@ class InlineExplainerComponent:
 
 class InlineExplainerTabs(InlineExplainerComponent):
     
-    @delegates_kwargs(ImportancesTab)
-    @delegates_doc(ImportancesTab)
+    @delegates_kwargs(ImportancesComposite)
+    @delegates_doc(ImportancesComposite)
     def importances(self,  title='Importances', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        tab = ImportancesTab(self._explainer, **kwargs)
+        tab = ImportancesComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ModelSummaryTab)
-    @delegates_doc(ModelSummaryTab)
+    @delegates_kwargs(RegressionModelStatsComposite)
+    @delegates_doc(RegressionModelStatsComposite)
     def modelsummary(self, title='Model Summary', **kwargs):
         """Runs model_summary tab inline in notebook"""
-        tab = ModelSummaryTab(self._explainer, **kwargs)
+        if self._explainer.is_classifier:
+            tab = ClassifierModelStatsComposite(self._explainer, **kwargs)
+        else:
+            tab = RegressionModelStatsComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ContributionsTab)
-    @delegates_doc(ContributionsTab)
+    @delegates_kwargs(IndividualPredictionsComposite)
+    @delegates_doc(IndividualPredictionsComposite)
     def contributions(self,  title='Contributions', **kwargs):
         """Show contributions (permutation or shap) inline in notebook"""
-        tab = ContributionsTab(self._explainer, **kwargs)
+        tab = IndividualPredictionsComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
     
-    @delegates_kwargs(WhatIfTab)
-    @delegates_doc(WhatIfTab)
+    @delegates_kwargs(WhatIfComposite)
+    @delegates_doc(WhatIfComposite)
     def whatif(self,  title='What if...', **kwargs):
         """Show What if... tab inline in notebook"""
-        tab = WhatIfTab(self._explainer, **kwargs)
+        tab = WhatIfComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ShapDependenceTab)
-    @delegates_doc(ShapDependenceTab)
+    @delegates_kwargs(ShapDependenceComposite)
+    @delegates_doc(ShapDependenceComposite)
     def dependence(self, title='Shap Dependence', **kwargs):
         """Runs shap_dependence tab inline in notebook"""
-        tab = ShapDependenceTab(self._explainer, **kwargs)
+        tab = ShapDependenceComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(ShapInteractionsTab)
-    @delegates_doc(ShapInteractionsTab)
+    @delegates_kwargs(ShapInteractionsComposite)
+    @delegates_doc(ShapInteractionsComposite)
     def interactions(self, title='Shap Interactions', **kwargs):
         """Runs shap_interactions tab inline in notebook"""
-        tab = ShapInteractionsTab(self._explainer, **kwargs)
+        tab = ShapInteractionsComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
-    @delegates_kwargs(DecisionTreesTab)
-    @delegates_doc(DecisionTreesTab)
+    @delegates_kwargs(DecisionTreesComposite)
+    @delegates_doc(DecisionTreesComposite)
     def decisiontrees(self, title='Decision Trees', **kwargs):
         """Runs shap_interactions tab inline in notebook"""
-        tab = DecisionTreesTab(self._explainer, **kwargs)
+        tab = DecisionTreesComposite(self._explainer, **kwargs)
         self._run_component(tab, title)
 
 
@@ -2465,24 +2522,3 @@ class InlineDecisionTreesExplainer(InlineExplainerComponent):
         """Runs decision_trees tab inline in notebook"""
         comp = DecisionPathTableComponent(self._explainer, **kwargs)
         self._run_component(comp, title)
-
-
-
-class JupyterExplainerDashboard(ExplainerDashboard):
-    def __init__(self, *args, **kwargs):
-        raise ValueError("JupyterExplainerDashboard has been deprecated. "
-                    "Use e.g. ExplainerDashboard(mode='inline') instead.")
-
-class ExplainerTab:
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ExplainerTab has been deprecated. "
-                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab) instead.")
-
-
-class JupyterExplainerTab(ExplainerTab):
-    def __init__(self, *args, **kwargs):
-        raise ValueError("ExplainerTab has been deprecated. "
-                        "Use e.g. ExplainerDashboard(explainer, ImportancesTab, mode='inline') instead.")
-
-   
-

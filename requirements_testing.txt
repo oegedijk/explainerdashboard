@@ -6,3 +6,4 @@ torch
 skorch
 selenium
 pytest-console-scripts
+dill

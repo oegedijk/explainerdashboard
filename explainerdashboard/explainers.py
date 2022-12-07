@@ -1,11 +1,12 @@
-__all__ = ['BaseExplainer', 
-            'ClassifierExplainer', 
-            'RegressionExplainer', 
-            'RandomForestClassifierExplainer', 
-            'RandomForestRegressionExplainer',
-            'XGBClassifierExplainer',
-            'XGBRegressionExplainer',
-            ]
+__all__ = [
+    'BaseExplainer', 
+    'ClassifierExplainer', 
+    'RegressionExplainer', 
+    'RandomForestClassifierExplainer', 
+    'RandomForestRegressionExplainer',
+    'XGBClassifierExplainer',
+    'XGBRegressionExplainer',
+]
 
 import sys
 import inspect
@@ -34,8 +35,10 @@ from sklearn.metrics import precision_recall_curve, precision_score, recall_scor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.metrics import average_precision_score 
 
+
 from .explainer_methods import *
 from .explainer_plots import *
+
 
 import plotly.io as pio
 pio.templates.default = "none"
@@ -76,7 +79,7 @@ class BaseExplainer(ABC):
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:dict=None, 
                     n_jobs:int=None, permutation_cv:int=None, cv:int=None, na_fill:float=-999,
-                    precision:str="float64"):
+                    precision:str="float64", shap_kwargs:Dict=None):
         """Defines the basic functionality that is shared by both
         ClassifierExplainer and RegressionExplainer. 
 
@@ -121,11 +124,14 @@ class BaseExplainer(ABC):
                 Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
+            shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
+                most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
         """
         self._params_dict = dict(
             shap=shap, model_output=model_output, cats=cats, 
             descriptions=descriptions, target=target, n_jobs=n_jobs, 
-            permutation_cv=permutation_cv, cv=cv, na_fill=na_fill, precision=precision)
+            permutation_cv=permutation_cv, cv=cv, na_fill=na_fill, 
+            precision=precision, shap_kwargs=shap_kwargs)
 
         if permutation_cv is not None:
             warnings.warn("Parameter permutation_cv has been deprecated! Please use "
@@ -134,14 +140,15 @@ class BaseExplainer(ABC):
             if cv is None: 
                 cv = permutation_cv
 
-        if isinstance(model, Pipeline):
+        if safe_isinstance(model, "sklearn.pipeline.Pipeline", "imblearn.pipeline.Pipeline"):
             if shap != 'kernel':
                 try:
-                    self.X, self.model  = split_pipeline(model, X)
+                    transformer_pipeline, self.model  = split_pipeline(model)
+                    self.X = get_transformed_X(transformer_pipeline, X)
                     if X_background is not None:
-                        self.X_background = pd.DataFrame(model.steps[:-1].transform(X_background), columns=X.columns)
-                    print(f"Detected sklearn Pipeline and succesfully extracted final "
-                    "output dataframe with column names and final model...")
+                        self.X_background = get_transformed_X(transformer_pipeline, X_background)
+                    print(f"Detected sklearn/imblearn Pipeline and succesfully extracted final "
+                            "output dataframe with column names and final model...")
                 except:
                     print("Warning: Failed to extract a data transformer with column names and final "
                         "model from the Pipeline. So setting shap='kernel' to use "
@@ -245,7 +252,7 @@ class BaseExplainer(ABC):
             print(f"WARNING: For shap='{self.shap}', shap interaction values can unfortunately "
                     "not be calculated!")
             self.interactions_should_work = False
-
+        self.shap_kwargs = shap_kwargs if shap_kwargs else {}
         self.model_output = model_output
 
         if idxs is not None:
@@ -293,7 +300,7 @@ class BaseExplainer(ABC):
             self.interactions_should_work = True
 
         
-        self.__version__ = "0.3.3"
+        self.__version__ = "0.4.0"
 
     def get_lock(self):
         if not hasattr(self, "_lock"):
@@ -413,8 +420,11 @@ class BaseExplainer(ABC):
         return len(self.X)
 
     def __contains__(self, index):
-        if self.get_idx(index) is not None:
-            return True
+        try:
+            if self.get_idx(index) is not None:
+                return True
+        except IndexNotFoundError:
+            return False
         return False
 
     def get_idx(self, index):
@@ -507,14 +517,18 @@ class BaseExplainer(ABC):
                              f"or a method {func.__name__}(self, index)! Instead you "
                              f"passed func={func.__name__}{inspect.signature(func)}")
 
-
-    def get_index_list(self):
+    def get_index_list(self) -> pd.Series:
         if self._get_index_list_func is not None:
             if not hasattr(self, '_index_list'):
-                self._index_list = pd.Index(self._get_index_list_func())
+                self._index_list = pd.Index(self._get_index_list_func()).astype(str)
             return self._index_list
         else:
             return self.idxs
+
+    def reset_index_list(self):
+        """resets the available indexes using the function provided by explainer.set_index_list_func()"""
+        if self._get_index_list_func is not None:
+            self._index_list = pd.Index(self._get_index_list_func())
 
     def set_index_list_func(self, func):
         """Sets an external function all available indexes from an external source.
@@ -933,11 +947,15 @@ class BaseExplainer(ABC):
             print("Calculating shap values...", flush=True)
             if self.shap == 'skorch':
                 import torch
-                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(torch.tensor(self.X.values)), 
-                                    columns=self.columns)
+                self._shap_values_df = pd.DataFrame(
+                    self.shap_explainer.shap_values(torch.tensor(self.X.values), **self.shap_kwargs), 
+                    columns=self.columns
+                )
             else:
-                self._shap_values_df = pd.DataFrame(self.shap_explainer.shap_values(self.X), 
-                                    columns=self.columns)
+                self._shap_values_df = pd.DataFrame(
+                    self.shap_explainer.shap_values(self.X, **self.shap_kwargs), 
+                    columns=self.columns
+                )
             self._shap_values_df = merge_categorical_shap_values(
                     self._shap_values_df, self.onehot_dict, self.merged_cols).astype(self.precision)
         return self._shap_values_df
@@ -973,8 +991,9 @@ class BaseExplainer(ABC):
                     import torch
                     X_row = torch.tensor(X_row.values.astype("float32"))
                 with self.get_lock():
+                    shap_kwargs = dict(self.shap_kwargs, silent=True) if self.shap == 'kernel' else self.shap_kwargs
                     shap_row = pd.DataFrame(
-                        self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
+                        self.shap_explainer.shap_values(X_row, **self.shap_kwargs), 
                         columns=self.columns)
                 shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -985,8 +1004,9 @@ class BaseExplainer(ABC):
                 import torch
                 X_row = torch.tensor(X_row.values.astype("float32"))
             with self.get_lock():
+                shap_kwargs = dict(self.shap_kwargs, silent=True) if self.shap == 'kernel' else self.shap_kwargs
                 shap_row = pd.DataFrame(
-                    self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {})), 
+                    self.shap_explainer.shap_values(X_row, **self.shap_kwargs), 
                     columns=self.columns)
             shap_row = merge_categorical_shap_values(shap_row, 
                                     self.onehot_dict, self.merged_cols)
@@ -1850,99 +1870,6 @@ class BaseExplainer(ABC):
                         num_grid_lines=min(gridlines, sample, len(self.X)), 
                         round=round, target=self.target, units=units)
 
-    def get_int_idx(*args, **kwargs):
-        raise NotImplementedError("get_int_idx has been deprecated in v0.3! Use get_idx() instead!")
-
-    @property
-    def importances_df(*args, **kwargs):
-        raise NotImplementedError("importances_df has been deprecated in v0.3! Use get_importances_df() instead!")
-
-    @property
-    def feature_permutations_df(*args, **kwargs):
-        raise NotImplementedError("feature_permutations_df has been deprecated in v0.3! Use get_feature_permutations_df() instead!")
-
-    @property
-    def shap_values(*args, **kwargs):
-        raise NotImplementedError("shap_values has been deprecated in v0.3! Use get_shap_values_df() instead!")
-
-    def get_dfs(*args, **kwargs):
-        raise NotImplementedError("get_dfs() has been deprecated in v0.3! ")
-
-    def to_sql(*args, **kwargs):
-        raise NotImplementedError("to_sql() has been deprecated in v0.3!")
-
-    def get_prop_for_label(*args, **kwargs):
-        raise NotImplementedError("get_prop_for_label() has been deprecated in v0.3!")
-
-    def plot_shap_contributions(*args, **kwargs):
-        raise NotImplementedError("plot_shap_contributions() has been deprecated in v0.3! "
-                "Use plot_contributions() instead!")
-
-    def plot_shap_summary(*args, **kwargs):
-        raise NotImplementedError("plot_shap_summary() has been deprecated in v0.3! "
-                "Use plot_importances_detailed() instead!")
-
-    def plot_shap_dependence(*args, **kwargs):
-        raise NotImplementedError("plot_shap_dependence() has been deprecated in v0.3! "
-                "Use plot_dependence() instead!")
-
-    def plot_shap_interaction(*args, **kwargs):
-        raise NotImplementedError("plot_shap_interaction() has been deprecated in v0.3! "
-                "Use plot_interaction() instead!")
-
-    def plot_shap_interaction_summary(*args, **kwargs):
-        raise NotImplementedError("plot_shap_interaction_summary() has been deprecated in v0.3! "
-                "Use plot_interactions_detailed() instead!")
-
-    def plot_interactions(*args, **kwargs):
-        raise NotImplementedError("plot_interactions() has been deprecated in v0.3! "
-                "Use plot_interactions_importance() instead!")
-
-    def shap_top_interactions(*args, **kwargs):
-        raise NotImplementedError("shap_top_interactions() has been deprecated in v0.3! "
-                "Use top_shap_interactions() instead!")
-
-    def check_cats(*args, **kwargs):
-        raise NotImplementedError("check_cats has been deprecated in v0.3!")
-
-    @property
-    def decision_trees(*args, **kwargs):
-        raise NotImplementedError(".decision_trees has been deprecated in v0.3! "
-                "Use .shadow_trees instead!")
-
-    def decisiontree_df(*args, **kwargs):
-        raise NotImplementedError("decisiontree_df() has been deprecated in v0.3! "
-                "Use get_decisionpath_df() instead!")
-
-    def decisiontree_summary_df(*args, **kwargs):
-        raise NotImplementedError("decisiontree_summary_df() has been deprecated in v0.3! "
-                "Use get_decisionpath_summary_df() instead!")
-
-    def decision_path_file(*args, **kwargs):
-        raise NotImplementedError("decision_path_file() has been deprecated in v0.3! "
-                "Use decisiontree_file() instead!")
-
-    def decision_path(*args, **kwargs):
-        raise NotImplementedError("decision_path() has been deprecated in v0.3! "
-                "Use decisiontree() instead!")
-
-    def decision_path_encoded(*args, **kwargs):
-        raise NotImplementedError("decision_path_encoded() has been deprecated in v0.3! "
-                "Use decisiontree_encoded() instead!")
-
-    def contrib_df(*args, **kwargs):
-        raise NotImplementedError("contrib_df() has been deprecated in v0.3! "
-                "Use get_contrib_df() instead!")
-
-    def contrib_summary_df(*args, **kwargs):
-        raise NotImplementedError("contrib_summary_df() has been deprecated in v0.3! "
-                "Use get_contrib_summary_df() instead!")
-
-    def interactions_df(*args, **kwargs):
-        raise NotImplementedError("interactions_df() has been deprecated in v0.3! "
-                "Use get_interactions_df() instead!")
-
-
 class ClassifierExplainer(BaseExplainer):
     """ """
     def __init__(self, model,  X:pd.DataFrame, y:pd.Series=None,  
@@ -1954,7 +1881,8 @@ class ClassifierExplainer(BaseExplainer):
                     index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, 
                     permutation_cv:int=None, cv:int=None, na_fill:float=-999,
-                    precision:str="float64", labels:List=None, pos_label:int=1):
+                    precision:str="float64", shap_kwargs:Dict=None, 
+                    labels:List=None, pos_label:int=1):
         """
         Explainer for classification models. Defines the shap values for
         each possible class in the classification.
@@ -2007,6 +1935,8 @@ class ClassifierExplainer(BaseExplainer):
                 Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
+            shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
+                most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
             labels(list): list of str labels for the different classes, 
                         defaults to e.g. ['0', '1'] for a binary classification
             pos_label: class that should be used as the positive class, 
@@ -2016,7 +1946,7 @@ class ClassifierExplainer(BaseExplainer):
                             shap, X_background, model_output, 
                             cats, cats_notencoded, idxs, index_name, target, 
                             descriptions, n_jobs, permutation_cv, cv, na_fill, 
-                            precision)
+                            precision, shap_kwargs)
 
         assert hasattr(model, "predict_proba"), \
                 ("for ClassifierExplainer, model should be a scikit-learn "
@@ -2293,9 +2223,9 @@ class ClassifierExplainer(BaseExplainer):
             print("Calculating shap values...", flush=True)
             if self.shap == 'skorch':
                 import torch
-                _shap_values = self.shap_explainer.shap_values(torch.tensor(self.X.values.astype("float32")))
+                _shap_values = self.shap_explainer.shap_values(torch.tensor(self.X.values.astype("float32")), **self.shap_kwargs)
             else:
-                _shap_values = self.shap_explainer.shap_values(self.X.values)
+                _shap_values = self.shap_explainer.shap_values(self.X.values, **self.shap_kwargs)
 
             if len(self.labels) == 2:
                 if not isinstance(_shap_values, list):
@@ -2405,7 +2335,8 @@ class ClassifierExplainer(BaseExplainer):
                 import torch
                 X_row = torch.tensor(X_row.values.astype("float32"))
             with self.get_lock():
-                sv = self.shap_explainer.shap_values(X_row, **(dict(silent=True) if self.shap=='kernel' else {}))
+                shap_kwargs = dict(self.shap_kwargs, silent=True) if self.shap == 'kernel' else self.shap_kwargs
+                sv = self.shap_explainer.shap_values(X_row, **shap_kwargs)
             if isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
             elif len(self.labels) == 2:
@@ -2465,7 +2396,7 @@ class ClassifierExplainer(BaseExplainer):
             else:
                 assert len(self._shap_interaction_values)==len(self.labels),\
                     (f"len(self.label)={len(self.labels)}, but "
-                     f"shap returned shap values for {len(_shap_values)} classes! "
+                     f"shap returned shap values for {len(self._shap_interaction_values)} classes! "
                      "Adjust the labels parameter accordingly!")
 
             self._shap_interaction_values = \
@@ -3169,7 +3100,8 @@ class RegressionExplainer(BaseExplainer):
                     cats:Union[List, Dict]=None, cats_notencoded:Dict=None, 
                     idxs:pd.Index=None, index_name:str=None, target:str=None,
                     descriptions:Dict=None, n_jobs:int=None, permutation_cv:int=None, 
-                    cv:int=None, na_fill:float=-999, precision:str="float64", units:str=""):
+                    cv:int=None, na_fill:float=-999, precision:str="float64", 
+                    shap_kwargs:Dict=None, units:str=""):
         """Explainer for regression models.
 
         In addition to BaseExplainer defines a number of plots specific to 
@@ -3218,13 +3150,15 @@ class RegressionExplainer(BaseExplainer):
                 Defaults to None.
             na_fill (int): The filler used for missing values, defaults to -999.
             precision: precision with which to store values. Defaults to "float64".
+            shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
+                most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
             units(str): units to display for regression quantity
         """
         super().__init__(model, X, y, permutation_metric, 
                             shap, X_background, model_output,
                             cats, cats_notencoded, idxs, index_name, target, 
                             descriptions, n_jobs, permutation_cv, cv, na_fill, 
-                            precision)
+                            precision, shap_kwargs)
 
         self._params_dict = {**self._params_dict, **dict(units=units)}
         self.units = units

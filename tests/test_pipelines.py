@@ -1,155 +1,70 @@
-import unittest
-from pathlib import Path
+import pytest
 
 import pandas as pd
 import numpy as np
 
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler, OrdinalEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 
-import plotly.graph_objects as go
+def test_pipeline_columns_ranked_by_shap(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.columns_ranked_by_shap(), list)
 
-from explainerdashboard.explainers import ClassifierExplainer
-from explainerdashboard.datasets import titanic_survive, titanic_names
+def test_pipeline_permutation_importances(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.get_permutation_importances_df(), pd.DataFrame)
 
+def test_pipeline_metrics(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.metrics(), dict)
+    assert isinstance(classifier_pipeline_explainer.metrics_descriptions(), dict)
 
-class PipelineTests(unittest.TestCase):
-    def setUp(self):
-        #X, y = fetch_openml("titanic", version=1, as_frame=True, return_X_y=True)
-        df = pd.read_csv(Path.cwd() / "tests" / "test_assets" / "pipeline_data.csv")
-        X = df[['age', 'fare', 'embarked', 'sex', 'pclass']]
-        y = df['survived'].astype(int)
+def test_pipeline_mean_abs_shap_df(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
-        numeric_features = ['age', 'fare']
-        numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())])
+def test_pipeline_contrib_df(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.get_contrib_df(0), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.get_contrib_df(X_row=classifier_pipeline_explainer.X.iloc[[0]]), pd.DataFrame)
 
-        categorical_features = ['embarked', 'sex', 'pclass']
-        categorical_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='most_frequent')),
-            ('ordinal', OrdinalEncoder())])
+def test_pipeline_shap_base_value(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.shap_base_value(), (np.floating, float))
 
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_features),
-                ('cat', categorical_transformer, categorical_features)])
+def test_pipeline_shap_values_shape(classifier_pipeline_explainer):
+    assert (classifier_pipeline_explainer.get_shap_values_df().shape == (len(classifier_pipeline_explainer), len(classifier_pipeline_explainer.merged_cols)))
 
-        # Append classifier to preprocessing pipeline.
-        # Now we have a full prediction pipeline.
-        clf = Pipeline(steps=[('preprocessor', preprocessor),
-                            ('classifier', RandomForestClassifier())])
+def test_pipeline_shap_values(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.get_shap_values_df(), pd.DataFrame)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+def test_pipeline_pdp_df(classifier_pipeline_explainer):
+    assert isinstance(classifier_pipeline_explainer.pdp_df("num__age"), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.pdp_df("cat__sex"), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.pdp_df("num__age", index=0), pd.DataFrame)
+    assert isinstance(classifier_pipeline_explainer.pdp_df("cat__sex", index=0), pd.DataFrame)
 
-        clf.fit(X_train, y_train)
+def test_pipeline_kernel_columns_ranked_by_shap(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.columns_ranked_by_shap(), list)
 
-        self.explainer = ClassifierExplainer(clf, X_test, y_test)
+def test_pipeline_kernel_permutation_importances(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.get_permutation_importances_df(), pd.DataFrame)
 
-    def test_columns_ranked_by_shap(self):
-        self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
+def test_pipeline_kernel_metrics(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.metrics(), dict)
+    assert isinstance(classifier_pipeline_kernel_explainer.metrics_descriptions(), dict)
 
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
+def test_pipeline_kernel_mean_abs_shap_df(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
-    def test_metrics(self):
-        self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
+def test_pipeline_kernel_contrib_df(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.get_contrib_df(0), pd.DataFrame)
+    assert isinstance(classifier_pipeline_kernel_explainer.get_contrib_df(X_row=classifier_pipeline_kernel_explainer.X.iloc[[0]]), pd.DataFrame)
 
-    def test_mean_abs_shap_df(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
+def test_pipeline_kernel_shap_base_value(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.shap_base_value(), (np.floating, float))
 
-    def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
+def test_pipeline_kernel_shap_values_shape(classifier_pipeline_kernel_explainer):
+    assert (classifier_pipeline_kernel_explainer.get_shap_values_df().shape == (len(classifier_pipeline_kernel_explainer), len(classifier_pipeline_kernel_explainer.merged_cols)))
 
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
+def test_pipeline_kernel_shap_values(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.get_shap_values_df(), pd.DataFrame)
 
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
-
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
-
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("sex"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("sex", index=0), pd.DataFrame)
-
-
-class PipelineKernelTests(unittest.TestCase):
-    def setUp(self):
-        #X, y = fetch_openml("titanic", version=1, as_frame=True, return_X_y=True)
-        df = pd.read_csv(Path.cwd() / "tests" / "test_assets" / "pipeline_data.csv")
-        X = df[['age', 'fare', 'embarked', 'sex', 'pclass']]
-        y = df['survived'].astype(int)
-
-        numeric_features = ['age', 'fare']
-        numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())])
-
-        categorical_features = ['embarked', 'sex', 'pclass']
-        categorical_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='most_frequent')),
-            ('ordinal', OrdinalEncoder())])
-
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_features),
-                ('cat', categorical_transformer, categorical_features)])
-
-        # Append classifier to preprocessing pipeline.
-        # Now we have a full prediction pipeline.
-        clf = Pipeline(steps=[('preprocessor', preprocessor),
-                            ('classifier', RandomForestClassifier())])
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-        clf.fit(X_train, y_train)
-
-        self.explainer = ClassifierExplainer(clf, X_test.iloc[:20], y_test.iloc[:20], 
-                                        X_background=X_train.sample(5),
-                                        shap='kernel')
-
-    def test_columns_ranked_by_shap(self):
-        self.assertIsInstance(self.explainer.columns_ranked_by_shap(), list)
-
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
-
-    def test_metrics(self):
-        self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics_descriptions(), dict)
-
-    def test_mean_abs_shap_df(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
-
-    def test_contrib_df(self):
-        self.assertIsInstance(self.explainer.get_contrib_df(0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_contrib_df(X_row=self.explainer.X.iloc[[0]]), pd.DataFrame)
-
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
-
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
-
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
-
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("sex"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("sex", index=0), pd.DataFrame)
-
-
-
+def test_pipeline_kernel_pdp_df(classifier_pipeline_kernel_explainer):
+    assert isinstance(classifier_pipeline_kernel_explainer.pdp_df("age"), pd.DataFrame)
+    assert isinstance(classifier_pipeline_kernel_explainer.pdp_df("sex"), pd.DataFrame)
+    assert isinstance(classifier_pipeline_kernel_explainer.pdp_df("age", index=0), pd.DataFrame)
+    assert isinstance(classifier_pipeline_kernel_explainer.pdp_df("sex", index=0), pd.DataFrame)
 

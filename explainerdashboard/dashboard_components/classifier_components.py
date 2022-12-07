@@ -93,7 +93,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'random-index-clas-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         assert (len(self.slider) == 2 and
                 self.slider[0] >= 0 and self.slider[0] <=1 and
@@ -130,25 +130,23 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                 ]), hide=self.hide_title),
             dbc.CardBody([
                 dbc.Row([
-                    dbc.Col([
                         make_hideable(
                             dbc.Col([
                                 self.selector.layout()
                             ], md=2), hide=self.hide_selector),
-                    ])
                 ]),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
                             self.index_selector.layout()
-                        ], md=8), hide=self.hide_index),
+                        ], width=8, md=8), hide=self.hide_index),
                     make_hideable(
                         dbc.Col([
-                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-clas-button-'+self.name, block=True),
+                            dbc.Button(f"Random {self.explainer.index_name}", color="primary", id='random-index-clas-button-'+self.name),
                             dbc.Tooltip(f"Select a random {self.explainer.index_name} according to the constraints",  
                                             target='random-index-clas-button-'+self.name),
-                        ], md=4), hide=self.hide_button),
-                ], form=True, style=dict(marginBottom=10)),
+                        ], width=4, md=4), hide=self.hide_button),
+                ], class_name="mb-2"),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -161,27 +159,30 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                                 options=[{'label': lab, 'value': lab} for lab in self.explainer.labels],
                                 multi=True,
                                 value=self.labels),
-                        ], md=8), hide=self.hide_labels),
+                        ], width=8, md=8), hide=self.hide_labels),
                     make_hideable(
                         dbc.Col([
-                            html.Div([
-                            dbc.Label("Range:", html_for='random-index-clas-pred-or-perc-'+self.name),
-                            dbc.Select(
-                                id='random-index-clas-pred-or-perc-'+self.name,
-                                options=[
-                                    {'label': 'probability', 'value': 'predictions'},
-                                    {'label': 'percentile', 'value': 'percentiles'},
-                                ],
-                                value=self.pred_or_perc)
-                            ], id='random-index-clas-pred-or-perc-div-'+self.name),
-                            dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
-                                        "you can also select from a range of predicted percentiles. "
-                                        "For example if you set the slider to percentile (0.9-1.0) you would"
-                                        f" only sample random {self.explainer.index_name} from the top "
-                                        "10% highest predicted probabilities.",
-                                    target='random-index-clas-pred-or-perc-div-'+self.name),
-                        ], md=4), hide=self.hide_pred_or_perc),
-                ], style=dict(marginBottom=10)),
+                                dbc.Label(
+                                    "Range:", html_for='random-index-clas-pred-or-perc-'+self.name),
+                                dbc.Select(
+                                    id='random-index-clas-pred-or-perc-'+self.name,
+                                    options=[
+                                        {'label': 'probability',
+                                         'value': 'predictions'},
+                                        {'label': 'percentile',
+                                         'value': 'percentiles'},
+                                    ],
+                                    value=self.pred_or_perc),
+                                dbc.Tooltip("Instead of selecting from a range of predicted probabilities "
+                                            "you can also select from a range of predicted percentiles. "
+                                            "For example if you set the slider to percentile (0.9-1.0) you would"
+                                            f" only sample random {self.explainer.index_name} from the top "
+                                            "10% highest predicted probabilities.",
+                                            target='random-index-clas-pred-or-perc-div-'+self.name),
+                            ], width=4,
+                            id='random-index-clas-pred-or-perc-div-'+self.name),
+                        hide=self.hide_pred_or_perc),
+                ], class_name="mb-2"),
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
@@ -204,7 +205,7 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
                         ]), hide=self.hide_slider),
                 ], justify="start"),
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -311,7 +312,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
         self.index_name = 'clas-prediction-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'clas-prediction-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         if self.feature_input_component is not None:
             self.exclude_callbacks(self.feature_input_component)
@@ -358,7 +359,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                         ]), hide=self.hide_piechart),
                 ]),
             ])
-        ])
+        ], class_name="h-100")
 
     def _format_preds_df(self, preds_df):              
         preds_df.probability = np.round(100*preds_df.probability.values, self.round).astype(str)
@@ -606,6 +607,7 @@ class PrecisionComponent(ExplainerComponent):
                                     'value': 'quantiles'}
                                 ],
                                 value=self.quantiles_or_binsize,
+                                size='sm',
                                 ),
                             dbc.Tooltip("Divide the x-axis by equally sized ranges of prediction scores (bins),"
                                         " or bins with the same number of observations (counts) in each bin: quantiles",
@@ -613,7 +615,7 @@ class PrecisionComponent(ExplainerComponent):
                         ], width=4), hide=self.hide_binmethod),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Label("Multi class:", id="precision-multiclass-label-"+self.name),
                                 dbc.Tooltip("Display the observed proportion for all class"
                                             " labels, not just positive label.", 
@@ -629,7 +631,7 @@ class PrecisionComponent(ExplainerComponent):
                         ], width=4), hide=self.hide_multiclass), 
                 ]),
             ]), hide=self.hide_footer)   
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -804,7 +806,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
                 make_hideable(
                     html.Div([
-                        dbc.FormGroup([
+                        dbc.Row([
                             #dbc.Label("Percentage:", id='confusionmatrix-percentage-label-'+self.name),
                             dbc.Tooltip("Highlight the percentage in each cell instead of the absolute numbers",
                                     target='confusionmatrix-percentage-'+self.name),
@@ -819,7 +821,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     ]), hide=self.hide_percentage),
                 make_hideable(
                     html.Div([
-                        dbc.FormGroup([
+                        dbc.Row([
                             dbc.Label("Normalisation:"),
                             dbc.Tooltip("Normalize the percentages in the confusion matrix over the true observations, predicted values or overall",
                                     target='confusionmatrix-normalize-'+self.name),
@@ -837,7 +839,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                     ]), hide=self.hide_normalize),                
                 make_hideable(
                     html.Div([
-                        dbc.FormGroup([
+                        dbc.Row([
                             dbc.Label("Binary:", id='confusionmatrix-binary-label-'+self.name),
                             dbc.Tooltip("display a binary confusion matrix of positive "
                                             "class vs all other classes instead of a multi"
@@ -853,7 +855,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                         ]),
                     ]), hide=self.hide_binary),
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
     
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -988,7 +990,7 @@ class LiftCurveComponent(ExplainerComponent):
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
                 make_hideable(
                     html.Div([
-                        dbc.FormGroup([
+                        dbc.Row([
                             dbc.Tooltip("Display percentages positive and sampled"
                                     " instead of absolute numbers",
                                     target='liftcurve-percentage-'+self.name),
@@ -1003,7 +1005,7 @@ class LiftCurveComponent(ExplainerComponent):
                     ]), hide=self.hide_percentage),  
                 make_hideable(
                     html.Div([
-                        dbc.FormGroup([
+                        dbc.Row([
                             dbc.Tooltip("Display how a perfect model would perform"
                                     "(the so-called 'wizard')",
                                     target='liftcurve-wizard-'+self.name),
@@ -1017,7 +1019,7 @@ class LiftCurveComponent(ExplainerComponent):
                         ]),
                     ]), hide=self.hide_wizard),  
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1159,7 +1161,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
 
                 ])
             ]), hide=self.hide_footer)   
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1288,7 +1290,7 @@ class ClassificationComponent(ExplainerComponent):
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
                 make_hideable(
                     html.Div([
-                        dbc.FormGroup([
+                        dbc.Row([
                             dbc.Tooltip("Do not resize the bar chart by absolute number of observations",
                                     target='classification-percentage-'+self.name),
                             dbc.Checklist(
@@ -1301,7 +1303,7 @@ class ClassificationComponent(ExplainerComponent):
                         ]),
                     ]), hide=self.hide_percentage),
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1412,7 +1414,7 @@ class RocAucComponent(ExplainerComponent):
                                     placement='bottom'),
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1523,7 +1525,7 @@ class PrAucComponent(ExplainerComponent):
                                     placement='bottom'),
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff),
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1624,7 +1626,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                                     placement='bottom'),
                     ], style={'margin-bottom': 25}), hide=self.hide_cutoff), 
             ]), hide=self.hide_footer)
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)

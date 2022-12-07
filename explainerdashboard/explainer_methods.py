@@ -7,6 +7,7 @@ __all__ = [
     'parse_cats',
     'get_encoded_and_regular_cols',
     'split_pipeline',
+    'get_transformed_X',
     'retrieve_onehot_value',
     'merge_categorical_columns',
     'matching_cols',
@@ -86,6 +87,8 @@ def safe_isinstance(obj, *instance_str):
             if obj_str[:-2].endswith(i):
                 return True
     return False
+
+
 
 
 def guess_shap(model):
@@ -208,125 +211,91 @@ def get_encoded_and_regular_cols(cols, onehot_dict):
     return encoded_cols, regular_cols
 
 
-def split_pipeline(pipeline:Pipeline, X:pd.DataFrame, verbose:int=1):
-    """Returns an X_transformed dataframe and model from a fitted 
-    sklearn.pipelines.Pipeline and input dataframe X. Currently only supports
-    Pipelines that do not change or reorder the columns in the input dataframe.
+def split_pipeline(pipeline:Pipeline, verbose:int=1):
+    """Splits a sklearn or imblearn pipeline into a transformer pipeline and the final estimator.
     
     Args:
         pipeline (sklearn.Pipeline): a fitted pipeline with an estimator 
             with .predict method as the last step.
-        X (pd.DataFrame): input dataframe
+        verbose: verbose output
         
     Returns:
-        X_transformed, model
+        transformer_pipeline, estimator
     
     """
+    if not safe_isinstance(pipeline, "sklearn.pipeline.Pipeline", "imblearn.pipeline.Pipeline"):
+        raise ValueError(f"pipeline should either be an sklearn or an imblearn pipeline, but you passed {pipeline}!")
+
     assert hasattr(pipeline.steps[-1][1], 'predict'), \
         ("When passing an sklearn.Pipeline, the last step of the pipeline should be a model, "
          f"but {pipeline.steps[-1][1]} does not have a .predict() function!")
-    transformer_pipeline, model = pipeline[:-1], pipeline.steps[-1][1]
     
-    if X is None:
-        return X, model
+    if verbose:
+        print("splitting pipeline...", flush=True)
+        skipped_transforms = [name for name, transform in pipeline.steps[:-1] if not hasattr(transform, "transform")]
+        if skipped_transforms:
+            print(f"Skipping the following steps that lack a .transform() method: {', '.join(skipped_transforms)}...", flush=True)
+        
+      
+    transform_steps = [(name, transform) for name, transform in pipeline.steps[:-1] if hasattr(transform, "transform")]
+    if transform_steps:
+        transformer_pipeline = Pipeline(transform_steps)
+    else:
+        from sklearn.preprocessing import FunctionTransformer
+        transformer_pipeline = Pipeline([('identity', FunctionTransformer())])
+    estimator = pipeline.steps[-1][1]
     
-    X_transformed, columns = transformer_pipeline.transform(X), None
+    return transformer_pipeline, estimator
+
+
+def get_transformed_X(transformer_pipeline:Pipeline, X:pd.DataFrame, verbose:int=1):
+    """takes a transformer_pipeline (all the steps except the final Estimator of an sklearn or imblearn Pipeline)
+    and uses it to transform input DataFrame X and returns a transformed DataFrame.
     
+    If all steps have .get_feature_names_out() method implemented, then uses that to assign column names.
+    If not and the number of columns stays equal, simply assign the old column names.
+    Else assign column names 'col1', 'col2', etc...
+    
+    Args:
+        transformer_pipeline: transformer part of a Pipeline, generated with split_pipeline()
+        X: input DataFrame to be transformed
+        
+    Returns:
+        X_transformed: transformed dataframe with column names assigned
+    """
+    X_transformed = transformer_pipeline.transform(X)
+
     if hasattr(transformer_pipeline, "get_feature_names_out"):
         try:
             columns = list(transformer_pipeline.get_feature_names_out())
-        except Exception as e:
-            print("Failed to to get the output feature names from your Pipeline! "
-                  "Probably the .get_feature_names_out() method is not yet implemented "
-                  "for one of your pipeline components. "
-                  "Check https://github.com/scikit-learn/scikit-learn/issues/21308 for progress...")
-            if X_transformed.shape[1] != X.shape[1]:
-                raise ValueError(f"pipeline adds new features but failed to get feature names from"
-                                ".get_feature_names_out() method! \n\n{e}")
-            else:
-                columns = None
-        else:
             if len(columns) != X_transformed.shape[1]:
                 raise ValueError(f"len(pipeline[:-1].get_feature_names_out())={len(columns)} does"
-                      f" not equal X_transformed.shape[1]={X_transformed.shape[1]}!")
-    if columns is None and X_transformed.shape == X.values.shape:
-        for i, pipe in enumerate(pipeline):
-            if hasattr(pipe, "n_features_in_"):
-                assert pipe.n_features_in_ == len(X.columns), \
-                    (f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}!"
-                     "For now explainerdashboard only supports sklearn Pipelines that have a "
-                     ".get_feature_names() method or do not add/drop any columns...")
-        print("Note: sklearn.Pipeline output shape is equal to X input shape, "
-              f"so assigning column names from X.columns: {X.columns.tolist()}, so"
+                          f" not equal X_transformed.shape[1]={X_transformed.shape[1]}!")
+            return pd.DataFrame(X_transformed, columns=columns)
+        except:
+            if verbose:
+                print("Failed to retrieve new column names from transformer_pipeline.get_feature_names_out()!")
+    
+    if X_transformed.shape == X.values.shape:
+        if verbose:
+            print("transformer pipeline outputs a DataFrame with the same number of columns"
+              f"so trying to assign column names from X.columns: {X.columns.tolist()}, so"
               " make sure that your pipeline does not add, remove or reorders columns!", flush=True)
-        columns = X.columns
-    elif columns is None:
-        raise ValueError("Pipeline does not return same number of columns as input, "
-                        "nor does it have a proper .get_feature_names_out() method! "
-                        "Try passing the final estimator in the pipeline seperately "
-                        "together with an already transformed dataframe.")
+        try:
+            for i, pipe in enumerate(transformer_pipeline):
+                if hasattr(pipe, "n_features_in_"):
+                    assert pipe.n_features_in_ == len(X.columns)
+            return pd.DataFrame(X_transformed, columns=X.columns)
+        except:
+            print(f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}!")
+            
+    if verbose:
+        print("Pipeline does not have a functioning .get_feature_names_out() method, "
+                "nor do all pipeline steps return the same number of columns as input, "
+                "so assigning columns names 'col1', 'col2', etc instead!")
+    columns = [f'col{i+1}' for i in range(X_transformed.shape[1])]
         
-    X_transformed = pd.DataFrame(X_transformed, columns=columns)
-    return X_transformed, model
-
-
-# def split_pipeline(pipeline, X, verbose=1):
-#     """Returns an X_transformed dataframe and model from a fitted 
-#     sklearn.pipelines.Pipeline and input dataframe X. Currently only supports
-#     Pipelines that do not change or reorder the columns in the input dataframe.
-    
-#     Args:
-#         pipeline (sklearn.Pipeline): a fitted pipeline with an estimator 
-#             with .predict method as the last step.
-#         X (pd.DataFrame): input dataframe
-        
-#     Returns:
-#         X_transformed, model
-    
-#     """
-#     if verbose:
-#         print("Warning: there is currently limited support for sklearn.Pipelines in explainerdashboard. "
-#             "Only pipelines that return the same number of columns in the same order are supported, "
-#             "until sklearn properly implements a pipeline.get_feature_names() method.", flush=True)
-#     assert hasattr(pipeline.steps[-1][1], 'predict'), \
-#         ("When passing an sklearn.Pipeline, the last step of the pipeline should be a model, "
-#          f"but {pipeline.steps[-1][1]} does not have a .predict() function!")
-#     model = pipeline.steps[-1][1]
-    
-#     if X is None:
-#         return X, model
-    
-#     X_transformed, columns = Pipeline(pipeline.steps[:-1]).transform(X), None
-    
-#     if hasattr(pipeline, "get_feature_names"):
-#         try:
-#             columns = pipeline.get_feature_names()
-#         except:
-#             pass
-#         else:
-#             if len(columns) != X_transformed.shape[0]:
-#                 print(f"len(pipeline.get_feature_names())={len(columns)} does"
-#                       f" not equal X_transformed.shape[0]={X_transformed.shape[0]}!", flush=True)
-#                 columns = None
-#     if columns is None and X_transformed.shape == X.values.shape:
-#         for i, pipe in enumerate(pipeline):
-#             if hasattr(pipe, "n_features_in_"):
-#                 assert pipe.n_features_in_ == len(X.columns), \
-#                     (f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}!"
-#                      "For now explainerdashboard only supports sklearn Pipelines that have a "
-#                      ".get_feature_names() method or do not add/drop any columns...")
-#         print("Note: sklearn.Pipeline output shape is equal to X input shape, "
-#               f"so assigning column names from X.columns: {X.columns.tolist()}, so"
-#               " make sure that your pipeline does not add, remove or reorders columns!", flush=True)
-#         columns = X.columns
-#     else:
-#         raise ValueError("Pipeline does not return same number of columns as input, "
-#                         "nor does it have a proper .get_feature_names() method! "
-#                         "Try passing the final estimator in the pipeline seperately "
-#                         "together with an already transformed dataframe.")
-        
-#     X_transformed = pd.DataFrame(X_transformed, columns=columns)
-#     return X_transformed, model
+    return pd.DataFrame(X_transformed, columns=columns)
 
 
 def retrieve_onehot_value(X, encoded_col, onehot_cols, not_encoded="NOT_ENCODED", sep="_"):

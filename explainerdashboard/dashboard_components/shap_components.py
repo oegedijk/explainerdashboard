@@ -6,6 +6,7 @@ __all__ = ['ShapSummaryComponent',
             'InteractionSummaryDependenceConnector',
             'ShapContributionsTableComponent',
             'ShapContributionsGraphComponent']
+            
 
 import dash
 from dash import html, dcc, Input, Output, State
@@ -68,6 +69,8 @@ class ShapSummaryComponent(ExplainerComponent):
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features)
 
+        self.index_selector = IndexSelector(explainer, 'shap-summary-index-'+self.name, 
+            index=index, **kwargs)
         self.index_name = 'shap-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         assert self.summary_type in {'aggregate', 'detailed'}
@@ -102,11 +105,12 @@ class ShapSummaryComponent(ExplainerComponent):
                             dbc.Select(id='shap-summary-depth-'+self.name,
                                 options=[{'label': str(i+1), 'value': i+1} for i in 
                                             range(self.explainer.n_features)],
+                                size='sm',
                                 value=self.depth)
                         ], md=2), self.hide_depth),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                                 [
                                     dbc.Label("Summary Type", id='shap-summary-type-label-'+self.name),
                                     dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
@@ -118,6 +122,7 @@ class ShapSummaryComponent(ExplainerComponent):
                                             {"label": "Detailed", "value": "detailed"},
                                         ],
                                         value=self.summary_type,
+                                        size='sm',
                                         id="shap-summary-type-"+self.name,
                                     ),
                                 ]
@@ -130,17 +135,14 @@ class ShapSummaryComponent(ExplainerComponent):
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
                                             "You can also select by clicking on a scatter point in the graph.", 
                                             target='shap-summary-index-label-'+self.name),
-                                dcc.Dropdown(id='shap-summary-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index),
+                                self.index_selector.layout()
                             ], id='shap-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
                     
-                    ], form=True),
+                    ]),
                 dcc.Loading(id="loading-dependence-shap-summary-"+self.name, 
                         children=[dcc.Graph(id="shap-summary-graph-"+self.name,
                                             config=dict(modeBarButtons=[['toImage']], displaylogo=False))]),
@@ -151,7 +153,7 @@ class ShapSummaryComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -170,6 +172,7 @@ class ShapSummaryComponent(ExplainerComponent):
         return html
     
     def component_callbacks(self, app):
+
         @app.callback(
             Output('shap-summary-index-'+self.name, 'value'),
             [Input('shap-summary-graph-'+self.name, 'clickData')])
@@ -284,6 +287,8 @@ class ShapDependenceComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         
+        self.index_selector = IndexSelector(explainer, 'shap-dependence-index-'+self.name, 
+            index=index, **kwargs)
         self.index_name = 'shap-dependence-index-'+self.name
 
         if self.description is None: self.description = """
@@ -323,17 +328,21 @@ class ShapDependenceComponent(ExplainerComponent):
                             dbc.Select(id='shap-dependence-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()],
-                                value=self.col)
+                                value=self.col,
+                                size='sm'
+                            )
                         ], md=3), self.hide_col),
                     make_hideable(dbc.Col([
-                            html.Label('Color feature:', id='shap-dependence-color-col-label-'+self.name),
+                            dbc.Label('Color feature:', id='shap-dependence-color-col-label-'+self.name),
                             dbc.Tooltip("Select feature to color the scatter markers by. This "
                                         "allows you to see interactions between various features in the graph.", 
                                         target='shap-dependence-color-col-label-'+self.name),
                             dbc.Select(id='shap-dependence-color-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()]+[dict(label="None", value="no_color_col")],
-                                value=self.color_col),   
+                                value=self.color_col,
+                                size='sm'
+                            ),   
                     ], md=3), self.hide_color_col),
                     make_hideable(
                         dbc.Col([
@@ -342,12 +351,9 @@ class ShapDependenceComponent(ExplainerComponent):
                                         "You can also select by clicking on a scatter marker in the accompanying"
                                         " shap summary plot (detailed).", 
                                         target='shap-dependence-index-label-'+self.name),
-                            dcc.Dropdown(id='shap-dependence-index-'+self.name, 
-                                options = [{'label': str(idx), 'value':idx} 
-                                                for idx in self.explainer.idxs],
-                                value=self.index)
+                            self.index_selector.layout(),
                         ], md=4), hide=self.hide_index),          
-                ], form=True),
+                ]),
                 dcc.Loading(id="loading-dependence-graph-"+self.name, 
                             children=[
                                 dcc.Graph(id='shap-dependence-graph-'+self.name,
@@ -364,7 +370,7 @@ class ShapDependenceComponent(ExplainerComponent):
                     dbc.Row([
                         make_hideable(
                             dbc.Col([
-                                dbc.FormGroup([
+                                dbc.Row([
                                     dbc.Tooltip("Remove outliers in feature (and color feature) from plot.",
                                             target='shap-dependence-outliers-'+self.name),
                                     dbc.Checklist(
@@ -395,17 +401,20 @@ class ShapDependenceComponent(ExplainerComponent):
                                     dbc.Tooltip("How to sort the categories: Alphabetically, most common "
                                                 "first (Frequency), or highest mean absolute SHAP value first (Shap impact)", 
                                                 target='shap-dependence-categories-sort-label-'+self.name),
-                                    dbc.Select(id='shap-dependence-categories-sort-'+self.name,
-                                            options = [{'label': 'Alphabetically', 'value': 'alphabet'},
-                                                        {'label': 'Frequency', 'value': 'freq'},
-                                                        {'label': 'Shap impact', 'value': 'shap'}],
-                                            value=self.cats_sort),
+                                    dbc.Select(
+                                        id='shap-dependence-categories-sort-'+self.name,
+                                        options = [{'label': 'Alphabetically', 'value': 'alphabet'},
+                                                    {'label': 'Frequency', 'value': 'freq'},
+                                                    {'label': 'Shap impact', 'value': 'shap'}],
+                                        value=self.cats_sort,
+                                        size='sm'
+                                    ),
                                 ], id='shap-dependence-categories-div2-'+self.name,
                                     style={} if self.col in self.explainer.cat_cols else dict(display="none"))
                             ], md=4), hide=self.hide_cats_sort),
                     ]) 
                 ]), hide=self.hide_footer),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -424,6 +433,7 @@ class ShapDependenceComponent(ExplainerComponent):
         return html
 
     def component_callbacks(self, app):
+        
         @app.callback(
             [Output('shap-dependence-color-col-'+self.name, 'options'),
              Output('shap-dependence-color-col-'+self.name, 'value'),
@@ -555,6 +565,9 @@ class InteractionSummaryComponent(ExplainerComponent):
             self.col = self.explainer.columns_ranked_by_shap()[0]
         if self.depth is not None:
             self.depth = min(self.depth, self.explainer.n_features-1)
+
+        self.index_selector = IndexSelector(explainer, 'interaction-summary-index-'+self.name, 
+            index=index, **kwargs)
         self.index_name = 'interaction-summary-index-'+self.name
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         
@@ -606,7 +619,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], md=2), self.hide_depth),
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup(
+                            dbc.Row(
                                 [
                                     dbc.Label("Summary Type", id='interaction-summary-type-label-'+self.name),
                                     dbc.Tooltip("Display mean absolute SHAP value per feature (aggregate)"
@@ -630,16 +643,13 @@ class InteractionSummaryComponent(ExplainerComponent):
                                 dbc.Tooltip(f"Select {self.explainer.index_name} to highlight in plot. "
                                             "You can also select by clicking on a scatter point in the graph.", 
                                             target='interaction-summary-index-label-'+self.name),
-                                dcc.Dropdown(id='interaction-summary-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index),
+                                self.index_selector.layout(),
                             ], id='interaction-summary-index-col-'+self.name, style=dict(display="none")), 
                         ], md=3), hide=self.hide_index),  
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
-                    ], form=True),
+                    ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-interaction-summary-graph-'+self.name, 
@@ -654,7 +664,7 @@ class InteractionSummaryComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"), 
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -782,6 +792,9 @@ class InteractionDependenceComponent(ExplainerComponent):
         if self.interact_col is None:
             self.interact_col = explainer.top_shap_interactions(self.col)[1]
         
+        self.index_selector = IndexSelector(explainer, 'interaction-dependence-index-'+self.name, 
+            index=index, **kwargs)
+        self.index_name = 'interaction-dependence-index-'+self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.popout_top = GraphPopout(self.name+'popout-top', 
@@ -821,8 +834,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                             dbc.Select(id='interaction-dependence-col-'+self.name,
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.columns_ranked_by_shap()],
-                                value=self.col
-                            ),
+                                value=self.col),
                         ], md=3), hide=self.hide_col), 
                     make_hideable(
                         dbc.Col([
@@ -833,8 +845,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                             dbc.Select(id='interaction-dependence-interact-col-'+self.name, 
                                 options=[{'label': col, 'value':col} 
                                             for col in self.explainer.top_shap_interactions(col=self.col)],
-                                value=self.interact_col
-                            ),
+                                value=self.interact_col),
                         ], md=3), hide=self.hide_interact_col), 
                     make_hideable(
                             dbc.Col([
@@ -843,12 +854,9 @@ class InteractionDependenceComponent(ExplainerComponent):
                                             "You can also select by clicking on a scatter marker in the accompanying"
                                             " shap interaction summary plot (detailed).", 
                                             target='interaction-dependence-index-label-'+self.name),
-                                dcc.Dropdown(id='interaction-dependence-index-'+self.name, 
-                                    options = [{'label': str(idx), 'value':idx} 
-                                                    for idx in self.explainer.idxs],
-                                    value=self.index)
+                                self.index_selector.layout(),
                             ], md=4), hide=self.hide_index), 
-                    ], form=True),
+                    ]),
                 dbc.Row([
                     dbc.Col([
                         make_hideable(
@@ -868,7 +876,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Tooltip("Remove outliers (> 1.5*IQR) in feature and interaction feature from plot.",
                                         target='interaction-dependence-top-outliers-'+self.name),
                                 dbc.Checklist(
@@ -926,7 +934,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 dbc.Row([
                     make_hideable(
                         dbc.Col([
-                            dbc.FormGroup([
+                            dbc.Row([
                                 dbc.Tooltip("Remove outliers (> 1.5*IQR) in feature and interaction feature from plot.",
                                         target='interaction-dependence-bottom-outliers-'+self.name),
                                 dbc.Checklist(
@@ -967,7 +975,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                         ], md=4), hide=self.hide_cats_sort), 
                 ])
             ]),
-        ])
+        ], class_name="h-100")
 
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
@@ -1159,7 +1167,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'contributions-graph-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         self.popout = GraphPopout('contributions-graph-'+self.name+'popout', 
                             'contributions-graph-'+self.name, self.title, self.description)
@@ -1197,7 +1205,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Select(id='contributions-graph-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features)],
-                                value=None if self.depth is None else str(self.depth))
+                                value=None if self.depth is None else str(self.depth),
+                                size='sm',
+                            )
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
                         dbc.Col([
@@ -1212,7 +1222,9 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                                             {'label': 'High to Low', 'value': 'high-to-low'},
                                             {'label': 'Low to High', 'value': 'low-to-high'},
                                             {'label': 'Importance', 'value': 'importance'}],
-                                value=self.sort)
+                                value=self.sort,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_sort),
                     make_hideable(
                         dbc.Col([
@@ -1222,9 +1234,11 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                             dbc.Select(id='contributions-graph-orientation-'+self.name, 
                                 options = [{'label': 'Vertical', 'value': 'vertical'},
                                             {'label': 'Horizontal', 'value': 'horizontal'}],
-                                value=self.orientation)
+                                value=self.orientation,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_orientation),
-                    ], form=True),
+                    ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-contributions-graph-'+self.name, 
@@ -1239,7 +1253,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                         ], md=2, align="start"), hide=self.hide_popout),
                 ], justify="end"),
             ]),
-        ])
+        ], class_name="h-100")
 
     def get_state_tuples(self):
         _state_tuples = super().get_state_tuples()
@@ -1383,7 +1397,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
         """
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
         self.index_selector = IndexSelector(explainer, 'contributions-table-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown)
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
         
         self.register_dependencies('shap_values_df')
 
@@ -1414,7 +1428,9 @@ class ShapContributionsTableComponent(ExplainerComponent):
                             dbc.Select(id='contributions-table-depth-'+self.name, 
                                 options = [{'label': str(i+1), 'value':i+1} 
                                                 for i in range(self.explainer.n_features)],
-                                value=self.depth)
+                                value=self.depth,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_depth),
                     make_hideable(
                         dbc.Col([
@@ -1429,12 +1445,14 @@ class ShapContributionsTableComponent(ExplainerComponent):
                                             {'label': 'High to Low', 'value': 'high-to-low'},
                                             {'label': 'Low to High', 'value': 'low-to-high'},
                                             {'label': 'Importance', 'value': 'importance'}],
-                                value=self.sort)
+                                value=self.sort,
+                                size='sm'
+                            )
                         ], md=2), hide=self.hide_sort),
                     make_hideable(
                             dbc.Col([self.selector.layout()
                         ], width=2), hide=self.hide_selector),
-                ], form=True),
+                ]),
                 dbc.Row([
                     dbc.Col([
                         dcc.Loading(id='loading-contributions-table-'+self.name, 
@@ -1442,7 +1460,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                     ]),
                 ]),
             ]),   
-        ])
+        ], class_name="h-100")
 
     def get_state_tuples(self):
         _state_tuples = super().get_state_tuples()

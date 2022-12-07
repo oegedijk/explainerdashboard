@@ -1,354 +1,166 @@
-import unittest
-
 import pandas as pd
 import numpy as np
 
+def test_xgbreg_preds(precalculated_xgb_regression_explainer):
+    assert isinstance(precalculated_xgb_regression_explainer.preds, np.ndarray)
 
-from xgboost import XGBClassifier, XGBRegressor
-from lightgbm.sklearn import LGBMClassifier, LGBMRegressor
-from catboost import CatBoostClassifier, CatBoostRegressor
+def test_xgbreg_permutation_importances(precalculated_xgb_regression_explainer):
+    assert isinstance(precalculated_xgb_regression_explainer.get_permutation_importances_df(), pd.DataFrame)
 
-from explainerdashboard.explainers import RegressionExplainer, ClassifierExplainer
-from explainerdashboard.datasets import titanic_fare, titanic_survive, titanic_names
+def test_xgbreg_shap_base_value(precalculated_xgb_regression_explainer):
+    assert isinstance(precalculated_xgb_regression_explainer.shap_base_value(), (np.floating, float))
 
+def test_xgbreg_shap_values_shape(precalculated_xgb_regression_explainer):
+    assert (precalculated_xgb_regression_explainer.get_shap_values_df().shape == (len(precalculated_xgb_regression_explainer), len(precalculated_xgb_regression_explainer.merged_cols)))
 
-class XGBRegressionTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_fare()
-        self.test_len = len(X_test)
+def test_xgbreg_shap_values(precalculated_xgb_regression_explainer):
+    assert isinstance(precalculated_xgb_regression_explainer.get_shap_values_df(), pd.DataFrame)
 
-        train_names, test_names = titanic_names()
-        _, self.names = titanic_names()
+def test_xgbreg_mean_abs_shap(precalculated_xgb_regression_explainer):
+    assert isinstance(precalculated_xgb_regression_explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
-        model = XGBRegressor()
-        model.fit(X_train, y_train)
-        self.explainer = RegressionExplainer(model, X_test, y_test, 
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                    'Deck', 'Embarked'],
-                            units="$")
+def test_xgbreg_calculate_properties(precalculated_xgb_regression_explainer):
+    precalculated_xgb_regression_explainer.calculate_properties(include_interactions=False)
 
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
+def test_xgbreg_pdp_df(precalculated_xgb_regression_explainer):
+    assert isinstance(precalculated_xgb_regression_explainer.pdp_df("Age"), pd.DataFrame)
+    assert isinstance(precalculated_xgb_regression_explainer.pdp_df("Gender"), pd.DataFrame)
+    assert isinstance(precalculated_xgb_regression_explainer.pdp_df("Deck"), pd.DataFrame)
+    assert isinstance(precalculated_xgb_regression_explainer.pdp_df("Age", index=0), pd.DataFrame)
+    assert isinstance(precalculated_xgb_regression_explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
 
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
+def test_lgbmreg_preds(precalculated_lgbm_regression_explainer):
+    assert isinstance(precalculated_lgbm_regression_explainer.preds, np.ndarray)
 
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+def test_lgbmreg_permutation_importances(precalculated_lgbm_regression_explainer):
+    assert isinstance(precalculated_lgbm_regression_explainer.get_permutation_importances_df(), pd.DataFrame)
 
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
+def test_lgbmreg_shap_base_value(precalculated_lgbm_regression_explainer):
+    assert isinstance(precalculated_lgbm_regression_explainer.shap_base_value(), (np.floating, float))
 
-    def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
+def test_lgbmreg_shap_values_shape(precalculated_lgbm_regression_explainer):
+    assert (precalculated_lgbm_regression_explainer.get_shap_values_df().shape == (len(precalculated_lgbm_regression_explainer), len(precalculated_lgbm_regression_explainer.merged_cols)))
 
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties(include_interactions=False)
+def test_lgbmreg_shap_values(precalculated_lgbm_regression_explainer):
+    assert isinstance(precalculated_lgbm_regression_explainer.get_shap_values_df(), pd.DataFrame)
 
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
+def test_lgbmreg_mean_abs_shap(precalculated_lgbm_regression_explainer):
+    assert isinstance(precalculated_lgbm_regression_explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
-class LGBMRegressionTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_fare()
-        self.test_len = len(X_test)
+def test_lgbmreg_calculate_properties(precalculated_lgbm_regression_explainer):
+    precalculated_lgbm_regression_explainer.calculate_properties(include_interactions=False)
 
-        train_names, test_names = titanic_names()
-        _, self.names = titanic_names()
+def test_lgbmreg_pdp_df(precalculated_lgbm_regression_explainer):
+    assert isinstance(precalculated_lgbm_regression_explainer.pdp_df("Age"), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_regression_explainer.pdp_df("Gender"), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_regression_explainer.pdp_df("Deck"), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_regression_explainer.pdp_df("Age", index=0), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_regression_explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
-        model = LGBMRegressor()
-        model.fit(X_train, y_train)
-        self.explainer = RegressionExplainer(model, X_test, y_test, 
-                                        shap='tree', 
-                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                                        idxs=test_names, units="$")
 
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
+def test_lgbmclas_preds(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.preds, np.ndarray)
 
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
+def test_lgbmclas_pred_probas(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.pred_probas(), np.ndarray)
 
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
+def test_lgbmclas_permutation_importances(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_permutation_importances_df(), pd.DataFrame)
 
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+def test_lgbmclas_shap_base_value(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.shap_base_value(), (np.floating, float))
 
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
+def test_lgbmclas_shap_values_shape(precalculated_lgbm_classifier_explainer):
+    assert (precalculated_lgbm_classifier_explainer.get_shap_values_df().shape == (len(precalculated_lgbm_classifier_explainer), len(precalculated_lgbm_classifier_explainer.merged_cols)))
 
-    def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
+def test_lgbmclas_shap_values(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_shap_values_df(), pd.DataFrame)
 
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties(include_interactions=False)
+def test_lgbmclas_shap_values_all_probabilities(precalculated_lgbm_classifier_explainer):
+    assert (precalculated_lgbm_classifier_explainer.shap_base_value() >= 0)
+    assert (precalculated_lgbm_classifier_explainer.shap_base_value() <= 1)
+    assert (np.all(precalculated_lgbm_classifier_explainer.get_shap_values_df().sum(axis=1) + precalculated_lgbm_classifier_explainer.shap_base_value() >= 0))
+    assert (np.all(precalculated_lgbm_classifier_explainer.get_shap_values_df().sum(axis=1) + precalculated_lgbm_classifier_explainer.shap_base_value() <= 1))
 
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
+def test_lgbmclas_mean_abs_shap(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
+def test_lgbmclas_calculate_properties(precalculated_lgbm_classifier_explainer):
+    precalculated_lgbm_classifier_explainer.calculate_properties(include_interactions=False)
 
-class CatBoostRegressionTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_fare()
-        self.test_len = len(X_test)
+def test_lgbmclas_pdp_df(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.pdp_df("Age"), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_classifier_explainer.pdp_df("Gender"), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_classifier_explainer.pdp_df("Deck"), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_classifier_explainer.pdp_df("Age", index=0), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_classifier_explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
-        train_names, test_names = titanic_names()
-        _, self.names = titanic_names()
+def test_lgbmclas_metrics(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.metrics(), dict)
+    assert isinstance(precalculated_lgbm_classifier_explainer.metrics(cutoff=0.9), dict)
 
-        model = CatBoostRegressor(iterations=5, learning_rate=0.1, verbose=0)
-        model.fit(X_train, y_train)
+def test_lgbmclas_precision_df(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_precision_df(), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_precision_df(multiclass=True), pd.DataFrame)
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
-        self.explainer = RegressionExplainer(model, X_test, y_test,
-                                        cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                                        idxs=test_names, units="$")
+def test_lgbmclas_lift_curve_df(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.get_liftcurve_df(), pd.DataFrame)
 
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
+def test_lgbmclas_prediction_result_df(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.prediction_result_df(0), pd.DataFrame)
 
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
 
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
 
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
+def test_xgbclas_preds(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.preds, np.ndarray)
 
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
+def test_xgbclas_pred_probas(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.pred_probas(), np.ndarray)
 
-    def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
+def test_xgbclas_permutation_importances(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.get_permutation_importances_df(), pd.DataFrame)
 
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties(include_interactions=False)
+def test_xgbclas_shap_base_value(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.shap_base_value(), (np.floating, float))
 
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
+def test_xgbclas_shap_values_shape(precalculated_xgb_classifier_explainer):
+    assert (precalculated_xgb_classifier_explainer.get_shap_values_df().shape == (len(precalculated_xgb_classifier_explainer), len(precalculated_xgb_classifier_explainer.merged_cols)))
 
+def test_xgbclas_shap_values(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.get_shap_values_df(), pd.DataFrame)
 
-class XGBCLassifierTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_survive()
-        train_names, test_names = titanic_names()
+def test_xgbclas_shap_values_all_probabilities(precalculated_xgb_classifier_explainer):
+    assert (precalculated_xgb_classifier_explainer.shap_base_value() >= 0)
+    assert (precalculated_xgb_classifier_explainer.shap_base_value() <= 1)
+    assert (np.all(precalculated_xgb_classifier_explainer.get_shap_values_df().sum(axis=1) + precalculated_xgb_classifier_explainer.shap_base_value() >= 0))
+    assert (np.all(precalculated_xgb_classifier_explainer.get_shap_values_df().sum(axis=1) + precalculated_xgb_classifier_explainer.shap_base_value() <= 1))
 
-        model = XGBClassifier()
-        model.fit(X_train, y_train)
+def test_xgbclas_mean_abs_shap(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.get_mean_abs_shap_df(), pd.DataFrame)
 
-        self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, 
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                            labels=['Not survived', 'Survived'])
+def test_xgbclas_calculate_properties(precalculated_xgb_classifier_explainer):
+    precalculated_xgb_classifier_explainer.calculate_properties(include_interactions=False)
 
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
+def test_xgbclas_pdp_df(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.pdp_df("Age"), pd.DataFrame)
+    assert isinstance(precalculated_xgb_classifier_explainer.pdp_df("Gender"), pd.DataFrame)
+    assert isinstance(precalculated_xgb_classifier_explainer.pdp_df("Deck"), pd.DataFrame)
+    assert isinstance(precalculated_xgb_classifier_explainer.pdp_df("Age", index=0), pd.DataFrame)
+    assert isinstance(precalculated_xgb_classifier_explainer.pdp_df("Gender", index=0), pd.DataFrame)
 
-    def test_pred_probas(self):
-        self.assertIsInstance(self.explainer.pred_probas(), np.ndarray)
+def test_xgbclas_metrics(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.metrics(), dict)
+    assert isinstance(precalculated_xgb_classifier_explainer.metrics(cutoff=0.9), dict)
 
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
+def test_xgbclas_precision_df(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.get_precision_df(), pd.DataFrame)
+    assert isinstance(precalculated_xgb_classifier_explainer.get_precision_df(multiclass=True), pd.DataFrame)
+    assert isinstance(precalculated_xgb_classifier_explainer.get_precision_df(quantiles=4), pd.DataFrame)
 
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
+def test_xgbclas_lift_curve_df(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.get_liftcurve_df(), pd.DataFrame)
 
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
-
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
-
-    def test_shap_values_all_probabilities(self):
-        self.assertTrue(self.explainer.shap_base_value() >= 0)
-        self.assertTrue(self.explainer.shap_base_value() <= 1)
-        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
-        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
-
-    def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
-
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties(include_interactions=False)
-
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
-
-    def test_metrics(self):
-        self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
-
-    def test_precision_df(self):
-        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
-
-    def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
-
-    def test_prediction_result_df(self):
-        self.assertIsInstance(self.explainer.prediction_result_df(0), pd.DataFrame)
-
-
-
-class LGBMClassifierTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_survive()
-        train_names, test_names = titanic_names()
-
-        model = LGBMClassifier()
-        model.fit(X_train, y_train)
-
-        self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, 
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                            labels=['Not survived', 'Survived'],
-                            idxs=test_names)
-
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
-
-    def test_pred_probas(self):
-        self.assertIsInstance(self.explainer.pred_probas(), np.ndarray)
-
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
-
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
-
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
-
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
-
-    def test_shap_values_all_probabilities(self):
-        self.assertTrue(self.explainer.shap_base_value() >= 0)
-        self.assertTrue(self.explainer.shap_base_value() <= 1)
-        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
-        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
-
-    def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
-
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties(include_interactions=False)
-
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
-
-    def test_metrics(self):
-        self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
-
-    def test_precision_df(self):
-        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
-
-    def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
-
-    def test_prediction_result_df(self):
-        self.assertIsInstance(self.explainer.prediction_result_df(0), pd.DataFrame)
-
-
-
-class CatBoostClassifierTests(unittest.TestCase):
-    def setUp(self):
-        X_train, y_train, X_test, y_test = titanic_survive()
-        train_names, test_names = titanic_names()
-
-        model = CatBoostClassifier(iterations=100, learning_rate=0.1, verbose=0)
-        model.fit(X_train, y_train)
-
-        self.explainer = ClassifierExplainer(
-                            model, X_test, y_test, 
-                            cats=[{'Gender': ['Sex_female', 'Sex_male', 'Sex_nan']}, 
-                                                'Deck', 'Embarked'],
-                            labels=['Not survived', 'Survived'],
-                            idxs=test_names)
-
-    def test_preds(self):
-        self.assertIsInstance(self.explainer.preds, np.ndarray)
-
-    def test_pred_probas(self):
-        self.assertIsInstance(self.explainer.pred_probas(), np.ndarray)
-
-    def test_permutation_importances(self):
-        self.assertIsInstance(self.explainer.get_permutation_importances_df(), pd.DataFrame)
-
-    def test_shap_base_value(self):
-        self.assertIsInstance(self.explainer.shap_base_value(), (np.floating, float))
-
-    def test_shap_values_shape(self):
-        self.assertTrue(self.explainer.get_shap_values_df().shape == (len(self.explainer), len(self.explainer.merged_cols)))
-
-    def test_shap_values(self):
-        self.assertIsInstance(self.explainer.get_shap_values_df(), pd.DataFrame)
-
-    def test_shap_values_all_probabilities(self):
-        self.assertTrue(self.explainer.shap_base_value() >= 0)
-        self.assertTrue(self.explainer.shap_base_value() <= 1)
-        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() >= 0))
-        self.assertTrue(np.all(self.explainer.get_shap_values_df().sum(axis=1) + self.explainer.shap_base_value() <= 1))
-
-    def test_mean_abs_shap(self):
-        self.assertIsInstance(self.explainer.get_mean_abs_shap_df(), pd.DataFrame)
-
-    def test_calculate_properties(self):
-        self.explainer.calculate_properties(include_interactions=False)
-
-    def test_pdp_df(self):
-        self.assertIsInstance(self.explainer.pdp_df("Age"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Deck"), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Age", index=0), pd.DataFrame)
-        self.assertIsInstance(self.explainer.pdp_df("Gender", index=0), pd.DataFrame)
-
-    def test_metrics(self):
-        self.assertIsInstance(self.explainer.metrics(), dict)
-        self.assertIsInstance(self.explainer.metrics(cutoff=0.9), dict)
-
-    def test_precision_df(self):
-        self.assertIsInstance(self.explainer.get_precision_df(), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_precision_df(multiclass=True), pd.DataFrame)
-        self.assertIsInstance(self.explainer.get_precision_df(quantiles=4), pd.DataFrame)
-
-    def test_lift_curve_df(self):
-        self.assertIsInstance(self.explainer.get_liftcurve_df(), pd.DataFrame)
-
-    def test_prediction_result_df(self):
-        self.assertIsInstance(self.explainer.prediction_result_df(0), pd.DataFrame)
-
-
-
-        
+def test_xgbclas_prediction_result_df(precalculated_xgb_classifier_explainer):
+    assert isinstance(precalculated_xgb_classifier_explainer.prediction_result_df(0), pd.DataFrame)
