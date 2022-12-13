@@ -967,7 +967,7 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
         
-    def run(self, port=None, host='0.0.0.0', use_waitress=False, mode=None, **kwargs):
+    def run(self, port:int=None, host:str='0.0.0.0', use_waitress:bool=False, mode:str=None, sagemaker:bool=False, **kwargs):
         """Start ExplainerDashboard on port
 
         Args:
@@ -983,6 +983,9 @@ class ExplainerDashboard:
                 Overrides self.mode, in which case the dashboard will get 
                 rebuilt before running it with the right type of dash server. 
                 (dash.Dash or JupyterDash). Defaults to None (i.e. self.mode)
+            sagemaker (bool): if True then fills in routes_pathname_prefix='/', 
+                and equests_pathname_prefix=f'/jupyter/default/proxy/{port}/' so
+                that the dashboard can run in AWS Sagemaker
             Defaults to None.self.port defaults to 8050.
 
         Raises:
@@ -1005,6 +1008,12 @@ class ExplainerDashboard:
                     "with mode='dash'. Rebuilding dashboard before launch:", flush=True)
                 app = ExplainerDashboard.from_config(
                     self.explainer, self.to_yaml(return_dict=True), mode='dash').app
+            elif sagemaker:
+                app = ExplainerDashboard.from_config(
+                    self.explainer, self.to_yaml(return_dict=True), 
+                    routes_pathname_prefix='/', 
+                    requests_pathname_prefix=f'/jupyter/default/proxy/{port}/',
+                ).app
             else:
                 app = self.app
 
