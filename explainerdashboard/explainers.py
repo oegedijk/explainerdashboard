@@ -25,7 +25,8 @@ from pandas.api.types import is_numeric_dtype, is_string_dtype
 
 import shap
 
-from dtreeviz.trees import ShadowDecTree, dtreeviz
+import dtreeviz
+from dtreeviz.models.shadow_decision_tree import ShadowDecTree
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
@@ -3644,7 +3645,7 @@ class TreeExplainer(BaseExplainer):
             print("No graphviz 'dot' executable available!") 
             return None
 
-        viz = dtreeviz(self.shadow_trees[tree_idx], 
+        viz = dtreeviz.model(self.shadow_trees[tree_idx], 
                         X=self.get_X_row(index).squeeze(), 
                         fancy=False,
                         show_node_labels = False,
@@ -3886,7 +3887,7 @@ class XGBExplainer(TreeExplainer):
             if len(self.labels) > 2:
                 tree_idx = tree_idx * len(self.labels) + pos_label
 
-        viz = dtreeviz(self.shadow_trees[tree_idx], 
+        viz = dtreeviz.model(self.shadow_trees[tree_idx], 
                         X=self.get_X_row(index).squeeze(), 
                         fancy=False,
                         show_node_labels = False,
