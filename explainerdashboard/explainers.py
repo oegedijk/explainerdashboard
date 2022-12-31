@@ -25,7 +25,8 @@ from pandas.api.types import is_numeric_dtype, is_string_dtype
 
 import shap
 
-from dtreeviz.trees import ShadowDecTree, dtreeviz
+from dtreeviz import *
+from dtreeviz.models.shadow_decision_tree import ShadowDecTree
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
