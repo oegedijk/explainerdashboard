@@ -366,6 +366,8 @@ class ExplainerDashboard:
                  external_stylesheets:List[str]=None,
                  server:bool=True,
                  url_base_pathname:str=None,
+                 routes_pathname_prefix:str=None,
+                 requests_pathname_prefix:str=None,
                  responsive:bool=True,
                  logins:List[List[str]]=None,
                  port:int=8050,
@@ -933,6 +935,8 @@ class ExplainerDashboard:
                             external_stylesheets=self.external_stylesheets, 
                             assets_ignore=assets_ignore,
                             url_base_pathname=self.url_base_pathname,
+                            routes_pathname_prefix=self.routes_pathname_prefix,
+                            requests_pathname_prefix=self.requests_pathname_prefix,
                             meta_tags=meta_tags)
         elif self.mode in ['inline', 'jupyterlab', 'external']:
             app = JupyterDash(__name__,
