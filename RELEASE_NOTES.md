@@ -1,6 +1,20 @@
 # Release Notes
 
 
+### Version 0.4.1
+
+
+### New Features
+- added routes_pathname_prefix:str=None, requests_pathname_prefix:str=None, to ExplainerDashboard to help running the dashboard on e.g. Sagemaker
+-
+
+### Bug Fixes
+- Bug with plotly `showticklabels=False` changed to `tickfont=dict(color="rgba(0, 0, 0, 0)")`
+- Imports now comply with dtreeviz v2 API
+
+
+
+
 ## Version 0.4.0: upgrade bootstrap5, drop python 3.6 and 3.7 support and improved pipeline support
 - Upgrades the dashboard to `bootstrap5` and `dash-bootstrap-components` `v1` (which is also based on bootstrap5), this
     may break older custom dashboards that included bootstrap5 components from `dash-bootstrap-components<1`

@@ -148,7 +148,7 @@ class ClassifierModelStatsComposite(ExplainerComponent):
                 hide_selector=hide_selector, pos_label=pos_label, **kwargs)
 
         self.cutoffpercentile = CutoffPercentileComponent(explainer, name=self.name+"8",
-                hide_selector=hide_selector, pos_label=pos_label, **kwargs)
+                hide_selector=hide_selector, pos_label=pos_label, cutoff=cutoff, **kwargs)
         self.cutoffconnector = CutoffConnector(self.cutoffpercentile,
                 [self.summary, self.precision, self.confusionmatrix, self.liftcurve, 
                  self.cumulative_precision, self.classification, self.rocauc, self.prauc])
