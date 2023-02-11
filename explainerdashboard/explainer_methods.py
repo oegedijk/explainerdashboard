@@ -1439,9 +1439,9 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
         n_classes = len(xgbmodel.classes_)
         if n_classes == 2:
             if pos_label==1:
-                base_proba = xgbmodel.get_params()['base_score']
+                base_proba = xgbmodel.get_params()['base_score'] or 0.5
             elif pos_label==0:
-                base_proba = 1 - xgbmodel.get_params()['base_score']
+                base_proba = 1 - xgbmodel.get_params()['base_score'] or 0.5
             else:
                 raise ValueError("pos_label should be either 0 or 1!")
             n_trees = len(xgbmodel.get_booster().get_dump())
