@@ -1,6 +1,27 @@
 # Release Notes
 
 
+## Version 0.4.1:
+### Breaking Changes
+- Now needs dtreeviz>2.1, due to the API change with version v2
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+- Fixed import and tree display bug with newer version of dtreeviz
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
 ### Version 0.4.1
 
 
