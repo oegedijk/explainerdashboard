@@ -14,7 +14,7 @@ import re
 import json
 import inspect
 import requests
-from typing import List, Union
+from typing import List, Union, Dict
 from pathlib import Path
 from copy import copy, deepcopy
 import warnings
@@ -368,6 +368,7 @@ class ExplainerDashboard:
                  url_base_pathname:str=None,
                  routes_pathname_prefix:str=None,
                  requests_pathname_prefix:str=None,
+                 dash_kwargs:Dict=None,
                  responsive:bool=True,
                  logins:List[List[str]]=None,
                  port:int=8050,
@@ -452,6 +453,10 @@ class ExplainerDashboard:
                 server is created. 
             url_base_pathname (str): url_base_pathname for dashboard, 
                 e.g. "/dashboard". Defaults to None.
+            routes_pathname_prefix(str): prefix to route. E.g. on sagemaker you would set this to '/'
+            requests_pathname_prefix(str): on sagemaker you would set this to f'/jupyter/default/proxy/{port}/'
+            dash_kwargs (dict): dictionary of additional dash key word arguments that
+                you would like to pass to the dash.Dash instance as **dash_kwargs.
             responsive (bool):  make layout responsive to viewport size 
                 (i.e. reorganize bootstrap columns on small devices). Set to False
                 when e.g. testing with a headless browser. Defaults to True.
@@ -501,6 +506,9 @@ class ExplainerDashboard:
                     "mode='external', mode='inline' or mode='jupyterlab' "
                     "to keep the notebook interactive while the dashboard "
                     "is running...", flush=True)
+
+        if self.dash_kwargs is None:
+            self.dash_kwargs = {}
         
         if self.bootstrap is not None:
             bootstrap_theme = self.bootstrap if isinstance(self.bootstrap, str) else dbc.themes.BOOTSTRAP
@@ -937,12 +945,14 @@ class ExplainerDashboard:
                             url_base_pathname=self.url_base_pathname,
                             routes_pathname_prefix=self.routes_pathname_prefix,
                             requests_pathname_prefix=self.requests_pathname_prefix,
-                            meta_tags=meta_tags)
+                            meta_tags=meta_tags,
+                            **self.dash_kwargs)
         elif self.mode in ['inline', 'jupyterlab', 'external']:
             app = JupyterDash(__name__,
                             external_stylesheets=self.external_stylesheets, 
                             assets_ignore=assets_ignore,
-                            meta_tags=meta_tags)
+                            meta_tags=meta_tags,
+                            **self.dash_kwargs)
         else:
             raise ValueError(f"mode=={self.mode} but should be in "
                  "{'dash', 'inline', 'juypyterlab', 'external'}")
@@ -957,7 +967,7 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
         
-    def run(self, port=None, host='0.0.0.0', use_waitress=False, mode=None, **kwargs):
+    def run(self, port:int=None, host:str='0.0.0.0', use_waitress:bool=False, mode:str=None, sagemaker:bool=False, **kwargs):
         """Start ExplainerDashboard on port
 
         Args:
@@ -973,6 +983,9 @@ class ExplainerDashboard:
                 Overrides self.mode, in which case the dashboard will get 
                 rebuilt before running it with the right type of dash server. 
                 (dash.Dash or JupyterDash). Defaults to None (i.e. self.mode)
+            sagemaker (bool): if True then fills in routes_pathname_prefix='/', 
+                and equests_pathname_prefix=f'/jupyter/default/proxy/{port}/' so
+                that the dashboard can run in AWS Sagemaker
             Defaults to None.self.port defaults to 8050.
 
         Raises:
@@ -995,6 +1008,12 @@ class ExplainerDashboard:
                     "with mode='dash'. Rebuilding dashboard before launch:", flush=True)
                 app = ExplainerDashboard.from_config(
                     self.explainer, self.to_yaml(return_dict=True), mode='dash').app
+            elif sagemaker:
+                app = ExplainerDashboard.from_config(
+                    self.explainer, self.to_yaml(return_dict=True), 
+                    routes_pathname_prefix='/', 
+                    requests_pathname_prefix=f'/jupyter/default/proxy/{port}/',
+                ).app
             else:
                 app = self.app
 
