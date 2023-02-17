@@ -29,6 +29,7 @@ import socket
 
 import dash
 from dash import html, dcc, Input, Output, State
+from dash.exceptions import PreventUpdate
 
 import dash_bootstrap_components as dbc
 
@@ -550,6 +551,7 @@ class IndexSelector(ExplainerComponent):
                     options client side. Defaults to 1000.
         """
         super().__init__(explainer, name=name)
+        self.index_name = self.name
         
     def layout(self):
         if self.index_dropdown:
@@ -558,14 +560,17 @@ class IndexSelector(ExplainerComponent):
                 return dcc.Dropdown(
                     id=self.name, 
                     placeholder=f"Search {self.explainer.index_name} here...",
+                    #options=[self.index],
                     value=self.index,
-                    clearable=False
+                    searchable=True,
+                    #clearable=False
                 )
             else:
                 return dcc.Dropdown(
                     id=self.name, 
                     placeholder=f"Select {self.explainer.index_name} here...",
                     options = index_list.astype(str).to_list(),
+                    searchable=True,
                     value=self.index,
                 )
         else:
@@ -583,17 +588,19 @@ class IndexSelector(ExplainerComponent):
                 @app.callback(
                     Output(self.name, "options"),
                     Input(self.name, "search_value"),
-                    Input(self.name, "value")
+                    Input(self.name, "value"),
                 )
                 def update_options(search_value, index):
-                    trigger_prop = dash.callback_context.triggered[0]['prop_id'].split('.')[-1]
-                    if trigger_prop == 'value':
-                        return [index]
-                    index_list = self.explainer.get_index_list()
-                    if search_value:
-                        index_list = index_list[index_list.str.contains(search_value, case=False)]
-                    index_list = index_list[:self.max_idxs_in_dropdown].tolist()
-                    return index_list
+                    trigger_props = [trigger['prop_id'].split('.')[-1] for trigger in dash.callback_context.triggered]
+                    if 'value' in trigger_props or not search_value:
+                        new_options = [index] if index is not None else []
+                    else:
+                        new_options = [
+                            idx for idx in self.explainer.get_index_list()
+                            if (str(search_value) in idx) or (idx == str(index))
+                        ]
+                    return new_options[:self.max_idxs_in_dropdown]
+
         else:
             @app.callback(
                 [Output(self.name, 'valid'),
