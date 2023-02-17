@@ -1,7 +1,7 @@
 # Release Notes
 
 
-## Version 0.4.1:
+## Version 0.4.2:
 ### Breaking Changes
 - Now needs dtreeviz>2.1, due to the API change with version v2
 - 
