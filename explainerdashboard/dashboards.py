@@ -479,7 +479,16 @@ class ExplainerDashboard:
                     f"your {explainer.__class__.__name__} with this version, or "
                     "downgrade back to explainerdashboard==0.2.20.1!")
 
-        from packaging.version import parse as parse_version
+        dynamic_dropdown_threshold = min(1000, self.kwargs.get("max_idxs_in_dropdown", float('inf')))
+        if self.explainer is not None and len(self.explainer) > dynamic_dropdown_threshold:
+            from pkg_resources import parse_version
+            if parse_version(dash.__version__) > parse_version('2.6.2'):
+                print(
+                    f"WARNING: the number of rows in explainer(={len(self.explainer)}) is bigger "
+                    f"than the threshold for dynamic server side dropdown search(={dynamic_dropdown_threshold}). "
+                    f"However with your installed version of dash({dash.__version__}) this may not work smoothly. "
+                    f"You can downgrade to `pip install dash==2.6.2` which should work better for now..."
+                )
 
         if self.description is None:
             self.description = """This dashboard shows the workings of a fitted
