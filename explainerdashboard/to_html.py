@@ -144,6 +144,7 @@ def card(
 </div>
 """
 
+
 def card_row(*cards) -> str:
     """Turns a series of bootstrap into a row with equally sized
     columns for each card.

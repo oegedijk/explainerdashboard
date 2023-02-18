@@ -1,9 +1,9 @@
 __all__ = [
-    'CutoffPercentileComponent',
-    'PosLabelConnector',
-    'CutoffConnector',
-    'IndexConnector',
-    'HighlightConnector'
+    "CutoffPercentileComponent",
+    "PosLabelConnector",
+    "CutoffConnector",
+    "IndexConnector",
+    "HighlightConnector",
 ]
 
 import numpy as np
@@ -13,15 +13,25 @@ from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from ..dashboard_methods import  *
+from ..dashboard_methods import *
 
 
 class CutoffPercentileComponent(ExplainerComponent):
-    def __init__(self, explainer, title="Global cutoff", name=None,
-                        hide_title=False, hide_cutoff=False, hide_percentile=False,
-                        hide_selector=False,
-                        pos_label=None, cutoff=0.5, percentile=None, 
-                        description=None, **kwargs):
+    def __init__(
+        self,
+        explainer,
+        title="Global cutoff",
+        name=None,
+        hide_title=False,
+        hide_cutoff=False,
+        hide_percentile=False,
+        hide_selector=False,
+        pos_label=None,
+        cutoff=0.5,
+        percentile=None,
+        description=None,
+        **kwargs,
+    ):
         """
         Slider to set a cutoff for Classifier components, based on setting the
         cutoff at a certain percentile of predictions, e.g.:
@@ -47,15 +57,16 @@ class CutoffPercentileComponent(ExplainerComponent):
             cutoff (float, optional): Initial cutoff. Defaults to 0.5.
             percentile ([type], optional): Initial percentile. Defaults to None.
             description (str, optional): Tooltip to display when hover over
-                component title. When None default text is shown. 
+                component title. When None default text is shown.
         """
         super().__init__(explainer, title, name)
 
-        self.cutoff_name = 'cutoffconnector-cutoff-'+self.name
+        self.cutoff_name = "cutoffconnector-cutoff-" + self.name
 
         self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
 
-        if self.description is None: self.description = """
+        if self.description is None:
+            self.description = """
         Select a model cutoff such that all predicted probabilities higher than
         the cutoff will be labeled positive, and all predicted probabilities 
         lower than the cutoff will be labeled negative. You can also set
@@ -63,75 +74,160 @@ class CutoffPercentileComponent(ExplainerComponent):
         here will automatically set the cutoff in multiple other connected
         component. 
         """
-        self.register_dependencies(['preds', 'pred_percentiles'])
+        self.register_dependencies(["preds", "pred_percentiles"])
 
     def layout(self):
-        return dbc.Card([
-            make_hideable(
-                dbc.CardHeader([
-                    html.H3(self.title, className="card-title", id='cutoffconnector-title-'+self.name),
-                    dbc.Tooltip(self.description, target='cutoffconnector-title-'+self.name),
-                ]), hide=self.hide_title),
-            dbc.CardBody([
-                dbc.Row([
-                    dbc.Col([
-                        dbc.Row([
-                            make_hideable(
-                                dbc.Col([
-                                    html.Div([
-                                        html.Label('Cutoff prediction probability:'),
-                                        dcc.Slider(id='cutoffconnector-cutoff-'+self.name,
-                                                    min = 0.01, max = 0.99, step=0.01, value=self.cutoff,
-                                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                            0.75: '0.75', 0.99: '0.99'},
-                                                    included=False,
-                                                    tooltip = {'always_visible' : False}),
-                                    ], style={'margin-bottom': 15}, id='cutoffconnector-cutoff-div-'+self.name),
-                                    dbc.Tooltip(f"Scores above this cutoff will be labeled positive",
-                                                    target='cutoffconnector-cutoff-div-'+self.name,
-                                                    placement='bottom'),
-                                ]), hide=self.hide_cutoff),
-                        ]),
-                        dbc.Row([
+        return dbc.Card(
+            [
+                make_hideable(
+                    dbc.CardHeader(
+                        [
+                            html.H3(
+                                self.title,
+                                className="card-title",
+                                id="cutoffconnector-title-" + self.name,
+                            ),
+                            dbc.Tooltip(
+                                self.description,
+                                target="cutoffconnector-title-" + self.name,
+                            ),
+                        ]
+                    ),
+                    hide=self.hide_title,
+                ),
+                dbc.CardBody(
+                    [
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        dbc.Row(
+                                            [
+                                                make_hideable(
+                                                    dbc.Col(
+                                                        [
+                                                            html.Div(
+                                                                [
+                                                                    html.Label(
+                                                                        "Cutoff prediction probability:"
+                                                                    ),
+                                                                    dcc.Slider(
+                                                                        id="cutoffconnector-cutoff-"
+                                                                        + self.name,
+                                                                        min=0.01,
+                                                                        max=0.99,
+                                                                        step=0.01,
+                                                                        value=self.cutoff,
+                                                                        marks={
+                                                                            0.01: "0.01",
+                                                                            0.25: "0.25",
+                                                                            0.50: "0.50",
+                                                                            0.75: "0.75",
+                                                                            0.99: "0.99",
+                                                                        },
+                                                                        included=False,
+                                                                        tooltip={
+                                                                            "always_visible": False
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                style={
+                                                                    "margin-bottom": 15
+                                                                },
+                                                                id="cutoffconnector-cutoff-div-"
+                                                                + self.name,
+                                                            ),
+                                                            dbc.Tooltip(
+                                                                f"Scores above this cutoff will be labeled positive",
+                                                                target="cutoffconnector-cutoff-div-"
+                                                                + self.name,
+                                                                placement="bottom",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    hide=self.hide_cutoff,
+                                                ),
+                                            ]
+                                        ),
+                                        dbc.Row(
+                                            [
+                                                make_hideable(
+                                                    dbc.Col(
+                                                        [
+                                                            html.Div(
+                                                                [
+                                                                    html.Label(
+                                                                        "Cutoff percentile of samples:"
+                                                                    ),
+                                                                    dcc.Slider(
+                                                                        id="cutoffconnector-percentile-"
+                                                                        + self.name,
+                                                                        min=0.01,
+                                                                        max=0.99,
+                                                                        step=0.01,
+                                                                        value=self.percentile,
+                                                                        marks={
+                                                                            0.01: "0.01",
+                                                                            0.25: "0.25",
+                                                                            0.50: "0.50",
+                                                                            0.75: "0.75",
+                                                                            0.99: "0.99",
+                                                                        },
+                                                                        included=False,
+                                                                        tooltip={
+                                                                            "always_visible": False
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                style={
+                                                                    "margin-bottom": 15
+                                                                },
+                                                                id="cutoffconnector-percentile-div-"
+                                                                + self.name,
+                                                            ),
+                                                            dbc.Tooltip(
+                                                                f"example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
+                                                                target="cutoffconnector-percentile-div-"
+                                                                + self.name,
+                                                                placement="bottom",
+                                                            ),
+                                                        ]
+                                                    ),
+                                                    hide=self.hide_percentile,
+                                                ),
+                                            ]
+                                        ),
+                                    ]
+                                ),
                                 make_hideable(
-                                dbc.Col([
-                                    html.Div([
-                                        html.Label('Cutoff percentile of samples:'),
-                                        dcc.Slider(id='cutoffconnector-percentile-'+self.name,
-                                                    min = 0.01, max = 0.99, step=0.01, value=self.percentile,
-                                                    marks={0.01: '0.01', 0.25: '0.25', 0.50: '0.50',
-                                                            0.75: '0.75', 0.99: '0.99'},
-                                                    included=False,
-                                                    tooltip = {'always_visible' : False}),
-                                        
-                                    ], style={'margin-bottom': 15}, id='cutoffconnector-percentile-div-'+self.name),
-                                    dbc.Tooltip(f"example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
-                                                    target='cutoffconnector-percentile-div-'+self.name,
-                                                    placement='bottom'),
-                                ]), hide=self.hide_percentile),
-                        ])
-                    ]),
-                    make_hideable(
-                        dbc.Col([
-                            self.selector.layout()
-                        ], width=2), hide=self.hide_selector),
-                ])
-
-            ])
-            
-        ])
-
+                                    dbc.Col([self.selector.layout()], width=2),
+                                    hide=self.hide_selector,
+                                ),
+                            ]
+                        )
+                    ]
+                ),
+            ]
+        )
 
     def component_callbacks(self, app):
         @app.callback(
-            Output('cutoffconnector-cutoff-'+self.name, 'value'),
-            [Input('cutoffconnector-percentile-'+self.name, 'value'),
-             Input('pos-label-'+self.name, 'value')]
+            Output("cutoffconnector-cutoff-" + self.name, "value"),
+            [
+                Input("cutoffconnector-percentile-" + self.name, "value"),
+                Input("pos-label-" + self.name, "value"),
+            ],
         )
         def update_cutoff(percentile, pos_label):
             if percentile is not None:
-                return np.round(self.explainer.cutoff_from_percentile(percentile, pos_label=pos_label), 2)
+                return np.round(
+                    self.explainer.cutoff_from_percentile(
+                        percentile, pos_label=pos_label
+                    ),
+                    2,
+                )
             raise PreventUpdate
+
 
 class PosLabelConnector(ExplainerComponent):
     def __init__(self, input_pos_label, output_pos_labels):
@@ -143,27 +239,31 @@ class PosLabelConnector(ExplainerComponent):
 
     def _get_pos_label(self, input_pos_label):
         if isinstance(input_pos_label, PosLabelSelector):
-            return 'pos-label-' + input_pos_label.name
-        elif hasattr(input_pos_label, 'selector') and isinstance(input_pos_label.selector, PosLabelSelector):
-            return 'pos-label-' + input_pos_label.selector.name
+            return "pos-label-" + input_pos_label.name
+        elif hasattr(input_pos_label, "selector") and isinstance(
+            input_pos_label.selector, PosLabelSelector
+        ):
+            return "pos-label-" + input_pos_label.selector.name
         elif isinstance(input_pos_label, str):
             return input_pos_label
         else:
-            raise ValueError("input_pos_label should either be a str, "
-                    "PosLabelSelector or an instance with a .selector property"
-                    " that is a PosLabelSelector!")
+            raise ValueError(
+                "input_pos_label should either be a str, "
+                "PosLabelSelector or an instance with a .selector property"
+                " that is a PosLabelSelector!"
+            )
 
     def _get_pos_labels(self, output_pos_labels):
         def get_pos_labels(o):
             if isinstance(o, PosLabelSelector):
-                return ['pos-label-'+o.name]
+                return ["pos-label-" + o.name]
             elif isinstance(o, str):
                 return [str]
-            elif hasattr(o, 'pos_labels'):
+            elif hasattr(o, "pos_labels"):
                 return o.pos_labels
             return []
 
-        if hasattr(output_pos_labels, '__iter__'):
+        if hasattr(output_pos_labels, "__iter__"):
             pos_labels = []
             for comp in output_pos_labels:
                 pos_labels.extend(get_pos_labels(comp))
@@ -173,13 +273,16 @@ class PosLabelConnector(ExplainerComponent):
 
     def component_callbacks(self, app):
         if self.output_pos_label_names:
+
             @app.callback(
-                [Output(pos_label_name, 'value') for pos_label_name in self.output_pos_label_names],
-                [Input(self.input_pos_label_name, 'value')]
+                [
+                    Output(pos_label_name, "value")
+                    for pos_label_name in self.output_pos_label_names
+                ],
+                [Input(self.input_pos_label_name, "value")],
             )
             def update_pos_labels(pos_label):
                 return tuple(pos_label for i in range(len(self.output_pos_label_names)))
-
 
 
 class CutoffConnector(ExplainerComponent):
@@ -208,14 +311,17 @@ class CutoffConnector(ExplainerComponent):
     @staticmethod
     def cutoff_name(cutoffs):
         def get_cutoff_name(o):
-            if isinstance(o, str): return o
+            if isinstance(o, str):
+                return o
             elif isinstance(o, ExplainerComponent):
                 if not hasattr(o, "cutoff_name"):
                     raise ValueError(f"{o} does not have an .cutoff_name property!")
                 return o.cutoff_name
-            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .cutoff_name property")
+            raise ValueError(
+                f"{o} is neither str nor an ExplainerComponent with an .cutoff_name property"
+            )
 
-        if hasattr(cutoffs, '__iter__'):
+        if hasattr(cutoffs, "__iter__"):
             cutoff_name_list = []
             for cutoff in cutoffs:
                 cutoff_name_list.append(get_cutoff_name(cutoff))
@@ -225,8 +331,8 @@ class CutoffConnector(ExplainerComponent):
 
     def component_callbacks(self, app):
         @app.callback(
-            [Output(cutoff_name, 'value') for cutoff_name in self.output_cutoff_names],
-            [Input(self.input_cutoff_name, 'value')]
+            [Output(cutoff_name, "value") for cutoff_name in self.output_cutoff_names],
+            [Input(self.input_cutoff_name, "value")],
         )
         def update_cutoffs(cutoff):
             return tuple(cutoff for i in range(len(self.output_cutoff_names)))
@@ -259,14 +365,17 @@ class IndexConnector(ExplainerComponent):
     @staticmethod
     def index_name(indexes):
         def get_index_name(o):
-            if isinstance(o, str): return o
+            if isinstance(o, str):
+                return o
             elif isinstance(o, ExplainerComponent):
                 if not hasattr(o, "index_name"):
                     raise ValueError(f"{o} does not have an .index_name property!")
                 return o.index_name
-            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .index_name property")
+            raise ValueError(
+                f"{o} is neither str nor an ExplainerComponent with an .index_name property"
+            )
 
-        if hasattr(indexes, '__iter__'):
+        if hasattr(indexes, "__iter__"):
             index_name_list = []
             for index in indexes:
                 index_name_list.append(get_index_name(index))
@@ -276,8 +385,8 @@ class IndexConnector(ExplainerComponent):
 
     def component_callbacks(self, app):
         @app.callback(
-            [Output(index_name, 'value') for index_name in self.output_index_names],
-            [Input(self.input_index_name, 'value')],
+            [Output(index_name, "value") for index_name in self.output_index_names],
+            [Input(self.input_index_name, "value")],
         )
         def update_indexes(index):
             if dash.callback_context.triggered_id != self.input_index_name:
@@ -316,14 +425,17 @@ class HighlightConnector(ExplainerComponent):
     @staticmethod
     def highlight_name(highlights):
         def get_highlight_name(o):
-            if isinstance(o, str): return o
+            if isinstance(o, str):
+                return o
             elif isinstance(o, ExplainerComponent):
                 if not hasattr(o, "highlight_name"):
                     raise ValueError(f"{o} does not have an .highlight_name property!")
                 return o.highlight_name
-            raise ValueError(f"{o} is neither str nor an ExplainerComponent with an .highlight_name property")
+            raise ValueError(
+                f"{o} is neither str nor an ExplainerComponent with an .highlight_name property"
+            )
 
-        if hasattr(highlights, '__iter__'):
+        if hasattr(highlights, "__iter__"):
             highlight_name_list = []
             for highlight in highlights:
                 highlight_name_list.append(get_highlight_name(highlight))
@@ -333,7 +445,11 @@ class HighlightConnector(ExplainerComponent):
 
     def component_callbacks(self, app):
         @app.callback(
-            [Output(highlight_name, 'value') for highlight_name in self.output_highlight_names],
-            [Input(self.input_highlight_name, 'value')])
+            [
+                Output(highlight_name, "value")
+                for highlight_name in self.output_highlight_names
+            ],
+            [Input(self.input_highlight_name, "value")],
+        )
         def update_highlights(highlight):
             return tuple(highlight for i in range(len(self.output_highlight_names)))
