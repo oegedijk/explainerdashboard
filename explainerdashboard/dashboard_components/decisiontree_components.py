@@ -69,7 +69,7 @@ class DecisionTreesComponent(ExplainerComponent):
         
         if isinstance(self.explainer, RandomForestExplainer):
             if self.description is None: self.description = """
-            Show the prediction of every individul tree in a random forest.
+            Show the prediction of every individual tree in a random forest.
             This demonstrates how a random forest is simply an average of an
             ensemble of decision trees.
             """
@@ -128,8 +128,14 @@ class DecisionTreesComponent(ExplainerComponent):
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        dcc.Graph(id="decisiontrees-graph-"+self.name,
-                                    config=dict(modeBarButtons=[['toImage']], displaylogo=False)),  
+                        dcc.Graph(
+                            id="decisiontrees-graph-"+self.name,
+                            config=dict(
+                                modeBarButtons=[['toImage']], 
+                                displaylogo=False
+                            ),
+                            figure={},
+                        ),  
                     ])
                 ]),
                 dbc.Row([
@@ -162,11 +168,10 @@ class DecisionTreesComponent(ExplainerComponent):
             [Input('decisiontrees-index-'+self.name, 'value'),
              Input('decisiontrees-highlight-'+self.name, 'value'),
              Input('pos-label-'+self.name, 'value')],
-            [State("decisiontrees-graph-"+self.name, 'figure')]
         )
-        def update_tree_graph(index, highlight, pos_label, old_fig):
+        def update_tree_graph(index, highlight, pos_label):
             if index is None or not self.explainer.index_exists(index):
-                return old_fig
+                raise PreventUpdate
             highlight = None if highlight is None else int(highlight)
             return self.explainer.plot_trees(index, 
                     highlight_tree=highlight, pos_label=pos_label,
