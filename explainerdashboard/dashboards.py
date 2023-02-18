@@ -484,9 +484,8 @@ class ExplainerDashboard:
             from pkg_resources import parse_version
             if parse_version(dash.__version__) > parse_version('2.6.2'):
                 print(
-                    f"WARNING: the number of rows in explainer(={len(self.explainer)}) is bigger "
-                    f"than the threshold for dynamic server side dropdown search(={dynamic_dropdown_threshold}). "
-                    f"However with your installed version of dash({dash.__version__}) this may not work smoothly. "
+                    f"WARNING: the number of idxs (={len(self.explainer)}) > max_idxs_in_dropdown(={dynamic_dropdown_threshold}). "
+                    f"However with your installed version of dash({dash.__version__}) dropdown search may not work smoothly. "
                     f"You can downgrade to `pip install dash==2.6.2` which should work better for now..."
                 )
 
