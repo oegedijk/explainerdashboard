@@ -91,10 +91,6 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
         if self.explainer.y_missing:
             self.hide_labels = True
 
-        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
-        self.index_selector = IndexSelector(explainer, 'random-index-clas-index-'+self.name,
-                                    index=index, index_dropdown=index_dropdown, **kwargs)
-
         assert (len(self.slider) == 2 and
                 self.slider[0] >= 0 and self.slider[0] <=1 and
                 self.slider[1] >= 0.0 and self.slider[1] <= 1.0 and
@@ -106,6 +102,10 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
 
         assert self.pred_or_perc in ['predictions', 'percentiles'], \
             "pred_or_perc should either be `predictions` or `percentiles`!"
+
+        self.selector = PosLabelSelector(explainer, name=self.name, pos_label=pos_label)
+        self.index_selector = IndexSelector(explainer, 'random-index-clas-index-'+self.name,
+                                    index=index, index_dropdown=index_dropdown, **kwargs)
 
         if self.description is None: self.description = f"""
         You can select a {self.explainer.index_name} directly by choosing it 
@@ -222,18 +222,23 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             [State('random-index-clas-slider-'+self.name, 'value'),
              State('random-index-clas-labels-'+self.name, 'value'),
              State('random-index-clas-pred-or-perc-'+self.name, 'value'),
-             State('pos-label-'+self.name, 'value')])
+             State('pos-label-'+self.name, 'value'),
+             ])
         def update_index(n_clicks, slider_range, labels, pred_or_perc, pos_label):
-            if n_clicks is None and self.index is not None:
+            triggers = [trigger['prop_id'] for trigger in dash.callback_context.triggered]
+            if f"random-index-clas-button-{self.name}.n_clicks" not in triggers:
                 raise PreventUpdate
             if pred_or_perc == 'predictions':
-                return self.explainer.random_index(y_values=labels,
+                index = self.explainer.random_index(y_values=labels,
                     pred_proba_min=slider_range[0], pred_proba_max=slider_range[1],
                     return_str=True, pos_label=pos_label)
+                return index
             elif pred_or_perc == 'percentiles':
-                return self.explainer.random_index(y_values=labels,
+                index = self.explainer.random_index(y_values=labels,
                     pred_percentile_min=slider_range[0], pred_percentile_max=slider_range[1],
                     return_str=True, pos_label=pos_label)
+                return index
+            raise PreventUpdate
 
         @app.callback(
             [Output('random-index-clas-slider-label-'+self.name, 'children'),
