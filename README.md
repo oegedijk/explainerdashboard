@@ -569,3 +569,7 @@ Example notebook on how to design a custom dashboard: [custom_examples.ipynb](no
 You can find an example dashboard at [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com) 
 
 (source code at [https://github.com/oegedijk/explainingtitanic](https://github.com/oegedijk/explainingtitanic))
+
+## Citation:
+
+A doi can be found at [zenodo](https://zenodo.org/record/7633294)
