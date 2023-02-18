@@ -280,9 +280,13 @@ class IndexConnector(ExplainerComponent):
             [Input(self.input_index_name, 'value')],
         )
         def update_indexes(index):
+            if dash.callback_context.triggered_id != self.input_index_name:
+                raise PreventUpdate
             if self.explainer is not None:
-                if self.explainer.index_exists(index):
+                if index is not None and self.explainer.index_exists(index):
                     return tuple([index for _ in self.output_index_names])
+            elif index is not None:
+                return tuple([index for _ in self.output_index_names])
             raise PreventUpdate
 
 
