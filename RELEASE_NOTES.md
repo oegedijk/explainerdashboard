@@ -1,5 +1,21 @@
 # Release Notes
 
+## Version 0.4.2.1:
+
+
+### Bug Fixes
+- tries to work around wonky index dropdown search bug introduced by latest dash release. 
+- Dropdown search now works again, but index propagation is still flaky when number of idxs > max_idxs_in_dropdown(1000 by default)
+- displays warning to downgrade to dash 2.6.2 when this happens
+
+### Improvements
+-
+-
+
+### Other Changes
+- applied black to the codebase
+-
+
 
 ## Version 0.4.2:
 ### Breaking Changes
