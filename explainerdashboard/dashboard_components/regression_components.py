@@ -369,6 +369,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
              State('random-index-reg-preds-or-y-'+self.name, 'value'),
              State('random-index-reg-abs-residual-'+self.name, 'value')])
         def update_index(n_clicks, pred_range, y_range, residual_range, abs_residuals_range, preds_or_y, abs_residuals):
+            triggers = [trigger['prop_id'] for trigger in dash.callback_context.triggered]
+            if f"random-index-reg-button-{self.name}.n_clicks" not in triggers:
+                raise PreventUpdate
             if n_clicks is None and self.index is not None:
                 raise PreventUpdate
             if preds_or_y == 'preds':
