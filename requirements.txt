@@ -14,3 +14,4 @@ pandas>=1.1
 scikit-learn>=1.1
 shap>=0.37
 waitress
+numpy<=1.23
