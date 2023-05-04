@@ -4,6 +4,7 @@ dash-bootstrap-components>=1
 dash>=2.3.1
 dtreeviz>=2.1
 flask_simplelogin
+Flask-WTF>=1.1
 graphviz>=0.18.2
 joblib
 jupyter_dash>=0.4.1
@@ -13,3 +14,5 @@ pandas>=1.1
 scikit-learn>=1.1
 shap>=0.37
 waitress
+numpy<=1.23
+pandas<2.0
