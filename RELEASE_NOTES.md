@@ -1,5 +1,10 @@
 # Release Notes
 
+
+## Version 0.4.2.2:
+
+pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to sort out some compatibility issues.
+
 ## Version 0.4.2.1:
 
 
