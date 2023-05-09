@@ -1,6 +1,29 @@
 # Release Notes
 
 
+## Version 0.4.2:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+- models that use kernel explainer but output multi-dimensional predictions such as PLSRegression are now supported. 
+Predictions now get squeezed in the kernel function.
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+
 ## Version 0.4.2.2:
 
 pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to sort out some compatibility issues.
