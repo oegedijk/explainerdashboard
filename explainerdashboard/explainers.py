@@ -1107,7 +1107,8 @@ class BaseExplainer(ABC):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    return self.model.predict(data_asframe)
+                    preds = self.model.predict(data_asframe)
+                    return preds.reshape(len(preds))
 
                 self._shap_explainer = shap.KernelExplainer(
                     model_predict,
