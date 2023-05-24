@@ -182,7 +182,7 @@ def card_rows(*cardrows_list) -> str:
 
 
 def dashboard_card(title: str = None, description: str = None, url: str = None) -> str:
-    """Generate a dashboard description car for ExplainerHub.
+    """Generate a dashboard description card for ExplainerHub.
     Consists of title, description and url.
     """
     return f"""
