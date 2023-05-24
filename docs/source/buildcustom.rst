@@ -412,7 +412,7 @@ you ``from explainerdashboard.custom import *``::
 
         def to_html(self, state_dict=None, add_header=True):
             html = to_html.title(self.title)
-            html += to_html.card_deck(
+            html += to_html.card_row(
                 self.confusion.to_html(state_dict, add_header=False), 
                 self.contrib.to_html(state_dict, add_header=False)
             )
