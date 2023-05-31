@@ -1187,6 +1187,10 @@ class ExplainerDashboard:
                 requests_pathname_prefix=self.requests_pathname_prefix,
                 meta_tags=meta_tags,
             )
+            @app.server.route("/health")
+            def health():
+                return "healthy"
+            
         elif self.mode in ["inline", "jupyterlab", "external"]:
             app = JupyterDash(
                 __name__,
