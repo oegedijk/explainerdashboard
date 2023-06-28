@@ -490,6 +490,11 @@ An example is the ``ConfusionMatrixComponent``::
                             binary=bool(binary), pos_label=pos_label)
 
 
+When exporting to html you probably want to set a default ``index`` value for your 
+``ExplainerDashboard``. This is the index that will be displayed in the plots
+with individual rows of data when you call 
+``ExplainerDashboard.to_html()`` directly, e.g. 
+``ExplainerDashboard(explainer, index=0).to_html('dashboard.html')``.
 
 ``to_html`` helper functions
 ============================
