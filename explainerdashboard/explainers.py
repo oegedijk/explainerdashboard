@@ -764,7 +764,8 @@ class BaseExplainer(ABC):
             #Adjust categorical col to proper nan value instead of self.na_fill
             for col, values in self.categorical_dict.items():
                 if 'NaN' in values:
-                    df_merged[col] = df_merged[col].replace(self.na_fill, np.nan)
+                    df_merged[col] = df_merged[col].replace(self.na_fill, np.nan)   #If the categorical feature comes from the existing data it will be nan
+                    df_merged[col] = df_merged[col].replace('NaN', np.nan)          #If the categorical feature is changed to NaN in the frontend it will be a string
             if return_merged:
                 return df_merged
             else:
@@ -776,7 +777,8 @@ class BaseExplainer(ABC):
             #unsure if this is okay here for categorical defined values
             for col, values in self.categorical_dict.items():
                 if 'NaN' in values:
-                    df[col] = df[col].replace(self.na_fill, np.nan)
+                    df[col] = df[col].replace(self.na_fill, np.nan)         #If the categorical feature comes from the existing data it will be nan
+                    df[col] = df[col].replace('NaN', np.nan)                #If the categorical feature is changed to NaN in the frontend it will be a string
             if return_merged:
                 return merge_categorical_columns(df, self.onehot_dict, self.merged_cols)
             else:
