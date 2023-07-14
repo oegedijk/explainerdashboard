@@ -2813,7 +2813,7 @@ def plotly_rf_trees(
                     "model": range(len(model.estimators_)),
                     "prediction": [
                         np.round(
-                            100 * m.predict_proba(observation)[0, pos_label], round
+                            100 * m.predict_proba(observation.copy())[0, pos_label], round
                         )
                         for m in model.estimators_
                     ],
@@ -2829,7 +2829,7 @@ def plotly_rf_trees(
                 {
                     "model": range(len(model.estimators_)),
                     "prediction": [
-                        np.round(m.predict(observation)[0], round)
+                        np.round(m.predict(observation.copy())[0], round)
                         for m in model.estimators_
                     ],
                     "color": colors,

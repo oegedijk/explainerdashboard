@@ -240,7 +240,7 @@ class BaseExplainer(ABC):
             col for col in self.regular_cols if not is_numeric_dtype(self.X[col])
         ]
         self.categorical_dict = {
-            col: sorted(self.X[col].unique().tolist()) for col in self.categorical_cols
+            col: sorted(self.X[col].dropna().unique().tolist()) for col in self.categorical_cols
         }
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
@@ -837,11 +837,11 @@ class BaseExplainer(ABC):
             if self.is_classifier:
                 if pos_label is None:
                     pos_label = self.pos_label
-                prediction = self.model.predict_proba(X_row)[0][pos_label].squeeze()
+                prediction = self.model.predict_proba(X_row.copy())[0][pos_label].squeeze()
                 if self.model_output == "probability":
                     prediction = 100 * prediction
             elif self.is_regression:
-                prediction = self.model.predict(X_row)[0].squeeze()
+                prediction = self.model.predict(X_row.copy())[0].squeeze()
             return col_value, prediction
         else:
             raise ValueError("You need to pass either index or X_row!")
@@ -968,11 +968,11 @@ class BaseExplainer(ABC):
             print("Calculating predictions...", flush=True)
             if self.shap == "skorch":  # skorch model.predict need np.array
                 self._preds = (
-                    self.model.predict(self.X.values).squeeze().astype(self.precision)
+                    self.model.predict(self.X.copy().values).squeeze().astype(self.precision)
                 )
             else:  # Pipelines.predict need pd.DataFrame:
                 self._preds = (
-                    self.model.predict(self.X).squeeze().astype(self.precision)
+                    self.model.predict(self.X.copy()).squeeze().astype(self.precision)
                 )
 
         return self._preds
@@ -1107,7 +1107,7 @@ class BaseExplainer(ABC):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    preds = self.model.predict(data_asframe)
+                    preds = self.model.predict(data_asframe.copy())
                     return preds.reshape(len(preds))
 
                 self._shap_explainer = shap.KernelExplainer(
@@ -2561,11 +2561,11 @@ class ClassifierExplainer(BaseExplainer):
                 self.model, "predict_proba"
             ), "model does not have a predict_proba method!"
             if self.shap == "skorch":
-                self._pred_probas = self.model.predict_proba(self.X.values).astype(
+                self._pred_probas = self.model.predict_proba(self.X.copy().values).astype(
                     self.precision
                 )
             else:
-                self._pred_probas = self.model.predict_proba(self.X).astype(
+                self._pred_probas = self.model.predict_proba(self.X.copy()).astype(
                     self.precision
                 )
         return self._pred_probas
@@ -2766,7 +2766,7 @@ class ClassifierExplainer(BaseExplainer):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    return self.model.predict_proba(data_asframe)
+                    return self.model.predict_proba(data_asframe.copy())
 
                 self._shap_explainer = shap.KernelExplainer(
                     model_predict,
@@ -3249,7 +3249,7 @@ class ClassifierExplainer(BaseExplainer):
             ):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
-                preds = clone(self.model).fit(X_train, y_train).predict_proba(X_test)
+                preds = clone(self.model).fit(X_train, y_train).predict_proba(X_test.copy())
                 for label in range(len(self.labels)):
                     for cut in np.linspace(1, 99, 99, dtype=int):
                         y_true = np.where(y_test == label, 1, 0)
@@ -3482,7 +3482,7 @@ class ClassifierExplainer(BaseExplainer):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             if self.shap == "skorch":
                 X_row = X_row.values.astype("float32")
-            pred_probas = self.model.predict_proba(X_row)[0, :].squeeze()
+            pred_probas = self.model.predict_proba(X_row.copy())[0, :].squeeze()
 
         preds_df = pd.DataFrame(dict(label=self.labels, probability=pred_probas))
         if logodds and all(preds_df.probability < 1 - np.finfo(np.float64).eps):
@@ -4145,7 +4145,7 @@ class RegressionExplainer(BaseExplainer):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
         if self.shap == "skorch":
             X_row = X_row.values.astype("float32")
-        pred = self.model.predict(X_row).item()
+        pred = self.model.predict(X_row.copy()).item()
         preds_df = pd.DataFrame(columns=["", self.target])
         preds_df = append_dict_to_df(
             preds_df, {"": "Predicted", self.target: f"{pred:.{round}f} {self.units}"}
@@ -4203,7 +4203,7 @@ class RegressionExplainer(BaseExplainer):
             ):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
-                preds = clone(self.model).fit(X_train, y_train).predict(X_test)
+                preds = clone(self.model).fit(X_train, y_train).predict(X_test.copy())
                 metrics_dict["mean-squared-error"].append(
                     mean_squared_error(y_test, preds)
                 )

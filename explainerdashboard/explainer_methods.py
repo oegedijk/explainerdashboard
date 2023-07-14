@@ -572,7 +572,7 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
     sign = 1 if greater_is_better else -1
 
     def _scorer(clf, X, y):
-        y_pred = clf.predict_proba(X)
+        y_pred = clf.predict_proba(X.copy())
         score = sign * partial_metric(y, y_pred)
         return score
 
@@ -915,7 +915,7 @@ def get_pdp_df(
             first_row = X_sample.iloc[[0]].values.astype("float32")
         else:
             first_row = X_sample.iloc[[0]]
-        n_labels = model.predict_proba(first_row).shape[1]
+        n_labels = model.predict_proba(first_row.copy()).shape[1]
         if multiclass:
             pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
         else:
@@ -1732,21 +1732,21 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
             if pos_label == 1:
                 preds = [
                     xgbmodel.predict(
-                        X_row, iteration_range=(0, i + 1), output_margin=True
+                        X_row.copy(), iteration_range=(0, i + 1), output_margin=True
                     )[0]
                     for i in range(n_trees)
                 ]
             elif pos_label == 0:
                 preds = [
                     -xgbmodel.predict(
-                        X_row, iteration_range=(0, i + 1), output_margin=True
+                        X_row.copy(), iteration_range=(0, i + 1), output_margin=True
                     )[0]
                     for i in range(n_trees)
                 ]
             pred_probas = (np.exp(preds) / (1 + np.exp(preds))).tolist()
         else:
             margins = [
-                xgbmodel.predict(X_row, iteration_range=(0, i + 1), output_margin=True)[
+                xgbmodel.predict(X_row.copy(), iteration_range=(0, i + 1), output_margin=True)[
                     0
                 ]
                 for i in range(n_trees)
@@ -1758,7 +1758,7 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
 
     else:
         preds = [
-            xgbmodel.predict(X_row, iteration_range=(0, i + 1), output_margin=True)[0]
+            xgbmodel.predict(X_row.copy(), iteration_range=(0, i + 1), output_margin=True)[0]
             for i in range(n_trees)
         ]
 
