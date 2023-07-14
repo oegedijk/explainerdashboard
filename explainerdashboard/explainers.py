@@ -242,6 +242,10 @@ class BaseExplainer(ABC):
         self.categorical_dict = {
             col: sorted(self.X[col].dropna().unique().tolist()) for col in self.categorical_cols
         }
+        #Add nan to list, as this is a valid option for encoders
+        for col in self.categorical_cols:
+            if self.X[col].isnull().values.any():
+                self.categorical_dict[col].append('NaN')
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
@@ -757,6 +761,10 @@ class BaseExplainer(ABC):
             df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(
                 self.na_fill
             )[self.merged_cols]
+            #Adjust categorical col to proper nan value instead of self.na_fill
+            for col, values in self.categorical_dict.items():
+                if 'NaN' in values:
+                    df_merged[col] = df_merged[col].replace(self.na_fill, np.nan)
             if return_merged:
                 return df_merged
             else:
@@ -765,6 +773,10 @@ class BaseExplainer(ABC):
         elif len(inputs) == len(self.columns):
             cols = self.columns
             df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
+            #unsure if this is okay here for categorical defined values
+            for col, values in self.categorical_dict.items():
+                if 'NaN' in values:
+                    df[col] = df[col].replace(self.na_fill, np.nan)
             if return_merged:
                 return merge_categorical_columns(df, self.onehot_dict, self.merged_cols)
             else:
