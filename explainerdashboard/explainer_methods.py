@@ -1228,12 +1228,14 @@ def get_contrib_df(
 
         display_df_neg = display_df[display_df.contribution < 0]
         display_df_pos = display_df[display_df.contribution >= 0]
+        print(contrib_df[~contrib_df.col.isin(display_df.col.tolist())])
 
-        rest_df = (
-            contrib_df[~contrib_df.col.isin(display_df.col.tolist())]
-            .sum()
-            .to_frame()
-            .T.assign(col="_REST", value="")
+        rest_df = pd.DataFrame(
+            {
+                "col": ["_REST"], 
+                "contribution": [contrib_df[~contrib_df.col.isin(display_df.col.tolist())]["contribution"].sum()],
+                "value" : [""],
+            }
         )
 
         # sort the df by absolute value from highest to lowest:
@@ -1269,11 +1271,12 @@ def get_contrib_df(
             .reindex(cols)
             .reset_index()
         )
-        rest_df = (
-            contrib_df[~contrib_df.col.isin(cols)]
-            .sum()
-            .to_frame()
-            .T.assign(col="_REST", value="")
+        rest_df = pd.DataFrame(
+            {
+                "col": ["_REST"], 
+                "contribution": [contrib_df[~contrib_df.col.isin(cols)]["contribution"].sum()],
+                "value" : [""],
+            }
         )
         contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
 
