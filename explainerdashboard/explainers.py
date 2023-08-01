@@ -2565,9 +2565,11 @@ class ClassifierExplainer(BaseExplainer):
                     self.precision
                 )
             else:
+                warnings.filterwarnings("ignore", category=UserWarning)
                 self._pred_probas = self.model.predict_proba(self.X).astype(
                     self.precision
                 )
+                warnings.filterwarnings("default", category=UserWarning)
         return self._pred_probas
 
     @property
