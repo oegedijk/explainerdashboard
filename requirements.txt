@@ -8,7 +8,7 @@ Flask-WTF>=1.1
 graphviz>=0.18.2
 joblib
 jupyter_dash>=0.4.1
-numpy<=1.25
+numpy<=1.24.4
 oyaml
 pandas>=1.1
 scikit-learn>=1.1
