@@ -22,6 +22,8 @@ __all__ = [
     "plotly_xgboost_trees",
 ]
 
+import warnings
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
@@ -2805,7 +2807,7 @@ def plotly_rf_trees(
             model.estimators_
         ), f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
         colors[highlight_tree] = "red"
-
+    warnings.filterwarnings("ignore", category=UserWarning)
     if safe_isinstance(model, "RandomForestClassifier", "ExtraTreesClassifier"):
         preds_df = (
             pd.DataFrame(
@@ -2838,6 +2840,7 @@ def plotly_rf_trees(
             .sort_values("prediction")
             .reset_index(drop=True)
         )
+    warnings.filterwarnings("default", category=UserWarning)
 
     trace0 = go.Bar(
         x=preds_df.index,
