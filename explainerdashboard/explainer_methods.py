@@ -932,7 +932,7 @@ def get_pdp_df(
                 )
             dtemp.loc[:, feature] = [1 if col == grid_value else 0 for col in feature]
         else:
-            dtemp.loc[:, feature] = grid_value
+            dtemp[[feature]] = grid_value
         if is_classifier:
             if cast_to_float32:
                 dtemp = dtemp.values.astype("float32")
