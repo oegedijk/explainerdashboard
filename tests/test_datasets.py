@@ -46,6 +46,11 @@ class CategoricalModelWrapper:
     def _postprocessor(self, y):
         return self._perform_label_decoding(y)
 
+    def predict(self, X):
+        X = self._preprocessor(X)
+        y = self._model.predict(X)
+        return self._postprocessor(y)
+
     def predict_proba(self, X):
         X = self._preprocessor(X)
         probabilities_raw = self._model.predict_proba(X)
@@ -69,6 +74,7 @@ def test_NaN_containing_categorical_dataset():
     _wrapper, _test_X, _test_y = generate_categorical_dataset_model_wrapper()
     explainer = ClassifierExplainer(
                     _wrapper, _test_X, _test_y)
+    dashboard = ExplainerDashboard(explainer)
     assert "NaN" in explainer.categorical_dict["buying"]
     
 def test_categorical_label():
