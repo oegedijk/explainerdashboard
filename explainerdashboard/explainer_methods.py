@@ -1732,21 +1732,21 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
             if pos_label == 1:
                 preds = [
                     xgbmodel.predict(
-                        X_row.copy(), iteration_range=(0, i + 1), output_margin=True
+                        X_row, iteration_range=(0, i + 1), output_margin=True
                     )[0]
                     for i in range(n_trees)
                 ]
             elif pos_label == 0:
                 preds = [
                     -xgbmodel.predict(
-                        X_row.copy(), iteration_range=(0, i + 1), output_margin=True
+                        X_row, iteration_range=(0, i + 1), output_margin=True
                     )[0]
                     for i in range(n_trees)
                 ]
             pred_probas = (np.exp(preds) / (1 + np.exp(preds))).tolist()
         else:
             margins = [
-                xgbmodel.predict(X_row.copy(), iteration_range=(0, i + 1), output_margin=True)[
+                xgbmodel.predict(X_row, iteration_range=(0, i + 1), output_margin=True)[
                     0
                 ]
                 for i in range(n_trees)
@@ -1758,7 +1758,7 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
 
     else:
         preds = [
-            xgbmodel.predict(X_row.copy(), iteration_range=(0, i + 1), output_margin=True)[0]
+            xgbmodel.predict(X_row, iteration_range=(0, i + 1), output_margin=True)[0]
             for i in range(n_trees)
         ]
 
