@@ -1,7 +1,6 @@
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import os
@@ -12,14 +11,6 @@ class CategoricalModelWrapper:
         self._model = model
         self._categorical_label_test = categorical_label_test
         pass
-
-    def _perform_one_hot_encoding(self, X, feature, values):
-        one_hot_enc = OneHotEncoder(dtype='int64', sparse_output=False, handle_unknown="ignore").set_output(transform="pandas")
-        one_hot_enc.fit(values)
-        result = one_hot_enc.transform(X[[feature]])
-        for col in result.columns:
-            result = result.rename(columns={ col : col.replace("x0", feature)})
-        return pd.concat([X, result], axis=1).drop(columns=[feature])
     
     def _perform_label_encoding(self, y):
         label_enc = LabelEncoder()
