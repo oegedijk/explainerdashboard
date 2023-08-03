@@ -159,7 +159,6 @@ tests/cli_assets/*
 tests/test_assets/*
 !tests/test_assets/data.csv
 !tests/test_assets/pipeline_data.csv
-!tests/test_assets/car.csv
 
 db_test.py
 .DS_Store
