@@ -572,7 +572,7 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
     sign = 1 if greater_is_better else -1
 
     def _scorer(clf, X, y):
-        y_pred = clf.predict_proba(X.copy())
+        y_pred = clf.predict_proba(X)
         score = sign * partial_metric(y, y_pred)
         return score
 
