@@ -40,6 +40,14 @@ import dash_auth
 from flask import Flask, request, redirect
 from flask_simplelogin import SimpleLogin, login_required
 from werkzeug.security import check_password_hash, generate_password_hash
+
+warnings.filterwarnings(
+    "ignore",
+    # NB the \n at the beginning of the message :-/
+    r"ipykernel.comm.Comm",
+    DeprecationWarning,
+    "jupyter_dash.comms",
+)
 from jupyter_dash import JupyterDash
 
 import plotly.io as pio
