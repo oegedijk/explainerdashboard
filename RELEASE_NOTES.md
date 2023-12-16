@@ -1,6 +1,28 @@
 # Release Notes
 
 
+## Version 0.4.4:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+- Add warning to set `shap_kwargs=dict(check_additivity=True)` for skorch models, and switch this on for the tests.
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+
 ## Version 0.4.3:
 ### Breaking Changes
 - 

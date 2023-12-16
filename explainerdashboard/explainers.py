@@ -291,6 +291,7 @@ class BaseExplainer(ABC):
             self.y.name = "Target"
 
         self.metric = permutation_metric
+        self.shap_kwargs = shap_kwargs or {}
 
         if shap == "guess":
             shap_guess = guess_shap(self.model)
@@ -331,7 +332,13 @@ class BaseExplainer(ABC):
                 "not be calculated!"
             )
             self.interactions_should_work = False
-        self.shap_kwargs = shap_kwargs if shap_kwargs else {}
+        if self.shap == "skorch":
+            print(
+                "WARNING: For shap='skorch' the additivity check tends to fail, "
+                "you set set shap_kwargs=dict(check_additivity=False) to supress "
+                "this error (at your own risk)!"
+            )
+
         self.model_output = model_output
 
         if idxs is not None:
@@ -2783,9 +2790,7 @@ class ClassifierExplainer(BaseExplainer):
     def shap_base_value(self, pos_label=None):
         """SHAP base value: average outcome of population"""
         if not hasattr(self, "_shap_base_value"):
-            _ = (
-                self.get_shap_values_df()
-            )  # CatBoost needs to have shap values calculated before expected value for some reason
+            _ = self.get_shap_values_df()  # CatBoost needs to have shap values calculated before expected value for some reason
             self._shap_base_value = self.shap_explainer.expected_value
             if (
                 isinstance(self._shap_base_value, np.ndarray)
@@ -4605,8 +4610,8 @@ class TreeExplainer(BaseExplainer):
           dataframe with summary of the decision tree path
 
         """
-        assert tree_idx >= 0 and tree_idx < len(
-            self.shadow_trees
+        assert (
+            tree_idx >= 0 and tree_idx < len(self.shadow_trees)
         ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
         X_row = self.get_X_row(index)
         if self.is_classifier:
@@ -4756,9 +4761,7 @@ class RandomForestExplainer(TreeExplainer):
                 "Calculating ShadowDecTree for each individual decision tree...",
                 flush=True,
             )
-            assert hasattr(
-                self.model, "estimators_"
-            ), """self.model does not have an estimators_ attribute, so probably not
+            assert hasattr(self.model, "estimators_"), """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
             y = self.y if self.y_missing else self.y.astype("int16")
             self._shadow_trees = [
