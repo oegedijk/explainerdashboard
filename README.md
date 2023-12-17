@@ -12,7 +12,7 @@ that explains the workings of a (scikit-learn compatible) machine
 learning model. The dashboard provides interactive plots on model performance, 
 feature importances, feature contributions to individual predictions, 
 "what if" analysis,
-partial dependence plots, SHAP (interaction) values, visualisation of individual
+partial dependence plots, SHAP (interaction) values, visualization of individual
 decision trees, etc. 
 
 You can also interactively explore components of the dashboard in a 
@@ -536,7 +536,7 @@ In order to reduce the memory footprint there are a number of things you can do:
 2. Setting a lower precision. By default shap values are stored as `'float64'`,
     but you can store them as `'float32'` instead and save half the space:
     ```ClassifierExplainer(model, X_test, y_test, precision='float32')```. You 
-    can also set a lower precision on your `X_test` dataset yourself ofcourse.
+    can also set a lower precision on your `X_test` dataset yourself of course.
 3. For multi class classifier, by default `ClassifierExplainer` calculates
     shap values for all classes. If you're only interested in a single class
     you can drop the other shap values: `explainer.keep_shap_pos_label_only(pos_label)`
