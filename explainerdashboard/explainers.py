@@ -321,12 +321,12 @@ class BaseExplainer(ABC):
                     "sklearn-compatible NeuralNet wrapper are supported for now! "
                     "See https://github.com/skorch-dev/skorch"
                 )
-            assert shap in ["tree", "linear", "deep", "kernel", "skorch", "gputree"], (
-                "ERROR! Only shap='guess', 'tree', 'linear', ' kernel', 'skorch' "
-                "or 'gputree' are supported for now!"
+            assert shap in ["tree", "linear", "deep", "kernel", "skorch"], (
+                "ERROR! Only shap='guess', 'tree', 'linear', ' kernel' or 'skorch' are "
+                " supported for now!"
             )
             self.shap = shap
-        if self.shap in {"kernel", "skorch", "linear", "gputree"}:
+        if self.shap in {"kernel", "skorch", "linear"}:
             print(
                 f"WARNING: For shap='{self.shap}', shap interaction values can unfortunately "
                 "not be calculated!"
@@ -334,8 +334,8 @@ class BaseExplainer(ABC):
             self.interactions_should_work = False
         if self.shap == "skorch":
             print(
-                "WARNING: For shap='skorch' the additivity check tends to fail. "
-                "For now you can set shap_kwargs=dict(check_additivity=False) to supress "
+                "WARNING: For shap='skorch' the additivity check tends to fail, "
+                "you set set shap_kwargs=dict(check_additivity=False) to supress "
                 "this error (at your own risk)!"
             )
 
@@ -1068,8 +1068,8 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "deep":
                 print(
-                    "Generating self.shap_explainer = "
-                    "shap.DeepExplainer(model, X_background)"
+                    f"Generating self.shap_explainer = "
+                    f"shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -1084,8 +1084,8 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "skorch":
                 print(
-                    "Generating self.shap_explainer = "
-                    "shap.DeepExplainer(model, X_background)"
+                    f"Generating self.shap_explainer = "
+                    f"shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -1123,12 +1123,6 @@ class BaseExplainer(ABC):
                     if self.X_background is not None
                     else shap.sample(self.X, 50),
                 )
-            elif self.shap == "gputree":
-                print(
-                    "Using GPUTree explainer. Make sure you set up you CUDA GPU correctly first."
-                    "See e.g. https://shap.readthedocs.io/en/latest/example_notebooks/api_examples/explainers/GPUTree.html"
-                )
-                self._shap_explainer = shap.explainer.GPUTree(self.model, self.X)
         return self._shap_explainer
 
     @insert_pos_label
