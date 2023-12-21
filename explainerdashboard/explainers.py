@@ -240,8 +240,12 @@ class BaseExplainer(ABC):
             col for col in self.regular_cols if not is_numeric_dtype(self.X[col])
         ]
         self.categorical_dict = {
-            col: sorted(self.X[col].unique().tolist()) for col in self.categorical_cols
+            col: sorted(self.X[col].dropna().unique().tolist()) for col in self.categorical_cols
         }
+        #Add nan to list, as this is a valid option for encoders
+        for col in self.categorical_cols:
+            if self.X[col].isnull().values.any():
+                self.categorical_dict[col].append('NaN')
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
@@ -764,6 +768,11 @@ class BaseExplainer(ABC):
             df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(
                 self.na_fill
             )[self.merged_cols]
+            #Adjust categorical col to proper nan value instead of self.na_fill
+            for col, values in self.categorical_dict.items():
+                if 'NaN' in values:
+                    df_merged[col] = df_merged[col].replace(self.na_fill, np.nan)   #If the categorical feature comes from the existing data it will be nan
+                    df_merged[col] = df_merged[col].replace('NaN', np.nan)          #If the categorical feature is changed to NaN in the frontend it will be a string
             if return_merged:
                 return df_merged
             else:
@@ -772,6 +781,11 @@ class BaseExplainer(ABC):
         elif len(inputs) == len(self.columns):
             cols = self.columns
             df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
+            #unsure if this is okay here for categorical defined values
+            for col, values in self.categorical_dict.items():
+                if 'NaN' in values:
+                    df[col] = df[col].replace(self.na_fill, np.nan)         #If the categorical feature comes from the existing data it will be nan
+                    df[col] = df[col].replace('NaN', np.nan)                #If the categorical feature is changed to NaN in the frontend it will be a string
             if return_merged:
                 return merge_categorical_columns(df, self.onehot_dict, self.merged_cols)
             else:
@@ -2568,12 +2582,12 @@ class ClassifierExplainer(BaseExplainer):
                 self.model, "predict_proba"
             ), "model does not have a predict_proba method!"
             if self.shap == "skorch":
-                self._pred_probas = self.model.predict_proba(self.X.values).astype(
+                self._pred_probas = self.model.predict_proba(self.X.copy().values).astype(
                     self.precision
                 )
             else:
                 warnings.filterwarnings("ignore", category=UserWarning)
-                self._pred_probas = self.model.predict_proba(self.X).astype(
+                self._pred_probas = self.model.predict_proba(self.X.copy()).astype(
                     self.precision
                 )
                 warnings.filterwarnings("default", category=UserWarning)
@@ -2775,7 +2789,7 @@ class ClassifierExplainer(BaseExplainer):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    return self.model.predict_proba(data_asframe)
+                    return self.model.predict_proba(data_asframe.copy())
 
                 self._shap_explainer = shap.KernelExplainer(
                     model_predict,
@@ -3256,7 +3270,7 @@ class ClassifierExplainer(BaseExplainer):
             ):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
-                preds = clone(self.model).fit(X_train, y_train).predict_proba(X_test)
+                preds = clone(self.model).fit(X_train, y_train).predict_proba(X_test.copy())
                 for label in range(len(self.labels)):
                     for cut in np.linspace(1, 99, 99, dtype=int):
                         y_true = np.where(y_test == label, 1, 0)
@@ -3489,7 +3503,7 @@ class ClassifierExplainer(BaseExplainer):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             if self.shap == "skorch":
                 X_row = X_row.values.astype("float32")
-            pred_probas = self.model.predict_proba(X_row)[0, :].squeeze()
+            pred_probas = self.model.predict_proba(X_row.copy())[0, :].squeeze()
 
         preds_df = pd.DataFrame(dict(label=self.labels, probability=pred_probas))
         if logodds and all(preds_df.probability < 1 - np.finfo(np.float64).eps):
