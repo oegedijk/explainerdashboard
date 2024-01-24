@@ -269,6 +269,7 @@ class ShapSummaryComponent(ExplainerComponent):
             class_name="h-100",
         )
 
+
     def to_html(self, state_dict=None, add_header=True):
         args = self.get_state_args(state_dict)
         summary_type = args.pop("summary_type")
@@ -318,9 +319,10 @@ class ShapSummaryComponent(ExplainerComponent):
                 Input("shap-summary-depth-" + self.name, "value"),
                 Input("shap-summary-index-" + self.name, "value"),
                 Input("pos-label-" + self.name, "value"),
+                Input("shap-hidden-trigger", "children"),
             ],
         )
-        def update_shap_summary_graph(summary_type, depth, index, pos_label):
+        def update_shap_summary_graph(summary_type, depth, index, pos_label, hidden_trigger):
             depth = None if depth is None else int(depth)
             if summary_type == "aggregate":
                 plot = self.explainer.plot_importances(
@@ -336,6 +338,7 @@ class ShapSummaryComponent(ExplainerComponent):
                 )
             else:
                 raise PreventUpdate
+            
 
             ctx = dash.callback_context
             trigger = ctx.triggered[0]["prop_id"].split(".")[0]
@@ -346,6 +349,9 @@ class ShapSummaryComponent(ExplainerComponent):
                     return (plot, {})
             else:
                 return (plot, dash.no_update)
+            
+
+            
 
 
 class ShapDependenceComponent(ExplainerComponent):
