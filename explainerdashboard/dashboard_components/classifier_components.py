@@ -653,6 +653,15 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
     def component_callbacks(self, app):
         if self.feature_input_component is None:
 
+
+            @app.callback(
+                Output("clas-prediction-index-" + self.name, "value"),
+                Input("single-pred-hidden-trigger", 'children')
+            )
+            def update_index(new_index):
+                return str(new_index)
+            
+
             @app.callback(
                 [
                     Output("clas-prediction-div-" + self.name, "children"),
