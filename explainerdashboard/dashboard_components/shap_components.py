@@ -2399,6 +2399,14 @@ class ShapContributionsGraphComponent(ExplainerComponent):
         if self.feature_input_component is None:
 
             @app.callback(
+                Output("contributions-graph-index-" + self.name, "value"),
+                Input("single-pred-hidden-trigger", 'children')
+            )
+            def update_index(new_index):
+                return str(new_index)
+            
+
+            @app.callback(
                 Output("contributions-graph-" + self.name, "figure"),
                 [
                     Input("contributions-graph-index-" + self.name, "value"),
@@ -2421,6 +2429,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                     higher_is_better=self.higher_is_better,
                 )
                 return plot
+                
 
         else:
 
