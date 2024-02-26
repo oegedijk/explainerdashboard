@@ -1284,7 +1284,10 @@ def get_contrib_df(
             }
         )
         contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
-
+    
+    contrib_df.loc[contrib_df['col'] == '_BASE', 'contribution'] = contrib_df.loc[contrib_df['col'] == '_BASE', 'contribution'].apply(lambda x: x[0] if isinstance(x, list) and len(x) > 0 else x)
+    contrib_df['contribution'] = contrib_df['contribution'].astype(float)
+    
     # add cumulative contribution from top to bottom (for making bar chart):
     contrib_df["cumulative"] = contrib_df.contribution.cumsum()
     contrib_df["base"] = contrib_df["cumulative"] - contrib_df["contribution"]
