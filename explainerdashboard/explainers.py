@@ -761,9 +761,12 @@ class BaseExplainer(ABC):
 
         if len(inputs) == len(self.merged_cols):
             cols = self.columns_ranked_by_shap() if ranked_by_shap else self.merged_cols
-            df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(
-                self.na_fill
-            )[self.merged_cols]
+            with pd.option_context("future.no_silent_downcasting", True):
+                df_merged = (
+                    pd.DataFrame(dict(zip(cols, inputs)), index=[0])
+                    .fillna(self.na_fill)
+                    .infer_objects(copy=False)[self.merged_cols]
+                )
             if return_merged:
                 return df_merged
             else:
