@@ -3105,7 +3105,7 @@ class ClassifierExplainer(BaseExplainer):
                 ):
                     self._shap_interaction_values = [
                         self._shap_interaction_values[:, :, :, i]
-                        for i in range(self._shap_interaction_values.shape)
+                        for i in range(self._shap_interaction_values.shape[3])
                     ]
                 assert len(self._shap_interaction_values) == len(self.labels), (
                     f"len(self.label)={len(self.labels)}, but "
