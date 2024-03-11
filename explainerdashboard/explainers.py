@@ -21,7 +21,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_string_dtype
+from pandas.api.types import is_numeric_dtype
 
 import shap
 
@@ -195,7 +195,7 @@ class BaseExplainer(ABC):
                             transformer_pipeline, X_background
                         )
                     print(
-                        f"Detected sklearn/imblearn Pipeline and succesfully extracted final "
+                        "Detected sklearn/imblearn Pipeline and succesfully extracted final "
                         "output dataframe with column names and final model..."
                     )
                 except:
@@ -1068,8 +1068,8 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "deep":
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -1084,8 +1084,8 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "skorch":
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -1895,16 +1895,18 @@ class BaseExplainer(ABC):
                 if self.target:
                     title = f"Impact of feature on predicted probability {self.target}={pos_label_str} <br> (SHAP values)"
                 else:
-                    title = f"Impact of Feature on Prediction probability <br> (SHAP values)"
+                    title = (
+                        "Impact of Feature on Prediction probability <br> (SHAP values)"
+                    )
             elif self.model_output == "logodds":
-                title = f"Impact of Feature on predicted logodds <br> (SHAP values)"
+                title = "Impact of Feature on predicted logodds <br> (SHAP values)"
         elif self.is_regression:
             if self.target:
                 title = (
                     f"Impact of Feature on Predicted {self.target} <br> (SHAP values)"
                 )
             else:
-                title = f"Impact of Feature on Prediction<br> (SHAP values)"
+                title = "Impact of Feature on Prediction<br> (SHAP values)"
 
         cols = self.get_importances_df(kind="shap", topx=topx, pos_label=pos_label)[
             "Feature"
@@ -2492,21 +2494,21 @@ class ClassifierExplainer(BaseExplainer):
             self.model, "RandomForestClassifier", "ExtraTreesClassifier"
         ):
             print(
-                f"Detected RandomForestClassifier model: "
+                "Detected RandomForestClassifier model: "
                 "Changing class type to RandomForestClassifierExplainer...",
                 flush=True,
             )
             self.__class__ = RandomForestClassifierExplainer
         if str(type(self.model)).endswith("XGBClassifier'>"):
             print(
-                f"Detected XGBClassifier model: "
+                "Detected XGBClassifier model: "
                 "Changing class type to XGBClassifierExplainer...",
                 flush=True,
             )
             self.__class__ = XGBClassifierExplainer
             if len(self.labels) > 2 and self.model_output == "probability":
                 print(
-                    f"model_output=='probability' does not work with multiclass "
+                    "model_output=='probability' does not work with multiclass "
                     "XGBClassifier models, so settings model_output='logodds'..."
                 )
                 self.model_output = "logodds"
@@ -2721,8 +2723,8 @@ class ClassifierExplainer(BaseExplainer):
                 )
             elif self.shap == "deep":
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -2739,8 +2741,8 @@ class ClassifierExplainer(BaseExplainer):
                 import torch
 
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -2841,20 +2843,41 @@ class ClassifierExplainer(BaseExplainer):
                 )
 
             if len(self.labels) == 2:
-                if not isinstance(_shap_values, list):
-                    assert (
-                        len(_shap_values.shape) == 2
-                    ), f"shap_values should be 2d, instead shape={_shap_values.shape}!"
-                elif isinstance(_shap_values, list) and len(_shap_values) == 2:
+                if (
+                    isinstance(_shap_values, np.ndarray)
+                    and len(_shap_values.shape) == 3
+                    and _shap_values.shape[2] == 2
+                ):
+                    # for binary classifier only keep positive class:
+                    _shap_values = _shap_values[:, :, 1]
+                elif (
+                    isinstance(_shap_values, np.ndarray)
+                    and len(_shap_values.shape) == 3
+                    and _shap_values.shape[2] > 2
+                ):
+                    raise Exception(
+                        f"len(self.label)={len(self.labels)}, but "
+                        f"shap returned shap values for {len(_shap_values)} classes! "
+                        "Adjust the labels parameter accordingly!"
+                    )
+
+                if isinstance(_shap_values, list) and len(_shap_values) == 2:
                     # for binary classifier only keep positive class
                     _shap_values = _shap_values[1]
-                else:
+                elif isinstance(_shap_values, list) and len(_shap_values) > 2:
                     raise Exception(
                         f"len(self.label)={len(self.labels)}, but "
                         f"shap returned shap values for {len(_shap_values)} classes! "
                         "Adjust the labels parameter accordingly!"
                     )
             else:
+                if (
+                    isinstance(_shap_values, np.ndarray)
+                    and len(_shap_values.shape) == 3
+                ):
+                    _shap_values = [
+                        _shap_values[:, :, i] for i in range(_shap_values.shape[2])
+                    ]
                 assert len(_shap_values) == len(self.labels), (
                     f"len(self.label)={len(self.labels)}, but "
                     f"shap returned shap values for {len(_shap_values)} classes! "
@@ -4031,11 +4054,11 @@ class RegressionExplainer(BaseExplainer):
 
         if safe_isinstance(model, "RandomForestRegressor", "ExtraTreesRegressor"):
             print(
-                f"Changing class type to RandomForestRegressionExplainer...", flush=True
+                "Changing class type to RandomForestRegressionExplainer...", flush=True
             )
             self.__class__ = RandomForestRegressionExplainer
         if safe_isinstance(model, "XGBRegressor"):
-            print(f"Changing class type to XGBRegressionExplainer...", flush=True)
+            print("Changing class type to XGBRegressionExplainer...", flush=True)
             self.__class__ = XGBRegressionExplainer
 
         _ = self.shap_explainer
@@ -4171,7 +4194,7 @@ class RegressionExplainer(BaseExplainer):
                         self.target: f"{(y_true-pred):.{round}f} {self.units}",
                     },
                 )
-            except Exception as e:
+            except Exception:
                 pass
         return preds_df
 
@@ -4259,14 +4282,14 @@ class RegressionExplainer(BaseExplainer):
         for k, v in metrics_dict.items():
             if k == "mean-squared-error":
                 metrics_descriptions_dict[k] = (
-                    f"A measure of how close "
+                    "A measure of how close "
                     "predicted value fits true values, where large deviations "
                     "are punished more heavily. So the lower this number the "
                     "better the model."
                 )
             if k == "root-mean-squared-error":
                 metrics_descriptions_dict[k] = (
-                    f"A measure of how close "
+                    "A measure of how close "
                     "predicted value fits true values, where large deviations "
                     "are punished more heavily. So the lower this number the "
                     "better the model."
@@ -4576,7 +4599,7 @@ class TreeExplainer(BaseExplainer):
 
                 cmd = ["dot", "-V"]
                 be.run_check(cmd, capture_output=True, check=True, quiet=True)
-            except Exception as e:
+            except Exception:
                 print(
                     """
                 WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
@@ -4761,7 +4784,9 @@ class RandomForestExplainer(TreeExplainer):
                 "Calculating ShadowDecTree for each individual decision tree...",
                 flush=True,
             )
-            assert hasattr(self.model, "estimators_"), """self.model does not have an estimators_ attribute, so probably not
+            assert hasattr(
+                self.model, "estimators_"
+            ), """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
             y = self.y if self.y_missing else self.y.astype("int16")
             self._shadow_trees = [
