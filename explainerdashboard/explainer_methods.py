@@ -44,7 +44,6 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype, is_categorical_dtype
 
-from dtreeviz.trees import ShadowDecTree
 
 from sklearn.metrics import make_scorer
 from sklearn.base import clone
@@ -189,7 +188,9 @@ def parse_cats(X, cats, sep: str = "_"):
 
     if isinstance(cats, dict):
         for k, v in cats.items():
-            assert set(v).issubset(
+            assert set(
+                v
+            ).issubset(
                 set(all_cols)
             ), f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
             col_counter.update(v)
@@ -201,7 +202,9 @@ def parse_cats(X, cats, sep: str = "_"):
                 col_counter.update(onehot_dict[cat])
             if isinstance(cat, dict):
                 for k, v in cat.items():
-                    assert set(v).issubset(
+                    assert set(
+                        v
+                    ).issubset(
                         set(all_cols)
                     ), f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
                     col_counter.update(v)
@@ -1083,7 +1086,14 @@ def get_precision_df(
                                 == i
                             ).mean()
                 new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns)
-                precision_df = pd.concat([precision_df, new_row_df])
+                if not new_row_df.empty:
+                    for column in new_row_df.columns:
+                        new_row_df[column] = new_row_df[column].astype(
+                            precision_df[column].dtype
+                        )
+                    precision_df = pd.concat(
+                        [precision_df, new_row_df], ignore_index=True
+                    )
 
     elif quantiles:
         preds_quantiles = np.array_split(predictions_df.pred_proba.values, quantiles)
@@ -1237,9 +1247,13 @@ def get_contrib_df(
 
         rest_df = pd.DataFrame(
             {
-                "col": ["_REST"], 
-                "contribution": [contrib_df[~contrib_df.col.isin(display_df.col.tolist())]["contribution"].sum()],
-                "value" : [""],
+                "col": ["_REST"],
+                "contribution": [
+                    contrib_df[~contrib_df.col.isin(display_df.col.tolist())][
+                        "contribution"
+                    ].sum()
+                ],
+                "value": [""],
             }
         )
 
@@ -1278,9 +1292,11 @@ def get_contrib_df(
         )
         rest_df = pd.DataFrame(
             {
-                "col": ["_REST"], 
-                "contribution": [contrib_df[~contrib_df.col.isin(cols)]["contribution"].sum()],
-                "value" : [""],
+                "col": ["_REST"],
+                "contribution": [
+                    contrib_df[~contrib_df.col.isin(cols)]["contribution"].sum()
+                ],
+                "value": [""],
             }
         )
         contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
