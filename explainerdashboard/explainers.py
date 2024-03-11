@@ -3068,9 +3068,21 @@ class ClassifierExplainer(BaseExplainer):
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(
                 self.X
             )
-
             if len(self.labels) == 2:
-                if not isinstance(self._shap_interaction_values, list):
+                if (
+                    isinstance(self._shap_interaction_values, np.ndarray)
+                    and len(self._shap_interaction_values.shape) == 4
+                    and self._shap_interaction_values.shape[3] == 2
+                ):
+                    # for binary classifier only keep positive class:
+                    self._shap_interaction_values = [
+                        self._shap_interaction_values[:, :, :, 1]
+                    ]
+                elif (
+                    isinstance(self._shap_interaction_values, np.ndarray)
+                    and len(self._shap_interaction_values.shape) == 3
+                ):
+                    # for binary classifier only keep positive class:
                     self._shap_interaction_values = [self._shap_interaction_values]
                 elif (
                     isinstance(self._shap_interaction_values, list)
@@ -3086,6 +3098,15 @@ class ClassifierExplainer(BaseExplainer):
                         "Adjust the labels parameter accordingly!"
                     )
             else:
+                if (
+                    isinstance(self._shap_interaction_values, np.ndarray)
+                    and len(self._shap_interaction_values.shape) == 4
+                    and self._shap_interaciton_values.shape[3] > 2
+                ):
+                    self._shap_interaciton_values = [
+                        self._shap_interaction_values[:, :, :, i]
+                        for i in range(self._shap_interaciton_values.shape)
+                    ]
                 assert len(self._shap_interaction_values) == len(self.labels), (
                     f"len(self.label)={len(self.labels)}, but "
                     f"shap returned shap values for {len(self._shap_interaction_values)} classes! "
