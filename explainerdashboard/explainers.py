@@ -4768,7 +4768,9 @@ class RandomForestExplainer(TreeExplainer):
                 "Calculating ShadowDecTree for each individual decision tree...",
                 flush=True,
             )
-            assert hasattr(self.model, "estimators_"), """self.model does not have an estimators_ attribute, so probably not
+            assert hasattr(
+                self.model, "estimators_"
+            ), """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
             y = self.y if self.y_missing else self.y.astype("int16")
             self._shadow_trees = [
