@@ -3101,11 +3101,11 @@ class ClassifierExplainer(BaseExplainer):
                 if (
                     isinstance(self._shap_interaction_values, np.ndarray)
                     and len(self._shap_interaction_values.shape) == 4
-                    and self._shap_interaciton_values.shape[3] > 2
+                    and self._shap_interaction_values.shape[3] > 2
                 ):
-                    self._shap_interaciton_values = [
+                    self._shap_interaction_values = [
                         self._shap_interaction_values[:, :, :, i]
-                        for i in range(self._shap_interaciton_values.shape)
+                        for i in range(self._shap_interaction_values.shape)
                     ]
                 assert len(self._shap_interaction_values) == len(self.labels), (
                     f"len(self.label)={len(self.labels)}, but "
