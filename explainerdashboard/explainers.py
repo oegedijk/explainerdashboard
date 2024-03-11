@@ -3002,9 +3002,15 @@ class ClassifierExplainer(BaseExplainer):
                     else self.shap_kwargs
                 )
                 sv = self.shap_explainer.shap_values(X_row, **shap_kwargs)
-            if isinstance(sv, list) and len(sv) > 1:
+            if isinstance(sv, np.ndarray) and len(sv.shape) > 2:
+                shap_row = pd.DataFrame(sv[:, :, pos_label], columns=self.columns)
+            elif isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
-            elif len(self.labels) == 2:
+            elif (
+                len(self.labels) == 2
+                and isinstance(sv, np.ndarray)
+                and len(sv.shape) == 2
+            ):
                 if pos_label == 1:
                     shap_row = pd.DataFrame(sv, columns=self.columns)
                 elif pos_label == 0:
