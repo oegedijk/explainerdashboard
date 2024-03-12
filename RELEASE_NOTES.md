@@ -1,6 +1,23 @@
 # Release Notes
 
 
+## Version 0.4.6:
+
+
+### Bug Fixes
+- should now work with the format of shap 0.45 that returns a three dimensional np.array instead of a list of 2-dimensional np.arrays for classifiers
+-
+
+### Improvements
+- Fixed several pandas warning about to be deprecated behaviours
+-
+
+### Other Changes
+-
+-
+
+
+
 ## Version 0.4.4:
 ### Breaking Changes
 - 
