@@ -409,7 +409,10 @@ def merge_categorical_columns(
                 else:
                     cat_pieces.append(pd.DataFrame({col_name: X[col_name].values}))
 
-    X_cats = pd.concat(cat_pieces, axis=1)
+    if cat_pieces:
+        X_cats = pd.concat(cat_pieces, axis=1)
+    else:
+        X_cats = pd.DataFrame()
 
     if cols:
         X_cats = X_cats[cols]
