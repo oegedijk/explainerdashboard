@@ -42,7 +42,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_categorical_dtype
+from pandas.api.types import is_numeric_dtype
 
 
 from sklearn.metrics import make_scorer
@@ -402,7 +402,7 @@ def merge_categorical_columns(
             cat_pieces.append(pd.DataFrame({col_name: merged_col}))
         else:
             if not drop_regular:
-                if is_categorical_dtype(X[col_name]):
+                if isinstance(X[col_name], pd.CategoricalDtype):
                     cat_pieces.append(
                         pd.DataFrame({col_name: pd.Categorical(X[col_name])})
                     )

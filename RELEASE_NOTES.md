@@ -1,6 +1,20 @@
 # Release Notes
 
 
+## Version 0.4.6.1:
+
+
+### Bug Fixes
+- fix merge_categorical_columns when there are no cats
+- Handle pandas option setting context in case it doesn't exist
+- Remove is_categorical_dtype as it is getting deprecated
+
+### Improvements
+- M
+-
+
+
+
 ## Version 0.4.6:
 
 
@@ -12,9 +26,6 @@
 - Fixed several pandas warning about to be deprecated behaviours
 -
 
-### Other Changes
--
--
 
 
 
