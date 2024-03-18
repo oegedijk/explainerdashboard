@@ -76,7 +76,7 @@ def test_get_col(precalculated_rf_regression_explainer):
         precalculated_rf_regression_explainer.get_col("Gender"), pd.Series
     )
     assert isinstance(
-        precalculated_rf_regression_explainer.get_col("Gender"), pd.CategoricalDtype()
+        precalculated_rf_regression_explainer.get_col("Gender"), pd.CategoricalDtype
     )
 
     assert isinstance(precalculated_rf_regression_explainer.get_col("Age"), pd.Series)
