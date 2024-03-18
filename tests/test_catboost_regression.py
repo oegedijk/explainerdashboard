@@ -95,7 +95,8 @@ def test_get_col(precalculated_catboost_regression_explainer):
         precalculated_catboost_regression_explainer.get_col("Sex"), pd.Series
     )
     assert isinstance(
-        precalculated_catboost_regression_explainer.get_col("Sex"), pd.CategoricalDtype
+        precalculated_catboost_regression_explainer.get_col("Sex").dtype,
+        pd.CategoricalDtype,
     )
 
     assert isinstance(

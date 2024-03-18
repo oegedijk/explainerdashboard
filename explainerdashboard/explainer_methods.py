@@ -402,7 +402,7 @@ def merge_categorical_columns(
             cat_pieces.append(pd.DataFrame({col_name: merged_col}))
         else:
             if not drop_regular:
-                if isinstance(X[col_name], pd.CategoricalDtype):
+                if isinstance(X[col_name].dtype, pd.CategoricalDtype):
                     cat_pieces.append(
                         pd.DataFrame({col_name: pd.Categorical(X[col_name])})
                     )

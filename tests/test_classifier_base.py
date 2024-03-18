@@ -127,12 +127,13 @@ def test_get_col(precalculated_rf_classifier_explainer):
         precalculated_rf_classifier_explainer.get_col("Gender"), pd.Series
     )
     assert isinstance(
-        precalculated_rf_classifier_explainer.get_col("Gender"), pd.CategoricalDtype
+        precalculated_rf_classifier_explainer.get_col("Gender").dtype,
+        pd.CategoricalDtype,
     )
 
     assert isinstance(precalculated_rf_classifier_explainer.get_col("Deck"), pd.Series)
     assert isinstance(
-        precalculated_rf_classifier_explainer.get_col("Deck"), pd.CategoricalDtype
+        precalculated_rf_classifier_explainer.get_col("Deck").dtype, pd.CategoricalDtype
     )
 
     assert isinstance(precalculated_rf_classifier_explainer.get_col("Age"), pd.Series)
