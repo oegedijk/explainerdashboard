@@ -50,6 +50,7 @@ from sklearn.metrics import average_precision_score
 
 
 from .explainer_methods import *
+from .explainer_methods import check_dtype_of
 from .explainer_plots import *
 
 
@@ -241,7 +242,9 @@ class BaseExplainer(ABC):
             col for col in self.regular_cols if not is_numeric_dtype(self.X[col])
         ]
         self.categorical_dict = {
-            col: sorted(self.X[col].unique().tolist()) for col in self.categorical_cols
+            col: sorted(
+                v for v in self.X[col].unique().tolist() if not pd.isna(v)
+            ) for col in self.categorical_cols
         }
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
@@ -1675,6 +1678,7 @@ class BaseExplainer(ABC):
         Returns:
           pd.DataFrame
         """
+        check_dtype_of(self.X.columns, X_row, self.X)
         contrib_df = self.get_contrib_df(index, X_row, topx, cutoff, sort, pos_label)
         return get_contrib_summary_df(
             contrib_df,
@@ -1974,6 +1978,7 @@ class BaseExplainer(ABC):
 
         """
         assert orientation in ["vertical", "horizontal"]
+        check_dtype_of(self.X.columns, X_row, self.X)
         contrib_df = self.get_contrib_df(
             index=index,
             X_row=X_row,
@@ -2308,6 +2313,7 @@ class BaseExplainer(ABC):
           plotly.Fig: fig
 
         """
+        check_dtype_of(self.X.columns, X_row, self.X)
         pdp_df = self.pdp_df(
             col,
             index,
@@ -4207,6 +4213,7 @@ class RegressionExplainer(BaseExplainer):
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
+            check_dtype_of(self.X.columns, X_row, self.X)
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
         if self.shap == "skorch":
