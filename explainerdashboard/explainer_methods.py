@@ -657,6 +657,7 @@ def permutation_importances(
             if pass_nparray:
                 scores.append(scorer(model, X.values, y.values))
             else:
+                check_dtype_of(col_list, X, old_cols)
                 scores.append(scorer(model, X, y))
 
             X[col_list] = old_cols
@@ -925,6 +926,7 @@ def get_pdp_df(
     for grid_value in grid_values:
         dtemp = X_sample.copy()
         if isinstance(feature, list):
+            tmp_feats = feature.copy()
             if grid_value in X_sample.columns:
                 assert set(X_sample[grid_value].unique()).issubset({0, 1}), (
                     f"{grid_values} When passing a list of features these have to be onehotencoded!"
@@ -932,7 +934,10 @@ def get_pdp_df(
                 )
             dtemp.loc[:, feature] = [1 if col == grid_value else 0 for col in feature]
         else:
+            tmp_feats = [feature]
             dtemp[[feature]] = grid_value
+
+        check_dtype_of(tmp_feats, dtemp, X_sample)
         if is_classifier:
             if cast_to_float32:
                 dtemp = dtemp.values.astype("float32")
@@ -1791,3 +1796,25 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
             0, "pred_proba"
         ]
     return xgboost_preds_df
+
+
+def check_dtype_of(
+    features: List[str],
+    df_target: pd.DataFrame,
+    df_origin: pd.DataFrame
+):
+    """
+        Check if the features in the df_target has the same dtype in df_origin,
+        if not, it fixes the dtype in df_target
+    :param features:
+    :param df_target:
+    :param df_origin:
+    """
+    # Verify if the features has the same dtype as the X sample
+    if (
+            df_target is not None and
+            not df_target[features].dtypes.eq(df_origin[features].dtypes).all()
+    ):
+        df_target[features] = df_target[features].astype(
+            df_origin[features].dtypes
+        )
