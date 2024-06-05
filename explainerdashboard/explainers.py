@@ -21,7 +21,8 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_string_dtype
+from pandas.api.types import is_numeric_dtype
+from pandas.errors import OptionError
 
 import shap
 
@@ -195,7 +196,7 @@ class BaseExplainer(ABC):
                             transformer_pipeline, X_background
                         )
                     print(
-                        f"Detected sklearn/imblearn Pipeline and succesfully extracted final "
+                        "Detected sklearn/imblearn Pipeline and succesfully extracted final "
                         "output dataframe with column names and final model..."
                     )
                 except:
@@ -291,6 +292,7 @@ class BaseExplainer(ABC):
             self.y.name = "Target"
 
         self.metric = permutation_metric
+        self.shap_kwargs = shap_kwargs or {}
 
         if shap == "guess":
             shap_guess = guess_shap(self.model)
@@ -331,7 +333,13 @@ class BaseExplainer(ABC):
                 "not be calculated!"
             )
             self.interactions_should_work = False
-        self.shap_kwargs = shap_kwargs if shap_kwargs else {}
+        if self.shap == "skorch":
+            print(
+                "WARNING: For shap='skorch' the additivity check tends to fail, "
+                "you set set shap_kwargs=dict(check_additivity=False) to supress "
+                "this error (at your own risk)!"
+            )
+
         self.model_output = model_output
 
         if idxs is not None:
@@ -754,9 +762,17 @@ class BaseExplainer(ABC):
 
         if len(inputs) == len(self.merged_cols):
             cols = self.columns_ranked_by_shap() if ranked_by_shap else self.merged_cols
-            df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(
-                self.na_fill
-            )[self.merged_cols]
+            try:
+                with pd.option_context("future.no_silent_downcasting", True):
+                    df_merged = (
+                        pd.DataFrame(dict(zip(cols, inputs)), index=[0])
+                        .fillna(self.na_fill)
+                        .infer_objects(copy=False)[self.merged_cols]
+                    )
+            except OptionError:
+                df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(
+                    self.na_fill
+                )[self.merged_cols]
             if return_merged:
                 return df_merged
             else:
@@ -1061,8 +1077,8 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "deep":
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -1077,8 +1093,8 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "skorch":
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -1888,16 +1904,18 @@ class BaseExplainer(ABC):
                 if self.target:
                     title = f"Impact of feature on predicted probability {self.target}={pos_label_str} <br> (SHAP values)"
                 else:
-                    title = f"Impact of Feature on Prediction probability <br> (SHAP values)"
+                    title = (
+                        "Impact of Feature on Prediction probability <br> (SHAP values)"
+                    )
             elif self.model_output == "logodds":
-                title = f"Impact of Feature on predicted logodds <br> (SHAP values)"
+                title = "Impact of Feature on predicted logodds <br> (SHAP values)"
         elif self.is_regression:
             if self.target:
                 title = (
                     f"Impact of Feature on Predicted {self.target} <br> (SHAP values)"
                 )
             else:
-                title = f"Impact of Feature on Prediction<br> (SHAP values)"
+                title = "Impact of Feature on Prediction<br> (SHAP values)"
 
         cols = self.get_importances_df(kind="shap", topx=topx, pos_label=pos_label)[
             "Feature"
@@ -2485,21 +2503,21 @@ class ClassifierExplainer(BaseExplainer):
             self.model, "RandomForestClassifier", "ExtraTreesClassifier"
         ):
             print(
-                f"Detected RandomForestClassifier model: "
+                "Detected RandomForestClassifier model: "
                 "Changing class type to RandomForestClassifierExplainer...",
                 flush=True,
             )
             self.__class__ = RandomForestClassifierExplainer
         if str(type(self.model)).endswith("XGBClassifier'>"):
             print(
-                f"Detected XGBClassifier model: "
+                "Detected XGBClassifier model: "
                 "Changing class type to XGBClassifierExplainer...",
                 flush=True,
             )
             self.__class__ = XGBClassifierExplainer
             if len(self.labels) > 2 and self.model_output == "probability":
                 print(
-                    f"model_output=='probability' does not work with multiclass "
+                    "model_output=='probability' does not work with multiclass "
                     "XGBClassifier models, so settings model_output='logodds'..."
                 )
                 self.model_output = "logodds"
@@ -2714,8 +2732,8 @@ class ClassifierExplainer(BaseExplainer):
                 )
             elif self.shap == "deep":
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -2732,8 +2750,8 @@ class ClassifierExplainer(BaseExplainer):
                 import torch
 
                 print(
-                    f"Generating self.shap_explainer = "
-                    f"shap.DeepExplainer(model, X_background)"
+                    "Generating self.shap_explainer = "
+                    "shap.DeepExplainer(model, X_background)"
                 )
                 print(
                     "Warning: shap values for shap.DeepExplainer get "
@@ -2783,9 +2801,7 @@ class ClassifierExplainer(BaseExplainer):
     def shap_base_value(self, pos_label=None):
         """SHAP base value: average outcome of population"""
         if not hasattr(self, "_shap_base_value"):
-            _ = (
-                self.get_shap_values_df()
-            )  # CatBoost needs to have shap values calculated before expected value for some reason
+            _ = self.get_shap_values_df()  # CatBoost needs to have shap values calculated before expected value for some reason
             self._shap_base_value = self.shap_explainer.expected_value
             if (
                 isinstance(self._shap_base_value, np.ndarray)
@@ -2836,20 +2852,41 @@ class ClassifierExplainer(BaseExplainer):
                 )
 
             if len(self.labels) == 2:
-                if not isinstance(_shap_values, list):
-                    assert (
-                        len(_shap_values.shape) == 2
-                    ), f"shap_values should be 2d, instead shape={_shap_values.shape}!"
-                elif isinstance(_shap_values, list) and len(_shap_values) == 2:
+                if (
+                    isinstance(_shap_values, np.ndarray)
+                    and len(_shap_values.shape) == 3
+                    and _shap_values.shape[2] == 2
+                ):
+                    # for binary classifier only keep positive class:
+                    _shap_values = _shap_values[:, :, 1]
+                elif (
+                    isinstance(_shap_values, np.ndarray)
+                    and len(_shap_values.shape) == 3
+                    and _shap_values.shape[2] > 2
+                ):
+                    raise Exception(
+                        f"len(self.label)={len(self.labels)}, but "
+                        f"shap returned shap values for {len(_shap_values)} classes! "
+                        "Adjust the labels parameter accordingly!"
+                    )
+
+                if isinstance(_shap_values, list) and len(_shap_values) == 2:
                     # for binary classifier only keep positive class
                     _shap_values = _shap_values[1]
-                else:
+                elif isinstance(_shap_values, list) and len(_shap_values) > 2:
                     raise Exception(
                         f"len(self.label)={len(self.labels)}, but "
                         f"shap returned shap values for {len(_shap_values)} classes! "
                         "Adjust the labels parameter accordingly!"
                     )
             else:
+                if (
+                    isinstance(_shap_values, np.ndarray)
+                    and len(_shap_values.shape) == 3
+                ):
+                    _shap_values = [
+                        _shap_values[:, :, i] for i in range(_shap_values.shape[2])
+                    ]
                 assert len(_shap_values) == len(self.labels), (
                     f"len(self.label)={len(self.labels)}, but "
                     f"shap returned shap values for {len(_shap_values)} classes! "
@@ -2974,9 +3011,15 @@ class ClassifierExplainer(BaseExplainer):
                     else self.shap_kwargs
                 )
                 sv = self.shap_explainer.shap_values(X_row, **shap_kwargs)
-            if isinstance(sv, list) and len(sv) > 1:
+            if isinstance(sv, np.ndarray) and len(sv.shape) > 2:
+                shap_row = pd.DataFrame(sv[:, :, pos_label], columns=self.columns)
+            elif isinstance(sv, list) and len(sv) > 1:
                 shap_row = pd.DataFrame(sv[pos_label], columns=self.columns)
-            elif len(self.labels) == 2:
+            elif (
+                len(self.labels) == 2
+                and isinstance(sv, np.ndarray)
+                and len(sv.shape) == 2
+            ):
                 if pos_label == 1:
                     shap_row = pd.DataFrame(sv, columns=self.columns)
                 elif pos_label == 0:
@@ -3031,9 +3074,21 @@ class ClassifierExplainer(BaseExplainer):
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(
                 self.X
             )
-
             if len(self.labels) == 2:
-                if not isinstance(self._shap_interaction_values, list):
+                if (
+                    isinstance(self._shap_interaction_values, np.ndarray)
+                    and len(self._shap_interaction_values.shape) == 4
+                    and self._shap_interaction_values.shape[3] == 2
+                ):
+                    # for binary classifier only keep positive class:
+                    self._shap_interaction_values = [
+                        self._shap_interaction_values[:, :, :, 1]
+                    ]
+                elif (
+                    isinstance(self._shap_interaction_values, np.ndarray)
+                    and len(self._shap_interaction_values.shape) == 3
+                ):
+                    # for binary classifier only keep positive class:
                     self._shap_interaction_values = [self._shap_interaction_values]
                 elif (
                     isinstance(self._shap_interaction_values, list)
@@ -3049,6 +3104,15 @@ class ClassifierExplainer(BaseExplainer):
                         "Adjust the labels parameter accordingly!"
                     )
             else:
+                if (
+                    isinstance(self._shap_interaction_values, np.ndarray)
+                    and len(self._shap_interaction_values.shape) == 4
+                    and self._shap_interaction_values.shape[3] > 2
+                ):
+                    self._shap_interaction_values = [
+                        self._shap_interaction_values[:, :, :, i]
+                        for i in range(self._shap_interaction_values.shape[3])
+                    ]
                 assert len(self._shap_interaction_values) == len(self.labels), (
                     f"len(self.label)={len(self.labels)}, but "
                     f"shap returned shap values for {len(self._shap_interaction_values)} classes! "
@@ -4026,11 +4090,11 @@ class RegressionExplainer(BaseExplainer):
 
         if safe_isinstance(model, "RandomForestRegressor", "ExtraTreesRegressor"):
             print(
-                f"Changing class type to RandomForestRegressionExplainer...", flush=True
+                "Changing class type to RandomForestRegressionExplainer...", flush=True
             )
             self.__class__ = RandomForestRegressionExplainer
         if safe_isinstance(model, "XGBRegressor"):
-            print(f"Changing class type to XGBRegressionExplainer...", flush=True)
+            print("Changing class type to XGBRegressionExplainer...", flush=True)
             self.__class__ = XGBRegressionExplainer
 
         _ = self.shap_explainer
@@ -4166,7 +4230,7 @@ class RegressionExplainer(BaseExplainer):
                         self.target: f"{(y_true-pred):.{round}f} {self.units}",
                     },
                 )
-            except Exception as e:
+            except Exception:
                 pass
         return preds_df
 
@@ -4254,14 +4318,14 @@ class RegressionExplainer(BaseExplainer):
         for k, v in metrics_dict.items():
             if k == "mean-squared-error":
                 metrics_descriptions_dict[k] = (
-                    f"A measure of how close "
+                    "A measure of how close "
                     "predicted value fits true values, where large deviations "
                     "are punished more heavily. So the lower this number the "
                     "better the model."
                 )
             if k == "root-mean-squared-error":
                 metrics_descriptions_dict[k] = (
-                    f"A measure of how close "
+                    "A measure of how close "
                     "predicted value fits true values, where large deviations "
                     "are punished more heavily. So the lower this number the "
                     "better the model."
@@ -4571,7 +4635,7 @@ class TreeExplainer(BaseExplainer):
 
                 cmd = ["dot", "-V"]
                 be.run_check(cmd, capture_output=True, check=True, quiet=True)
-            except Exception as e:
+            except Exception:
                 print(
                     """
                 WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
@@ -4605,8 +4669,8 @@ class TreeExplainer(BaseExplainer):
           dataframe with summary of the decision tree path
 
         """
-        assert tree_idx >= 0 and tree_idx < len(
-            self.shadow_trees
+        assert (
+            tree_idx >= 0 and tree_idx < len(self.shadow_trees)
         ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
         X_row = self.get_X_row(index)
         if self.is_classifier:
