@@ -1,12 +1,11 @@
 from setuptools import setup, find_packages
 
 with open("requirements.txt", "rt") as requirements_file:
-    requirements = list(filter(None, map(str.strip,
-                                         requirements_file.readlines())))
+    requirements = list(filter(None, map(str.strip, requirements_file.readlines())))
 
 setup(
-    name='explainerdashboard',
-    version='0.4.3',
+    name="explainerdashboard",
+    version="0.4.7",
     description='Quickly build Explainable AI dashboards that show the inner workings of so-called "blackbox" machine learning models.',
     long_description="""
 
@@ -58,11 +57,13 @@ interpretable for business users in your organization, not just data scientists)
 
 A deployed example can be found at http://titanicexplainer.herokuapp.com
 """,
-    license='MIT',
+    license="MIT",
     packages=find_packages(),
-    package_dir={'explainerdashboard': 'explainerdashboard'},  # the one line where all the magic happens
+    package_dir={
+        "explainerdashboard": "explainerdashboard"
+    },  # the one line where all the magic happens
     package_data={
-        'explainerdashboard': ['assets/*', 'datasets/*', 'static/*'],
+        "explainerdashboard": ["assets/*", "datasets/*", "static/*"],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -71,19 +72,26 @@ A deployed example can be found at http://titanicexplainer.herokuapp.com
         "Framework :: Flask",
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence"],
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    ],
     install_requires=requirements,
-    python_requires='>=3.8',
+    python_requires=">=3.8",
     entry_points={
-        'console_scripts': [
-            'explainerdashboard = explainerdashboard.cli:explainerdashboard_cli',
-            'explainerhub = explainerdashboard.cli:explainerhub_cli',
+        "console_scripts": [
+            "explainerdashboard = explainerdashboard.cli:explainerdashboard_cli",
+            "explainerhub = explainerdashboard.cli:explainerhub_cli",
         ],
     },
-    author='Oege Dijk',
-    author_email='oegedijk@gmail.com',
-    keywords=['machine learning', 'explainability', 'shap', 'feature importances', 'dash'],
-    url='https://github.com/oegedijk/explainerdashboard',
+    author="Oege Dijk",
+    author_email="oegedijk@gmail.com",
+    keywords=[
+        "machine learning",
+        "explainability",
+        "shap",
+        "feature importances",
+        "dash",
+    ],
+    url="https://github.com/oegedijk/explainerdashboard",
     project_urls={
         "Github page": "https://github.com/oegedijk/explainerdashboard/",
         "Documentation": "https://explainerdashboard.readthedocs.io/",

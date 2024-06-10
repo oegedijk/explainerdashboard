@@ -1,6 +1,56 @@
 # Release Notes
 
 
+## Version 0.4.7:
+
+
+### Bug Fixes
+- fix merge_categorical_columns when there are no cats
+- Handle pandas option setting context in case it doesn't exist
+- Remove is_categorical_dtype as it is getting deprecated
+
+### Improvements
+- M
+-
+
+
+
+## Version 0.4.6:
+
+
+### Bug Fixes
+- should now work with the format of shap 0.45 that returns a three dimensional np.array instead of a list of 2-dimensional np.arrays for classifiers
+-
+
+### Improvements
+- Fixed several pandas warning about to be deprecated behaviours
+-
+
+
+
+
+## Version 0.4.4:
+### Breaking Changes
+- 
+- 
+
+### New Features
+-
+-
+
+### Bug Fixes
+- Add warning to set `shap_kwargs=dict(check_additivity=True)` for skorch models, and switch this on for the tests.
+-
+
+### Improvements
+-
+-
+
+### Other Changes
+-
+-
+
+
 ## Version 0.4.3:
 ### Breaking Changes
 - 
