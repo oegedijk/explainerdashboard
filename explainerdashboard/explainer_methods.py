@@ -914,7 +914,7 @@ def get_pdp_df(
         else:
             first_row = X_sample.iloc[[0]]
         warnings.filterwarnings("ignore", category=UserWarning)
-        n_labels = model.predict_proba(first_row.copy()).shape[1]
+        n_labels = model.predict_proba(first_row).shape[1]
         warnings.filterwarnings("default", category=UserWarning)
         if multiclass:
             pdp_dfs = [pd.DataFrame() for i in range(n_labels)]

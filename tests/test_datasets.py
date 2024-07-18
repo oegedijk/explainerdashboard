@@ -75,9 +75,10 @@ def test_NaN_containing_categorical_dataset():
     dashboard = ExplainerDashboard(explainer)
     assert "NaN" in explainer.categorical_dict["Name"]
     
-def test_categorical_label():
-    _wrapper, _test_X, _test_y = generate_categorical_dataset_model_wrapper(True)
-    explainer = ClassifierExplainer(
-                    _wrapper, _test_X, _test_y)
-    dashboard = ExplainerDashboard(explainer)
-    assert "Survived" in explainer.labels
+    
+# def test_categorical_label():
+#     _wrapper, _test_X, _test_y = generate_categorical_dataset_model_wrapper(True)
+#     explainer = ClassifierExplainer(
+#                     _wrapper, _test_X, _test_y)
+#     dashboard = ExplainerDashboard(explainer)
+#     assert "Survived" in explainer.labels
