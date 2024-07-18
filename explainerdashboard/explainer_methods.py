@@ -42,9 +42,8 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_categorical_dtype
+from pandas.api.types import is_numeric_dtype
 
-from dtreeviz.trees import ShadowDecTree
 
 from sklearn.metrics import make_scorer
 from sklearn.base import clone
@@ -189,7 +188,9 @@ def parse_cats(X, cats, sep: str = "_"):
 
     if isinstance(cats, dict):
         for k, v in cats.items():
-            assert set(v).issubset(
+            assert set(
+                v
+            ).issubset(
                 set(all_cols)
             ), f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
             col_counter.update(v)
@@ -201,7 +202,9 @@ def parse_cats(X, cats, sep: str = "_"):
                 col_counter.update(onehot_dict[cat])
             if isinstance(cat, dict):
                 for k, v in cat.items():
-                    assert set(v).issubset(
+                    assert set(
+                        v
+                    ).issubset(
                         set(all_cols)
                     ), f"These cats columns for {k} could not be found in X.columns: {set(v)-set(all_cols)}!"
                     col_counter.update(v)
@@ -385,44 +388,36 @@ def retrieve_onehot_value(
 def merge_categorical_columns(
     X, onehot_dict=None, cols=None, not_encoded_dict=None, sep="_", drop_regular=False
 ):
-    """
-    Returns a new feature Dataframe X_cats where the onehotencoded
-    categorical features have been merged back with the old value retrieved
-    from the encodings.
+    cat_pieces = []
 
-    Args:
-        X (pd.DataFrame): original dataframe with onehotencoded columns, e.g.
-            columns=['Age', 'Sex_Male', 'Sex_Female"].
-        onehot_dict (dict): dict of features with lists for onehot-encoded variables,
-             e.g. {'Fare': ['Fare'], 'Sex' : ['Sex_male', 'Sex_Female']}
-        cols (list[str]): list of columns to return
-        sep (str): separator used in the encoding, e.g. "_" for Sex_Male.
-            Defaults to "_".
-
-    Returns:
-        pd.DataFrame, with onehot encodings merged back into categorical columns.
-    """
-    X_cats = pd.DataFrame()
-    not_encoded_dict = not_encoded_dict or {}
     for col_name, col_list in onehot_dict.items():
         if len(col_list) > 1:
-            X_cats[col_name] = retrieve_onehot_value(
+            merged_col = retrieve_onehot_value(
                 X,
                 col_name,
                 col_list,
                 not_encoded_dict.get(col_name, "NOT_ENCODED"),
                 sep,
             ).astype("category")
+            cat_pieces.append(pd.DataFrame({col_name: merged_col}))
         else:
             if not drop_regular:
-                if is_categorical_dtype(X[col_name]):
-                    X_cats[col_name] = pd.Categorical(X[col_name])
+                if isinstance(X[col_name].dtype, pd.CategoricalDtype):
+                    cat_pieces.append(
+                        pd.DataFrame({col_name: pd.Categorical(X[col_name])})
+                    )
                 else:
-                    X_cats.loc[:, col_name] = X[col_name].values
-    if cols:
-        return X_cats[cols]
+                    cat_pieces.append(pd.DataFrame({col_name: X[col_name].values}))
+
+    if cat_pieces:
+        X_cats = pd.concat(cat_pieces, axis=1)
     else:
-        return X_cats
+        X_cats = pd.DataFrame()
+
+    if cols:
+        X_cats = X_cats[cols]
+
+    return X_cats
 
 
 def matching_cols(cols1, cols2):
@@ -1083,7 +1078,14 @@ def get_precision_df(
                                 == i
                             ).mean()
                 new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns)
-                precision_df = pd.concat([precision_df, new_row_df])
+                if not new_row_df.empty:
+                    for column in new_row_df.columns:
+                        new_row_df[column] = new_row_df[column].astype(
+                            precision_df[column].dtype
+                        )
+                    precision_df = pd.concat(
+                        [precision_df, new_row_df], ignore_index=True
+                    )
 
     elif quantiles:
         preds_quantiles = np.array_split(predictions_df.pred_proba.values, quantiles)
@@ -1237,9 +1239,13 @@ def get_contrib_df(
 
         rest_df = pd.DataFrame(
             {
-                "col": ["_REST"], 
-                "contribution": [contrib_df[~contrib_df.col.isin(display_df.col.tolist())]["contribution"].sum()],
-                "value" : [""],
+                "col": ["_REST"],
+                "contribution": [
+                    contrib_df[~contrib_df.col.isin(display_df.col.tolist())][
+                        "contribution"
+                    ].sum()
+                ],
+                "value": [""],
             }
         )
 
@@ -1278,9 +1284,11 @@ def get_contrib_df(
         )
         rest_df = pd.DataFrame(
             {
-                "col": ["_REST"], 
-                "contribution": [contrib_df[~contrib_df.col.isin(cols)]["contribution"].sum()],
-                "value" : [""],
+                "col": ["_REST"],
+                "contribution": [
+                    contrib_df[~contrib_df.col.isin(cols)]["contribution"].sum()
+                ],
+                "value": [""],
             }
         )
         contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
