@@ -1,22 +1,21 @@
 # Release Notes
 
 
-## Version 0.4.2:
+## Version 0.4.3:
 ### Breaking Changes
 - 
 - 
 
 ### New Features
--
--
-
-### Bug Fixes
 - models that use kernel explainer but output multi-dimensional predictions such as PLSRegression are now supported. 
 Predictions now get squeezed in the kernel function.
 -
 
+### Bug Fixes
+- Fixed bug with pandas v2, Pandas v2 now supported
+
 ### Improvements
--
+- Fixed a number of user warnings
 -
 
 ### Other Changes

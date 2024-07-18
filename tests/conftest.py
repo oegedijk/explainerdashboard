@@ -119,7 +119,7 @@ def fitted_et_classifier_model(classifier_data):
 @pytest.fixture(scope="session")
 def fitted_logistic_regression_model(classifier_data):
     X_train, y_train, _, _ = classifier_data
-    model = LogisticRegression()
+    model = LogisticRegression(max_iter=500)
     model.fit(X_train, y_train)
     return model
 
@@ -149,7 +149,7 @@ def fitted_lgbm_regression_model(regression_data):
 @pytest.fixture(scope="session")
 def fitted_linear_regression_model(regression_data):
     X_train, y_train, _, _ = regression_data
-    model = LinearRegression()
+    model = LinearRegression()   
     model.fit(X_train, y_train)
     return model
 

@@ -146,7 +146,25 @@ ExplainerDashboard(explainer).run()
 `y_test` is actually optional, although some parts of the dashboard like performance
 metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.
 
-You can export a dashboard to static html with `db.save_html('dashboard.html')`.
+You can export a dashboard to static html with `db.save_html('dashboard.html')`. 
+
+
+<details>
+<summary>You can pass a specific index for the static dashboard to display</summary>
+<p>
+
+```
+ExplainerDashboard(explainer, index=0).save_html('dashboard.html')
+```
+
+or 
+
+
+```
+ExplainerDashboard(explainer, index='Cumings, Mrs. John Bradley (Florence Briggs Thayer)').save_html('dashboard.html')
+```
+</p>
+</details>
 
 For a simplified single page dashboard try `ExplainerDashboard(explainer, simple=True)`.
 

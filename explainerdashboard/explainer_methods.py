@@ -38,6 +38,7 @@ from functools import partial
 import re
 from collections import Counter
 from typing import List, Union
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -572,7 +573,9 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
     sign = 1 if greater_is_better else -1
 
     def _scorer(clf, X, y):
+        warnings.filterwarnings("ignore", category=UserWarning)
         y_pred = clf.predict_proba(X)
+        warnings.filterwarnings("default", category=UserWarning)
         score = sign * partial_metric(y, y_pred)
         return score
 
@@ -915,7 +918,9 @@ def get_pdp_df(
             first_row = X_sample.iloc[[0]].values.astype("float32")
         else:
             first_row = X_sample.iloc[[0]]
-        n_labels = model.predict_proba(first_row).shape[1]
+        warnings.filterwarnings("ignore", category=UserWarning)
+        n_labels = model.predict_proba(first_row.copy()).shape[1]
+        warnings.filterwarnings("default", category=UserWarning)
         if multiclass:
             pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
         else:
@@ -932,7 +937,7 @@ def get_pdp_df(
                 )
             dtemp.loc[:, feature] = [1 if col == grid_value else 0 for col in feature]
         else:
-            dtemp.loc[:, feature] = grid_value
+            dtemp[[feature]] = grid_value
         if is_classifier:
             if cast_to_float32:
                 dtemp = dtemp.values.astype("float32")
@@ -1228,12 +1233,14 @@ def get_contrib_df(
 
         display_df_neg = display_df[display_df.contribution < 0]
         display_df_pos = display_df[display_df.contribution >= 0]
+        print(contrib_df[~contrib_df.col.isin(display_df.col.tolist())])
 
-        rest_df = (
-            contrib_df[~contrib_df.col.isin(display_df.col.tolist())]
-            .sum()
-            .to_frame()
-            .T.assign(col="_REST", value="")
+        rest_df = pd.DataFrame(
+            {
+                "col": ["_REST"], 
+                "contribution": [contrib_df[~contrib_df.col.isin(display_df.col.tolist())]["contribution"].sum()],
+                "value" : [""],
+            }
         )
 
         # sort the df by absolute value from highest to lowest:
@@ -1269,11 +1276,12 @@ def get_contrib_df(
             .reindex(cols)
             .reset_index()
         )
-        rest_df = (
-            contrib_df[~contrib_df.col.isin(cols)]
-            .sum()
-            .to_frame()
-            .T.assign(col="_REST", value="")
+        rest_df = pd.DataFrame(
+            {
+                "col": ["_REST"], 
+                "contribution": [contrib_df[~contrib_df.col.isin(cols)]["contribution"].sum()],
+                "value" : [""],
+            }
         )
         contrib_df = pd.concat([base_df, display_df, rest_df], ignore_index=True)
 
@@ -1574,14 +1582,14 @@ def get_xgboost_node_dict(xgboost_treedump):
     node_dict = {}
     for row in xgboost_treedump.splitlines():
         s = row.strip()
-        node = int(re.search("^(.*)\:", s).group(1))
-        is_leaf = re.search(":(.*)\=", s).group(1) == "leaf"
+        node = int(re.search(r"^(.*)\:", s).group(1))
+        is_leaf = re.search(r":(.*)\=", s).group(1) == "leaf"
 
-        leaf_value = re.search("leaf=(.*)$", s).group(1) if is_leaf else None
-        feature = re.search("\[(.*)\<", s).group(1) if not is_leaf else None
-        cutoff = float(re.search("\<(.*)\]", s).group(1)) if not is_leaf else None
-        left_node = int(re.search("yes=(.*)\,no", s).group(1)) if not is_leaf else None
-        right_node = int(re.search("no=(.*)\,", s).group(1)) if not is_leaf else None
+        leaf_value = re.search(r"leaf=(.*)$", s).group(1) if is_leaf else None
+        feature = re.search(r"\[(.*)\<", s).group(1) if not is_leaf else None
+        cutoff = float(re.search(r"\<(.*)\]", s).group(1)) if not is_leaf else None
+        left_node = int(re.search(r"yes=(.*)\,no", s).group(1)) if not is_leaf else None
+        right_node = int(re.search(r"no=(.*)\,", s).group(1)) if not is_leaf else None
         node_dict[node] = dict(
             node=node,
             is_leaf=is_leaf,
