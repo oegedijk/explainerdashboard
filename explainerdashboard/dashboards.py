@@ -1184,6 +1184,9 @@ class ExplainerDashboard:
             assets_ignore = "^bootstrap.min.css$"
         else:
             assets_ignore = ""
+
+        assets_folder = self.kwargs.get('assets_folder', 'assets')
+
         if self.mode == "dash":
             app = dash.Dash(
                 __name__,
@@ -1194,6 +1197,7 @@ class ExplainerDashboard:
                 routes_pathname_prefix=self.routes_pathname_prefix,
                 requests_pathname_prefix=self.requests_pathname_prefix,
                 meta_tags=meta_tags,
+                assets_folder=assets_folder,
             )
         elif self.mode in ["inline", "jupyterlab", "external"]:
             app = JupyterDash(
