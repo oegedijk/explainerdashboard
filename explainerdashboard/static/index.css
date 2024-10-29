@@ -1,0 +1,170 @@
+:root {
+  --mf-primary-orange: #ff7700;
+  --mf-primary-black: #212529;
+  --mf-primary-gray: #979fa7;
+  --mf-primary-white: #ffffff;
+
+  --mf-secondary-orange-1: #ff963b;
+  --mf-secondary-orange-2: #ffd0a8;
+
+  --mf-secondary-gray-1: #49515a;
+  --mf-secondary-gray-2: #687582;
+  --mf-secondary-gray-3: #abb5be;
+  --mf-secondary-gray-4: #cbd8e3;
+  --mf-secondary-gray-5: #d7e6f4;
+  --mf-secondary-gray-6: #edf5fc;
+
+  --mf-secondary-brown-1: #b24527;
+
+  --mf-error-1: #dc3545;
+  --mf-error-2: #ffccd1;
+  --mf-error-3: #9d242f;
+
+  --mf-success-1: #20c997;
+  --mf-success-2: #c7ffee;
+  --mf-success-3: #179771;
+
+  --mf-warning-1: #ffc107;
+  --mf-warning-2: #ffecb2;
+  --mf-warning-3: #a98005;
+
+  --mf-info-1: #0dcaf0;
+  --mf-info-2: #c5f5ff;
+  --mf-info-3: #09869f;
+
+  --mf-geochemical: #ffe2c2;
+  --mf-structure: #c9ffde;
+  --mf-other: #c5e1ff;
+  --mf-alteration: #ffdab2;
+  --mf-lithology: #d6fbff;
+  --mf-mineralization: #d1c9ff;
+  --mf-geophysics: #ffc2f4;
+
+  --mf-cu: #d96827;
+  --mf-au: #a98005;
+  --mf-ag: #abb5be;
+  --mf-fe: #687582;
+  --mf-li: #0dcaf0;
+}
+
+/*   Slider Override  */
+.rc-slider-handle {
+  border: solid 2px var(--mf-primary-orange) !important;
+}
+
+.rc-slider-handle:hover {
+  border-color: solid 2px var(--mf-primary-orange) !important;
+}
+
+.rc-slider-track {
+  background-color: var(--mf-secondary-orange-2) !important;
+}
+
+.rc-slider-handle .rc-slider-handle-1 {
+  border: solid 2px var(--mf-primary-orange) !important;
+}
+
+.rc-slider-dot {
+  border-color: var(--mf-primary-orange) !important;
+  border: solid 2px var(--mf-primary-orange) !important;
+}
+
+/* Button Override */
+
+.btn-primary {
+  --bs-btn-bg: var(--mf-primary-orange) !important;
+  --bs-btn-border-color: var(--mf-secondary-brown-1) !important;
+  --bs-btn-hover-bg: var(--mf-secondary-orange-2) !important;
+  --bs-btn-hover-border-color: var(--mf-primary-orange) !important;
+  --bs-btn-hover-color: var(--mf-primary-orange) !important;
+  --bs-btn-disabled-color: var(--mf-secondary-gray-3) !important;
+  --bs-btn-disabled-bg: var(--mf-secondary-gray-5) !important;
+  --bs-btn-disabled-border-color: var(--mf-secondary-gray-5) !important;
+}
+
+.btn-secondary {
+  --bs-btn-bg: var(--mf-primary-white) !important;
+  --bs-btn-color: var(--mf-primary-orange) !important;
+  --bs-btn-border-color: var(--mf-primary-orange) !important;
+  --bs-btn-hover-bg: var(--mf-secondary-orange-2) !important;
+  --bs-btn-hover-border-color: var(--mf-primary-orange) !important;
+  --bs-btn-hover-color: var(--mf-primary-orange) !important;
+  --bs-btn-disabled-color: var(--mf-secondary-gray-3) !important;
+  --bs-btn-disabled-bg: var(--mf-secondary-gray-5) !important;
+  --bs-btn-disabled-border-color: var(--mf-secondary-gray-5) !important;
+}
+
+.btn-outline-secondary {
+  --bs-btn-bg: var(--mf-primary-white) !important;
+  --bs-btn-color: var(--mf-primary-orange) !important;
+  --bs-btn-border-color: var(--mf-primary-orange) !important;
+  --bs-btn-hover-bg: var(--mf-secondary-orange-2) !important;
+  --bs-btn-hover-border-color: var(--mf-primary-orange) !important;
+  --bs-btn-hover-color: var(--mf-primary-orange) !important;
+  --bs-btn-disabled-color: var(--mf-secondary-gray-3) !important;
+  --bs-btn-disabled-bg: var(--mf-secondary-gray-5) !important;
+  --bs-btn-disabled-border-color: var(--mf-secondary-gray-5) !important;
+}
+
+/* Form Override */
+.form-control {
+  --bs-secondary-color: var(--mf-secondary-orange-2) !important;
+  --bs-body-color: var(--mf-primary-orange) !important;
+}
+
+.form-check-input {
+  --bs-border-color: var(--mf-secondary-brown-1);
+  --bs-color: var(--mf-secondary-brown-1);
+  border-color: var(--mf-secondary-brown-1);
+  --bs-form-check-bg: var(--mf-secondary-gray-5);
+}
+
+.form-switch .form-check-input {
+  border-color: var(--mf-secondary-gray-2) !important;
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28 104, 117, 130, 1%29'/%3e%3c/svg%3e") !important;
+}
+
+.form-switch .form-check-input:active[type="checkbox"] {
+  border-color: var(--mf-secondary-brown-1) !important;
+  background-color: var(--mf-secondary-orange-2);
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28 255, 119, 0, 1%29'/%3e%3c/svg%3e") !important;
+}
+
+.form-switch .form-check-input:checked[type="checkbox"] {
+  border-color: var(--mf-secondary-brown-1) !important;
+  background-color: var(--mf-secondary-orange-2);
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28 255, 119, 0, 1%29'/%3e%3c/svg%3e") !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--mf-secondary-orange-2);
+  color: var(--mf-primary-orange);
+  --bs-color: var(--mf-secondary-brown-1);
+  border-color: var(--mf-secondary-brown-1);
+}
+
+.form-check-input:focus {
+  border-color: var(--mf-secondary-brown-1);
+  box-shadow: var(--mf-secondary-orange-1);
+}
+
+.form-check-input[type="radio"] {
+  border-color: var(--mf-secondary-gray-5) !important;
+  --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e") !important;
+}
+
+.form-check-input:checked[type="radio"] {
+  border-color: var(--mf-secondary-brown-1) !important;
+  background-color: transparent !important;
+  --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23ff7700'/%3e%3c/svg%3e") !important;
+}
+
+.form-check-input[type="checkbox"] {
+  border-color: var(--mf-secondary-gray-2);
+  background-color: var(--mf-primary-white);
+}
+
+.form-check-input:checked[type="checkbox"] {
+  border-color: var(--mf-primary-orange);
+  background-color: var(--mf-primary-orange);
+}
