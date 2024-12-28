@@ -53,19 +53,22 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from joblib import Parallel, delayed
 
 
-def append_dict_to_df(df, row_dict):
+def append_dict_to_df(df: pd.DataFrame, row_dict: dict) -> pd.DataFrame:
     """Appends a row to the dataframe 'df' and returns the new
     dataframe.
 
     Args:
         df (pd.DataFrame) data frame
-
         row_dict (dict): row data
 
     Returns:
         pd.DataFrame
     """
-    return pd.concat([df, pd.DataFrame([row_dict])], ignore_index=True)
+    if not row_dict:
+        return df
+    # Create new DataFrame with same dtypes as input df
+    new_row_df = pd.DataFrame([row_dict], columns=df.columns).astype(df.dtypes)
+    return pd.concat([df, new_row_df], ignore_index=True)
 
 
 class IndexNotFoundError(Exception):
@@ -625,11 +628,11 @@ def permutation_importances(
 
     if isinstance(metric, str):
         scorer = make_scorer(
-            metric, greater_is_better=greater_is_better, needs_proba=needs_proba
+            metric, greater_is_better=greater_is_better, response_method="predict_proba" if needs_proba else "predict"
         )
     elif not needs_proba or pos_label is None:
         scorer = make_scorer(
-            metric, greater_is_better=greater_is_better, needs_proba=needs_proba
+            metric, greater_is_better=greater_is_better, response_method="predict"
         )
     else:
         scorer = make_one_vs_all_scorer(metric, pos_label, greater_is_better)
@@ -1105,7 +1108,7 @@ def get_precision_df(
                 for i in range(n_classes):
                     new_row_dict["precision_" + str(i)] = np.mean(targets == i)
 
-            new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns)
+            new_row_df = pd.DataFrame(new_row_dict, columns=precision_df.columns).astype(precision_df.dtypes)
             precision_df = pd.concat([precision_df, new_row_df])
             last_p_max = preds.max()
 

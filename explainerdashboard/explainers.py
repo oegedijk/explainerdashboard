@@ -954,7 +954,7 @@ class BaseExplainer(ABC):
                         index=self.get_col(col),
                     )
                     .abs()
-                    .groupby(level=0)
+                    .groupby(level=0, observed=False)
                     .mean()
                     .sort_values(ascending=False)
                     .index.tolist()
@@ -966,7 +966,7 @@ class BaseExplainer(ABC):
                         index=self.get_col(col),
                     )
                     .abs()
-                    .groupby(level=0)
+                    .groupby(level=0, observed=False)
                     .mean()
                     .sort_values(ascending=False)
                     .nlargest(topx)

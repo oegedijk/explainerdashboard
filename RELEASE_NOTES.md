@@ -1,6 +1,11 @@
 # Release Notes
 
 
+## Version 0.4.8:
+
+### Bug Fixes
+- fix deprecated needs_proba parameter in make_scorer
+
 ## Version 0.4.7:
 
 
@@ -10,7 +15,7 @@
 - Remove is_categorical_dtype as it is getting deprecated
 
 ### Improvements
-- M
+- 
 -
 
 
