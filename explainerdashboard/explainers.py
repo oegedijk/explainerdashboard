@@ -388,7 +388,7 @@ class BaseExplainer(ABC):
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
 
-        self.__version__ = "0.4.0"
+        self.__version__ = "0.4.8"
 
     def get_lock(self):
         if not hasattr(self, "_lock"):
