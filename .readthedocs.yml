@@ -18,6 +18,9 @@ formats: all
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
-  version: 3.7
+  version: "3.8" # Match project's minimum Python requirement
   install:
-    - requirements: docs/requirements.txt
+    - method: pip
+      path: .
+      extras:
+        - docs # This will install dependencies from [project.optional-dependencies.docs]
