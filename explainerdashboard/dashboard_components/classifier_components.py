@@ -112,9 +112,9 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             and self.slider[0] <= self.slider[1]
         ), "slider should be e.g. [0.5, 1.0]"
 
-        assert all(
-            [lab in self.explainer.labels for lab in self.labels]
-        ), f"These labels are not in explainer.labels: {[lab for lab in self.labels if lab not in explainer.labels]}!"
+        assert all([lab in self.explainer.labels for lab in self.labels]), (
+            f"These labels are not in explainer.labels: {[lab for lab in self.labels if lab not in explainer.labels]}!"
+        )
 
         assert self.pred_or_perc in [
             "predictions",

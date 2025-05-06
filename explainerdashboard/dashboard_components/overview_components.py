@@ -1124,9 +1124,9 @@ class FeatureInputComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        assert len(explainer.columns) == len(
-            set(explainer.columns)
-        ), "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
+        assert len(explainer.columns) == len(set(explainer.columns)), (
+            "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
+        )
 
         self.index_input = IndexSelector(
             explainer, name="feature-input-index-" + self.name, **kwargs

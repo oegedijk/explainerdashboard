@@ -120,9 +120,9 @@ class ExplainerTabsLayout(ExplainerComponent):
             instantiate_component(tab, explainer, name=str(i + 1), **kwargs)
             for i, tab in enumerate(tabs)
         ]
-        assert (
-            len(self.tabs) > 0
-        ), "When passing a list to tabs, need to pass at least one valid tab!"
+        assert len(self.tabs) > 0, (
+            "When passing a list to tabs, need to pass at least one valid tab!"
+        )
 
         self.register_components(*self.tabs)
 
@@ -898,12 +898,12 @@ class ExplainerDashboard:
                 config = yaml.safe_load(open(str(arg1), "r"))
             elif isinstance(arg1, dict):
                 config = arg1
-                assert (
-                    "dashboard" in config
-                ), ".yaml file does not have `dashboard` param."
-                assert (
-                    "explainerfile" in config["dashboard"]
-                ), ".yaml file does not have explainerfile param"
+                assert "dashboard" in config, (
+                    ".yaml file does not have `dashboard` param."
+                )
+                assert "explainerfile" in config["dashboard"], (
+                    ".yaml file does not have explainerfile param"
+                )
 
             explainer = BaseExplainer.from_file(config["dashboard"]["explainerfile"])
         else:
@@ -1505,9 +1505,9 @@ class ExplainerHub:
             self.app.config["SECRET_KEY"] = secret_key
         SimpleLogin(self.app, login_checker=self._validate_user)
 
-        assert (
-            self.max_dashboards is None or len(dashboards) <= self.max_dashboards
-        ), f"There should be less than {self.max_dashboards} in the hub."
+        assert self.max_dashboards is None or len(dashboards) <= self.max_dashboards, (
+            f"There should be less than {self.max_dashboards} in the hub."
+        )
 
         self.dashboards = self._instantiate_dashboards(dashboards, **kwargs)
         self.added_dashboard_counter = len(self.dashboards)
@@ -1522,13 +1522,13 @@ class ExplainerHub:
                 "only work if you run the hub as a single worker on a single node!"
             )
 
-        assert len(set(self.dashboard_names)) == len(
-            self.dashboard_names
-        ), f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
+        assert len(set(self.dashboard_names)) == len(self.dashboard_names), (
+            f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
+        )
         illegal_names = list(set(self.dashboard_names) & self.__reserved_names)
-        assert (
-            not illegal_names
-        ), f"The following .name properties for dashboards are not allowed: {illegal_names}!"
+        assert not illegal_names, (
+            f"The following .name properties for dashboards are not allowed: {illegal_names}!"
+        )
 
         if self.users:
             for dashboard in self.dashboards:
@@ -1688,9 +1688,9 @@ class ExplainerHub:
         elif isinstance(config, dict):
             config = deepcopy(config)
 
-        assert (
-            "explainerhub" in config
-        ), "Misformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
+        assert "explainerhub" in config, (
+            "Misformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
+        )
 
         config = config["explainerhub"]
 
@@ -1854,10 +1854,10 @@ class ExplainerHub:
                 print(
                     "Reminder, you can set ExplainerDashboard .name and .description "
                     "in order to control the url path of the dashboard. Now "
-                    f"defaulting to name=dashboard{i+1} and default description...",
+                    f"defaulting to name=dashboard{i + 1} and default description...",
                     flush=True,
                 )
-                dashboard_name = f"dashboard{i+1}"
+                dashboard_name = f"dashboard{i + 1}"
             else:
                 dashboard_name = dashboard.name
             if dashboard_name in self.__reserved_names:
@@ -1913,9 +1913,9 @@ class ExplainerHub:
                 raise ValueError("users_file should end with either .json or .yaml!")
 
             assert "users" in users_db, f"{users_file} should contain a 'users' dict!"
-            assert (
-                "dashboard_users" in users_db
-            ), f"{users_file} should contain a 'dashboard_users' dict!"
+            assert "dashboard_users" in users_db, (
+                f"{users_file} should contain a 'dashboard_users' dict!"
+            )
 
     def _hash_logins(self, logins: List[List], add_to_users_file: bool = False):
         """Turn a list of [user, password] pairs into a Flask-Login style user
@@ -2451,7 +2451,7 @@ class ExplainerHub:
             page = f"""
             <script type="text/javascript" src=f"{self.app.static_url_path}/jquery-3.5.1.slim.min.js"></script>
             <script type="text/javascript" src=f"{self.app.static_url_path}/bootstrap.min.js"></script>
-            <link type="text/css" rel="stylesheet" href="{f'{self.app.static_url_path}/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
+            <link type="text/css" rel="stylesheet" href="{f"{self.app.static_url_path}/bootstrap.min.css" if self.bootstrap is None else self.bootstrap}"/>
             <link rel="shortcut icon" href=f"{self.app.static_url_path}/favicon.ico">
             """
             dbs = [
@@ -2463,10 +2463,10 @@ class ExplainerHub:
         page += f"""
         <title>{self.title}</title>
         <body>
-            <div class="container{'-fluid' if self.fluid else ''} px-4">
+            <div class="container{"-fluid" if self.fluid else ""} px-4">
                 <nav class="navbar navbar-expand navbar-light bg-light">
                     <div class="container-fluid">
-                        <a href="{self.index_route if not static else '#'}" class="navbar-brand">
+                        <a href="{self.index_route if not static else "#"}" class="navbar-brand">
                         <h1>{self.title}</h1>
                         </a>
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -2483,7 +2483,7 @@ class ExplainerHub:
                                         {"".join([f'<li><a n_clicks_timestamp="-1" data-rr-ui-dropdown-item="" class="dropdown-item" href="{url}">{name}</a></li>' for url, name in dbs])}
                                     </ul>
                                     </li>
-                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ''}
+                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ""}
                                 </ul>
                             </div>
                         </form>

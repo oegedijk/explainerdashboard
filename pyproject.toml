@@ -78,6 +78,7 @@ test = [
     "dill",
     "pytest",
     "pytest-cov",
+    "ruff",
 ]
 docs = [
     "sphinx_rtd_theme",
@@ -137,4 +138,9 @@ dependencies = ["flake8"]
 style = [
     "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics",
     "flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.8",
 ]

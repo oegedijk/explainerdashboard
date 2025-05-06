@@ -150,9 +150,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 and self.pred_slider[0] <= self.pred_slider[1]
             ), "pred_slider should be a list of a [lower_bound, upper_bound]!"
 
-            assert (
-                len(self.y_slider) == 2 and self.y_slider[0] <= self.y_slider[1]
-            ), "y_slider should be a list of a [lower_bound, upper_bound]!"
+            assert len(self.y_slider) == 2 and self.y_slider[0] <= self.y_slider[1], (
+                "y_slider should be a list of a [lower_bound, upper_bound]!"
+            )
 
             assert (
                 len(self.residual_slider) == 2

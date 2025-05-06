@@ -158,12 +158,12 @@ def plotly_contribution_plot(
 
     if "value" in contrib_df.columns:
         hover_text = [
-            f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib} {units}"
+            f"{col}={value}<BR>{'+' if contrib > 0 else ''}{contrib} {units}"
             for col, value, contrib in zip(cols, values, contribs)
         ]
     else:
         hover_text = [
-            f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib} {units}"
+            f"{col}=?<BR>{'+' if contrib > 0 else ''}{contrib} {units}"
             for col, contrib in zip(cols, contribs)
         ]
 
@@ -485,7 +485,7 @@ def plotly_lift_curve(
         model_text = [
             f"model selected {pos:.{round}f}% of all positives in first {i:.{round}f}% sampled<br>"
             + f"precision={precision:.{round}f}% positives in sample<br>"
-            + f"lift={pos/exp:.{round}f}"
+            + f"lift={pos / exp:.{round}f}"
             for (i, pos, exp, precision) in zip(
                 lift_curve_df.index_percentage,
                 lift_curve_df.cumulative_percentage_pos,
@@ -508,7 +508,7 @@ def plotly_lift_curve(
         model_text = [
             f"model selected {pos} positives out of {i}<br>"
             + f"precision={precision:.{round}f}<br>"
-            + f"lift={pos/exp:.{round}f}"
+            + f"lift={pos / exp:.{round}f}"
             for (i, pos, exp, precision) in zip(
                 lift_curve_df["index"],
                 lift_curve_df.positives,
@@ -795,7 +795,7 @@ def plotly_cumulative_precision_plot(
                     y=20,
                     yref="y",
                     ax=60,
-                    text=f"percentile={100*percentile:.{round}f}",
+                    text=f"percentile={100 * percentile:.{round}f}",
                 )
             ]
         )
@@ -837,9 +837,9 @@ def plotly_dependence_plot(
     Returns:
         Plotly fig
     """
-    assert len(X_col) == len(
-        shap_values
-    ), f"Column(len={len(X_col)}) and Shap values(len={len(shap_values)}) and should have the same length!"
+    assert len(X_col) == len(shap_values), (
+        f"Column(len={len(X_col)}) and Shap values(len={len(shap_values)}) and should have the same length!"
+    )
     if idxs is not None:
         assert len(idxs) == X_col.shape[0]
         idxs = pd.Index(idxs).astype(str)
@@ -851,9 +851,9 @@ def plotly_dependence_plot(
             highlight_idx = highlight_index
             highlight_name = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
-            assert (
-                highlight_index in idxs
-            ), f"highlight_index should be int or in idxs, {highlight_index} is neither!"
+            assert highlight_index in idxs, (
+                f"highlight_index should be int or in idxs, {highlight_index} is neither!"
+            )
             highlight_idx = idxs.get_loc(highlight_index)
             highlight_name = highlight_index
 
@@ -1045,9 +1045,9 @@ def plotly_shap_violin_plot(
         Plotly fig
     """
 
-    assert not is_numeric_dtype(
-        X_col
-    ), f"{X_col.name} is not categorical! Can only plot violin plots for categorical features!"
+    assert not is_numeric_dtype(X_col), (
+        f"{X_col.name} is not categorical! Can only plot violin plots for categorical features!"
+    )
 
     if cats_order is None:
         cats_order = sorted(X_col.unique().tolist())
@@ -1065,9 +1065,9 @@ def plotly_shap_violin_plot(
             highlight_idx = highlight_index
             highlight_name = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
-            assert (
-                highlight_index in idxs
-            ), f"highlight_index should be int or in idxs, {highlight_index} is neither!"
+            assert highlight_index in idxs, (
+                f"highlight_index should be int or in idxs, {highlight_index} is neither!"
+            )
             highlight_idx = idxs.get_loc(highlight_index)
             highlight_name = highlight_index
 
@@ -1915,9 +1915,9 @@ def plotly_shap_scatter_plot(
     Returns:
         Plotly fig
     """
-    assert matching_cols(
-        X, shap_values_df
-    ), "X and shap_values_df should have matching columns!"
+    assert matching_cols(X, shap_values_df), (
+        "X and shap_values_df should have matching columns!"
+    )
     if display_columns is None:
         display_columns = X.columns.tolist()
     if idxs is not None:
@@ -1930,9 +1930,9 @@ def plotly_shap_scatter_plot(
     length = len(X)
     if highlight_index is not None:
         if isinstance(highlight_index, int):
-            assert highlight_index >= 0 and highlight_index < len(
-                X
-            ), "if highlight_index is int, then should be between 0 and {len(X)}!"
+            assert highlight_index >= 0 and highlight_index < len(X), (
+                "if highlight_index is int, then should be between 0 and {len(X)}!"
+            )
             highlight_idx = highlight_index
             highlight_index = idxs[highlight_idx]
         elif isinstance(highlight_index, str):
@@ -2803,9 +2803,9 @@ def plotly_rf_trees(
 
     colors = ["blue"] * len(model.estimators_)
     if highlight_tree is not None:
-        assert highlight_tree >= 0 and highlight_tree <= len(
-            model.estimators_
-        ), f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
+        assert highlight_tree >= 0 and highlight_tree <= len(model.estimators_), (
+            f"{highlight_tree} is out of range (0, {len(model.estimators_)})"
+        )
         colors[highlight_tree] = "red"
     warnings.filterwarnings("ignore", category=UserWarning)
     if safe_isinstance(model, "RandomForestClassifier", "ExtraTreesClassifier"):
@@ -2967,13 +2967,15 @@ def plotly_xgboost_trees(
         diffs = xgboost_preds_df.pred_proba_diff.values[1:]
 
         texts = [
-            f"tree no {t}:<br>change = {100*d:.{round}f}%<br> click for detailed info"
+            f"tree no {t}:<br>change = {100 * d:.{round}f}%<br> click for detailed info"
             for (t, d) in zip(trees, diffs)
         ]
         texts.insert(
-            0, f"Base prediction: <br>proba = {100*base_prediction:.{round}f}%"
+            0, f"Base prediction: <br>proba = {100 * base_prediction:.{round}f}%"
         )
-        texts.append(f"Final Prediction: <br>proba = {100*final_prediction:.{round}f}%")
+        texts.append(
+            f"Final Prediction: <br>proba = {100 * final_prediction:.{round}f}%"
+        )
     else:
         final_prediction = xgboost_preds_df.pred.values[-1]
         base_prediction = xgboost_preds_df.pred.values[0]

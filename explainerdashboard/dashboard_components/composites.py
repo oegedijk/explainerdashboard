@@ -876,7 +876,9 @@ class ShapDependenceComposite(ExplainerComponent):
             **update_params(kwargs, hide_selector=hide_selector, depth=depth),
         )
         self.shap_dependence = ShapDependenceComponent(
-            self.explainer, hide_selector=hide_selector, **kwargs  # name=self.name+"1",
+            self.explainer,
+            hide_selector=hide_selector,
+            **kwargs,  # name=self.name+"1",
         )
         self.connector = ShapSummaryDependenceConnector(
             self.shap_summary, self.shap_dependence

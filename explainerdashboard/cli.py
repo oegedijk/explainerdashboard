@@ -1,6 +1,7 @@
 """
 Command-line tool for starting an explainerdashboard from a particular directory
 """
+
 import os
 import webbrowser
 from pathlib import Path
@@ -47,9 +48,9 @@ def build_explainer(explainer_config):
         config = yaml.safe_load(open(str(explainer_config), "r"))
     elif isinstance(explainer_config, dict):
         config = explainer_config
-    assert (
-        "explainer" in config
-    ), "Please pass a proper explainer.yaml config file that starts with `explainer:`!"
+    assert "explainer" in config, (
+        "Please pass a proper explainer.yaml config file that starts with `explainer:`!"
+    )
     config = explainer_config["explainer"]
 
     print(f"explainerdashboard ===> Loading model from {config['modelfile']}")
@@ -420,7 +421,7 @@ def test(ctx, explainer_filepath, port):
         return
     else:
         raise ValueError(
-            "Please pass a proper argument " "(i.e. .joblib, .pkl, .dill or .yaml)!"
+            "Please pass a proper argument (i.e. .joblib, .pkl, .dill or .yaml)!"
         )
 
 
@@ -485,9 +486,7 @@ def run(ctx, hub_filepath, no_browser, port):
         if (Path().cwd() / "hub.yaml").exists():
             hub_filepath = Path().cwd() / "hub.yaml"
         else:
-            click.echo(
-                "No argument given and could find neither a " "hub.yaml. Aborting."
-            )
+            click.echo("No argument given and could find neither a hub.yaml. Aborting.")
             return
     click.echo(hub_ascii)
     launch_hub_from_yaml(hub_filepath, no_browser, port)
