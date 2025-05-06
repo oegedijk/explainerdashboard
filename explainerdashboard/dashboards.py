@@ -18,7 +18,7 @@ import inspect
 import requests
 from typing import List, Union
 from pathlib import Path
-from copy import copy, deepcopy
+from copy import deepcopy
 import warnings
 
 import oyaml as yaml
@@ -664,7 +664,7 @@ class ExplainerDashboard:
             ipython_kernel = str(get_ipython())
             self.is_notebook = True
             self.is_colab = True if "google.colab" in ipython_kernel else False
-        except:
+        except Exception:
             self.is_notebook, self.is_colab = False, False
 
         if self.mode == "dash" and self.is_colab:
@@ -1116,7 +1116,7 @@ class ExplainerDashboard:
                 )
             else:
                 raise ValueError(
-                    f"Please only pass strings or ExplainerComponents to parameter `tabs`!"
+                    "Please only pass strings or ExplainerComponents to parameter `tabs`!"
                     "You passed {component.__class__}"
                 )
 
@@ -1148,7 +1148,7 @@ class ExplainerDashboard:
                 if tab["params"] is None:
                     return tab_class
                 else:
-                    if not "name" in tab["params"] or tab["params"]["name"] is None:
+                    if "name" not in tab["params"] or tab["params"]["name"] is None:
                         tab["params"]["name"] = name
 
                     tab["params"] = decode_callables(tab["params"])
@@ -1335,7 +1335,7 @@ class ExplainerDashboard:
         shutdown_url = f"http://localhost:{port}/_shutdown_{token}"
         print(f"Trying to shut down dashboard on port {port}...")
         try:
-            response = requests.get(shutdown_url)
+            _ = requests.get(shutdown_url)
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 
@@ -2048,8 +2048,8 @@ class ExplainerHub:
         users_db = ExplainerHub._load_users_db(users_file)
         try:
             del users_db["users"][username]
-        except:
-            pass
+        except Exception as e:
+            print(f"ERROR: Failed to delete user from users.json! Error: {e}", flush=True)
         for dashboard in users_db["dashboard_users"].keys():
             dashboard_users = users_db["dashboard_users"].get(dashboard)
             if dashboard_users is not None:
@@ -2148,7 +2148,7 @@ class ExplainerHub:
             )
         if self.db_users is not None:
             for dashboard, users in self.db_users.items():
-                if not dashboard in dashboard_users:
+                if dashboard not in dashboard_users:
                     dashboard_users[dashboard] = users
                 else:
                     dashboard_users[dashboard] = sorted(
@@ -2582,8 +2582,8 @@ class ExplainerHub:
                                 bootstrap=f"{self.app.static_url_path}/bootstrap.min.css",
                             )
                             return redirect(f"/dashboards/_{dashboard_name}", code=302)
-                    except:
-                        print("ERROR: Failed to add dashboard!", flush=True)
+                    except Exception as e:
+                        print(f"ERROR: Failed to add dashboard! Error: {e}", flush=True)
                     return redirect("/", code=302)
 
                 remove_dashboard_match = remove_dashboard_pattern.match(request.path)
@@ -2592,9 +2592,9 @@ class ExplainerHub:
                         _, dashboard_name = remove_dashboard_match.groups()
                         if dashboard_name in self.dashboard_names:
                             self.remove_dashboard(dashboard_name)
-                    except:
-                        print("ERROR: Failed to remove dashboard!", flush=True)
-                    return redirect(f"/", code=302)
+                    except Exception as e:
+                        print(f"ERROR: Failed to remove dashboard! Error: {e}", flush=True)
+                    return redirect("/", code=302)
 
     def flask_server(self):
         """return the Flask server inside the class instance"""
@@ -2691,7 +2691,7 @@ class InlineExplainer:
         shutdown_url = f"http://localhost:{port}/_shutdown_{token}"
         print(f"Trying to shut down dashboard on port {port}...")
         try:
-            response = requests.get(shutdown_url)
+            _ = requests.get(shutdown_url)
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 

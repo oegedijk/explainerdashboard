@@ -318,10 +318,10 @@ def get_transformed_X(
                     f" not equal X_transformed.shape[1]={X_transformed.shape[1]}!"
                 )
             return pd.DataFrame(X_transformed, columns=columns)
-        except:
+        except Exception as e:
             if verbose:
                 print(
-                    "Failed to retrieve new column names from transformer_pipeline.get_feature_names_out()!"
+                    f"Failed to retrieve new column names from transformer_pipeline.get_feature_names_out()! Error: {e}"
                 )
 
     if X_transformed.shape == X.values.shape:
@@ -337,9 +337,9 @@ def get_transformed_X(
                 if hasattr(pipe, "n_features_in_"):
                     assert pipe.n_features_in_ == len(X.columns)
             return pd.DataFrame(X_transformed, columns=X.columns)
-        except:
+        except Exception as e:
             print(
-                f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}!"
+                f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}! Error: {e}"
             )
 
     if verbose:

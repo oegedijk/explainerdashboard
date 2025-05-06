@@ -1,13 +1,10 @@
-import unittest
 
 import pandas as pd
 
 import plotly.graph_objects as go
 import dtreeviz
 
-from xgboost import XGBClassifier
 
-from explainerdashboard.explainers import ClassifierExplainer
 from explainerdashboard.datasets import *
 
 

@@ -31,14 +31,6 @@ from pandas.api.types import is_numeric_dtype
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix,
-    precision_recall_curve,
-    roc_curve,
-    roc_auc_score,
-    average_precision_score,
-)
 
 from .explainer_methods import matching_cols, safe_isinstance
 
@@ -120,7 +112,7 @@ def plotly_contribution_plot(
     contrib_df = contrib_df.copy()
     try:
         base_value = contrib_df.query("col=='_BASE'")["contribution"].item()
-    except:
+    except Exception:
         base_value = None
 
     if not include_base_value:
@@ -879,7 +871,6 @@ def plotly_dependence_plot(
     data = []
 
     X_col = X_col.copy().replace({na_fill: np.nan})
-    y = shap_values
     if interact_col is not None and not is_numeric_dtype(interact_col):
         for onehot_col in interact_col.unique().tolist():
             data.append(
@@ -1364,12 +1355,7 @@ def plotly_pdp(
     if plot_lines:
         x = pdp_df.columns.values
         pdp_sample = pdp_df.sample(min(num_grid_lines, len(pdp_df)))
-        ice_lines = (
-            pdp_sample.values
-            if absolute
-            else pdp_sample.values
-            - np.expand_dims(pdp_sample.iloc[:, 0].values, axis=1)
-        )
+
 
         for row in pdp_sample.itertuples(index=False):
             data.append(
@@ -2315,9 +2301,9 @@ def plotly_residuals_vs_col(
         Plotly fig
     """
     if col_name is None:
-        try:
+        if hasattr(col, "name"):
             col_name = col.name
-        except:
+        else:
             col_name = "Feature"
 
     if idxs is not None:
@@ -2361,7 +2347,6 @@ def plotly_residuals_vs_col(
                 column_widths=[3, 1] * n_cats,
                 shared_yaxes=True,
             )
-            showscale = True
         else:
             fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
@@ -2493,9 +2478,9 @@ def plotly_actual_vs_col(
         Plotly fig
     """
     if col_name is None:
-        try:
+        if hasattr(col, "name"):
             col_name = col.name
-        except:
+        else:
             col_name = "Feature"
 
     if idxs is not None:
@@ -2521,7 +2506,6 @@ def plotly_actual_vs_col(
                 column_widths=[3, 1] * n_cats,
                 shared_yaxes=True,
             )
-            showscale = True
         else:
             fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
@@ -2646,9 +2630,9 @@ def plotly_preds_vs_col(
         Plotly fig
     """
     if col_name is None:
-        try:
+        if hasattr(col, "name"):
             col_name = col.name
-        except:
+        else:
             col_name = "Feature"
 
     if idxs is not None:
@@ -2674,7 +2658,6 @@ def plotly_preds_vs_col(
                 column_widths=[3, 1] * n_cats,
                 shared_yaxes=True,
             )
-            showscale = True
         else:
             fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
@@ -2857,7 +2840,7 @@ def plotly_rf_trees(
         title = f"Individual decision trees predicting {target}"
         yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
     else:
-        title = f"Individual decision trees"
+        title = "Individual decision trees"
         yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
 
     layout = go.Layout(
@@ -2954,15 +2937,12 @@ def plotly_xgboost_trees(
         xgboost_preds_df.loc[highlight_tree + 1, "color"] = "red"
 
     trees = xgboost_preds_df.tree.values[1:]
-    colors = xgboost_preds_df.color.values[1:]
 
     is_classifier = True if "pred_proba" in xgboost_preds_df.columns else False
 
-    colors = xgboost_preds_df.color.values
     if is_classifier:
         final_prediction = xgboost_preds_df.pred_proba.values[-1]
         base_prediction = xgboost_preds_df.pred_proba.values[0]
-        preds = xgboost_preds_df.pred_proba.values[1:]
         bases = xgboost_preds_df.pred_proba.values[:-1]
         diffs = xgboost_preds_df.pred_proba_diff.values[1:]
 
@@ -2979,7 +2959,6 @@ def plotly_xgboost_trees(
     else:
         final_prediction = xgboost_preds_df.pred.values[-1]
         base_prediction = xgboost_preds_df.pred.values[0]
-        preds = xgboost_preds_df.pred.values[1:]
         bases = xgboost_preds_df.pred.values[:-1]
         diffs = xgboost_preds_df.pred_diff.values[1:]
 
@@ -3047,7 +3026,7 @@ def plotly_xgboost_trees(
         title = f"Individual xgboost decision trees predicting {target}"
         yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
     else:
-        title = f"Individual xgboost decision trees"
+        title = "Individual xgboost decision trees"
         yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
 
     layout = go.Layout(

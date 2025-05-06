@@ -1,10 +1,7 @@
-import pytest
 
 import pandas as pd
 import numpy as np
 
-import shap
-import plotly.graph_objects as go
 
 
 def test_linreg_explainer_len(precalculated_linear_regression_explainer, testlen):
@@ -145,12 +142,6 @@ def test_logreg_permutation_importances(precalculated_logistic_regression_explai
         pd.DataFrame,
     )
 
-
-def test_logreg_metrics(precalculated_logistic_regression_explainer):
-    assert isinstance(precalculated_logistic_regression_explainer.metrics(), dict)
-    assert isinstance(
-        precalculated_logistic_regression_explainer.metrics_descriptions(), dict
-    )
 
 
 def test_logreg_mean_abs_shap_df(precalculated_logistic_regression_explainer):

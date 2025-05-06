@@ -120,7 +120,7 @@ def test_clas_externalsource_reset_index_list(classifier_explainer_with_external
     classifier_explainer_with_external_data.reset_index_list()
     index_list = classifier_explainer_with_external_data.get_index_list()
     assert "100" in index_list
-    assert not "160" in index_list
+    assert "160" not in index_list
 
 
 def test_clas_externalsource_get_X_row(classifier_explainer_with_external_data):
@@ -163,7 +163,7 @@ def test_clas_externalsource_get_y(classifier_explainer_with_external_data):
 def test_clas_externalsource_index_list(classifier_explainer_with_external_data):
     index_list = classifier_explainer_with_external_data.get_index_list()
     assert "100" in index_list
-    assert not "160" in index_list
+    assert "160" not in index_list
 
 
 def test_clas_externalsource_index_exists(classifier_explainer_with_external_data):
@@ -227,7 +227,7 @@ def test_clas_externalsource_methods_index_list(
 ):
     index_list = classifier_explainer_with_external_data_methods.get_index_list()
     assert "100" in index_list
-    assert not "160" in index_list
+    assert "160" not in index_list
 
 
 def test_clas_externalsource_methods_index_exists(
@@ -285,7 +285,7 @@ def test_reg_externalsource_get_y(regression_explainer_with_external_data):
 def test_reg_externalsource_index_list(regression_explainer_with_external_data):
     index_list = regression_explainer_with_external_data.get_index_list()
     assert "100" in index_list
-    assert not "160" in index_list
+    assert "160" not in index_list
 
 
 def test_reg_externalsource_index_exists(regression_explainer_with_external_data):

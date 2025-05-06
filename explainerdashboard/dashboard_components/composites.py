@@ -14,7 +14,6 @@ __all__ = [
 import dash_bootstrap_components as dbc
 from dash import html
 
-from ..explainers import RandomForestExplainer, XGBExplainer
 from ..dashboard_methods import *
 from .classifier_components import *
 from .regression_components import *

@@ -199,12 +199,12 @@ class BaseExplainer(ABC):
                         "Detected sklearn/imblearn Pipeline and succesfully extracted final "
                         "output dataframe with column names and final model..."
                     )
-                except:
+                except Exception as e:
                     print(
                         "Warning: Failed to extract a data transformer with column names and final "
                         "model from the Pipeline. So setting shap='kernel' to use "
                         "the (slower and approximate) model-agnostic shap.KernelExplainer "
-                        "instead!"
+                        f"instead! Error: {e}"
                     )
                     shap = "kernel"
 
@@ -723,8 +723,8 @@ class BaseExplainer(ABC):
             if isinstance(y, pd.Series) or isinstance(y, np.ndarray):
                 try:
                     return y.item()
-                except:
-                    raise ValueError(f"Can't turn y into a single item: {y}")
+                except Exception as e:
+                    raise ValueError(f"Can't turn y into a single item: {y}") from e
         else:
             raise IndexNotFoundError(index=index)
 
@@ -1233,7 +1233,7 @@ class BaseExplainer(ABC):
                     else self.shap_kwargs
                 )
                 shap_row = pd.DataFrame(
-                    self.shap_explainer.shap_values(X_row, **self.shap_kwargs),
+                    self.shap_explainer.shap_values(X_row, **shap_kwargs),
                     columns=self.columns,
                 )
             shap_row = merge_categorical_shap_values(
@@ -3389,12 +3389,12 @@ class ClassifierExplainer(BaseExplainer):
                     y_pred = np.where(y_pred > cutoff, 1, 0)
                 try:
                     show_metrics_dict[m.__name__] = m(y_true, y_pred, **metric_kwargs)
-                except:
+                except Exception as e:
                     raise Exception(
                         f"Failed to calculate metric {m.__name__}! "
                         "Make sure it takes arguments y_true and y_pred, and "
                         "optionally cutoff and pos_label!"
-                    )
+                    ) from e
             elif m in metrics_dict:
                 show_metrics_dict[m] = metrics_dict[m]
         return show_metrics_dict
