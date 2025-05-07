@@ -40,7 +40,7 @@ jobs:
           ${{ runner.os }}-uv-${{ matrix.python-version }}-
     - name: Install dependencies
       run: |
-        uv pip install -r pyproject.toml --all-extras
+        uv pip install -r pyproject.toml --all-extras --system
     - name: Lint with ruff
       run: |
         uv run ruff check --ignore=F405,F403,E402 
