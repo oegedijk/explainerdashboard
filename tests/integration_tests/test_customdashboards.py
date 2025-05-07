@@ -3,6 +3,9 @@ import pytest
 from explainerdashboard import ExplainerDashboard
 from explainerdashboard.custom import *
 
+import dash_bootstrap_components as dbc
+from dash import html
+
 pytestmark = pytest.mark.selenium
 
 
