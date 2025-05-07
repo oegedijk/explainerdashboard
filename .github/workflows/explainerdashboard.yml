@@ -40,7 +40,33 @@ jobs:
           ${{ runner.os }}-uv-${{ matrix.python-version }}-
     - name: Install dependencies
       run: |
-        uv pip install -r pyproject.toml --all-extras --system
+        # Install the current project (.) and its 'test' and 'docs' extras.
+        # Quotation marks around ".[test,docs]" are good practice for shells.
+        uv pip install ".[test,docs]" --system
+    - name: Verify script installation (for debugging)
+      run: |
+        echo "Python version: $(python --version)"
+        echo "uv version: $(uv --version)"
+        echo "PYTHONUSERBASE: $PYTHONUSERBASE"
+        echo "PIP_USER: $PIP_USER"
+        echo "Checking for explainerdashboard script..."
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          Get-Command explainerdashboard -ErrorAction SilentlyContinue || echo "explainerdashboard not found"
+          Get-Command explainerhub -ErrorAction SilentlyContinue || echo "explainerhub not found"
+          echo "PATH: $($env:PATH)"
+        else
+          which explainerdashboard || echo "explainerdashboard not found in PATH"
+          which explainerhub || echo "explainerhub not found in PATH"
+          echo "PATH: $PATH"
+        fi
+        # Show where packages are installed and scripts path
+        PYTHON_SCRIPTS_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('scripts'))")
+        echo "Python scripts directory (from sysconfig): $PYTHON_SCRIPTS_PATH"
+        if [[ -d "$PYTHON_SCRIPTS_PATH" ]]; then
+          ls -alh "$PYTHON_SCRIPTS_PATH"
+        else
+          echo "Scripts directory does not exist or is not accessible."
+        fi
     - name: Lint with ruff
       run: |
         uv run ruff check --ignore=F405,F403,E402 

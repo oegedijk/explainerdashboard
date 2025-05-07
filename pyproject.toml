@@ -90,6 +90,10 @@ docs = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests/"]
+markers = [
+    "cli: marks tests as cli tests (deselect with '-m \"not cli\"')",
+    "selenium: marks tests as selenium tests (deselect with '-m \"not selenium\"')"
+]
 
 # --- Hatchling specific configuration ---
 [tool.hatch.version]
