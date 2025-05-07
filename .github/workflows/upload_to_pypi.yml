@@ -10,7 +10,25 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - run: python3 -m pip install --upgrade build && python3 -m build
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          uv-version: 'latest'
+      - name: Cache uv global directory
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: ${{ runner.os }}-uv-3.11-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-3.11-
+      - name: Build package
+        run: |
+          uv pip install --upgrade build
+          python3 -m build
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
