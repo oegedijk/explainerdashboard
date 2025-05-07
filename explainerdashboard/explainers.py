@@ -1161,7 +1161,7 @@ class BaseExplainer(ABC):
                 self._shap_values_df = pd.DataFrame(
                     self.shap_explainer.shap_values(
                         torch.tensor(self.X.values), **self.shap_kwargs
-                    ),
+                    ).squeeze(),
                     columns=self.columns,
                 )
             else:
