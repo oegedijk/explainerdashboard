@@ -32,14 +32,10 @@ jobs:
     - name: Install dependencies
       run: |
         source "$HOME/.cargo/env" # Activate uv
-        uv pip install --system flake8 pytest
-        uv pip install --system --upgrade --upgrade-strategy eager ".[test]"
-    - name: Lint with flake8
+        uv pip install -r pyproject.toml --all-extras
+    - name: Lint with ruff
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        uv run ruff check --ignore=F405,F403,E402 
     - name: Test with pytest
       run: |
         pytest -k "not selenium"
