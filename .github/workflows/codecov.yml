@@ -29,8 +29,8 @@ jobs:
       - name: Generate coverage report
         run: |
           # Install project with test dependencies (includes pytest and pytest-cov)
-          uv pip install ".[test]"
-          uv run pytest --cov=./ --cov-report=xml
+          uv pip install ".[test]" --system
+          pytest --cov=./ --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
