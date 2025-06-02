@@ -1,3 +1,4 @@
+import pickle
 import pytest
 from pathlib import Path
 
@@ -24,6 +25,7 @@ def generate_assets():
         cats=[{"Gender": ["Sex_female", "Sex_male", "Sex_nan"]}, "Deck", "Embarked"],
         labels=["Not survived", "Survived"],
     )
+    
 
     dashboard = ExplainerDashboard(
         explainer,
@@ -36,18 +38,30 @@ def generate_assets():
     )
 
     pkl_dir = Path.cwd() / "tests" / "test_assets"
-    explainer.to_yaml(pkl_dir / "explainer.yaml")
+    pkl_dir.mkdir(parents=True, exist_ok=True)
+    explainer_joblib_path = pkl_dir / "explainer.joblib"
+    model_path = pkl_dir / "model.pkl"
+
+    explainer_yaml_path = pkl_dir / "explainer.yaml"
+    dashboard_yaml_path = pkl_dir / "dashboard.yaml"
+    pickle.dump(model, open(model_path, "wb"))
+    explainer.to_yaml(explainer_yaml_path, index_col="Name", target_col="Survival")
+    explainer.dump(explainer_joblib_path)
     dashboard.to_yaml(
-        pkl_dir / "dashboard.yaml",
-        explainerfile=str(pkl_dir / "explainer.joblib"),
+        dashboard_yaml_path,
+        explainerfile=str(explainer_joblib_path),
         dump_explainer=True,
     )
-    return None
+    yield
 
+    explainer_joblib_path.unlink()
+    explainer_yaml_path.unlink()
+    dashboard_yaml_path.unlink()
+    model_path.unlink()
 
 def test_explainerdashboard_cli_help(generate_assets, script_runner):
     ret = script_runner.run(
-        ["explainerdashboard", " --help"],
+        ["explainerdashboard", "--help"],
         cwd=str(Path().cwd() / "tests" / "test_assets"),
     )
     assert ret.success
@@ -56,7 +70,7 @@ def test_explainerdashboard_cli_help(generate_assets, script_runner):
 
 def test_explainerdashboard_cli_explainer(generate_assets, script_runner):
     ret = script_runner.run(
-        ["explainerdashboard", " test explainer.joblib"],
+        ["explainerdashboard", "test", "explainer.joblib"],
         cwd=str(Path().cwd() / "tests" / "test_assets"),
     )
     assert ret.success
@@ -65,7 +79,7 @@ def test_explainerdashboard_cli_explainer(generate_assets, script_runner):
 
 def test_explainerdashboard_cli_yaml(generate_assets, script_runner):
     ret = script_runner.run(
-        ["explainerdashboard", " test dashboard.yaml"],
+        ["explainerdashboard", "test", "dashboard.yaml"],
         cwd=str(Path().cwd() / "tests" / "test_assets"),
     )
     assert ret.success
@@ -74,7 +88,7 @@ def test_explainerdashboard_cli_yaml(generate_assets, script_runner):
 
 def test_explainerdashboard_cli_build(generate_assets, script_runner):
     ret = script_runner.run(
-        ["explainerdashboard", " build"],
+        ["explainerdashboard", "build", "explainer.yaml"],
         cwd=str(Path().cwd() / "tests" / "test_assets"),
     )
     assert ret.success
@@ -83,7 +97,7 @@ def test_explainerdashboard_cli_build(generate_assets, script_runner):
 
 def test_explainerdashboard_cli_build_explainer(generate_assets, script_runner):
     ret = script_runner.run(
-        ["explainerdashboard", " build explainer.yaml"],
+        ["explainerdashboard", "build", "explainer.yaml"],
         cwd=str(Path().cwd() / "tests" / "test_assets"),
     )
     assert ret.success
@@ -94,7 +108,7 @@ def test_explainerdashboard_cli_build_explainer_dashboard(
     generate_assets, script_runner
 ):
     ret = script_runner.run(
-        ["explainerdashboard", " build explainer.yaml dashboard.yaml"],
+        ["explainerdashboard", "build", "explainer.yaml", "dashboard.yaml"],
         cwd=str(Path().cwd() / "tests" / "test_assets"),
     )
     assert ret.success
