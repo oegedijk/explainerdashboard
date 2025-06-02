@@ -27,7 +27,7 @@ jobs:
             ${{ runner.os }}-uv-3.11-
       - name: Build package
         run: |
-          uv pip install --upgrade build
+          uv pip install --upgrade build --system
           python3 -m build
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
