@@ -51,6 +51,7 @@ from sklearn.metrics import average_precision_score
 
 from .explainer_methods import *
 from .explainer_plots import *
+from . import __version__
 
 
 import plotly.io as pio
@@ -388,7 +389,7 @@ class BaseExplainer(ABC):
         if not hasattr(self, "interactions_should_work"):
             self.interactions_should_work = True
 
-        self.__version__ = "0.4.8"
+        self.__version__ = __version__
 
     def get_lock(self):
         if not hasattr(self, "_lock"):
