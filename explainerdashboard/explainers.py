@@ -199,12 +199,12 @@ class BaseExplainer(ABC):
                         "Detected sklearn/imblearn Pipeline and succesfully extracted final "
                         "output dataframe with column names and final model..."
                     )
-                except:
+                except Exception as e:
                     print(
                         "Warning: Failed to extract a data transformer with column names and final "
                         "model from the Pipeline. So setting shap='kernel' to use "
                         "the (slower and approximate) model-agnostic shap.KernelExplainer "
-                        "instead!"
+                        f"instead! Error: {e}"
                     )
                     shap = "kernel"
 
@@ -620,9 +620,9 @@ class BaseExplainer(ABC):
         func should either be a function that takes a single parameter: def func(index)
         or a method that takes a single parameter: def func(self, index)
         """
-        assert callable(
-            func
-        ), f"{func} is not a callable! pass either a function or a method!"
+        assert callable(func), (
+            f"{func} is not a callable! pass either a function or a method!"
+        )
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self", "index"]:
             self._index_exists_func = MethodType(func, self)
@@ -654,9 +654,9 @@ class BaseExplainer(ABC):
         func should either be a parameterless function: def func(): ...
         or a parameterless method: def func(self): ...
         """
-        assert callable(
-            func
-        ), f"{func} is not a callable! pass either a function or a method!"
+        assert callable(func), (
+            f"{func} is not a callable! pass either a function or a method!"
+        )
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self"]:
             self._get_index_list_func = MethodType(func, self)
@@ -696,9 +696,9 @@ class BaseExplainer(ABC):
         func should either be a function that takes a single parameter: def func(index)
         or a method that takes a single parameter: def func(self, index)
         """
-        assert callable(
-            func
-        ), f"{func} is not a callable! pass either a function or a method!"
+        assert callable(func), (
+            f"{func} is not a callable! pass either a function or a method!"
+        )
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self", "index"]:
             self._get_X_row_func = MethodType(func, self)
@@ -723,8 +723,8 @@ class BaseExplainer(ABC):
             if isinstance(y, pd.Series) or isinstance(y, np.ndarray):
                 try:
                     return y.item()
-                except:
-                    raise ValueError(f"Can't turn y into a single item: {y}")
+                except Exception as e:
+                    raise ValueError(f"Can't turn y into a single item: {y}") from e
         else:
             raise IndexNotFoundError(index=index)
 
@@ -734,9 +734,9 @@ class BaseExplainer(ABC):
         func should either be a function that takes a single parameter: def func(index)
         or a method that takes a single parameter: def func(self, index)
         """
-        assert callable(
-            func
-        ), f"{func} is not a callable! pass either a function or a method!"
+        assert callable(func), (
+            f"{func} is not a callable! pass either a function or a method!"
+        )
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self", "index"]:
             self._get_y_func = func = MethodType(func, self)
@@ -827,9 +827,9 @@ class BaseExplainer(ABC):
           value of col, prediction for index
 
         """
-        assert (col in self.X.columns) or (
-            col in self.onehot_cols
-        ), f"{col} not in columns of dataset"
+        assert (col in self.X.columns) or (col in self.onehot_cols), (
+            f"{col} not in columns of dataset"
+        )
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
@@ -839,9 +839,9 @@ class BaseExplainer(ABC):
                 col_value = X_row[col].item()
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.columns)
             else:
-                assert matching_cols(
-                    X_row.columns, self.columns
-                ), "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
+                assert matching_cols(X_row.columns, self.columns), (
+                    "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
+                )
                 if col in self.onehot_cols:
                     col_value = retrieve_onehot_value(
                         X_row, col, self.onehot_dict[col], self.onehot_notencoded[col]
@@ -1161,7 +1161,7 @@ class BaseExplainer(ABC):
                 self._shap_values_df = pd.DataFrame(
                     self.shap_explainer.shap_values(
                         torch.tensor(self.X.values), **self.shap_kwargs
-                    ),
+                    ).squeeze(),
                     columns=self.columns,
                 )
             else:
@@ -1233,7 +1233,7 @@ class BaseExplainer(ABC):
                     else self.shap_kwargs
                 )
                 shap_row = pd.DataFrame(
-                    self.shap_explainer.shap_values(X_row, **self.shap_kwargs),
+                    self.shap_explainer.shap_values(X_row, **shap_kwargs),
                     columns=self.columns,
                 )
             shap_row = merge_categorical_shap_values(
@@ -1403,9 +1403,9 @@ class BaseExplainer(ABC):
                 :, self.merged_cols.get_loc(col), :
             ]
         else:
-            assert (
-                interact_col in self.merged_cols
-            ), f"{interact_col} not in self.merged_cols!"
+            assert interact_col in self.merged_cols, (
+                f"{interact_col} not in self.merged_cols!"
+            )
             return self.shap_interaction_values(pos_label)[
                 :, self.merged_cols.get_loc(col), self.merged_cols.get_loc(interact_col)
             ]
@@ -1566,9 +1566,9 @@ class BaseExplainer(ABC):
           pd.DataFrame
 
         """
-        assert (
-            kind == "shap" or kind == "permutation"
-        ), "kind should either be 'shap' or 'permutation'!"
+        assert kind == "shap" or kind == "permutation", (
+            "kind should either be 'shap' or 'permutation'!"
+        )
         if kind == "permutation":
             return self.get_permutation_importances_df(topx, cutoff, pos_label)
         elif kind == "shap":
@@ -1623,9 +1623,9 @@ class BaseExplainer(ABC):
                 X_row_merged = X_row
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             else:
-                assert matching_cols(
-                    X_row.columns, self.columns
-                ), "X_row should have the same columns as self.X or self.merged_cols!"
+                assert matching_cols(X_row.columns, self.columns), (
+                    "X_row should have the same columns as self.X or self.merged_cols!"
+                )
                 X_row_merged = merge_categorical_columns(
                     X_row,
                     self.onehot_dict,
@@ -1740,9 +1740,9 @@ class BaseExplainer(ABC):
         Returns:
             pd.DataFrame
         """
-        assert (
-            col in self.X.columns or col in self.onehot_cols
-        ), f"{col} not in columns of dataset"
+        assert col in self.X.columns or col in self.onehot_cols, (
+            f"{col} not in columns of dataset"
+        )
         if col in self.onehot_cols:
             grid_values = self.ordered_cats(col, n_grid_points, sort)
             if index is not None or X_row is not None:
@@ -1781,9 +1781,9 @@ class BaseExplainer(ABC):
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             else:
-                assert matching_cols(
-                    X_row.columns, self.columns
-                ), "X_row should have the same columns as self.X or self.merged_cols!"
+                assert matching_cols(X_row.columns, self.columns), (
+                    "X_row should have the same columns as self.X or self.merged_cols!"
+                )
 
             if isinstance(features, str) and drop_na:  # regular col, not onehotencoded
                 sample_size = min(
@@ -2547,14 +2547,14 @@ class ClassifierExplainer(BaseExplainer):
     def pos_label_index(self, pos_label):
         """return int index of pos_label_str"""
         if isinstance(pos_label, int):
-            assert pos_label >= 0 and pos_label <= len(
-                self.labels
-            ), f"pos_label={pos_label}, but should be >= 0 and <= {len(self.labels)-1}!"
+            assert pos_label >= 0 and pos_label <= len(self.labels), (
+                f"pos_label={pos_label}, but should be >= 0 and <= {len(self.labels) - 1}!"
+            )
             return pos_label
         elif isinstance(pos_label, str):
-            assert (
-                pos_label in self.labels
-            ), f"Unknown pos_label. {pos_label} not in self.labels!"
+            assert pos_label in self.labels, (
+                f"Unknown pos_label. {pos_label} not in self.labels!"
+            )
             return self.labels.index(pos_label)
         raise ValueError("pos_label should either be int or str in self.labels!")
 
@@ -2575,9 +2575,9 @@ class ClassifierExplainer(BaseExplainer):
         """returns pred_probas with probability for each class"""
         if not hasattr(self, "_pred_probas"):
             print("Calculating prediction probabilities...", flush=True)
-            assert hasattr(
-                self.model, "predict_proba"
-            ), "model does not have a predict_proba method!"
+            assert hasattr(self.model, "predict_proba"), (
+                "model does not have a predict_proba method!"
+            )
             if self.shap == "skorch":
                 self._pred_probas = self.model.predict_proba(self.X.values).astype(
                     self.precision
@@ -3389,12 +3389,12 @@ class ClassifierExplainer(BaseExplainer):
                     y_pred = np.where(y_pred > cutoff, 1, 0)
                 try:
                     show_metrics_dict[m.__name__] = m(y_true, y_pred, **metric_kwargs)
-                except:
+                except Exception as e:
                     raise Exception(
                         f"Failed to calculate metric {m.__name__}! "
                         "Make sure it takes arguments y_true and y_pred, and "
                         "optionally cutoff and pos_label!"
-                    )
+                    ) from e
             elif m in metrics_dict:
                 show_metrics_dict[m] = metrics_dict[m]
         return show_metrics_dict
@@ -3416,33 +3416,33 @@ class ClassifierExplainer(BaseExplainer):
         metrics_descriptions_dict = {}
         for k, v in metrics_dict.items():
             if k == "accuracy":
-                metrics_descriptions_dict[
-                    k
-                ] = f"{100*v:.{round}f}% of predicted labels was predicted correctly."
+                metrics_descriptions_dict[k] = (
+                    f"{100 * v:.{round}f}% of predicted labels was predicted correctly."
+                )
             if k == "precision":
-                metrics_descriptions_dict[
-                    k
-                ] = f"{100*v:.{round}f}% of predicted positive labels was predicted correctly."
+                metrics_descriptions_dict[k] = (
+                    f"{100 * v:.{round}f}% of predicted positive labels was predicted correctly."
+                )
             if k == "recall":
-                metrics_descriptions_dict[
-                    k
-                ] = f"{100*v:.{round}f}% of positive labels was predicted correctly."
+                metrics_descriptions_dict[k] = (
+                    f"{100 * v:.{round}f}% of positive labels was predicted correctly."
+                )
             if k == "f1":
-                metrics_descriptions_dict[
-                    k
-                ] = f"The weighted average of precision and recall is {v:.{round}f}"
+                metrics_descriptions_dict[k] = (
+                    f"The weighted average of precision and recall is {v:.{round}f}"
+                )
             if k == "roc_auc_score":
-                metrics_descriptions_dict[
-                    k
-                ] = f"The probability that a random positive label has a higher score than a random negative label is {100*v:.2f}%"
+                metrics_descriptions_dict[k] = (
+                    f"The probability that a random positive label has a higher score than a random negative label is {100 * v:.2f}%"
+                )
             if k == "pr_auc_score":
-                metrics_descriptions_dict[
-                    k
-                ] = f"The average precision score calculated for each recall threshold is {v:.{round}f}. This ignores true negatives."
+                metrics_descriptions_dict[k] = (
+                    f"The average precision score calculated for each recall threshold is {v:.{round}f}. This ignores true negatives."
+                )
             if k == "log_loss":
-                metrics_descriptions_dict[
-                    k
-                ] = f"A measure of how far the predicted label is from the true label on average in log space {v:.{round}f}"
+                metrics_descriptions_dict[k] = (
+                    f"A measure of how far the predicted label is from the true label on average in log space {v:.{round}f}"
+                )
         return metrics_descriptions_dict
 
     @insert_pos_label
@@ -3721,9 +3721,9 @@ class ClassifierExplainer(BaseExplainer):
             for label in range(len(self.labels)):
                 self._confusion_matrices["binary"][label] = dict()
                 for cut in np.linspace(0.01, 0.99, 99):
-                    self._confusion_matrices["binary"][label][
-                        np.round(cut, 2)
-                    ] = get_binary_cm(self.y, self.pred_probas_raw, cut, label)
+                    self._confusion_matrices["binary"][label][np.round(cut, 2)] = (
+                        get_binary_cm(self.y, self.pred_probas_raw, cut, label)
+                    )
             self._confusion_matrices["multi"] = confusion_matrix(
                 self.y, self.pred_probas_raw.argmax(axis=1)
             )
@@ -4227,7 +4227,7 @@ class RegressionExplainer(BaseExplainer):
                     preds_df,
                     {
                         "": "Residual",
-                        self.target: f"{(y_true-pred):.{round}f} {self.units}",
+                        self.target: f"{(y_true - pred):.{round}f} {self.units}",
                     },
                 )
             except Exception:
@@ -4339,12 +4339,12 @@ class RegressionExplainer(BaseExplainer):
             if k == "mean-absolute-percentage-error":
                 metrics_descriptions_dict[k] = (
                     f"On average predictions deviate "
-                    f"{100*v:.{round}f}% off the observed value of "
+                    f"{100 * v:.{round}f}% off the observed value of "
                     f"{self.target} (can be both above or below)"
                 )
             if k == "R-squared":
                 metrics_descriptions_dict[k] = (
-                    f"{100*v:.{round}f}% of all "
+                    f"{100 * v:.{round}f}% of all "
                     f"variation in {self.target} was explained by the model."
                 )
         return metrics_descriptions_dict
@@ -4669,9 +4669,9 @@ class TreeExplainer(BaseExplainer):
           dataframe with summary of the decision tree path
 
         """
-        assert (
-            tree_idx >= 0 and tree_idx < len(self.shadow_trees)
-        ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        assert tree_idx >= 0 and tree_idx < len(self.shadow_trees), (
+            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        )
         X_row = self.get_X_row(index)
         if self.is_classifier:
             return get_decisionpath_df(
@@ -4942,9 +4942,9 @@ class XGBExplainer(TreeExplainer):
           dataframe with summary of the decision tree path
 
         """
-        assert (
-            tree_idx >= 0 and tree_idx < self.no_of_trees
-        ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        assert tree_idx >= 0 and tree_idx < self.no_of_trees, (
+            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        )
 
         if self.is_classifier:
             if len(self.labels) > 2:

@@ -8,10 +8,8 @@ __all__ = [
 from math import ceil
 
 import numpy as np
-import pandas as pd
 
-import dash
-from dash import html, dcc, Input, Output, State, dash_table
+from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
@@ -232,7 +230,7 @@ class ImportancesComponent(ExplainerComponent):
             self.hide_type = True
             self.importance_type = "shap"
         if self.description is None:
-            self.description = f"""
+            self.description = """
         Shows the features sorted from most important to least important. Can 
         be either sorted by absolute SHAP value (average absolute impact of 
         the feature on final prediction) or by permutation importance (how much
@@ -1000,7 +998,7 @@ class PdpComponent(ExplainerComponent):
                 )
                 html = to_html.fig(fig)
             else:
-                html = f"<div>input data incorrect</div>"
+                html = "<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title)
         if add_header:
@@ -1124,9 +1122,9 @@ class FeatureInputComponent(ExplainerComponent):
         """
         super().__init__(explainer, title, name)
 
-        assert len(explainer.columns) == len(
-            set(explainer.columns)
-        ), "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
+        assert len(explainer.columns) == len(set(explainer.columns)), (
+            "Not all X column names are unique, so cannot launch FeatureInputComponent component/tab!"
+        )
 
         self.index_input = IndexSelector(
             explainer, name="feature-input-index-" + self.name, **kwargs
@@ -1148,7 +1146,7 @@ class FeatureInputComponent(ExplainerComponent):
             self._input_features = sorted(self.explainer.merged_cols.tolist())
         else:
             raise ValueError(
-                f"parameter sort_features should be either 'shap', "
+                "parameter sort_features should be either 'shap', "
                 "or 'alphabet', but you passed sort_features='{self.sort_features}'"
             )
 

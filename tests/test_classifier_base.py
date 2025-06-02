@@ -276,10 +276,6 @@ def test_shap_interaction_values(precalculated_rf_classifier_explainer):
     )
 
 
-def test_mean_abs_shap_df(precalculated_rf_classifier_explainer):
-    assert isinstance(
-        precalculated_rf_classifier_explainer.mean_abs_shap_df(), pd.DataFrame
-    )
 
 
 def test_calculate_properties(precalculated_rf_classifier_explainer):

@@ -116,11 +116,7 @@ def test_X_cats(precalculated_catboost_regression_explainer):
     assert isinstance(precalculated_catboost_regression_explainer.X_cats, pd.DataFrame)
 
 
-def test_metrics(precalculated_catboost_regression_explainer):
-    assert isinstance(precalculated_catboost_regression_explainer.metrics(), dict)
-    assert isinstance(
-        precalculated_catboost_regression_explainer.metrics_descriptions(), dict
-    )
+
 
 
 def test_mean_abs_shap_df(precalculated_catboost_regression_explainer):

@@ -12,14 +12,24 @@ jobs:
       - uses: actions/checkout@v1
       - name: Set up Python
         uses: actions/setup-python@v2
+        id: setup-python
         with:
           python-version: 3.8
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          uv-version: 'latest'
+      - name: Cache uv global directory
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: ${{ runner.os }}-uv-3.8-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-3.8-
       - name: Generate coverage report
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install pytest pytest-cov
-          pip install -r requirements_testing.txt
-          pip install -e .
+          # Install project with test dependencies (includes pytest and pytest-cov)
+          uv pip install ".[test]"
           pytest --cov=./ --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

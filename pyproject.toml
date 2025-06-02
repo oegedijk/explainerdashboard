@@ -1,0 +1,154 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "explainerdashboard"
+dynamic = ["version"] # Version will be sourced from explainerdashboard/__init__.py
+description = "Quickly build Explainable AI dashboards that show the inner workings of so-called \"blackbox\" machine learning models."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE.txt" }
+authors = [
+    { name = "Oege Dijk", email = "oegedijk@gmail.com" },
+]
+keywords = [
+    "machine learning",
+    "explainability",
+    "shap",
+    "feature importances",
+    "dash",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Dash",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "click",
+    "dash-auth",
+    "dash-bootstrap-components>=1,<3",
+    "dash>=2.10,<3",
+    "plotly<6",
+    "dtreeviz>=2.1",
+    "flask_simplelogin",
+    "Flask-WTF>=1.1",
+    "graphviz>=0.18.2",
+    "joblib",
+    "jupyter_dash>=0.4.1",
+    "numpy<2", # Crucial version pin from requirements.txt
+    "oyaml",
+    "pandas>=1.1",
+    "scikit-learn>=1.1",
+    "shap>=0.42.1",
+    "waitress",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/oegedijk/explainerdashboard"
+"Documentation" = "https://explainerdashboard.readthedocs.io/"
+"Source Code" = "https://github.com/oegedijk/explainerdashboard/"
+"Bug Tracker" = "https://github.com/oegedijk/explainerdashboard/issues"
+"Funding" = "https://github.com/sponsors/oegedijk"
+
+[project.scripts]
+explainerdashboard = "explainerdashboard.cli:explainerdashboard_cli"
+explainerhub = "explainerdashboard.cli:explainerhub_cli"
+
+[project.optional-dependencies]
+test = [
+    "dash[testing]",
+    "catboost",
+    "lightgbm",
+    "xgboost",
+    "torch",
+    "skorch",
+    "selenium",
+    "pytest-console-scripts",
+    "dill",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
+docs = [
+    "sphinx_rtd_theme",
+    "sphinx-autodoc-typehints",
+    "sphinx>=4.0", # Add sphinx itself as a dependency for docs
+    # sphinx.ext.napoleon is a built-in sphinx extension
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/"]
+markers = [
+    "cli: marks tests as cli tests (deselect with '-m \"not cli\"')",
+    "selenium: marks tests as selenium tests (deselect with '-m \"not selenium\"')"
+]
+
+# --- Hatchling specific configuration ---
+[tool.hatch.version]
+path = "explainerdashboard/__init__.py" # Source version from __version__
+
+[tool.hatch.build.targets.sdist]
+# Controls what goes into the sdist. Hatch defaults are usually good.
+# Explicitly include files/dirs needed to build from sdist or run tests/docs from sdist.
+include = [
+    "/explainerdashboard", # The package directory
+    "/LICENSE.txt",
+    "/README.md",
+    # Add other relevant root files like RELEASE_NOTES.md, TODO.md if desired
+    # The top-level /assets directory if it's used by docs or examples run from sdist
+]
+
+[tool.hatch.build.targets.wheel]
+# Ensures package data within the 'explainerdashboard' package is included in the wheel.
+# Hatchling typically includes all files within the package directory that are tracked by VCS.
+# force-include makes this explicit for critical data files.
+# The path on the left is relative to project root (source), path on the right is relative to wheel root (target).
+
+[tool.hatch.build.targets.wheel.force-include]
+"explainerdashboard/assets" = "explainerdashboard/assets"
+"explainerdashboard/datasets" = "explainerdashboard/datasets"
+"explainerdashboard/static" = "explainerdashboard/static"
+
+# --- Hatch environments for development tasks (optional but recommended) ---
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  "explainerdashboard[test,docs]", # Install self with test and docs extras
+]
+[tool.hatch.envs.default.scripts]
+# Usage: hatch run test, hatch run test-cov
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=explainerdashboard --cov-report=xml {args:tests}"
+cov-html = "pytest --cov=explainerdashboard --cov-report=html {args:tests}"
+# For specific test markers like 'selenium' or 'cli'
+# Usage: hatch run test-selenium
+test-selenium = "pytest -m selenium {args:tests}"
+test-cli = "pytest -m cli {args:tests}"
+test-no-selenium = "pytest -m 'not selenium' {args:tests}"
+
+[tool.hatch.envs.lint]
+detached = true # So it doesn't install the project itself
+dependencies = ["flake8"]
+[tool.hatch.envs.lint.scripts]
+style = [
+    "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics",
+    "flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.8",
+]

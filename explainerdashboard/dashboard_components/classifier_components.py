@@ -112,9 +112,9 @@ class ClassifierRandomIndexComponent(ExplainerComponent):
             and self.slider[0] <= self.slider[1]
         ), "slider should be e.g. [0.5, 1.0]"
 
-        assert all(
-            [lab in self.explainer.labels for lab in self.labels]
-        ), f"These labels are not in explainer.labels: {[lab for lab in self.labels if lab not in explainer.labels]}!"
+        assert all([lab in self.explainer.labels for lab in self.labels]), (
+            f"These labels are not in explainer.labels: {[lab for lab in self.labels if lab not in explainer.labels]}!"
+        )
 
         assert self.pred_or_perc in [
             "predictions",
@@ -643,7 +643,7 @@ class ClassifierPredictionSummaryComponent(ExplainerComponent):
                 preds_df = self._format_preds_df(preds_df)
                 html = to_html.row(to_html.table_from_df(preds_df), to_html.fig(fig))
             else:
-                html = f"<div>input data incorrect</div>"
+                html = "<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title)
         if add_header:
@@ -1009,7 +1009,7 @@ class PrecisionComponent(ExplainerComponent):
                                                             + self.name,
                                                         ),
                                                         dbc.Tooltip(
-                                                            f"Scores above this cutoff will be labeled positive",
+                                                            "Scores above this cutoff will be labeled positive",
                                                             target="precision-cutoff-div-"
                                                             + self.name,
                                                             placement="bottom",
@@ -1375,7 +1375,7 @@ class ConfusionMatrixComponent(ExplainerComponent):
                                             + self.name,
                                         ),
                                         dbc.Tooltip(
-                                            f"Scores above this cutoff will be labeled positive",
+                                            "Scores above this cutoff will be labeled positive",
                                             target="confusionmatrix-cutoff-div-"
                                             + self.name,
                                             placement="bottom",
@@ -1708,7 +1708,7 @@ class LiftCurveComponent(ExplainerComponent):
                                             id="liftcurve-cutoff-div-" + self.name,
                                         ),
                                         dbc.Tooltip(
-                                            f"Scores above this cutoff will be labeled positive",
+                                            "Scores above this cutoff will be labeled positive",
                                             target="liftcurve-cutoff-div-" + self.name,
                                             placement="bottom",
                                         ),
@@ -2032,7 +2032,7 @@ class CumulativePrecisionComponent(ExplainerComponent):
                                                                     + self.name,
                                                                 ),
                                                                 dbc.Tooltip(
-                                                                    f"Scores above this cutoff will be labeled positive",
+                                                                    "Scores above this cutoff will be labeled positive",
                                                                     target="cumulative-precision-cutoff-div-"
                                                                     + self.name,
                                                                     placement="bottom",
@@ -2260,7 +2260,7 @@ class ClassificationComponent(ExplainerComponent):
                                             id="classification-cutoff-div-" + self.name,
                                         ),
                                         dbc.Tooltip(
-                                            f"Scores above this cutoff will be labeled positive",
+                                            "Scores above this cutoff will be labeled positive",
                                             target="classification-cutoff-div-"
                                             + self.name,
                                             placement="bottom",
@@ -2486,7 +2486,7 @@ class RocAucComponent(ExplainerComponent):
                                             id="rocauc-cutoff-div-" + self.name,
                                         ),
                                         dbc.Tooltip(
-                                            f"Scores above this cutoff will be labeled positive",
+                                            "Scores above this cutoff will be labeled positive",
                                             target="rocauc-cutoff-div-" + self.name,
                                             placement="bottom",
                                         ),
@@ -2679,7 +2679,7 @@ class PrAucComponent(ExplainerComponent):
                                             id="prauc-cutoff-div-" + self.name,
                                         ),
                                         dbc.Tooltip(
-                                            f"Scores above this cutoff will be labeled positive",
+                                            "Scores above this cutoff will be labeled positive",
                                             target="prauc-cutoff-div-" + self.name,
                                             placement="bottom",
                                         ),
@@ -2848,7 +2848,7 @@ class ClassifierModelSummaryComponent(ExplainerComponent):
                                             + self.name,
                                         ),
                                         dbc.Tooltip(
-                                            f"Scores above this cutoff will be labeled positive",
+                                            "Scores above this cutoff will be labeled positive",
                                             target="clas-model-summary-cutoff-div-"
                                             + self.name,
                                             placement="bottom",

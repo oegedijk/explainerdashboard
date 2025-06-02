@@ -1885,7 +1885,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 Input("interaction-dependence-col-" + self.name, "value"),
             ],
         )
-        def update_dependence_graph(
+        def update_top_dependence_graph(
             interact_col, index, topx, sort, remove_outliers, pos_label, col
         ):
             if col is not None and interact_col is not None:
@@ -1938,7 +1938,7 @@ class InteractionDependenceComponent(ExplainerComponent):
                 Input("interaction-dependence-col-" + self.name, "value"),
             ],
         )
-        def update_dependence_graph(
+        def update_bottom_dependence_graph(
             interact_col, index, topx, sort, remove_outliers, pos_label, col
         ):
             if col is not None and interact_col is not None:
@@ -2368,9 +2368,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 self.feature_input_component._input_features
             ) and not any([i is None for i in inputs]):
                 X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                shap_values = self.explainer.get_shap_row(
-                    X_row=X_row, pos_label=args["pos_label"]
-                )
+                
 
                 fig = self.explainer.plot_contributions(
                     X_row=X_row,
@@ -2382,7 +2380,7 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 )
                 html = to_html.fig(fig)
             else:
-                html = f"<div>input data incorrect</div>"
+                html = "<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:
@@ -2741,7 +2739,7 @@ class ShapContributionsTableComponent(ExplainerComponent):
                 )
                 html = to_html.table_from_df(contrib_df)
             else:
-                html = f"<div>input data incorrect</div>"
+                html = "<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title, subtitle=self.subtitle)
         if add_header:

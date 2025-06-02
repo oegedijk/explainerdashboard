@@ -150,9 +150,9 @@ class RegressionRandomIndexComponent(ExplainerComponent):
                 and self.pred_slider[0] <= self.pred_slider[1]
             ), "pred_slider should be a list of a [lower_bound, upper_bound]!"
 
-            assert (
-                len(self.y_slider) == 2 and self.y_slider[0] <= self.y_slider[1]
-            ), "y_slider should be a list of a [lower_bound, upper_bound]!"
+            assert len(self.y_slider) == 2 and self.y_slider[0] <= self.y_slider[1], (
+                "y_slider should be a list of a [lower_bound, upper_bound]!"
+            )
 
             assert (
                 len(self.residual_slider) == 2
@@ -620,7 +620,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             ],
             [Input("random-index-reg-preds-or-y-" + self.name, "value")],
         )
-        def update_reg_hidden_div_pred_sliders(preds_or_y):
+        def update_random_index_reg_hidden_div_pred_sliders(preds_or_y):
             if preds_or_y == "preds":
                 return (None, dict(display="none"))
             elif preds_or_y == "y":
@@ -636,7 +636,7 @@ class RegressionRandomIndexComponent(ExplainerComponent):
             ],
             [Input("random-index-reg-abs-residual-" + self.name, "value")],
         )
-        def update_reg_hidden_div_pred_sliders(abs_residuals):
+        def update_random_index_reg_residual_hidden_div(abs_residuals):
             if abs_residuals == "absolute":
                 return (dict(display="none"), None)
             else:
@@ -899,7 +899,6 @@ class RegressionModelSummaryComponent(ExplainerComponent):
         )
 
     def to_html(self, state_dict=None, add_header=True):
-        args = self.get_state_args(state_dict)
         metrics_df = (
             pd.DataFrame(
                 self.explainer.metrics(show_metrics=self.show_metrics), index=["Score"]
@@ -1051,7 +1050,7 @@ class RegressionPredictionSummaryComponent(ExplainerComponent):
                 )
                 html = to_html.table_from_df(preds_df)
             else:
-                html = f"<div>input data incorrect</div>"
+                html = "<div>input data incorrect</div>"
 
         html = to_html.card(html, title=self.title)
         if add_header:
