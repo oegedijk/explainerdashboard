@@ -18,7 +18,7 @@ from explainerdashboard.explainers import BaseExplainer
 from explainerdashboard.dashboards import ExplainerDashboard
 
 
-explainer_ascii = """
+explainer_ascii = r"""
 
  _____ ___ __| |__ _(_)_ _  ___ _ _ __| |__ _ __| |_ | |__  ___  __ _ _ _ __| |
 / -_) \ / '_ \ / _` | | ' \/ -_) '_/ _` / _` (_-< ' \| '_ \/ _ \/ _` | '_/ _` |
@@ -27,7 +27,7 @@ explainer_ascii = """
 
 """
 
-hub_ascii = """
+hub_ascii = r"""
 
                _      _              _        _    
   _____ ___ __| |__ _(_)_ _  ___ _ _| |_ _  _| |__ 
