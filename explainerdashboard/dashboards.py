@@ -879,7 +879,7 @@ class ExplainerDashboard:
 
           db = ExplainerDashboard.from_config("dashboard.yaml")
 
-        You can also load the explainerfile seperately:
+        You can also load the explainerfile separately:
 
           db = ExplainerDashboard.from_config("explainer.joblib", "dashboard.yaml")
 
@@ -1018,7 +1018,7 @@ class ExplainerDashboard:
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
         """Stores the parameter of the class to instance attributes and
-        to a ._stored_params dict. You can optionall exclude all or some
+        to a ._stored_params dict. You can optionally exclude all or some
         parameters from being stored.
 
         Args:
@@ -1523,7 +1523,7 @@ class ExplainerHub:
             )
 
         assert len(set(self.dashboard_names)) == len(self.dashboard_names), (
-            f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
+            f"All dashboard .name properties should be unique, but received the following: {self.dashboard_names}"
         )
         illegal_names = list(set(self.dashboard_names) & self.__reserved_names)
         assert not illegal_names, (
@@ -1613,7 +1613,7 @@ class ExplainerHub:
                 f"The following .name properties for dashboards are not allowed: {dashboard.name}!"
             )
 
-        # If the dashboard name is unkown we create it
+        # If the dashboard name is unknown we create it
         update_params = dict(
             server=self.app,
             name=dashboard.name,
@@ -1689,7 +1689,7 @@ class ExplainerHub:
             config = deepcopy(config)
 
         assert "explainerhub" in config, (
-            "Misformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
+            "Malformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
         )
 
         config = config["explainerhub"]
@@ -1793,7 +1793,7 @@ class ExplainerHub:
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
         """Stores the parameter of the class to instance attributes and
-        to a ._stored_params dict. You can optionall exclude all or some
+        to a ._stored_params dict. You can optionally exclude all or some
         parameters from being stored.
 
         Args:
@@ -1894,7 +1894,7 @@ class ExplainerHub:
 
     @staticmethod
     def _validate_users_file(users_file: Path):
-        """validat that user_json is a well formed .json file.
+        """validate that user_json is a well formed .json file.
         If it does not exist, then create an empty .json file.
         """
         if users_file is not None:
@@ -1951,7 +1951,7 @@ class ExplainerHub:
                     username=username,
                     password=generate_password_hash(password, method="pbkdf2:sha256"),
                 )
-                if add_to_users_file and self.users_jfile is not None:
+                if add_to_users_file and self.users_file is not None:
                     self._add_user_to_file(self.users_file, username, password)
         return logins_dict
 
@@ -2435,7 +2435,7 @@ class ExplainerHub:
         print(f"Saved static html version of ExplainerHub to {filename}...")
 
     def _hub_page(self, route, static=False):
-        """Returns a html bootstrap wrapper around a particular flask route (hosting an ExplainerDashbaord)
+        """Returns a html bootstrap wrapper around a particular flask route (hosting an ExplainerDashboard)
         It contains:
         - a NavBar with links to all dashboards
         - an iframe containing the flask route
@@ -2511,7 +2511,7 @@ class ExplainerHub:
         """adds the index route "/" with the index_page
         and routes for each dashboard with a navbar and an iframe, e.g. "/_dashboard1"
 
-        If you pass no_index to the contructor, this method does not get called.
+        If you pass no_index to the constructor, this method does not get called.
 
         Args:
             app (flask.Flask): flask app to add routes to.
@@ -2696,7 +2696,7 @@ class InlineExplainer:
             print(f"Something seems to have failed: {e}")
 
     def _run_app(self, app, **kwargs):
-        """Starts the dashboard either inline or in a seperate tab
+        """Starts the dashboard either inline or in a separate tab
 
         :param app: the JupyterDash app to be run
         :type mode: JupyterDash app instance
