@@ -3,6 +3,10 @@
 
 ## Version 0.5.2:
 
+### Breaking Changes
+- Dropped support for Python 3.8 and 3.9 (Python 3.9 reached end-of-life). Minimum Python version is now 3.10
+- Now explicitly supports and tests on Python 3.10, 3.11, 3.12, and 3.13
+
 ### Improvements
 - Removed upper version constraints for `dash` and `plotly` dependencies, now supports Dash 2.10+ and 3.0+, and Plotly 5.0+ and 6.0+
 - Added backward compatibility code to support both Dash 2.x (`app.run_server()`) and Dash 3.x (`app.run()`) APIs
