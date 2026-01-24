@@ -1640,40 +1640,51 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=Non
     if decision_tree.is_classifier():
 
         def node_pred_proba(node):
-            class_counts = node.class_counts()
-            # class_counts() returns a dict with actual class values as keys (e.g., {0: 10, 1: 5})
-            # pos_label is the index in self.labels (0-based), which should match class values for binary classification
-            # But in some cases (e.g., scikit-learn version differences), the keys might be different
-            total = sum(class_counts.values())
-            if total == 0:
-                return 0.0
+            class_counts_raw = node.class_counts()
+            # Handle both dict and numpy array return types from class_counts()
+            # Newer dtreeviz versions may return numpy arrays instead of dicts
+            if isinstance(class_counts_raw, dict):
+                class_counts = class_counts_raw
+                total = sum(class_counts.values())
+                if total == 0:
+                    return 0.0
 
-            # Try direct access first (most common case)
-            if pos_label in class_counts:
-                return class_counts[pos_label] / total
+                # Try direct access first (most common case)
+                if pos_label in class_counts:
+                    return class_counts[pos_label] / total
 
-            # If pos_label not found, try to map it to available class keys
-            available_classes = sorted(class_counts.keys())
-            if len(available_classes) == 0:
-                return 0.0
+                # If pos_label not found, try to map it to available class keys
+                available_classes = sorted(class_counts.keys())
+                if len(available_classes) == 0:
+                    return 0.0
 
-            # Map pos_label (index in labels) to actual class value
-            # For binary classification: pos_label=0 -> class 0, pos_label=1 -> class 1
-            # But if class_counts has different keys, we need to map by position
-            if 0 <= pos_label < len(available_classes):
-                # pos_label is a valid index into available_classes
-                class_key = available_classes[pos_label]
+                # Map pos_label (index in labels) to actual class value
+                if 0 <= pos_label < len(available_classes):
+                    class_key = available_classes[pos_label]
+                    return class_counts[class_key] / total
+
+                # If pos_label is out of range, clamp it to valid range
+                if pos_label >= len(available_classes):
+                    class_key = available_classes[-1]
+                    return class_counts[class_key] / total
+
+                # Final fallback: use the class with the highest count
+                class_key = max(class_counts, key=class_counts.get)
                 return class_counts[class_key] / total
+            else:
+                # Handle numpy array case (newer dtreeviz versions)
+                class_counts_array = np.asarray(class_counts_raw)
+                total = class_counts_array.sum()
+                if total == 0:
+                    return 0.0
 
-            # If pos_label is out of range, clamp it to valid range
-            if pos_label >= len(available_classes):
-                # Use the last available class (typically the positive class in binary classification)
-                class_key = available_classes[-1]
-                return class_counts[class_key] / total
-
-            # Final fallback: use the class with the highest count
-            class_key = max(class_counts, key=class_counts.get)
-            return class_counts[class_key] / total
+                # pos_label is an index into the array
+                if 0 <= pos_label < len(class_counts_array):
+                    return float(class_counts_array[pos_label]) / total
+                elif len(class_counts_array) > 0:
+                    # Clamp to valid range
+                    return float(class_counts_array[-1]) / total
+                return 0.0
 
         for node in nodes:
             if not node.isleaf():

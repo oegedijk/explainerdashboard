@@ -71,7 +71,7 @@ test = [
     "dash[testing]",
     "catboost",
     "lightgbm",
-    "xgboost>=2.0.0",
+    "xgboost>=2.0.0,<3.1",  # Temporarily pin to <3.1 to test if 3.1+ is causing CI errors
     "torch ; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "skorch ; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "webdriver-manager",
@@ -165,5 +165,5 @@ dev = [
     "pre-commit>=3.0.0",
 ]
 test = [
-    "xgboost>=2.0.0",
+    "xgboost>=2.0.0,<3.1",  # Temporarily pin to <3.1 to test if 3.1+ is causing CI errors
 ]
