@@ -132,6 +132,13 @@ dmypy.json
 catboost_info/*
 .vscode/settings.json
 
+# WebDriver Manager cache (webdriver-manager downloads ChromeDriver here)
+.wdm/
+.cache/selenium/
+
+# UV lock file (libraries shouldn't commit lock files - they use version ranges in pyproject.toml)
+uv.lock
+
 scratch_notebook.ipynb
 scratch_import.py
 show_and_tell_draft.md

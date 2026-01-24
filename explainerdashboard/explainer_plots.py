@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
@@ -348,8 +348,7 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
         title=f"percentage {label} vs predicted probability",
         yaxis=dict(title="counts"),
         yaxis2=dict(
-            title="percentage",
-            titlefont=dict(color="rgb(148, 103, 189)"),
+            title=dict(text="percentage", font=dict(color="rgb(148, 103, 189)")),
             tickfont=dict(color="rgb(148, 103, 189)"),
             overlaying="y",
             side="right",

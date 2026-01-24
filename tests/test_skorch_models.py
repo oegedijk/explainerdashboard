@@ -3,8 +3,12 @@ import pytest
 import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification, make_regression
-from torch import nn
 
+# Skip entire module if torch/skorch not available
+pytest.importorskip("torch", reason="torch not available (e.g., on Intel Mac)")
+pytest.importorskip("skorch", reason="skorch not available (e.g., on Intel Mac)")
+
+from torch import nn
 from skorch import NeuralNetClassifier, NeuralNetRegressor
 
 from explainerdashboard.explainers import RegressionExplainer, ClassifierExplainer
@@ -140,6 +144,7 @@ def test_skorch_regressor_calculate_properties(skorch_regressor_explainer):
     skorch_regressor_explainer.calculate_properties(include_interactions=False)
 
 
+@pytest.mark.skipif(not TORCH_AVAILABLE, reason="torch/skorch not available (e.g., on Intel Mac)")
 def test_skorch_regressor_pdp_df(skorch_regressor_explainer):
     assert isinstance(skorch_regressor_explainer.pdp_df("col1"), pd.DataFrame)
 

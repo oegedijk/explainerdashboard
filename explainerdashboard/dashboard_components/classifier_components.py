@@ -19,7 +19,7 @@ from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 
 from ..dashboard_methods import *
 from .. import to_html

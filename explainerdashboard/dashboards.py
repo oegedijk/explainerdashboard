@@ -1298,16 +1298,32 @@ class ExplainerDashboard:
                         f"ExplainerDashboard.terminate({port})",
                         flush=True,
                     )
-                app.run_server(port=port, mode=mode, **kwargs)
+                try:
+                    # Dash 3.0+ uses run() with jupyter_mode parameter
+                    app.run(port=port, jupyter_mode=mode, **kwargs)
+                except (TypeError, AttributeError):
+                    # Fallback for older Dash/JupyterDash versions
+                    app.run_server(port=port, mode=mode, **kwargs)
             elif mode in ["inline", "jupyterlab"]:
                 print(
                     f"Starting ExplainerDashboard inline (terminate it with "
                     f"ExplainerDashboard.terminate({port}))",
                     flush=True,
                 )
-                app.run_server(
-                    port=port, mode=mode, width=self.width, height=self.height, **kwargs
-                )
+                try:
+                    # Dash 3.0+ uses run() with jupyter_mode, jupyter_width, jupyter_height parameters
+                    app.run(
+                        port=port, 
+                        jupyter_mode=mode, 
+                        jupyter_width=self.width, 
+                        jupyter_height=self.height, 
+                        **kwargs
+                    )
+                except (TypeError, AttributeError):
+                    # Fallback for older Dash/JupyterDash versions
+                    app.run_server(
+                        port=port, mode=mode, width=self.width, height=self.height, **kwargs
+                    )
             else:
                 raise ValueError(f"Unknown mode: mode='{mode}'!")
 
@@ -2705,11 +2721,26 @@ class InlineExplainer:
         """
         pio.templates.default = "none"
         if self._mode in ["inline", "jupyterlab"]:
-            app.run_server(
-                mode=self._mode, width=self._width, height=self._height, port=self._port
-            )
+            try:
+                # Dash 3.0+ uses run() with jupyter_mode, jupyter_width, jupyter_height parameters
+                app.run(
+                    jupyter_mode=self._mode, 
+                    jupyter_width=self._width, 
+                    jupyter_height=self._height, 
+                    port=self._port
+                )
+            except (TypeError, AttributeError):
+                # Fallback for older Dash/JupyterDash versions
+                app.run_server(
+                    mode=self._mode, width=self._width, height=self._height, port=self._port
+                )
         elif self._mode == "external":
-            app.run_server(mode=self._mode, port=self._port, **self._kwargs)
+            try:
+                # Dash 3.0+ uses run() with jupyter_mode parameter
+                app.run(jupyter_mode=self._mode, port=self._port, **self._kwargs)
+            except (TypeError, AttributeError):
+                # Fallback for older Dash/JupyterDash versions
+                app.run_server(mode=self._mode, port=self._port, **self._kwargs)
         else:
             raise ValueError(
                 "mode should either be 'inline', 'jupyterlab'  or 'external'!"
