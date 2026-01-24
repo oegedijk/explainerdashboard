@@ -144,7 +144,6 @@ def test_skorch_regressor_calculate_properties(skorch_regressor_explainer):
     skorch_regressor_explainer.calculate_properties(include_interactions=False)
 
 
-@pytest.mark.skipif(not TORCH_AVAILABLE, reason="torch/skorch not available (e.g., on Intel Mac)")
 def test_skorch_regressor_pdp_df(skorch_regressor_explainer):
     assert isinstance(skorch_regressor_explainer.pdp_df("col1"), pd.DataFrame)
 
