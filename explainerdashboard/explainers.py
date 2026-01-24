@@ -1126,7 +1126,9 @@ class BaseExplainer(ABC):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    preds = self.model.predict(data_asframe)
+                    preds_raw = self.model.predict(data_asframe)
+                    preds_raw = _ensure_numeric_predictions(preds_raw)
+                    preds = np.asarray(preds_raw)
                     return preds.reshape(len(preds))
 
                 self._shap_explainer = shap.KernelExplainer(
@@ -1147,10 +1149,17 @@ class BaseExplainer(ABC):
             # CatBoost needs shap values calculated before expected value
             if not hasattr(self, "_shap_values"):
                 _ = self.get_shap_values_df()
-            self._shap_base_value = self.shap_explainer.expected_value
-            if isinstance(self._shap_base_value, np.ndarray):
-                # shap library now returns an array instead of float
-                self._shap_base_value = self._shap_base_value.item()
+            base_value_raw = self.shap_explainer.expected_value
+            base_value_raw = _ensure_numeric_predictions(base_value_raw)
+            base_value_array = np.asarray(base_value_raw)
+            # Convert to scalar float
+            if base_value_array.ndim == 0:
+                self._shap_base_value = float(base_value_array.item())
+            elif len(base_value_array) == 1:
+                self._shap_base_value = float(base_value_array[0])
+            else:
+                # Multiple values - take first (shouldn't happen for regression)
+                self._shap_base_value = float(base_value_array[0])
         return self._shap_base_value
 
     @insert_pos_label
@@ -1168,8 +1177,13 @@ class BaseExplainer(ABC):
                     columns=self.columns,
                 )
             else:
+                shap_values_raw = self.shap_explainer.shap_values(
+                    self.X, **self.shap_kwargs
+                )
+                # Handle XGBoost 3.0+ string predictions
+                shap_values_raw = _ensure_numeric_predictions(shap_values_raw)
                 self._shap_values_df = pd.DataFrame(
-                    self.shap_explainer.shap_values(self.X, **self.shap_kwargs),
+                    np.asarray(shap_values_raw),
                     columns=self.columns,
                 )
             self._shap_values_df = merge_categorical_shap_values(
@@ -2582,14 +2596,14 @@ class ClassifierExplainer(BaseExplainer):
                 self.model, "predict_proba"
             ), "model does not have a predict_proba method!"
             if self.shap == "skorch":
-                self._pred_probas = self.model.predict_proba(self.X.values).astype(
-                    self.precision
-                )
+                pred_probas_raw = self.model.predict_proba(self.X.values)
+                pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
+                self._pred_probas = np.asarray(pred_probas_raw).astype(self.precision)
             else:
                 warnings.filterwarnings("ignore", category=UserWarning)
-                self._pred_probas = self.model.predict_proba(self.X).astype(
-                    self.precision
-                )
+                pred_probas_raw = self.model.predict_proba(self.X)
+                pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
+                self._pred_probas = np.asarray(pred_probas_raw).astype(self.precision)
                 warnings.filterwarnings("default", category=UserWarning)
         return self._pred_probas
 
@@ -2789,7 +2803,10 @@ class ClassifierExplainer(BaseExplainer):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    return self.model.predict_proba(data_asframe)
+                    pred_probas_raw = self.model.predict_proba(data_asframe)
+                    # Handle XGBoost 3.0+ string predictions (though predict_proba usually returns numeric)
+                    pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
+                    return np.asarray(pred_probas_raw)
 
                 self._shap_explainer = shap.KernelExplainer(
                     model_predict,
@@ -2805,26 +2822,29 @@ class ClassifierExplainer(BaseExplainer):
         """SHAP base value: average outcome of population"""
         if not hasattr(self, "_shap_base_value"):
             _ = self.get_shap_values_df()  # CatBoost needs to have shap values calculated before expected value for some reason
-            self._shap_base_value = self.shap_explainer.expected_value
-            if (
-                isinstance(self._shap_base_value, np.ndarray)
-                and len(self._shap_base_value) == 1
-            ):
-                self._shap_base_value = self._shap_base_value[0]
-            if isinstance(self._shap_base_value, np.ndarray):
-                self._shap_base_value = list(self._shap_base_value)
+            base_value_raw = self.shap_explainer.expected_value
+            base_value_raw = _ensure_numeric_predictions(base_value_raw)
+            base_value_array = np.asarray(base_value_raw)
+            # Convert to scalar or list as needed
+            if base_value_array.ndim == 0:
+                self._shap_base_value = float(base_value_array.item())
+            elif len(base_value_array) == 1:
+                self._shap_base_value = float(base_value_array[0])
+            else:
+                self._shap_base_value = [float(x) for x in base_value_array]
+
             if len(self.labels) == 2 and isinstance(
-                self._shap_base_value, (np.floating, float)
+                self._shap_base_value, (np.floating, float, int)
             ):
                 if self.model_output == "probability":
                     self._shap_base_value = [
-                        1 - self._shap_base_value,
-                        self._shap_base_value,
+                        1 - float(self._shap_base_value),
+                        float(self._shap_base_value),
                     ]
                 else:  # assume logodds
                     self._shap_base_value = [
-                        -self._shap_base_value,
-                        self._shap_base_value,
+                        -float(self._shap_base_value),
+                        float(self._shap_base_value),
                     ]
             assert len(self._shap_base_value) == len(self.labels), (
                 f"len(shap_explainer.expected_value)={len(self._shap_base_value)}"
@@ -2846,13 +2866,16 @@ class ClassifierExplainer(BaseExplainer):
             if self.shap == "skorch":
                 import torch
 
-                _shap_values = self.shap_explainer.shap_values(
+                _shap_values_raw = self.shap_explainer.shap_values(
                     torch.tensor(self.X.values.astype("float32")), **self.shap_kwargs
                 )
             else:
-                _shap_values = self.shap_explainer.shap_values(
+                _shap_values_raw = self.shap_explainer.shap_values(
                     self.X.values, **self.shap_kwargs
                 )
+            # Handle XGBoost 3.0+ string predictions
+            _shap_values = _ensure_numeric_predictions(_shap_values_raw)
+            _shap_values = np.asarray(_shap_values)
 
             if len(self.labels) == 2:
                 if (
@@ -3551,7 +3574,9 @@ class ClassifierExplainer(BaseExplainer):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             if self.shap == "skorch":
                 X_row = X_row.values.astype("float32")
-            pred_probas = self.model.predict_proba(X_row)[0, :].squeeze()
+            pred_probas_raw = self.model.predict_proba(X_row)[0, :]
+            pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
+            pred_probas = np.asarray(pred_probas_raw).squeeze()
 
         preds_df = pd.DataFrame(dict(label=self.labels, probability=pred_probas))
         if logodds and all(preds_df.probability < 1 - np.finfo(np.float64).eps):

@@ -56,34 +56,101 @@ from joblib import Parallel, delayed
 
 
 def _ensure_numeric_predictions(pred):
-    """Convert predictions to numeric format, handling XGBoost 3.0 string format.
+    """Convert predictions to numeric format, handling XGBoost 3.0+ string format.
 
     Args:
-        pred: Prediction output from model (may be string, array, scalar)
+        pred: Prediction output from model (may be string, array, scalar, list)
 
     Returns:
-        Numeric prediction (numpy array or scalar)
+        Numeric prediction (numpy array or scalar float)
     """
-    # Handle string predictions (XGBoost 3.0 may return strings like '[3.2967056E1]')
+    # Handle None
+    if pred is None:
+        return None
+
+    # Handle string predictions (XGBoost 3.0+ may return strings like '[3.2967056E1]' or '[8.563135E-2,7.169811E-1,1.9738752E-1]')
     if isinstance(pred, str):
         try:
-            # Remove brackets and whitespace, then convert to float
+            # Remove brackets and whitespace
             cleaned = pred.strip().strip("[]").strip()
-            return float(cleaned)
-        except (ValueError, AttributeError):
-            # If conversion fails, return as-is (will raise error later)
+            # Check if it contains comma-separated values
+            if "," in cleaned:
+                # Multiple values - convert to array
+                values = [float(v.strip()) for v in cleaned.split(",")]
+                return np.asarray(values)
+            else:
+                # Single value
+                return float(cleaned)
+        except (ValueError, AttributeError, TypeError):
+            # If conversion fails, try regex extraction
+            import re
+
+            matches = re.findall(r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?", pred)
+            if matches:
+                if len(matches) == 1:
+                    return float(matches[0])
+                else:
+                    return np.asarray([float(m) for m in matches])
+            # If all else fails, return as-is (will raise error later)
             return pred
 
-    # Convert to numpy array for processing
-    pred_array = np.asarray(pred)
+    # Handle list/tuple of strings or mixed types
+    if isinstance(pred, (list, tuple)):
+        try:
+            converted = []
+            for item in pred:
+                if isinstance(item, str):
+                    cleaned = item.strip().strip("[]").strip()
+                    converted.append(float(cleaned))
+                else:
+                    item_conv = _ensure_numeric_predictions(item)
+                    converted.append(
+                        float(item_conv)
+                        if not isinstance(item_conv, np.ndarray)
+                        else item_conv
+                    )
+            return np.asarray(converted)
+        except (ValueError, AttributeError, TypeError):
+            pass  # Fall through to array conversion
 
-    # Handle string arrays (XGBoost 3.0 may return arrays of strings)
+    # Convert to numpy array for processing
+    try:
+        pred_array = np.asarray(pred)
+    except (ValueError, TypeError):
+        # If we can't convert to array, try direct conversion
+        if isinstance(pred, (int, float)):
+            return float(pred)
+        return pred
+
+    # Handle string arrays (XGBoost 3.0+ may return arrays of strings)
     if pred_array.dtype.kind == "U":  # Unicode string array
         try:
             # Convert each string element to float
             def _convert_elem(elem):
                 if isinstance(elem, str):
-                    return float(elem.strip().strip("[]").strip())
+                    cleaned = elem.strip().strip("[]").strip()
+                    # Handle comma-separated values in string
+                    if "," in cleaned:
+                        # Multiple values - should not happen in scalar context, but handle it
+                        values = [float(v.strip()) for v in cleaned.split(",")]
+                        return values[0] if len(values) == 1 else np.asarray(values)
+                    # Handle scientific notation
+                    try:
+                        return float(cleaned)
+                    except ValueError:
+                        # Try regex extraction as fallback
+                        import re
+
+                        match = re.search(
+                            r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?", cleaned
+                        )
+                        if match:
+                            return float(match.group())
+                        raise
+                elif isinstance(elem, (int, float, np.integer, np.floating)):
+                    return float(elem)
+                elif isinstance(elem, np.ndarray):
+                    return float(elem.item()) if elem.ndim == 0 else elem
                 return elem
 
             if pred_array.ndim == 0:
@@ -91,15 +158,31 @@ def _ensure_numeric_predictions(pred):
                 return _convert_elem(pred_array.item())
             else:
                 # Multi-dimensional string array
-                return np.array(
-                    [_convert_elem(p) for p in pred_array.flatten()]
-                ).reshape(pred_array.shape)
-        except (ValueError, AttributeError):
+                converted = []
+                for p in pred_array.flatten():
+                    try:
+                        converted.append(_convert_elem(p))
+                    except (ValueError, TypeError):
+                        # Try regex extraction as fallback
+                        import re
+
+                        p_str = str(p)
+                        match = re.search(
+                            r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?", p_str
+                        )
+                        if match:
+                            converted.append(float(match.group()))
+                        else:
+                            raise
+                return np.array(converted).reshape(pred_array.shape)
+        except (ValueError, AttributeError, TypeError):
             # If conversion fails, return original (will raise error later)
             return pred
 
-    # Already numeric, return as-is
-    return pred
+    # Already numeric, return as numpy array or scalar
+    if pred_array.ndim == 0:
+        return pred_array.item()
+    return pred_array
 
 
 def _safe_make_scorer(
@@ -1056,7 +1139,9 @@ def get_pdp_df(
         if is_classifier:
             if cast_to_float32:
                 dtemp = dtemp.values.astype("float32")
-            pred_probas = model.predict_proba(dtemp).squeeze()
+            pred_probas_raw = model.predict_proba(dtemp)
+            pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
+            pred_probas = np.asarray(pred_probas_raw).squeeze()
             if multiclass:
                 for i in range(n_labels):
                     pdp_dfs[i][grid_value] = pred_probas[:, i]
@@ -1065,7 +1150,9 @@ def get_pdp_df(
         else:
             if cast_to_float32:
                 dtemp = dtemp.values.astype("float32")
-            preds = model.predict(dtemp).squeeze()
+            preds_raw = model.predict(dtemp)
+            preds_raw = _ensure_numeric_predictions(preds_raw)
+            preds = np.asarray(preds_raw).squeeze()
             pdp_df[grid_value] = preds
     if multiclass:
         return pdp_dfs
@@ -1845,22 +1932,40 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
         is_classifier = True
         n_classes = len(xgbmodel.classes_)
         if n_classes == 2:
+            base_score_raw = xgbmodel.get_params()["base_score"]
+            base_score_raw = (
+                _ensure_numeric_predictions(base_score_raw)
+                if base_score_raw is not None
+                else None
+            )
             if pos_label == 1:
-                base_proba = xgbmodel.get_params()["base_score"] or 0.5
+                base_proba = (
+                    float(base_score_raw) if base_score_raw is not None else 0.5
+                )
             elif pos_label == 0:
-                base_proba = 1 - xgbmodel.get_params()["base_score"] or 0.5
+                base_proba = 1 - (
+                    float(base_score_raw) if base_score_raw is not None else 0.5
+                )
             else:
                 raise ValueError("pos_label should be either 0 or 1!")
             n_trees = len(xgbmodel.get_booster().get_dump())
             base_score = np.log(base_proba / (1 - base_proba))
         else:
             base_proba = 1.0 / n_classes
-            base_score = xgbmodel.get_params()["base_score"]
+            base_score_raw = xgbmodel.get_params()["base_score"]
+            base_score_raw = (
+                _ensure_numeric_predictions(base_score_raw)
+                if base_score_raw is not None
+                else None
+            )
+            base_score = float(base_score_raw) if base_score_raw is not None else 0.5
             n_trees = int(len(xgbmodel.get_booster().get_dump()) / n_classes)
 
     elif str(type(xgbmodel)).endswith("XGBRegressor'>"):
         is_classifier = False
-        base_score = xgbmodel.get_params()["base_score"]
+        base_score_raw = xgbmodel.get_params()["base_score"]
+        base_score_raw = _ensure_numeric_predictions(base_score_raw)
+        base_score = float(base_score_raw) if base_score_raw is not None else 0.5
         n_trees = len(xgbmodel.get_booster().get_dump())
     else:
         raise ValueError("Pass either an XGBClassifier or XGBRegressor!")
@@ -1868,37 +1973,63 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
     if is_classifier:
         if n_classes == 2:
             if pos_label == 1:
-                preds = [
+                preds_raw = [
                     xgbmodel.predict(
                         X_row, iteration_range=(0, i + 1), output_margin=True
                     )[0]
                     for i in range(n_trees)
                 ]
             elif pos_label == 0:
-                preds = [
+                preds_raw = [
                     -xgbmodel.predict(
                         X_row, iteration_range=(0, i + 1), output_margin=True
                     )[0]
                     for i in range(n_trees)
                 ]
+            # Convert XGBoost 3.0+ string predictions to numeric
+            preds = []
+            for p in preds_raw:
+                p_conv = _ensure_numeric_predictions(p)
+                if isinstance(p_conv, np.ndarray):
+                    p_conv = p_conv.item() if p_conv.ndim == 0 else float(p_conv[0])
+                preds.append(float(p_conv))
             pred_probas = (np.exp(preds) / (1 + np.exp(preds))).tolist()
         else:
-            margins = [
+            margins_raw = [
                 xgbmodel.predict(X_row, iteration_range=(0, i + 1), output_margin=True)[
                     0
                 ]
                 for i in range(n_trees)
             ]
+            # Convert XGBoost 3.0+ string predictions to numeric
+            margins = []
+            for m in margins_raw:
+                m_conv = _ensure_numeric_predictions(m)
+                if isinstance(m_conv, np.ndarray):
+                    margins.append(m_conv)
+                elif isinstance(m_conv, (list, tuple)):
+                    margins.append(
+                        np.asarray([_ensure_numeric_predictions(x) for x in m_conv])
+                    )
+                else:
+                    margins.append(np.asarray([float(m_conv)]))
             preds = [margin[pos_label] for margin in margins]
             pred_probas = [
                 (np.exp(margin) / np.exp(margin).sum())[pos_label] for margin in margins
             ]
 
     else:
-        preds = [
+        preds_raw = [
             xgbmodel.predict(X_row, iteration_range=(0, i + 1), output_margin=True)[0]
             for i in range(n_trees)
         ]
+        # Convert XGBoost 3.0+ string predictions to numeric
+        preds = []
+        for p in preds_raw:
+            p_conv = _ensure_numeric_predictions(p)
+            if isinstance(p_conv, np.ndarray):
+                p_conv = p_conv.item() if p_conv.ndim == 0 else float(p_conv[0])
+            preds.append(float(p_conv))
 
     xgboost_preds_df = pd.DataFrame(
         dict(tree=range(-1, n_trees), pred=[base_score] + preds)
