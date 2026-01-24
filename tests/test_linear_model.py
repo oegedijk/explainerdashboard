@@ -1,7 +1,5 @@
-
 import pandas as pd
 import numpy as np
-
 
 
 def test_linreg_explainer_len(precalculated_linear_regression_explainer, testlen):
@@ -141,7 +139,6 @@ def test_logreg_permutation_importances(precalculated_logistic_regression_explai
         precalculated_logistic_regression_explainer.get_permutation_importances_df(),
         pd.DataFrame,
     )
-
 
 
 def test_logreg_mean_abs_shap_df(precalculated_logistic_regression_explainer):

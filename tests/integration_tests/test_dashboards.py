@@ -10,9 +10,9 @@ def test_classification_dashboard(dash_duo, precalculated_rf_classifier_explaine
         precalculated_rf_classifier_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -24,9 +24,9 @@ def test_regression_dashboard(dash_duo, precalculated_rf_regression_explainer):
         precalculated_rf_regression_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
@@ -43,9 +43,9 @@ def test_simple_classification_dashboard(
         simple=True,
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
@@ -60,9 +60,9 @@ def test_simple_regression_dashboard(dash_duo, precalculated_rf_regression_expla
         simple=True,
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=20)
@@ -74,9 +74,9 @@ def test_multiclass_dashboard(dash_duo, precalculated_rf_multiclass_explainer):
         precalculated_rf_multiclass_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -90,9 +90,9 @@ def test_xgboost_classification_dashboard(
         precalculated_xgb_classifier_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -104,9 +104,9 @@ def test_xgboost_regression_dashboard(dash_duo, precalculated_xgb_regression_exp
         precalculated_xgb_regression_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -118,9 +118,9 @@ def test_xgboost_multiclass_dashboard(dash_duo, precalculated_xgb_multiclass_exp
         precalculated_xgb_multiclass_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -134,9 +134,9 @@ def test_classification_dashboard_no_y(
         precalculated_rf_classifier_explainer_no_y, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -150,9 +150,9 @@ def test_regression_dashboard_no_y(
         precalculated_rf_regression_explainer_no_y, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -166,9 +166,9 @@ def test_multiclass_dashboard_no_y(
         precalculated_rf_multiclass_explainer_no_y, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -182,9 +182,9 @@ def test_catboost_classification_dashboard(
         precalculated_catboost_classifier_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)
@@ -198,9 +198,9 @@ def test_catboost_regression_dashboard(
         precalculated_catboost_regression_explainer, title="testing", responsive=False
     )
     html = db.to_html()
-    assert html.startswith("\n<!DOCTYPE html>\n<html"), (
-        "failed to generate dashboard to_html"
-    )
+    assert html.startswith(
+        "\n<!DOCTYPE html>\n<html"
+    ), "failed to generate dashboard to_html"
 
     dash_duo.start_server(db.app)
     dash_duo.wait_for_text_to_equal("h1", "testing", timeout=30)

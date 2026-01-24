@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 
@@ -129,7 +128,9 @@ def test_multiclass_calculate_properties(precalculated_rf_multiclass_explainer):
     precalculated_rf_multiclass_explainer.calculate_properties()
 
 
-def test_multiclass_shap_interaction_values_by_col(precalculated_rf_multiclass_explainer):
+def test_multiclass_shap_interaction_values_by_col(
+    precalculated_rf_multiclass_explainer,
+):
     assert isinstance(
         precalculated_rf_multiclass_explainer.shap_interaction_values_for_col("Age"),
         np.ndarray,
@@ -273,7 +274,6 @@ def test_multiclass_pred_probas(precalculated_rf_multiclass_explainer):
     assert isinstance(precalculated_rf_multiclass_explainer.pred_probas(), np.ndarray)
 
 
-
 def test_multiclass_precision_df(precalculated_rf_multiclass_explainer):
     assert isinstance(
         precalculated_rf_multiclass_explainer.get_precision_df(), pd.DataFrame
@@ -299,7 +299,6 @@ def test_multiclass_keep_shap_pos_label_only(precalculated_rf_multiclass_explain
     assert isinstance(
         precalculated_rf_multiclass_explainer.get_shap_values_df(), pd.DataFrame
     )
-
 
 
 def test_multiclass_plot_precision(precalculated_rf_multiclass_explainer):
@@ -349,8 +348,6 @@ def test_multiclass_plot_confusion_matrix(precalculated_rf_multiclass_explainer)
 
     fig = precalculated_rf_multiclass_explainer.plot_confusion_matrix(normalize="pred")
     assert isinstance(fig, go.Figure)
-
-
 
 
 def test_multiclass_plot_lift_curve(precalculated_rf_multiclass_explainer):

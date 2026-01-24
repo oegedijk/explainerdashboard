@@ -276,8 +276,6 @@ def test_shap_interaction_values(precalculated_rf_classifier_explainer):
     )
 
 
-
-
 def test_calculate_properties(precalculated_rf_classifier_explainer):
     precalculated_rf_classifier_explainer.calculate_properties()
 

@@ -160,7 +160,6 @@ def test_plot_lift_curve(precalculated_rf_classifier_explainer):
     assert isinstance(fig, go.Figure)
 
 
-
 def test_plot_classification(precalculated_rf_classifier_explainer):
     fig = precalculated_rf_classifier_explainer.plot_classification()
     assert isinstance(fig, go.Figure)

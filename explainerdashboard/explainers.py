@@ -621,9 +621,9 @@ class BaseExplainer(ABC):
         func should either be a function that takes a single parameter: def func(index)
         or a method that takes a single parameter: def func(self, index)
         """
-        assert callable(func), (
-            f"{func} is not a callable! pass either a function or a method!"
-        )
+        assert callable(
+            func
+        ), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self", "index"]:
             self._index_exists_func = MethodType(func, self)
@@ -655,9 +655,9 @@ class BaseExplainer(ABC):
         func should either be a parameterless function: def func(): ...
         or a parameterless method: def func(self): ...
         """
-        assert callable(func), (
-            f"{func} is not a callable! pass either a function or a method!"
-        )
+        assert callable(
+            func
+        ), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self"]:
             self._get_index_list_func = MethodType(func, self)
@@ -697,9 +697,9 @@ class BaseExplainer(ABC):
         func should either be a function that takes a single parameter: def func(index)
         or a method that takes a single parameter: def func(self, index)
         """
-        assert callable(func), (
-            f"{func} is not a callable! pass either a function or a method!"
-        )
+        assert callable(
+            func
+        ), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self", "index"]:
             self._get_X_row_func = MethodType(func, self)
@@ -735,9 +735,9 @@ class BaseExplainer(ABC):
         func should either be a function that takes a single parameter: def func(index)
         or a method that takes a single parameter: def func(self, index)
         """
-        assert callable(func), (
-            f"{func} is not a callable! pass either a function or a method!"
-        )
+        assert callable(
+            func
+        ), f"{func} is not a callable! pass either a function or a method!"
         argspec = inspect.getfullargspec(func).args
         if argspec == ["self", "index"]:
             self._get_y_func = func = MethodType(func, self)
@@ -828,9 +828,9 @@ class BaseExplainer(ABC):
           value of col, prediction for index
 
         """
-        assert (col in self.X.columns) or (col in self.onehot_cols), (
-            f"{col} not in columns of dataset"
-        )
+        assert (col in self.X.columns) or (
+            col in self.onehot_cols
+        ), f"{col} not in columns of dataset"
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
@@ -840,9 +840,9 @@ class BaseExplainer(ABC):
                 col_value = X_row[col].item()
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.columns)
             else:
-                assert matching_cols(X_row.columns, self.columns), (
-                    "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
-                )
+                assert matching_cols(
+                    X_row.columns, self.columns
+                ), "X_row should have the same columns as explainer.columns or explainer.merged_cols!"
                 if col in self.onehot_cols:
                     col_value = retrieve_onehot_value(
                         X_row, col, self.onehot_dict[col], self.onehot_notencoded[col]
@@ -1404,9 +1404,9 @@ class BaseExplainer(ABC):
                 :, self.merged_cols.get_loc(col), :
             ]
         else:
-            assert interact_col in self.merged_cols, (
-                f"{interact_col} not in self.merged_cols!"
-            )
+            assert (
+                interact_col in self.merged_cols
+            ), f"{interact_col} not in self.merged_cols!"
             return self.shap_interaction_values(pos_label)[
                 :, self.merged_cols.get_loc(col), self.merged_cols.get_loc(interact_col)
             ]
@@ -1567,9 +1567,9 @@ class BaseExplainer(ABC):
           pd.DataFrame
 
         """
-        assert kind == "shap" or kind == "permutation", (
-            "kind should either be 'shap' or 'permutation'!"
-        )
+        assert (
+            kind == "shap" or kind == "permutation"
+        ), "kind should either be 'shap' or 'permutation'!"
         if kind == "permutation":
             return self.get_permutation_importances_df(topx, cutoff, pos_label)
         elif kind == "shap":
@@ -1624,9 +1624,9 @@ class BaseExplainer(ABC):
                 X_row_merged = X_row
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             else:
-                assert matching_cols(X_row.columns, self.columns), (
-                    "X_row should have the same columns as self.X or self.merged_cols!"
-                )
+                assert matching_cols(
+                    X_row.columns, self.columns
+                ), "X_row should have the same columns as self.X or self.merged_cols!"
                 X_row_merged = merge_categorical_columns(
                     X_row,
                     self.onehot_dict,
@@ -1741,9 +1741,9 @@ class BaseExplainer(ABC):
         Returns:
             pd.DataFrame
         """
-        assert col in self.X.columns or col in self.onehot_cols, (
-            f"{col} not in columns of dataset"
-        )
+        assert (
+            col in self.X.columns or col in self.onehot_cols
+        ), f"{col} not in columns of dataset"
         if col in self.onehot_cols:
             grid_values = self.ordered_cats(col, n_grid_points, sort)
             if index is not None or X_row is not None:
@@ -1782,9 +1782,9 @@ class BaseExplainer(ABC):
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             else:
-                assert matching_cols(X_row.columns, self.columns), (
-                    "X_row should have the same columns as self.X or self.merged_cols!"
-                )
+                assert matching_cols(
+                    X_row.columns, self.columns
+                ), "X_row should have the same columns as self.X or self.merged_cols!"
 
             if isinstance(features, str) and drop_na:  # regular col, not onehotencoded
                 sample_size = min(
@@ -2548,14 +2548,14 @@ class ClassifierExplainer(BaseExplainer):
     def pos_label_index(self, pos_label):
         """return int index of pos_label_str"""
         if isinstance(pos_label, int):
-            assert pos_label >= 0 and pos_label <= len(self.labels), (
-                f"pos_label={pos_label}, but should be >= 0 and <= {len(self.labels) - 1}!"
-            )
+            assert (
+                pos_label >= 0 and pos_label <= len(self.labels)
+            ), f"pos_label={pos_label}, but should be >= 0 and <= {len(self.labels) - 1}!"
             return pos_label
         elif isinstance(pos_label, str):
-            assert pos_label in self.labels, (
-                f"Unknown pos_label. {pos_label} not in self.labels!"
-            )
+            assert (
+                pos_label in self.labels
+            ), f"Unknown pos_label. {pos_label} not in self.labels!"
             return self.labels.index(pos_label)
         raise ValueError("pos_label should either be int or str in self.labels!")
 
@@ -2576,9 +2576,9 @@ class ClassifierExplainer(BaseExplainer):
         """returns pred_probas with probability for each class"""
         if not hasattr(self, "_pred_probas"):
             print("Calculating prediction probabilities...", flush=True)
-            assert hasattr(self.model, "predict_proba"), (
-                "model does not have a predict_proba method!"
-            )
+            assert hasattr(
+                self.model, "predict_proba"
+            ), "model does not have a predict_proba method!"
             if self.shap == "skorch":
                 self._pred_probas = self.model.predict_proba(self.X.values).astype(
                     self.precision
@@ -4670,9 +4670,9 @@ class TreeExplainer(BaseExplainer):
           dataframe with summary of the decision tree path
 
         """
-        assert tree_idx >= 0 and tree_idx < len(self.shadow_trees), (
-            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
-        )
+        assert (
+            tree_idx >= 0 and tree_idx < len(self.shadow_trees)
+        ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
         X_row = self.get_X_row(index)
         if self.is_classifier:
             return get_decisionpath_df(
@@ -4943,9 +4943,9 @@ class XGBExplainer(TreeExplainer):
           dataframe with summary of the decision tree path
 
         """
-        assert tree_idx >= 0 and tree_idx < self.no_of_trees, (
-            f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
-        )
+        assert (
+            tree_idx >= 0 and tree_idx < self.no_of_trees
+        ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
 
         if self.is_classifier:
             if len(self.labels) > 2:

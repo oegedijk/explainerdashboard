@@ -45,9 +45,9 @@ def build_explainer(explainer_config):
         config = yaml.safe_load(open(str(explainer_config), "r"))
     elif isinstance(explainer_config, dict):
         config = explainer_config
-    assert "explainer" in config, (
-        "Please pass a proper explainer.yaml config file that starts with `explainer:`!"
-    )
+    assert (
+        "explainer" in config
+    ), "Please pass a proper explainer.yaml config file that starts with `explainer:`!"
     config = explainer_config["explainer"]
 
     print(f"explainerdashboard ===> Loading model from {config['modelfile']}")

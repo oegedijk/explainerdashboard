@@ -9,6 +9,10 @@ default:
 install:
     uv sync --all-extras
 
+# Install dev dependencies (pre-commit, etc.)
+install-dev:
+    uv sync --group dev
+
 # Install only production dependencies
 install-prod:
     uv sync
@@ -100,6 +104,18 @@ clean:
     find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
     find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
     find . -type d -name ".coverage" -exec rm -f {} + 2>/dev/null || true
+
+# Install pre-commit hooks
+pre-commit-install:
+    uv run pre-commit install
+
+# Run pre-commit hooks on all files
+pre-commit-run:
+    uv run pre-commit run --all-files
+
+# Run pre-commit hooks on staged files only
+pre-commit-staged:
+    uv run pre-commit run
 
 # Run all checks (lint, format, tests) before committing
 pre-commit:

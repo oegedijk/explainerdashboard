@@ -2368,7 +2368,6 @@ class ShapContributionsGraphComponent(ExplainerComponent):
                 self.feature_input_component._input_features
             ) and not any([i is None for i in inputs]):
                 X_row = self.explainer.get_row_from_input(inputs, ranked_by_shap=True)
-                
 
                 fig = self.explainer.plot_contributions(
                     X_row=X_row,

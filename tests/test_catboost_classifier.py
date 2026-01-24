@@ -95,9 +95,6 @@ def test_X_cats(precalculated_catboost_classifier_explainer):
     assert isinstance(precalculated_catboost_classifier_explainer.X_cats, pd.DataFrame)
 
 
-
-
-
 def test_mean_abs_shap_df(precalculated_catboost_classifier_explainer):
     assert isinstance(
         precalculated_catboost_classifier_explainer.get_mean_abs_shap_df(), pd.DataFrame
@@ -380,7 +377,6 @@ def test_plot_lift_curve(precalculated_catboost_classifier_explainer):
 
     fig = precalculated_catboost_classifier_explainer.plot_lift_curve(cutoff=0.5)
     assert isinstance(fig, go.Figure)
-
 
 
 def test_plot_classification(precalculated_catboost_classifier_explainer):

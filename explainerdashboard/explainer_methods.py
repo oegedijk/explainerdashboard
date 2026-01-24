@@ -191,9 +191,11 @@ def parse_cats(X, cats, sep: str = "_"):
 
     if isinstance(cats, dict):
         for k, v in cats.items():
-            assert set(v).issubset(set(all_cols)), (
-                f"These cats columns for {k} could not be found in X.columns: {set(v) - set(all_cols)}!"
-            )
+            assert set(
+                v
+            ).issubset(
+                set(all_cols)
+            ), f"These cats columns for {k} could not be found in X.columns: {set(v) - set(all_cols)}!"
             col_counter.update(v)
         onehot_dict = cats
     elif isinstance(cats, list):
@@ -203,9 +205,11 @@ def parse_cats(X, cats, sep: str = "_"):
                 col_counter.update(onehot_dict[cat])
             if isinstance(cat, dict):
                 for k, v in cat.items():
-                    assert set(v).issubset(set(all_cols)), (
-                        f"These cats columns for {k} could not be found in X.columns: {set(v) - set(all_cols)}!"
-                    )
+                    assert set(
+                        v
+                    ).issubset(
+                        set(all_cols)
+                    ), f"These cats columns for {k} could not be found in X.columns: {set(v) - set(all_cols)}!"
                     col_counter.update(v)
                     onehot_dict[k] = v
     multi_cols = [v for v, c in col_counter.most_common() if c > 1]
@@ -218,9 +222,9 @@ def parse_cats(X, cats, sep: str = "_"):
         "Please select a different name for your new cats columns!"
     )
     for col, count in col_counter.most_common():
-        assert set(X[col].astype(int).unique()).issubset({0, 1}), (
-            f"{col} is not a onehot encoded column (i.e. has values other than 0, 1)!"
-        )
+        assert set(X[col].astype(int).unique()).issubset(
+            {0, 1}
+        ), f"{col} is not a onehot encoded column (i.e. has values other than 0, 1)!"
     onehot_cols = list(onehot_dict.keys())
     for col in [col for col in all_cols if col not in col_counter.keys()]:
         onehot_dict[col] = [col]
@@ -1206,9 +1210,9 @@ def get_contrib_df(
     Returns:
         pd.DataFrame with columns=['col', 'contribution', 'value', 'cumulative', 'base']
     """
-    assert isinstance(X_row, pd.DataFrame), (
-        "X_row should be a pd.DataFrame! Use X.iloc[[index]]"
-    )
+    assert isinstance(
+        X_row, pd.DataFrame
+    ), "X_row should be a pd.DataFrame! Use X.iloc[[index]]"
     assert (
         len(X_row.iloc[[0]].values[0].shape) == 1
     ), """X is not the right shape: len(X.values[0]) should be 1. 

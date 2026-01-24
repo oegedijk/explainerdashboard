@@ -25,7 +25,6 @@ def generate_assets():
         cats=[{"Gender": ["Sex_female", "Sex_male", "Sex_nan"]}, "Deck", "Embarked"],
         labels=["Not survived", "Survived"],
     )
-    
 
     dashboard = ExplainerDashboard(
         explainer,
@@ -58,6 +57,7 @@ def generate_assets():
     explainer_yaml_path.unlink()
     dashboard_yaml_path.unlink()
     model_path.unlink()
+
 
 def test_explainerdashboard_cli_help(generate_assets, script_runner):
     ret = script_runner.run(

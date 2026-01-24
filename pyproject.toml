@@ -156,4 +156,5 @@ style = [
 [dependency-groups]
 dev = [
     "ruff>=0.11.8",
+    "pre-commit>=3.0.0",
 ]
