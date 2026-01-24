@@ -1059,6 +1059,7 @@ class BaseExplainer(ABC):
         fix both get_params() and the booster's config.
         """
         from explainerdashboard.explainer_methods import _ensure_numeric_predictions
+        import json  # Import at function level to avoid NameError in exception handler
 
         # Check if this is an XGBoost model
         model_type_str = str(type(model))
@@ -1093,8 +1094,6 @@ class BaseExplainer(ABC):
                 # Try to get config as JSON string
                 try:
                     config_str = booster.save_config()
-                    import json
-
                     config = json.loads(config_str)
                     # Navigate to learner -> learner_model_param -> base_score
                     if (

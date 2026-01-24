@@ -85,7 +85,9 @@ def _ensure_numeric_predictions(pred):
             # If conversion fails, try regex extraction
             import re
 
-            matches = re.findall(r"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?", pred)
+            # Use non-capturing group to get full numeric matches, not just exponent part
+            pattern = r"[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?"
+            matches = re.findall(pattern, pred)
             if matches:
                 if len(matches) == 1:
                     return float(matches[0])
