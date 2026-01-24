@@ -164,3 +164,6 @@ dev = [
     "ruff>=0.11.8",
     "pre-commit>=3.0.0",
 ]
+test = [
+    "xgboost>=2.0.0",
+]

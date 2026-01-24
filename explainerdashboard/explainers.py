@@ -854,7 +854,9 @@ class BaseExplainer(ABC):
             if self.is_classifier:
                 if pos_label is None:
                     pos_label = self.pos_label
-                prediction = self.model.predict_proba(X_row)[0][pos_label].squeeze()
+                pred_probas_raw = self.model.predict_proba(X_row)[0]
+                pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
+                prediction = np.asarray(pred_probas_raw)[pos_label].squeeze()
                 if self.model_output == "probability":
                     prediction = 100 * prediction
             elif self.is_regression:
@@ -1052,6 +1054,113 @@ class BaseExplainer(ABC):
             cutoff = importance_df.Importance.min()
         return importance_df[importance_df.Importance >= cutoff].head(topx)
 
+    def _fix_xgboost_model_for_shap(self, model):
+        """Fix XGBoost 3.1+ models that return base_score as string.
+
+        XGBoost 3.1+ returns base_score as a string like '[2.0719469E0]' which
+        breaks shap's TreeExplainer. This method ensures base_score is numeric
+        in both get_params() and the booster's internal configuration.
+
+        Note: shap accesses the booster's internal JSON config, so we need to
+        fix both get_params() and the booster's config.
+        """
+        from explainerdashboard.explainer_methods import _ensure_numeric_predictions
+
+        # Check if this is an XGBoost model
+        model_type_str = str(type(model))
+        if not ("XGBClassifier" in model_type_str or "XGBRegressor" in model_type_str):
+            return model
+
+        # Fix base_score if it's a string
+        try:
+            # Fix get_params() base_score
+            params = model.get_params()
+            base_score_fixed = None
+            if "base_score" in params:
+                base_score_raw = params["base_score"]
+                if isinstance(base_score_raw, str):
+                    # Convert string base_score to numeric
+                    base_score_fixed = _ensure_numeric_predictions(base_score_raw)
+                    if isinstance(base_score_fixed, np.ndarray):
+                        base_score_fixed = float(
+                            base_score_fixed.item()
+                            if base_score_fixed.ndim == 0
+                            else base_score_fixed[0]
+                        )
+                    else:
+                        base_score_fixed = float(base_score_fixed)
+                    # Set the fixed base_score back to the model
+                    model.set_params(base_score=base_score_fixed)
+
+            # Also fix the booster's internal configuration
+            # Shap accesses the booster's config directly via get_dump() or config JSON
+            try:
+                booster = model.get_booster()
+                # Try to get config as JSON string
+                try:
+                    config_str = booster.save_config()
+                    import json
+
+                    config = json.loads(config_str)
+                    # Navigate to learner -> learner_model_param -> base_score
+                    if (
+                        "learner" in config
+                        and "learner_model_param" in config["learner"]
+                    ):
+                        learner_params = config["learner"]["learner_model_param"]
+                        if "base_score" in learner_params:
+                            base_score_raw = learner_params["base_score"]
+                            if isinstance(base_score_raw, str):
+                                if base_score_fixed is None:
+                                    base_score_fixed = _ensure_numeric_predictions(
+                                        base_score_raw
+                                    )
+                                    if isinstance(base_score_fixed, np.ndarray):
+                                        base_score_fixed = float(
+                                            base_score_fixed.item()
+                                            if base_score_fixed.ndim == 0
+                                            else base_score_fixed[0]
+                                        )
+                                    else:
+                                        base_score_fixed = float(base_score_fixed)
+                                # Update the config
+                                learner_params["base_score"] = str(base_score_fixed)
+                                # Reload the config
+                                booster.load_config(json.dumps(config))
+                except (AttributeError, KeyError, json.JSONDecodeError, TypeError):
+                    # If we can't access config this way, try attributes
+                    try:
+                        if (
+                            hasattr(booster, "attributes")
+                            and "base_score" in booster.attributes
+                        ):
+                            base_score_raw = booster.attributes["base_score"]
+                            if isinstance(base_score_raw, str):
+                                if base_score_fixed is None:
+                                    base_score_fixed = _ensure_numeric_predictions(
+                                        base_score_raw
+                                    )
+                                    if isinstance(base_score_fixed, np.ndarray):
+                                        base_score_fixed = float(
+                                            base_score_fixed.item()
+                                            if base_score_fixed.ndim == 0
+                                            else base_score_fixed[0]
+                                        )
+                                    else:
+                                        base_score_fixed = float(base_score_fixed)
+                                booster.set_attr(base_score=str(base_score_fixed))
+                    except (AttributeError, KeyError):
+                        pass
+            except (AttributeError, KeyError):
+                # Booster might not have these methods/attributes
+                pass
+        except Exception:
+            # If we can't fix it, return model as-is
+            # The error will be caught and handled by shap or our conversion functions
+            pass
+
+        return model
+
     @property
     def shap_explainer(self):
         """ """
@@ -1063,7 +1172,9 @@ class BaseExplainer(ABC):
                     "Generating self.shap_explainer = "
                     f"shap.TreeExplainer(model{NoX_str})"
                 )
-                self._shap_explainer = shap.TreeExplainer(self.model)
+                # Fix XGBoost 3.1+ base_score string format before shap accesses it
+                model_for_shap = self._fix_xgboost_model_for_shap(self.model)
+                self._shap_explainer = shap.TreeExplainer(model_for_shap)
             elif self.shap == "linear":
                 if self.X_background is None:
                     print(
@@ -2696,8 +2807,10 @@ class ClassifierExplainer(BaseExplainer):
                             "pass model_output='logodds' to get shap values in logodds without the need for "
                             "a background dataset and also working shap interaction values..."
                         )
+                        # Fix XGBoost 3.1+ base_score string format before shap accesses it
+                        model_for_shap = self._fix_xgboost_model_for_shap(self.model)
                         self._shap_explainer = shap.TreeExplainer(
-                            self.model,
+                            model_for_shap,
                             self.X_background
                             if self.X_background is not None
                             else self.X,
@@ -2710,8 +2823,10 @@ class ClassifierExplainer(BaseExplainer):
                         print(
                             f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})"
                         )
+                        # Fix XGBoost 3.1+ base_score string format before shap accesses it
+                        model_for_shap = self._fix_xgboost_model_for_shap(self.model)
                         self._shap_explainer = shap.TreeExplainer(
-                            self.model, self.X_background
+                            model_for_shap, self.X_background
                         )
                 else:
                     if self.model_output == "probability":
@@ -2721,8 +2836,10 @@ class ClassifierExplainer(BaseExplainer):
                     print(
                         f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})"
                     )
+                    # Fix XGBoost 3.1+ base_score string format before shap accesses it
+                    model_for_shap = self._fix_xgboost_model_for_shap(self.model)
                     self._shap_explainer = shap.TreeExplainer(
-                        self.model, self.X_background
+                        model_for_shap, self.X_background
                     )
 
             elif self.shap == "linear":
@@ -3341,7 +3458,11 @@ class ClassifierExplainer(BaseExplainer):
             ):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
-                preds = clone(self.model).fit(X_train, y_train).predict_proba(X_test)
+                preds_raw = (
+                    clone(self.model).fit(X_train, y_train).predict_proba(X_test)
+                )
+                preds_raw = _ensure_numeric_predictions(preds_raw)
+                preds = np.asarray(preds_raw)
                 for label in range(len(self.labels)):
                     for cut in np.linspace(1, 99, 99, dtype=int):
                         y_true = np.where(y_test == label, 1, 0)
@@ -4299,7 +4420,9 @@ class RegressionExplainer(BaseExplainer):
             ):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
-                preds = clone(self.model).fit(X_train, y_train).predict(X_test)
+                preds_raw = clone(self.model).fit(X_train, y_train).predict(X_test)
+                preds_raw = _ensure_numeric_predictions(preds_raw)
+                preds = np.asarray(preds_raw)
                 metrics_dict["mean-squared-error"].append(
                     mean_squared_error(y_test, preds)
                 )
@@ -4705,7 +4828,10 @@ class TreeExplainer(BaseExplainer):
         X_row = self.get_X_row(index)
         if self.is_classifier:
             return get_decisionpath_df(
-                self.shadow_trees[tree_idx], X_row.squeeze(), pos_label=pos_label
+                self.shadow_trees[tree_idx],
+                X_row.squeeze(),
+                pos_label=pos_label,
+                class_names=self.labels,
             )
         else:
             return get_decisionpath_df(self.shadow_trees[tree_idx], X_row.squeeze())

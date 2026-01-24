@@ -1607,7 +1607,7 @@ def normalize_shap_interaction_values(shap_interaction_values, shap_values=None)
     return siv
 
 
-def get_decisionpath_df(decision_tree, observation, pos_label=1):
+def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=None):
     """summarize the path through a DecisionTree for a specific observation.
 
     Args:
@@ -1615,6 +1615,8 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1):
             a fitted DecisionTree model.
         observation ([type]): single row of data to display tree path for.
         pos_label (int, optional): label of positive class. Defaults to 1.
+        class_names (list, optional): List of class names for mapping pos_label to class values.
+            Defaults to None.
 
     Returns:
         pd.DataFrame: columns=['node_id', 'average', 'feature',
@@ -1638,7 +1640,40 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1):
     if decision_tree.is_classifier():
 
         def node_pred_proba(node):
-            return node.class_counts()[pos_label] / sum(node.class_counts())
+            class_counts = node.class_counts()
+            # class_counts() returns a dict with actual class values as keys (e.g., {0: 10, 1: 5})
+            # pos_label is the index in self.labels (0-based), which should match class values for binary classification
+            # But in some cases (e.g., scikit-learn version differences), the keys might be different
+            total = sum(class_counts.values())
+            if total == 0:
+                return 0.0
+
+            # Try direct access first (most common case)
+            if pos_label in class_counts:
+                return class_counts[pos_label] / total
+
+            # If pos_label not found, try to map it to available class keys
+            available_classes = sorted(class_counts.keys())
+            if len(available_classes) == 0:
+                return 0.0
+
+            # Map pos_label (index in labels) to actual class value
+            # For binary classification: pos_label=0 -> class 0, pos_label=1 -> class 1
+            # But if class_counts has different keys, we need to map by position
+            if 0 <= pos_label < len(available_classes):
+                # pos_label is a valid index into available_classes
+                class_key = available_classes[pos_label]
+                return class_counts[class_key] / total
+
+            # If pos_label is out of range, clamp it to valid range
+            if pos_label >= len(available_classes):
+                # Use the last available class (typically the positive class in binary classification)
+                class_key = available_classes[-1]
+                return class_counts[class_key] / total
+
+            # Final fallback: use the class with the highest count
+            class_key = max(class_counts, key=class_counts.get)
+            return class_counts[class_key] / total
 
         for node in nodes:
             if not node.isleaf():
