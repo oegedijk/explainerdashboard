@@ -1,6 +1,20 @@
 # Release Notes
 
 
+## Version 0.5.2:
+
+### Improvements
+- Removed upper version constraints for `dash` and `plotly` dependencies, now supports Dash 2.10+ and 3.0+, and Plotly 5.0+ and 6.0+
+- Added backward compatibility code to support both Dash 2.x (`app.run_server()`) and Dash 3.x (`app.run()`) APIs
+- Fixed Plotly 6.0 compatibility by updating `titlefont` to `title.font` format
+- Improved integration test setup with automatic ChromeDriver management via `webdriver-manager`
+- Fixed threading issues with Plotly validator initialization by switching to recommended `plotly.graph_objects` import
+- Made `torch` and `skorch` optional dependencies on Intel Macs (where torch wheels are not available)
+
+### Bug Fixes
+- Fixed `SystemExit` warnings in integration tests caused by Plotly validator initialization in multi-threaded contexts
+- Updated `.gitignore` to exclude webdriver-manager cache directories and `uv.lock` file
+
 ## Version 0.4.8:
 
 ### Bug Fixes
