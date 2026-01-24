@@ -858,7 +858,9 @@ class BaseExplainer(ABC):
                 if self.model_output == "probability":
                     prediction = 100 * prediction
             elif self.is_regression:
-                prediction = self.model.predict(X_row)[0].squeeze()
+                pred_raw = self.model.predict(X_row)[0]
+                pred_raw = _ensure_numeric_predictions(pred_raw)
+                prediction = np.asarray(pred_raw).squeeze()
             return col_value, prediction
         else:
             raise ValueError("You need to pass either index or X_row!")
@@ -984,13 +986,13 @@ class BaseExplainer(ABC):
         if not hasattr(self, "_preds"):
             print("Calculating predictions...", flush=True)
             if self.shap == "skorch":  # skorch model.predict need np.array
-                self._preds = (
-                    self.model.predict(self.X.values).squeeze().astype(self.precision)
-                )
+                pred_raw = self.model.predict(self.X.values)
+                pred_raw = _ensure_numeric_predictions(pred_raw)
+                self._preds = np.asarray(pred_raw).squeeze().astype(self.precision)
             else:  # Pipelines.predict need pd.DataFrame:
-                self._preds = (
-                    self.model.predict(self.X).squeeze().astype(self.precision)
-                )
+                pred_raw = self.model.predict(self.X)
+                pred_raw = _ensure_numeric_predictions(pred_raw)
+                self._preds = np.asarray(pred_raw).squeeze().astype(self.precision)
 
         return self._preds
 
@@ -4212,7 +4214,9 @@ class RegressionExplainer(BaseExplainer):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
         if self.shap == "skorch":
             X_row = X_row.values.astype("float32")
-        pred = self.model.predict(X_row).item()
+        pred_raw = self.model.predict(X_row)
+        pred_raw = _ensure_numeric_predictions(pred_raw)
+        pred = np.asarray(pred_raw).item()
         preds_df = pd.DataFrame(columns=["", self.target])
         preds_df = append_dict_to_df(
             preds_df, {"": "Predicted", self.target: f"{pred:.{round}f} {self.units}"}
@@ -4639,11 +4643,11 @@ class TreeExplainer(BaseExplainer):
             except Exception:
                 print(
                     """
-                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'), 
+                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'),
                 so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
 
-                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz 
-                for dtreeviz. 
+                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz
+                for dtreeviz.
                 """
                 )
                 self._graphviz_available = False

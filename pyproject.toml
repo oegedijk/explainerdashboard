@@ -71,7 +71,7 @@ test = [
     "dash[testing]",
     "catboost",
     "lightgbm",
-    "xgboost",
+    "xgboost>=2.0.0",
     "torch ; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "skorch ; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "webdriver-manager",
@@ -87,6 +87,12 @@ docs = [
     "sphinx>=4.0", # Add sphinx itself as a dependency for docs
     # sphinx.ext.napoleon is a built-in sphinx extension
 ]
+
+[tool.ruff.lint]
+# Ignore wildcard imports (F403) and undefined names from wildcard imports (F405)
+# E402 is for module level imports not at top of file (needed for some files)
+ignore = ["F403", "F405", "E402"]
+exclude = ["docs/", "notebooks/", "tests/test_assets/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/"]

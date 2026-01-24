@@ -32,6 +32,8 @@ __all__ = [
     "get_xgboost_path_df",
     "get_xgboost_path_summary_df",
     "get_xgboost_preds_df",
+    "_ensure_numeric_predictions",  # Internal helper for XGBoost 3.0+ compatibility
+    "_safe_make_scorer",  # Internal helper for CatBoost compatibility
 ]
 
 from functools import partial
@@ -51,6 +53,119 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from joblib import Parallel, delayed
+
+
+def _ensure_numeric_predictions(pred):
+    """Convert predictions to numeric format, handling XGBoost 3.0 string format.
+
+    Args:
+        pred: Prediction output from model (may be string, array, scalar)
+
+    Returns:
+        Numeric prediction (numpy array or scalar)
+    """
+    # Handle string predictions (XGBoost 3.0 may return strings like '[3.2967056E1]')
+    if isinstance(pred, str):
+        try:
+            # Remove brackets and whitespace, then convert to float
+            cleaned = pred.strip().strip("[]").strip()
+            return float(cleaned)
+        except (ValueError, AttributeError):
+            # If conversion fails, return as-is (will raise error later)
+            return pred
+
+    # Convert to numpy array for processing
+    pred_array = np.asarray(pred)
+
+    # Handle string arrays (XGBoost 3.0 may return arrays of strings)
+    if pred_array.dtype.kind == "U":  # Unicode string array
+        try:
+            # Convert each string element to float
+            def _convert_elem(elem):
+                if isinstance(elem, str):
+                    return float(elem.strip().strip("[]").strip())
+                return elem
+
+            if pred_array.ndim == 0:
+                # Scalar string array
+                return _convert_elem(pred_array.item())
+            else:
+                # Multi-dimensional string array
+                return np.array(
+                    [_convert_elem(p) for p in pred_array.flatten()]
+                ).reshape(pred_array.shape)
+        except (ValueError, AttributeError):
+            # If conversion fails, return original (will raise error later)
+            return pred
+
+    # Already numeric, return as-is
+    return pred
+
+
+def _safe_make_scorer(
+    metric, greater_is_better=True, response_method="predict", **kwargs
+):
+    """Wrapper around make_scorer that handles models without __sklearn_tags__.
+
+    This fixes compatibility issues with CatBoost and other models that don't
+    implement the __sklearn_tags__ attribute required by newer scikit-learn versions.
+    """
+    # Try to create the scorer normally
+    try:
+        scorer = make_scorer(
+            metric,
+            greater_is_better=greater_is_better,
+            response_method=response_method,
+            **kwargs,
+        )
+    except Exception:
+        # If creation fails, create a wrapper scorer
+        scorer = None
+
+    # Create a wrapper that handles __sklearn_tags__ errors when scorer is called
+    def _wrapped_scorer(estimator, X, y_true):
+        try:
+            if scorer is not None:
+                return scorer(estimator, X, y_true)
+        except AttributeError as e:
+            if "__sklearn_tags__" in str(e):
+                # Model doesn't have __sklearn_tags__, call predict/predict_proba directly
+                if response_method == "predict_proba":
+                    y_pred = estimator.predict_proba(X)
+                else:
+                    y_pred = estimator.predict(X)
+                    y_pred = _ensure_numeric_predictions(y_pred)
+
+                if hasattr(metric, "__call__"):
+                    score = metric(y_true, y_pred)
+                else:
+                    from sklearn.metrics import get_scorer
+
+                    scorer_obj = get_scorer(metric)
+                    score = scorer_obj._score_func(y_true, y_pred)
+
+                return score if greater_is_better else -score
+            raise
+
+        # If scorer creation failed, use direct prediction
+        if scorer is None:
+            if response_method == "predict_proba":
+                y_pred = estimator.predict_proba(X)
+            else:
+                y_pred = estimator.predict(X)
+                y_pred = _ensure_numeric_predictions(y_pred)
+
+            if hasattr(metric, "__call__"):
+                score = metric(y_true, y_pred)
+            else:
+                from sklearn.metrics import get_scorer
+
+                scorer_obj = get_scorer(metric)
+                score = scorer_obj._score_func(y_true, y_pred)
+
+            return score if greater_is_better else -score
+
+    return _wrapped_scorer
 
 
 def append_dict_to_df(df: pd.DataFrame, row_dict: dict) -> pd.DataFrame:
@@ -627,13 +742,13 @@ def permutation_importances(
         onehot_dict = {col: [col] for col in X.columns}
 
     if isinstance(metric, str):
-        scorer = make_scorer(
+        scorer = _safe_make_scorer(
             metric,
             greater_is_better=greater_is_better,
             response_method="predict_proba" if needs_proba else "predict",
         )
     elif not needs_proba or pos_label is None:
-        scorer = make_scorer(
+        scorer = _safe_make_scorer(
             metric, greater_is_better=greater_is_better, response_method="predict"
         )
     else:
@@ -1215,7 +1330,7 @@ def get_contrib_df(
     ), "X_row should be a pd.DataFrame! Use X.iloc[[index]]"
     assert (
         len(X_row.iloc[[0]].values[0].shape) == 1
-    ), """X is not the right shape: len(X.values[0]) should be 1. 
+    ), """X is not the right shape: len(X.values[0]) should be 1.
             Try passing X.iloc[[index]]"""
     assert sort in {"abs", "high-to-low", "low-to-high", "importance", None}
 

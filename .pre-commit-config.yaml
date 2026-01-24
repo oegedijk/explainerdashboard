@@ -10,7 +10,7 @@ repos:
     hooks:
       # Ruff linter
       - id: ruff
-        args: [--fix, --ignore=F405,F403,E402]
+        args: [--fix]
         exclude: ^(docs/|notebooks/|tests/test_assets/)
       # Ruff formatter
       - id: ruff-format
