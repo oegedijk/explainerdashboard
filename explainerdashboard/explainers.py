@@ -22,7 +22,6 @@ import warnings
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-from pandas.errors import OptionError
 
 import shap
 
@@ -763,17 +762,12 @@ class BaseExplainer(ABC):
 
         if len(inputs) == len(self.merged_cols):
             cols = self.columns_ranked_by_shap() if ranked_by_shap else self.merged_cols
-            try:
-                with pd.option_context("future.no_silent_downcasting", True):
-                    df_merged = (
-                        pd.DataFrame(dict(zip(cols, inputs)), index=[0])
-                        .fillna(self.na_fill)
-                        .infer_objects(copy=False)[self.merged_cols]
-                    )
-            except OptionError:
-                df_merged = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(
-                    self.na_fill
-                )[self.merged_cols]
+            # Removed deprecated pd.option_context("future.no_silent_downcasting") and copy=False
+            df_merged = (
+                pd.DataFrame(dict(zip(cols, inputs)), index=[0])
+                .fillna(self.na_fill)
+                .infer_objects()[self.merged_cols]
+            )
             if return_merged:
                 return df_merged
             else:
@@ -4980,7 +4974,8 @@ class RandomForestExplainer(TreeExplainer):
                 self.model, "estimators_"
             ), """self.model does not have an estimators_ attribute, so probably not
                 actually a sklearn RandomForest?"""
-            y = self.y if self.y_missing else self.y.astype("int16")
+            # dtreeviz requires y to be int dtype (int64), not int16
+            y = self.y if self.y_missing else self.y.astype(int)
             self._shadow_trees = [
                 ShadowDecTree.get_shadow_tree(
                     decision_tree,
@@ -5070,11 +5065,12 @@ class XGBExplainer(TreeExplainer):
                 flush=True,
             )
 
+            # dtreeviz requires y to be int dtype (int64), not int32
             self._shadow_trees = [
                 ShadowDecTree.get_shadow_tree(
                     self.model.get_booster(),
                     self.X,
-                    self.y.astype("int32"),
+                    self.y.astype(int),
                     feature_names=self.X.columns.tolist(),
                     target_name="target",
                     class_names=self.labels if self.is_classifier else None,
