@@ -1275,8 +1275,10 @@ class ExplainerDashboard:
                 serve(app.server, host=host, port=port)
             else:
                 try:
+                    # Dash 3.0+ uses run()
                     app.run(port=port, host=host, **kwargs)
                 except AttributeError:
+                    # Fallback for Dash 2.x
                     app.run_server(port=port, host=host, **kwargs)
         else:
             if self.mode == "dash":
@@ -1302,7 +1304,7 @@ class ExplainerDashboard:
                     # Dash 3.0+ uses run() with jupyter_mode parameter
                     app.run(port=port, jupyter_mode=mode, **kwargs)
                 except (TypeError, AttributeError):
-                    # Fallback for older Dash/JupyterDash versions
+                    # Fallback for Dash 2.x / older JupyterDash versions
                     app.run_server(port=port, mode=mode, **kwargs)
             elif mode in ["inline", "jupyterlab"]:
                 print(
@@ -1320,7 +1322,7 @@ class ExplainerDashboard:
                         **kwargs
                     )
                 except (TypeError, AttributeError):
-                    # Fallback for older Dash/JupyterDash versions
+                    # Fallback for Dash 2.x / older JupyterDash versions
                     app.run_server(
                         port=port, mode=mode, width=self.width, height=self.height, **kwargs
                     )
@@ -2730,7 +2732,7 @@ class InlineExplainer:
                     port=self._port
                 )
             except (TypeError, AttributeError):
-                # Fallback for older Dash/JupyterDash versions
+                # Fallback for Dash 2.x / older JupyterDash versions
                 app.run_server(
                     mode=self._mode, width=self._width, height=self._height, port=self._port
                 )
@@ -2739,7 +2741,7 @@ class InlineExplainer:
                 # Dash 3.0+ uses run() with jupyter_mode parameter
                 app.run(jupyter_mode=self._mode, port=self._port, **self._kwargs)
             except (TypeError, AttributeError):
-                # Fallback for older Dash/JupyterDash versions
+                # Fallback for Dash 2.x / older JupyterDash versions
                 app.run_server(mode=self._mode, port=self._port, **self._kwargs)
         else:
             raise ValueError(

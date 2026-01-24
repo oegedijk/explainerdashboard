@@ -31,7 +31,6 @@ from pandas.api.types import is_numeric_dtype
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-
 from .explainer_methods import matching_cols, safe_isinstance
 
 
