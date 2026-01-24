@@ -1622,7 +1622,18 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=Non
         pd.DataFrame: columns=['node_id', 'average', 'feature',
             'value', 'split', 'direction', 'left', 'right', 'diff']
     """
-    nodes = decision_tree.predict_path(observation)
+    # Convert observation to numpy array for dtreeviz's predict_path
+    # dtreeviz internally accesses by integer index (node.feature() returns int)
+    if isinstance(observation, pd.Series):
+        observation_array = observation.values
+    elif isinstance(observation, pd.DataFrame):
+        observation_array = (
+            observation.values[0] if len(observation) == 1 else observation.values
+        )
+    else:
+        observation_array = np.asarray(observation)
+
+    nodes = decision_tree.predict_path(observation_array)
 
     decisiontree_df = pd.DataFrame(
         columns=[
@@ -1688,21 +1699,25 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=Non
 
         for node in nodes:
             if not node.isleaf():
+                # Use node.feature() (integer index) to access observation_array
+                # Use node.feature_name() (string) for display
+                feature_idx = node.feature()
+                feature_value = observation_array[feature_idx]
                 decisiontree_df = append_dict_to_df(
                     decisiontree_df,
                     {
                         "node_id": node.id,
                         "average": node_pred_proba(node),
                         "feature": node.feature_name(),
-                        "value": observation[node.feature_name()],
+                        "value": feature_value,
                         "split": node.split(),
                         "direction": "left"
-                        if observation[node.feature_name()] < node.split()
+                        if feature_value < node.split()
                         else "right",
                         "left": node_pred_proba(node.left),
                         "right": node_pred_proba(node.right),
                         "diff": node_pred_proba(node.left) - node_pred_proba(node)
-                        if observation[node.feature_name()] < node.split()
+                        if feature_value < node.split()
                         else node_pred_proba(node.right) - node_pred_proba(node),
                     },
                 )
@@ -1714,21 +1729,25 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=Non
 
         for node in nodes:
             if not node.isleaf():
+                # Use node.feature() (integer index) to access observation_array
+                # Use node.feature_name() (string) for display
+                feature_idx = node.feature()
+                feature_value = observation_array[feature_idx]
                 decisiontree_df = append_dict_to_df(
                     decisiontree_df,
                     {
                         "node_id": node.id,
                         "average": node_mean(node),
                         "feature": node.feature_name(),
-                        "value": observation[node.feature_name()],
+                        "value": feature_value,
                         "split": node.split(),
                         "direction": "left"
-                        if observation[node.feature_name()] < node.split()
+                        if feature_value < node.split()
                         else "right",
                         "left": node_mean(node.left),
                         "right": node_mean(node.right),
                         "diff": node_mean(node.left) - node_mean(node)
-                        if observation[node.feature_name()] < node.split()
+                        if feature_value < node.split()
                         else node_mean(node.right) - node_mean(node),
                     },
                 )
