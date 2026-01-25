@@ -184,7 +184,7 @@ class ExplainerTabsLayout(ExplainerComponent):
                                                 ],
                                                 label="Download",
                                                 color="link",
-                                                right=True,
+                                                align_end=True,
                                             ),
                                         ],
                                         style={
@@ -2519,9 +2519,9 @@ class ExplainerHub:
             page += f"\n<div>\n{route}\n</div>\n"
         else:
             page += f"""
-            
+
             <div class="mt-4 embed-responsive" style="min-height: {self.min_height}px">
-                 <iframe 
+                 <iframe
                          src="{route}"
                          style="overflow-x: hidden; overflow-y: visible; position: absolute; width: 95%; height: 100%; background: transparent"
                 ></iframe>

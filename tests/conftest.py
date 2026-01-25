@@ -145,7 +145,7 @@ def fitted_et_classifier_model(classifier_data):
 @pytest.fixture(scope="session")
 def fitted_logistic_regression_model(classifier_data):
     X_train, y_train, _, _ = classifier_data
-    model = LogisticRegression(max_iter=500)
+    model = LogisticRegression(max_iter=1000, solver="liblinear")
     model.fit(X_train, y_train)
     return model
 

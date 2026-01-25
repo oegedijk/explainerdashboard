@@ -1,6 +1,20 @@
 # Release Notes
 
 
+## Version 0.5.4:
+
+### Breaking Changes
+- Require Dash >=3.0.4 to support dash-bootstrap-components 2.x
+
+### Improvements
+- Relaxed dash-bootstrap-components upper bound to allow 2.x releases
+- Updated DropdownMenu alignment to use `align_end` for dbc 2.x
+- Adjusted logistic regression test fixture to avoid convergence warnings
+
+### Bug Fixes
+- Avoid sklearn feature-name warnings in PDP computations by passing numpy arrays to estimators without `feature_names_in_`
+- Consistent model-input handling in PDP and prediction helpers to prevent warning noise
+
 ## Version 0.5.2:
 
 ### Breaking Changes

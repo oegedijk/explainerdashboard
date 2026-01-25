@@ -844,17 +844,29 @@ class BaseExplainer(ABC):
                 else:
                     col_value = X_row[col].item()
             if self.shap == "skorch":
-                X_row = X_row.values.astype("float32")
+                model_input = X_row.values.astype("float32")
+            else:
+                model_input = X_row
+                if (
+                    isinstance(X_row, pd.DataFrame)
+                    and not safe_isinstance(
+                        self.model,
+                        "sklearn.pipeline.Pipeline",
+                        "imblearn.pipeline.Pipeline",
+                    )
+                    and not hasattr(self.model, "feature_names_in_")
+                ):
+                    model_input = X_row.values
             if self.is_classifier:
                 if pos_label is None:
                     pos_label = self.pos_label
-                pred_probas_raw = self.model.predict_proba(X_row)[0]
+                pred_probas_raw = self.model.predict_proba(model_input)[0]
                 pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
                 prediction = np.asarray(pred_probas_raw)[pos_label].squeeze()
                 if self.model_output == "probability":
                     prediction = 100 * prediction
             elif self.is_regression:
-                pred_raw = self.model.predict(X_row)[0]
+                pred_raw = self.model.predict(model_input)[0]
                 pred_raw = _ensure_numeric_predictions(pred_raw)
                 prediction = np.asarray(pred_raw).squeeze()
             return col_value, prediction

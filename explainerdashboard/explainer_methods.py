@@ -1094,6 +1094,21 @@ def get_pdp_df(
             skorch models)
     """
 
+    def _model_input(data):
+        if cast_to_float32:
+            if isinstance(data, pd.DataFrame):
+                return data.values.astype("float32")
+            return np.asarray(data, dtype="float32")
+        if (
+            isinstance(data, pd.DataFrame)
+            and not safe_isinstance(
+                model, "sklearn.pipeline.Pipeline", "imblearn.pipeline.Pipeline"
+            )
+            and not hasattr(model, "feature_names_in_")
+        ):
+            return data.values
+        return data
+
     if grid_values is None:
         if isinstance(feature, str):
             if not is_numeric_dtype(X_sample[feature]):
@@ -1114,10 +1129,7 @@ def get_pdp_df(
             )
 
     if is_classifier:
-        if cast_to_float32:
-            first_row = X_sample.iloc[[0]].values.astype("float32")
-        else:
-            first_row = X_sample.iloc[[0]]
+        first_row = _model_input(X_sample.iloc[[0]])
         warnings.filterwarnings("ignore", category=UserWarning)
         n_labels = model.predict_proba(first_row).shape[1]
         warnings.filterwarnings("default", category=UserWarning)
@@ -1139,9 +1151,8 @@ def get_pdp_df(
         else:
             dtemp[[feature]] = grid_value
         if is_classifier:
-            if cast_to_float32:
-                dtemp = dtemp.values.astype("float32")
-            pred_probas_raw = model.predict_proba(dtemp)
+            dtemp_model = _model_input(dtemp)
+            pred_probas_raw = model.predict_proba(dtemp_model)
             pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
             pred_probas = np.asarray(pred_probas_raw).squeeze()
             if multiclass:
@@ -1150,9 +1161,8 @@ def get_pdp_df(
             else:
                 pdp_df[grid_value] = pred_probas[:, pos_label]
         else:
-            if cast_to_float32:
-                dtemp = dtemp.values.astype("float32")
-            preds_raw = model.predict(dtemp)
+            dtemp_model = _model_input(dtemp)
+            preds_raw = model.predict(dtemp_model)
             preds_raw = _ensure_numeric_predictions(preds_raw)
             preds = np.asarray(preds_raw).squeeze()
             pdp_df[grid_value] = preds
