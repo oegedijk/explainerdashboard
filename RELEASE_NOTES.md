@@ -15,6 +15,11 @@
 - Avoid sklearn feature-name warnings in PDP computations by passing numpy arrays to estimators without `feature_names_in_`
 - Consistent model-input handling in PDP and prediction helpers to prevent warning noise
 
+## Version 0.5.3:
+
+### Improvements
+- Allow NumPy 2.x but cap to `<2.4` on Python 3.11+ to avoid numba/llvmlite downgrade issues
+
 ## Version 0.5.2:
 
 ### Breaking Changes
