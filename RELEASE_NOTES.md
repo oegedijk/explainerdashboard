@@ -1,6 +1,12 @@
 # Release Notes
 
 
+## Version 0.5.3:
+
+### Improvements
+- Removed the upper bound on the NumPy dependency to keep compatibility with both 1.x and 2.x
+
+
 ## Version 0.5.2:
 
 ### Breaking Changes
