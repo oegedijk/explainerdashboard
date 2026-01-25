@@ -122,15 +122,6 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-# Ensures package data within the 'explainerdashboard' package is included in the wheel.
-# Hatchling typically includes all files within the package directory that are tracked by VCS.
-# force-include makes this explicit for critical data files.
-# The path on the left is relative to project root (source), path on the right is relative to wheel root (target).
-
-[tool.hatch.build.targets.wheel.force-include]
-"explainerdashboard/assets" = "explainerdashboard/assets"
-"explainerdashboard/datasets" = "explainerdashboard/datasets"
-"explainerdashboard/static" = "explainerdashboard/static"
 
 # --- Hatch environments for development tasks (optional but recommended) ---
 [tool.hatch.envs.default]
