@@ -4,7 +4,7 @@
 ## Version 0.5.3:
 
 ### Improvements
-- Removed the upper bound on the NumPy dependency to keep compatibility with both 1.x and 2.x
+- Allow NumPy 2.x but cap to `<2.4` on Python 3.11+ to avoid numba/llvmlite downgrade issues
 
 
 ## Version 0.5.2:
