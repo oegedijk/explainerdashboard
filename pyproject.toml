@@ -122,6 +122,17 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
+# Ensure non-Python assets ship in wheels while avoiding duplicate archive entries.
+exclude = [
+    "/explainerdashboard/assets/**",
+    "/explainerdashboard/datasets/**",
+    "/explainerdashboard/static/**",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"explainerdashboard/assets" = "explainerdashboard/assets"
+"explainerdashboard/datasets" = "explainerdashboard/datasets"
+"explainerdashboard/static" = "explainerdashboard/static"
 
 # --- Hatch environments for development tasks (optional but recommended) ---
 [tool.hatch.envs.default]
