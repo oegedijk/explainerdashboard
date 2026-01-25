@@ -47,8 +47,8 @@ dependencies = [
     "graphviz>=0.18.2",
     "joblib",
     "jupyter_dash>=0.4.1",
-    "numpy<2.4; python_version == '3.13'", # Avoid numba/llvmlite downgrade on Py3.13
-    "numpy; python_version != '3.13'", # Support NumPy 1.x and 2.x elsewhere
+    "numpy<2.4; python_version >= '3.11'", # Avoid numba/llvmlite downgrade on Py>=3.11
+    "numpy; python_version < '3.11'", # Support NumPy 1.x and 2.x elsewhere
     "oyaml",
     "pandas>=1.1",
     "scikit-learn>=1.1",
