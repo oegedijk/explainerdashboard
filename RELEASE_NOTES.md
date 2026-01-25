@@ -21,6 +21,7 @@
 - **XGBoost 3.1+ compatibility**: Fixed handling of string-formatted predictions and `base_score` values returned by XGBoost 3.1+. Added robust string-to-numeric conversion with proper regex fallback to handle various string formats (e.g., `'[3.2967056E1]'`, `'[8.563135E-2,7.169811E-1,1.9738752E-1]'`)
 - **XGBoost SHAP initialization**: Fixed `base_score` conversion in both `get_params()` and booster's internal JSON configuration to ensure SHAP TreeExplainer initializes correctly with XGBoost 3.1+
 - **RandomForest dtreeviz compatibility**: Fixed dtype handling for `y_train` (now uses `int` instead of `int16`) and observation array conversion for `predict_path()` to work with newer dtreeviz versions
+- **Dtreeviz decisiontree_view**: Ensure observations are passed as numpy arrays to avoid pandas label lookup errors when dtreeviz indexes features by integer position
 - **Pandas deprecation warnings**: Removed deprecated `pd.option_context("future.no_silent_downcasting")` and `copy=False` parameter from `.infer_objects()` calls
 - **Runtime warnings**: Fixed divide-by-zero warnings in classification plots and residuals plots (log-ratio calculations) by adding proper zero checks and using `np.divide()` with `where` parameter
 

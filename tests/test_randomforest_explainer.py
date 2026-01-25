@@ -24,6 +24,14 @@ def test_rfclas_decisionpath_df(precalculated_rf_classifier_explainer, test_name
     assert isinstance(df, pd.DataFrame)
 
 
+def test_rfclas_decisiontree_view_contract(precalculated_rf_classifier_explainer):
+    precalculated_rf_classifier_explainer._graphviz_available = True
+    render = precalculated_rf_classifier_explainer.decisiontree_view(
+        tree_idx=0, index=0
+    )
+    assert isinstance(render, dtreeviz.utils.DTreeVizRender)
+
+
 def test_rfclas_plot_trees(precalculated_rf_classifier_explainer, test_names):
     fig = precalculated_rf_classifier_explainer.plot_trees(index=0)
     assert isinstance(fig, go.Figure)

@@ -4869,8 +4869,13 @@ class TreeExplainer(BaseExplainer):
 
         viz = DTreeVizAPI(self.shadow_trees[tree_idx])
 
+        x_row = self.get_X_row(index).squeeze()
+        if isinstance(x_row, pd.Series):
+            x = x_row.to_numpy()
+        else:
+            x = np.atleast_1d(np.asarray(x_row))
         return viz.view(
-            x=self.get_X_row(index).squeeze(),
+            x=x,
             fancy=False,
             show_node_labels=False,
             show_just_path=show_just_path,
@@ -5145,8 +5150,13 @@ class XGBExplainer(TreeExplainer):
 
         viz = DTreeVizAPI(self.shadow_trees[tree_idx])
 
+        x_row = self.get_X_row(index).squeeze()
+        if isinstance(x_row, pd.Series):
+            x = x_row.to_numpy()
+        else:
+            x = np.atleast_1d(np.asarray(x_row))
         return viz.view(
-            x=self.get_X_row(index).squeeze(),
+            x=x,
             fancy=False,
             show_node_labels=False,
             show_just_path=show_just_path,

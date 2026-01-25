@@ -27,6 +27,14 @@ def test_xgbclas_decisionpath_df(precalculated_xgb_classifier_explainer, test_na
     assert isinstance(df, pd.DataFrame)
 
 
+def test_xgbclas_decisiontree_view_contract(precalculated_xgb_classifier_explainer):
+    precalculated_xgb_classifier_explainer._graphviz_available = True
+    render = precalculated_xgb_classifier_explainer.decisiontree_view(
+        tree_idx=0, index=0
+    )
+    assert isinstance(render, dtreeviz.utils.DTreeVizRender)
+
+
 def test_xgbclas_plot_trees(precalculated_xgb_classifier_explainer, test_names):
     fig = precalculated_xgb_classifier_explainer.plot_trees(index=0)
     assert isinstance(fig, go.Figure)
