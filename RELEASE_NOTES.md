@@ -6,6 +6,8 @@
 ### Bug Fixes
 - Handle missing values in categorical features by surfacing a "NaN" option in inputs and normalizing NaN selections back to real missing values.
 - Add tests covering categorical NaN handling for both merged and unmerged input paths.
+- Preserve categorical dtypes during permutation importance shuffles and PDP grid generation to prevent dtype-related model errors (e.g., LightGBM).
+- Align categorical/boolean dtypes for user-provided `X_row` inputs and add dtype alignment tests.
 
 ## Version 0.5.4:
 
