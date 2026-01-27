@@ -2,6 +2,7 @@ __all__ = [
     "IndexNotFoundError",
     "append_dict_to_df",
     "safe_isinstance",
+    "align_categorical_dtypes",
     "guess_shap",
     "mape_score",
     "parse_cats",
@@ -44,7 +45,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_bool_dtype, is_numeric_dtype
 
 
 from sklearn.metrics import make_scorer
@@ -290,6 +291,29 @@ def safe_isinstance(obj, *instance_str):
             if obj_str[:-2].endswith(i):
                 return True
     return False
+
+
+def align_categorical_dtypes(
+    df_target: pd.DataFrame,
+    df_reference: pd.DataFrame,
+    columns: List[str] | None = None,
+    copy: bool = True,
+) -> pd.DataFrame:
+    """Align categorical/boolean dtypes in df_target to match df_reference."""
+    if df_target is None:
+        return df_target
+    if columns is None:
+        columns = df_target.columns
+    aligned = df_target.copy() if copy else df_target
+    for col in columns:
+        if col not in aligned.columns or col not in df_reference.columns:
+            continue
+        ref_dtype = df_reference[col].dtype
+        if isinstance(ref_dtype, pd.CategoricalDtype):
+            aligned[col] = aligned[col].astype(ref_dtype)
+        elif is_bool_dtype(ref_dtype) and not is_bool_dtype(aligned[col].dtype):
+            aligned[col] = aligned[col].astype(ref_dtype)
+    return aligned
 
 
 def guess_shap(model):
@@ -858,7 +882,9 @@ def permutation_importances(
         scores = []
         for i in range(n_repeats):
             old_cols = X[col_list].copy()
-            X[col_list] = np.random.permutation(X[col_list])
+            permuted = X[col_list].sample(frac=1, replace=False)
+            permuted.index = X.index
+            X[col_list] = permuted
             if pass_nparray:
                 scores.append(scorer(model, X.values, y.values))
             else:
@@ -1139,6 +1165,14 @@ def get_pdp_df(
             pdp_df = pd.DataFrame()
     else:
         pdp_df = pd.DataFrame()
+
+    def _coerce_value(value, dtype):
+        if isinstance(dtype, pd.CategoricalDtype):
+            return value
+        if is_bool_dtype(dtype):
+            return bool(value)
+        return value
+
     for grid_value in grid_values:
         dtemp = X_sample.copy()
         if isinstance(feature, list):
@@ -1147,9 +1181,14 @@ def get_pdp_df(
                     f"{grid_values} When passing a list of features these have to be onehotencoded!"
                     f"But X_sample['{grid_value}'].unique()=={list(set(X_sample[grid_value].unique()))}"
                 )
-            dtemp.loc[:, feature] = [1 if col == grid_value else 0 for col in feature]
+            for col in feature:
+                dtemp[col] = _coerce_value(col == grid_value, X_sample[col].dtype)
         else:
-            dtemp[[feature]] = grid_value
+            dtemp[[feature]] = _coerce_value(grid_value, X_sample[feature].dtype)
+        align_cols = feature if isinstance(feature, list) else [feature]
+        dtemp = align_categorical_dtypes(
+            dtemp, X_sample, columns=align_cols, copy=False
+        )
         if is_classifier:
             dtemp_model = _model_input(dtemp)
             pred_probas_raw = model.predict_proba(dtemp_model)

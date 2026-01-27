@@ -966,10 +966,15 @@ class BaseExplainer(ABC):
             X = self.X
 
         if sort == "alphabet":
-            if topx is None:
-                return sorted(X[col].unique().tolist())
+            if col in self.categorical_cols:
+                values = self.categorical_dict[col]
             else:
-                return sorted(X[col].unique().tolist())[:topx]
+                values = [v for v in X[col].unique().tolist() if not pd.isna(v)]
+                values = sorted(values)
+            if topx is None:
+                return values
+            else:
+                return values[:topx]
         elif sort == "freq":
             if topx is None:
                 return X[col].value_counts().index.tolist()
@@ -1783,6 +1788,7 @@ class BaseExplainer(ABC):
                     not_encoded_dict=self.onehot_notencoded,
                     drop_regular=False,
                 )[self.merged_cols]
+            X_row = align_categorical_dtypes(X_row, self.X, columns=self.X.columns)
             shap_values = self.get_shap_row(X_row=X_row, pos_label=pos_label)
 
         return get_contrib_df(
@@ -1935,6 +1941,7 @@ class BaseExplainer(ABC):
                 assert matching_cols(
                     X_row.columns, self.columns
                 ), "X_row should have the same columns as self.X or self.merged_cols!"
+            X_row = align_categorical_dtypes(X_row, self.X, columns=self.X.columns)
 
             if isinstance(features, str) and drop_na:  # regular col, not onehotencoded
                 sample_size = min(
@@ -4381,6 +4388,7 @@ class RegressionExplainer(BaseExplainer):
         if X_row is not None:
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
+            X_row = align_categorical_dtypes(X_row, self.X, columns=self.X.columns)
         if self.shap == "skorch":
             X_row = X_row.values.astype("float32")
         pred_raw = self.model.predict(X_row)
