@@ -28,17 +28,8 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix,
-    precision_recall_curve,
-    roc_curve,
-    roc_auc_score,
-    average_precision_score,
-)
 
 from .explainer_methods import matching_cols, safe_isinstance
 
@@ -120,7 +111,7 @@ def plotly_contribution_plot(
     contrib_df = contrib_df.copy()
     try:
         base_value = contrib_df.query("col=='_BASE'")["contribution"].item()
-    except:
+    except Exception:
         base_value = None
 
     if not include_base_value:
@@ -158,12 +149,12 @@ def plotly_contribution_plot(
 
     if "value" in contrib_df.columns:
         hover_text = [
-            f"{col}={value}<BR>{'+' if contrib>0 else ''}{contrib} {units}"
+            f"{col}={value}<BR>{'+' if contrib > 0 else ''}{contrib} {units}"
             for col, value, contrib in zip(cols, values, contribs)
         ]
     else:
         hover_text = [
-            f"{col}=?<BR>{'+' if contrib>0 else ''}{contrib} {units}"
+            f"{col}=?<BR>{'+' if contrib > 0 else ''}{contrib} {units}"
             for col, contrib in zip(cols, contribs)
         ]
 
@@ -356,8 +347,7 @@ def plotly_precision_plot(precision_df, cutoff=None, labels=None, pos_label=None
         title=f"percentage {label} vs predicted probability",
         yaxis=dict(title="counts"),
         yaxis2=dict(
-            title="percentage",
-            titlefont=dict(color="rgb(148, 103, 189)"),
+            title=dict(text="percentage", font=dict(color="rgb(148, 103, 189)")),
             tickfont=dict(color="rgb(148, 103, 189)"),
             overlaying="y",
             side="right",
@@ -418,9 +408,10 @@ def plotly_classification_plot(
     col_sums = classification_df.sum(axis=0)
 
     for label, below, above, total in classification_df.itertuples():
-        below_perc = 100 * below / col_sums["below"]
-        above_perc = 100 * above / col_sums["above"]
-        total_perc = 100 * total / col_sums["total"]
+        # Avoid divide by zero warnings
+        below_perc = 100 * below / col_sums["below"] if col_sums["below"] > 0 else 0.0
+        above_perc = 100 * above / col_sums["above"] if col_sums["above"] > 0 else 0.0
+        total_perc = 100 * total / col_sums["total"] if col_sums["total"] > 0 else 0.0
         if percentage:
             fig.add_trace(
                 go.Bar(
@@ -485,7 +476,7 @@ def plotly_lift_curve(
         model_text = [
             f"model selected {pos:.{round}f}% of all positives in first {i:.{round}f}% sampled<br>"
             + f"precision={precision:.{round}f}% positives in sample<br>"
-            + f"lift={pos/exp:.{round}f}"
+            + f"lift={pos / exp:.{round}f}"
             for (i, pos, exp, precision) in zip(
                 lift_curve_df.index_percentage,
                 lift_curve_df.cumulative_percentage_pos,
@@ -508,7 +499,7 @@ def plotly_lift_curve(
         model_text = [
             f"model selected {pos} positives out of {i}<br>"
             + f"precision={precision:.{round}f}<br>"
-            + f"lift={pos/exp:.{round}f}"
+            + f"lift={pos / exp:.{round}f}"
             for (i, pos, exp, precision) in zip(
                 lift_curve_df["index"],
                 lift_curve_df.positives,
@@ -795,7 +786,7 @@ def plotly_cumulative_precision_plot(
                     y=20,
                     yref="y",
                     ax=60,
-                    text=f"percentile={100*percentile:.{round}f}",
+                    text=f"percentile={100 * percentile:.{round}f}",
                 )
             ]
         )
@@ -837,8 +828,8 @@ def plotly_dependence_plot(
     Returns:
         Plotly fig
     """
-    assert len(X_col) == len(
-        shap_values
+    assert (
+        len(X_col) == len(shap_values)
     ), f"Column(len={len(X_col)}) and Shap values(len={len(shap_values)}) and should have the same length!"
     if idxs is not None:
         assert len(idxs) == X_col.shape[0]
@@ -879,7 +870,6 @@ def plotly_dependence_plot(
     data = []
 
     X_col = X_col.copy().replace({na_fill: np.nan})
-    y = shap_values
     if interact_col is not None and not is_numeric_dtype(interact_col):
         for onehot_col in interact_col.unique().tolist():
             data.append(
@@ -1364,12 +1354,6 @@ def plotly_pdp(
     if plot_lines:
         x = pdp_df.columns.values
         pdp_sample = pdp_df.sample(min(num_grid_lines, len(pdp_df)))
-        ice_lines = (
-            pdp_sample.values
-            if absolute
-            else pdp_sample.values
-            - np.expand_dims(pdp_sample.iloc[:, 0].values, axis=1)
-        )
 
         for row in pdp_sample.itertuples(index=False):
             data.append(
@@ -2215,10 +2199,16 @@ def plotly_plot_residuals(
         idxs = [str(i) for i in range(len(preds))]
 
     res = y - preds
-    res_ratio = y / preds
+    # Avoid divide by zero warnings: use np.divide with where to handle zero preds
+    res_ratio = np.divide(
+        y, preds, out=np.full_like(y, np.nan, dtype=float), where=preds != 0
+    )
 
     if residuals == "log-ratio":
-        residuals_display = np.log(res_ratio)
+        # Avoid log(0) or log(inf) warnings by filtering out invalid values
+        valid_mask = (res_ratio > 0) & np.isfinite(res_ratio)
+        residuals_display = np.full_like(res_ratio, np.nan, dtype=float)
+        residuals_display[valid_mask] = np.log(res_ratio[valid_mask])
         residuals_name = "residuals log ratio<br>(log(y/preds))"
     elif residuals == "ratio":
         residuals_display = res_ratio
@@ -2315,9 +2305,9 @@ def plotly_residuals_vs_col(
         Plotly fig
     """
     if col_name is None:
-        try:
+        if hasattr(col, "name"):
             col_name = col.name
-        except:
+        else:
             col_name = "Feature"
 
     if idxs is not None:
@@ -2327,10 +2317,16 @@ def plotly_residuals_vs_col(
         idxs = [str(i) for i in range(len(preds))]
 
     res = y - preds
-    res_ratio = y / preds
+    # Avoid divide by zero warnings: use np.divide with where to handle zero preds
+    res_ratio = np.divide(
+        y, preds, out=np.full_like(y, np.nan, dtype=float), where=preds != 0
+    )
 
     if residuals == "log-ratio":
-        residuals_display = np.log(res_ratio)
+        # Avoid log(0) or log(inf) warnings by filtering out invalid values
+        valid_mask = (res_ratio > 0) & np.isfinite(res_ratio)
+        residuals_display = np.full_like(res_ratio, np.nan, dtype=float)
+        residuals_display[valid_mask] = np.log(res_ratio[valid_mask])
         residuals_name = "residuals log ratio<br>(log(y/preds))"
     elif residuals == "ratio":
         residuals_display = res_ratio
@@ -2361,7 +2357,6 @@ def plotly_residuals_vs_col(
                 column_widths=[3, 1] * n_cats,
                 shared_yaxes=True,
             )
-            showscale = True
         else:
             fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
@@ -2493,9 +2488,9 @@ def plotly_actual_vs_col(
         Plotly fig
     """
     if col_name is None:
-        try:
+        if hasattr(col, "name"):
             col_name = col.name
-        except:
+        else:
             col_name = "Feature"
 
     if idxs is not None:
@@ -2521,7 +2516,6 @@ def plotly_actual_vs_col(
                 column_widths=[3, 1] * n_cats,
                 shared_yaxes=True,
             )
-            showscale = True
         else:
             fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
@@ -2646,9 +2640,9 @@ def plotly_preds_vs_col(
         Plotly fig
     """
     if col_name is None:
-        try:
+        if hasattr(col, "name"):
             col_name = col.name
-        except:
+        else:
             col_name = "Feature"
 
     if idxs is not None:
@@ -2674,7 +2668,6 @@ def plotly_preds_vs_col(
                 column_widths=[3, 1] * n_cats,
                 shared_yaxes=True,
             )
-            showscale = True
         else:
             fig = make_subplots(rows=1, cols=n_cats, shared_yaxes=True)
 
@@ -2857,7 +2850,7 @@ def plotly_rf_trees(
         title = f"Individual decision trees predicting {target}"
         yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
     else:
-        title = f"Individual decision trees"
+        title = "Individual decision trees"
         yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
 
     layout = go.Layout(
@@ -2954,30 +2947,28 @@ def plotly_xgboost_trees(
         xgboost_preds_df.loc[highlight_tree + 1, "color"] = "red"
 
     trees = xgboost_preds_df.tree.values[1:]
-    colors = xgboost_preds_df.color.values[1:]
 
     is_classifier = True if "pred_proba" in xgboost_preds_df.columns else False
 
-    colors = xgboost_preds_df.color.values
     if is_classifier:
         final_prediction = xgboost_preds_df.pred_proba.values[-1]
         base_prediction = xgboost_preds_df.pred_proba.values[0]
-        preds = xgboost_preds_df.pred_proba.values[1:]
         bases = xgboost_preds_df.pred_proba.values[:-1]
         diffs = xgboost_preds_df.pred_proba_diff.values[1:]
 
         texts = [
-            f"tree no {t}:<br>change = {100*d:.{round}f}%<br> click for detailed info"
+            f"tree no {t}:<br>change = {100 * d:.{round}f}%<br> click for detailed info"
             for (t, d) in zip(trees, diffs)
         ]
         texts.insert(
-            0, f"Base prediction: <br>proba = {100*base_prediction:.{round}f}%"
+            0, f"Base prediction: <br>proba = {100 * base_prediction:.{round}f}%"
         )
-        texts.append(f"Final Prediction: <br>proba = {100*final_prediction:.{round}f}%")
+        texts.append(
+            f"Final Prediction: <br>proba = {100 * final_prediction:.{round}f}%"
+        )
     else:
         final_prediction = xgboost_preds_df.pred.values[-1]
         base_prediction = xgboost_preds_df.pred.values[0]
-        preds = xgboost_preds_df.pred.values[1:]
         bases = xgboost_preds_df.pred.values[:-1]
         diffs = xgboost_preds_df.pred_diff.values[1:]
 
@@ -3045,7 +3036,7 @@ def plotly_xgboost_trees(
         title = f"Individual xgboost decision trees predicting {target}"
         yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
     else:
-        title = f"Individual xgboost decision trees"
+        title = "Individual xgboost decision trees"
         yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
 
     layout = go.Layout(

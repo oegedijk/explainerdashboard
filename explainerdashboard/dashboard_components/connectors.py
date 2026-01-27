@@ -9,7 +9,7 @@ __all__ = [
 import numpy as np
 
 import dash
-from dash import html, dcc, Input, Output, State
+from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
@@ -138,7 +138,7 @@ class CutoffPercentileComponent(ExplainerComponent):
                                                                 + self.name,
                                                             ),
                                                             dbc.Tooltip(
-                                                                f"Scores above this cutoff will be labeled positive",
+                                                                "Scores above this cutoff will be labeled positive",
                                                                 target="cutoffconnector-cutoff-div-"
                                                                 + self.name,
                                                                 placement="bottom",
@@ -186,7 +186,7 @@ class CutoffPercentileComponent(ExplainerComponent):
                                                                 + self.name,
                                                             ),
                                                             dbc.Tooltip(
-                                                                f"example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
+                                                                "example: if set to percentile=0.9: label the top 10% highest scores as positive, the rest negative.",
                                                                 target="cutoffconnector-percentile-div-"
                                                                 + self.name,
                                                                 placement="bottom",

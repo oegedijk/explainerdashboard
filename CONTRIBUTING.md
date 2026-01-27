@@ -30,14 +30,21 @@ There are additional libraries such as selenium, xgboost, catboost, lightgbm etc
 
 (lightgbm may give some headaches when installing with pip, so can also `brew install lightgbm` instead)
 
-### install chromedriver for integration tests
+### ChromeDriver for integration tests (automatic)
 
 For the integration tests we use Selenium which launches a headless version of google chrome to launch a dashboard
-in the browser and then checks that there are no error messages. In order to run these tests you need to download
-a chromedriver that is compatible with your current installation of chrome at https://chromedriver.chromium.org/
+in the browser and then checks that there are no error messages. 
 
-You then unzip it and copy it to `$ cp chromedriver /usr/local/bin/chromedriver`
-and on OSX allow it to be run with `$ xattr -d com.apple.quarantine /usr/local/bin/chromedriver`.
+**ChromeDriver is now automatically managed** - no manual installation required! 
+
+- Selenium 4.6+ includes `selenium-manager` which automatically downloads and manages the correct ChromeDriver version
+- `dash[testing]` also uses `webdriver-manager` which provides automatic driver management
+- The driver version will automatically match your installed Chrome browser version
+
+If you encounter issues, ensure you have:
+- Chrome or Chromium browser installed
+- Selenium >=4.6.0 (included in test dependencies)
+- `webdriver-manager` package (included in test dependencies)
 
 ### running the tests
 

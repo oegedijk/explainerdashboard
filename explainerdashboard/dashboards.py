@@ -18,7 +18,7 @@ import inspect
 import requests
 from typing import List, Union
 from pathlib import Path
-from copy import copy, deepcopy
+from copy import deepcopy
 import warnings
 
 import oyaml as yaml
@@ -184,7 +184,7 @@ class ExplainerTabsLayout(ExplainerComponent):
                                                 ],
                                                 label="Download",
                                                 color="link",
-                                                right=True,
+                                                align_end=True,
                                             ),
                                         ],
                                         style={
@@ -664,7 +664,7 @@ class ExplainerDashboard:
             ipython_kernel = str(get_ipython())
             self.is_notebook = True
             self.is_colab = True if "google.colab" in ipython_kernel else False
-        except:
+        except Exception:
             self.is_notebook, self.is_colab = False, False
 
         if self.mode == "dash" and self.is_colab:
@@ -879,7 +879,7 @@ class ExplainerDashboard:
 
           db = ExplainerDashboard.from_config("dashboard.yaml")
 
-        You can also load the explainerfile seperately:
+        You can also load the explainerfile separately:
 
           db = ExplainerDashboard.from_config("explainer.joblib", "dashboard.yaml")
 
@@ -1018,7 +1018,7 @@ class ExplainerDashboard:
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
         """Stores the parameter of the class to instance attributes and
-        to a ._stored_params dict. You can optionall exclude all or some
+        to a ._stored_params dict. You can optionally exclude all or some
         parameters from being stored.
 
         Args:
@@ -1116,7 +1116,7 @@ class ExplainerDashboard:
                 )
             else:
                 raise ValueError(
-                    f"Please only pass strings or ExplainerComponents to parameter `tabs`!"
+                    "Please only pass strings or ExplainerComponents to parameter `tabs`!"
                     "You passed {component.__class__}"
                 )
 
@@ -1148,7 +1148,7 @@ class ExplainerDashboard:
                 if tab["params"] is None:
                     return tab_class
                 else:
-                    if not "name" in tab["params"] or tab["params"]["name"] is None:
+                    if "name" not in tab["params"] or tab["params"]["name"] is None:
                         tab["params"]["name"] = name
 
                     tab["params"] = decode_callables(tab["params"])
@@ -1275,7 +1275,12 @@ class ExplainerDashboard:
 
                 serve(app.server, host=host, port=port)
             else:
-                app.run_server(port=port, host=host, **kwargs)
+                try:
+                    # Dash 3.0+ uses run()
+                    app.run(port=port, host=host, **kwargs)
+                except AttributeError:
+                    # Fallback for Dash 2.x
+                    app.run_server(port=port, host=host, **kwargs)
         else:
             if self.mode == "dash":
                 print(
@@ -1296,16 +1301,36 @@ class ExplainerDashboard:
                         f"ExplainerDashboard.terminate({port})",
                         flush=True,
                     )
-                app.run_server(port=port, mode=mode, **kwargs)
+                try:
+                    # Dash 3.0+ uses run() with jupyter_mode parameter
+                    app.run(port=port, jupyter_mode=mode, **kwargs)
+                except (TypeError, AttributeError):
+                    # Fallback for Dash 2.x / older JupyterDash versions
+                    app.run_server(port=port, mode=mode, **kwargs)
             elif mode in ["inline", "jupyterlab"]:
                 print(
                     f"Starting ExplainerDashboard inline (terminate it with "
                     f"ExplainerDashboard.terminate({port}))",
                     flush=True,
                 )
-                app.run_server(
-                    port=port, mode=mode, width=self.width, height=self.height, **kwargs
-                )
+                try:
+                    # Dash 3.0+ uses run() with jupyter_mode, jupyter_width, jupyter_height parameters
+                    app.run(
+                        port=port,
+                        jupyter_mode=mode,
+                        jupyter_width=self.width,
+                        jupyter_height=self.height,
+                        **kwargs,
+                    )
+                except (TypeError, AttributeError):
+                    # Fallback for Dash 2.x / older JupyterDash versions
+                    app.run_server(
+                        port=port,
+                        mode=mode,
+                        width=self.width,
+                        height=self.height,
+                        **kwargs,
+                    )
             else:
                 raise ValueError(f"Unknown mode: mode='{mode}'!")
 
@@ -1335,7 +1360,7 @@ class ExplainerDashboard:
         shutdown_url = f"http://localhost:{port}/_shutdown_{token}"
         print(f"Trying to shut down dashboard on port {port}...")
         try:
-            response = requests.get(shutdown_url)
+            _ = requests.get(shutdown_url)
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 
@@ -1522,13 +1547,11 @@ class ExplainerHub:
                 "only work if you run the hub as a single worker on a single node!"
             )
 
-        assert len(set(self.dashboard_names)) == len(
-            self.dashboard_names
-        ), f"All dashboard .name properties should be unique, but received the folowing: {self.dashboard_names}"
-        illegal_names = list(set(self.dashboard_names) & self.__reserved_names)
         assert (
-            not illegal_names
-        ), f"The following .name properties for dashboards are not allowed: {illegal_names}!"
+            len(set(self.dashboard_names)) == len(self.dashboard_names)
+        ), f"All dashboard .name properties should be unique, but received the following: {self.dashboard_names}"
+        illegal_names = list(set(self.dashboard_names) & self.__reserved_names)
+        assert not illegal_names, f"The following .name properties for dashboards are not allowed: {illegal_names}!"
 
         if self.users:
             for dashboard in self.dashboards:
@@ -1613,7 +1636,7 @@ class ExplainerHub:
                 f"The following .name properties for dashboards are not allowed: {dashboard.name}!"
             )
 
-        # If the dashboard name is unkown we create it
+        # If the dashboard name is unknown we create it
         update_params = dict(
             server=self.app,
             name=dashboard.name,
@@ -1690,7 +1713,7 @@ class ExplainerHub:
 
         assert (
             "explainerhub" in config
-        ), "Misformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
+        ), "Malformed yaml: explainerhub yaml file should start with 'explainerhub:'!"
 
         config = config["explainerhub"]
 
@@ -1793,7 +1816,7 @@ class ExplainerHub:
 
     def _store_params(self, no_store=None, no_attr=None, no_param=None):
         """Stores the parameter of the class to instance attributes and
-        to a ._stored_params dict. You can optionall exclude all or some
+        to a ._stored_params dict. You can optionally exclude all or some
         parameters from being stored.
 
         Args:
@@ -1854,10 +1877,10 @@ class ExplainerHub:
                 print(
                     "Reminder, you can set ExplainerDashboard .name and .description "
                     "in order to control the url path of the dashboard. Now "
-                    f"defaulting to name=dashboard{i+1} and default description...",
+                    f"defaulting to name=dashboard{i + 1} and default description...",
                     flush=True,
                 )
-                dashboard_name = f"dashboard{i+1}"
+                dashboard_name = f"dashboard{i + 1}"
             else:
                 dashboard_name = dashboard.name
             if dashboard_name in self.__reserved_names:
@@ -1894,7 +1917,7 @@ class ExplainerHub:
 
     @staticmethod
     def _validate_users_file(users_file: Path):
-        """validat that user_json is a well formed .json file.
+        """validate that user_json is a well formed .json file.
         If it does not exist, then create an empty .json file.
         """
         if users_file is not None:
@@ -1951,7 +1974,7 @@ class ExplainerHub:
                     username=username,
                     password=generate_password_hash(password, method="pbkdf2:sha256"),
                 )
-                if add_to_users_file and self.users_jfile is not None:
+                if add_to_users_file and self.users_file is not None:
                     self._add_user_to_file(self.users_file, username, password)
         return logins_dict
 
@@ -2048,8 +2071,10 @@ class ExplainerHub:
         users_db = ExplainerHub._load_users_db(users_file)
         try:
             del users_db["users"][username]
-        except:
-            pass
+        except Exception as e:
+            print(
+                f"ERROR: Failed to delete user from users.json! Error: {e}", flush=True
+            )
         for dashboard in users_db["dashboard_users"].keys():
             dashboard_users = users_db["dashboard_users"].get(dashboard)
             if dashboard_users is not None:
@@ -2148,7 +2173,7 @@ class ExplainerHub:
             )
         if self.db_users is not None:
             for dashboard, users in self.db_users.items():
-                if not dashboard in dashboard_users:
+                if dashboard not in dashboard_users:
                     dashboard_users[dashboard] = users
                 else:
                     dashboard_users[dashboard] = sorted(
@@ -2435,7 +2460,7 @@ class ExplainerHub:
         print(f"Saved static html version of ExplainerHub to {filename}...")
 
     def _hub_page(self, route, static=False):
-        """Returns a html bootstrap wrapper around a particular flask route (hosting an ExplainerDashbaord)
+        """Returns a html bootstrap wrapper around a particular flask route (hosting an ExplainerDashboard)
         It contains:
         - a NavBar with links to all dashboards
         - an iframe containing the flask route
@@ -2451,7 +2476,7 @@ class ExplainerHub:
             page = f"""
             <script type="text/javascript" src=f"{self.app.static_url_path}/jquery-3.5.1.slim.min.js"></script>
             <script type="text/javascript" src=f"{self.app.static_url_path}/bootstrap.min.js"></script>
-            <link type="text/css" rel="stylesheet" href="{f'{self.app.static_url_path}/bootstrap.min.css' if self.bootstrap is None else self.bootstrap}"/>
+            <link type="text/css" rel="stylesheet" href="{f"{self.app.static_url_path}/bootstrap.min.css" if self.bootstrap is None else self.bootstrap}"/>
             <link rel="shortcut icon" href=f"{self.app.static_url_path}/favicon.ico">
             """
             dbs = [
@@ -2463,10 +2488,10 @@ class ExplainerHub:
         page += f"""
         <title>{self.title}</title>
         <body>
-            <div class="container{'-fluid' if self.fluid else ''} px-4">
+            <div class="container{"-fluid" if self.fluid else ""} px-4">
                 <nav class="navbar navbar-expand navbar-light bg-light">
                     <div class="container-fluid">
-                        <a href="{self.index_route if not static else '#'}" class="navbar-brand">
+                        <a href="{self.index_route if not static else "#"}" class="navbar-brand">
                         <h1>{self.title}</h1>
                         </a>
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -2483,7 +2508,7 @@ class ExplainerHub:
                                         {"".join([f'<li><a n_clicks_timestamp="-1" data-rr-ui-dropdown-item="" class="dropdown-item" href="{url}">{name}</a></li>' for url, name in dbs])}
                                     </ul>
                                     </li>
-                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ''}
+                                    {'<li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>' if not static and page_login_required else ""}
                                 </ul>
                             </div>
                         </form>
@@ -2494,9 +2519,9 @@ class ExplainerHub:
             page += f"\n<div>\n{route}\n</div>\n"
         else:
             page += f"""
-            
+
             <div class="mt-4 embed-responsive" style="min-height: {self.min_height}px">
-                 <iframe 
+                 <iframe
                          src="{route}"
                          style="overflow-x: hidden; overflow-y: visible; position: absolute; width: 95%; height: 100%; background: transparent"
                 ></iframe>
@@ -2511,7 +2536,7 @@ class ExplainerHub:
         """adds the index route "/" with the index_page
         and routes for each dashboard with a navbar and an iframe, e.g. "/_dashboard1"
 
-        If you pass no_index to the contructor, this method does not get called.
+        If you pass no_index to the constructor, this method does not get called.
 
         Args:
             app (flask.Flask): flask app to add routes to.
@@ -2582,8 +2607,8 @@ class ExplainerHub:
                                 bootstrap=f"{self.app.static_url_path}/bootstrap.min.css",
                             )
                             return redirect(f"/dashboards/_{dashboard_name}", code=302)
-                    except:
-                        print("ERROR: Failed to add dashboard!", flush=True)
+                    except Exception as e:
+                        print(f"ERROR: Failed to add dashboard! Error: {e}", flush=True)
                     return redirect("/", code=302)
 
                 remove_dashboard_match = remove_dashboard_pattern.match(request.path)
@@ -2592,9 +2617,11 @@ class ExplainerHub:
                         _, dashboard_name = remove_dashboard_match.groups()
                         if dashboard_name in self.dashboard_names:
                             self.remove_dashboard(dashboard_name)
-                    except:
-                        print("ERROR: Failed to remove dashboard!", flush=True)
-                    return redirect(f"/", code=302)
+                    except Exception as e:
+                        print(
+                            f"ERROR: Failed to remove dashboard! Error: {e}", flush=True
+                        )
+                    return redirect("/", code=302)
 
     def flask_server(self):
         """return the Flask server inside the class instance"""
@@ -2691,23 +2718,41 @@ class InlineExplainer:
         shutdown_url = f"http://localhost:{port}/_shutdown_{token}"
         print(f"Trying to shut down dashboard on port {port}...")
         try:
-            response = requests.get(shutdown_url)
+            _ = requests.get(shutdown_url)
         except Exception as e:
             print(f"Something seems to have failed: {e}")
 
     def _run_app(self, app, **kwargs):
-        """Starts the dashboard either inline or in a seperate tab
+        """Starts the dashboard either inline or in a separate tab
 
         :param app: the JupyterDash app to be run
         :type mode: JupyterDash app instance
         """
         pio.templates.default = "none"
         if self._mode in ["inline", "jupyterlab"]:
-            app.run_server(
-                mode=self._mode, width=self._width, height=self._height, port=self._port
-            )
+            try:
+                # Dash 3.0+ uses run() with jupyter_mode, jupyter_width, jupyter_height parameters
+                app.run(
+                    jupyter_mode=self._mode,
+                    jupyter_width=self._width,
+                    jupyter_height=self._height,
+                    port=self._port,
+                )
+            except (TypeError, AttributeError):
+                # Fallback for Dash 2.x / older JupyterDash versions
+                app.run_server(
+                    mode=self._mode,
+                    width=self._width,
+                    height=self._height,
+                    port=self._port,
+                )
         elif self._mode == "external":
-            app.run_server(mode=self._mode, port=self._port, **self._kwargs)
+            try:
+                # Dash 3.0+ uses run() with jupyter_mode parameter
+                app.run(jupyter_mode=self._mode, port=self._port, **self._kwargs)
+            except (TypeError, AttributeError):
+                # Fallback for Dash 2.x / older JupyterDash versions
+                app.run_server(mode=self._mode, port=self._port, **self._kwargs)
         else:
             raise ValueError(
                 "mode should either be 'inline', 'jupyterlab'  or 'external'!"

@@ -231,8 +231,8 @@ class ImportancesComponent(ExplainerComponent):
             self.importance_type = "shap"
         if self.description is None:
             self.description = """
-        Shows the features sorted from most important to least important. Can 
-        be either sorted by absolute SHAP value (average absolute impact of 
+        Shows the features sorted from most important to least important. Can
+        be either sorted by absolute SHAP value (average absolute impact of
         the feature on final prediction) or by permutation importance (how much
         does the model get worse when you shuffle this feature, rendering it
         useless?).
@@ -647,7 +647,7 @@ class PdpComponent(ExplainerComponent):
         of observations and how these observations would change with this
         feature (gridlines). The average effect is shown in grey. The effect
         of changing the feature for a single {self.explainer.index_name} is
-        shown in blue. You can adjust how many observations to sample for the 
+        shown in blue. You can adjust how many observations to sample for the
         average, how many gridlines to show, and how many points along the
         x-axis to calculate model predictions for (gridpoints).
         """
@@ -1147,7 +1147,7 @@ class FeatureInputComponent(ExplainerComponent):
         else:
             raise ValueError(
                 "parameter sort_features should be either 'shap', "
-                f"or 'alphabet', but you passed sort_features='{self.sort_features}'"
+                "or 'alphabet', but you passed sort_features='{self.sort_features}'"
             )
 
         self._feature_inputs = [

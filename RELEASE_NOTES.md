@@ -1,14 +1,98 @@
 # Release Notes
 
 
-## Version 0.4.5:
-### New Features
+## Version 0.5.5:
+
+### Bug Fixes
+- Handle missing values in categorical features by surfacing a "NaN" option in inputs and normalizing NaN selections back to real missing values.
+- Add tests covering categorical NaN handling for both merged and unmerged input paths.
+- Preserve categorical dtypes during permutation importance shuffles and PDP grid generation to prevent dtype-related model errors (e.g., LightGBM).
+- Align categorical/boolean dtypes for user-provided `X_row` inputs and add dtype alignment tests.
+
+### Improvements
 - Add support for GPU Tree SHAP explainers via `shap='gputree'` (requires CUDA-enabled SHAP).
+
+## Version 0.5.4:
+
+### Breaking Changes
+- Require Dash >=3.0.4 to support dash-bootstrap-components 2.x
+
+### Improvements
+- Relaxed dash-bootstrap-components upper bound to allow 2.x releases
+- Updated DropdownMenu alignment to use `align_end` for dbc 2.x
+- Adjusted logistic regression test fixture to avoid convergence warnings
+
+### Bug Fixes
+- Avoid sklearn feature-name warnings in PDP computations by passing numpy arrays to estimators without `feature_names_in_`
+- Consistent model-input handling in PDP and prediction helpers to prevent warning noise
+
+## Version 0.5.3:
+
+### Improvements
+- Allow NumPy 2.x but cap to `<2.4` on Python 3.11+ to avoid numba/llvmlite downgrade issues
+
+## Version 0.5.2:
+
+### Breaking Changes
+- Dropped support for Python 3.8 and 3.9 (Python 3.9 reached end-of-life). Minimum Python version is now 3.10
+- Now explicitly supports and tests on Python 3.10, 3.11, 3.12, and 3.13
+
+### Improvements
+- Removed upper version constraints for `dash` and `plotly` dependencies, now supports Dash 2.10+ and 3.0+, and Plotly 5.0+ and 6.0+
+- Added backward compatibility code to support both Dash 2.x (`app.run_server()`) and Dash 3.x (`app.run()`) APIs
+- Fixed Plotly 6.0 compatibility by updating `titlefont` to `title.font` format
+- Improved integration test setup with automatic ChromeDriver management via `webdriver-manager`
+- Fixed threading issues with Plotly validator initialization by switching to recommended `plotly.graph_objects` import
+- Made `torch` and `skorch` optional dependencies on Intel Macs (where torch wheels are not available)
+
+### Bug Fixes
+- Fixed `SystemExit` warnings in integration tests caused by Plotly validator initialization in multi-threaded contexts
+- Updated `.gitignore` to exclude webdriver-manager cache directories and `uv.lock` file
+- **XGBoost 3.1+ compatibility**: Fixed handling of string-formatted predictions and `base_score` values returned by XGBoost 3.1+. Added robust string-to-numeric conversion with proper regex fallback to handle various string formats (e.g., `'[3.2967056E1]'`, `'[8.563135E-2,7.169811E-1,1.9738752E-1]'`)
+- **XGBoost SHAP initialization**: Fixed `base_score` conversion in both `get_params()` and booster's internal JSON configuration to ensure SHAP TreeExplainer initializes correctly with XGBoost 3.1+
+- **RandomForest dtreeviz compatibility**: Fixed dtype handling for `y_train` (now uses `int` instead of `int16`) and observation array conversion for `predict_path()` to work with newer dtreeviz versions
+- **Dtreeviz decisiontree_view**: Ensure observations are passed as numpy arrays to avoid pandas label lookup errors when dtreeviz indexes features by integer position
+- **PyPI packaging**: Removed duplicate wheel entries from hatchling build config to fix "Duplicate filename in local headers" upload errors
+- **Pandas deprecation warnings**: Removed deprecated `pd.option_context("future.no_silent_downcasting")` and `copy=False` parameter from `.infer_objects()` calls
+- **Runtime warnings**: Fixed divide-by-zero warnings in classification plots and residuals plots (log-ratio calculations) by adding proper zero checks and using `np.divide()` with `where` parameter
+
+## Version 0.4.8:
+
+### Bug Fixes
+- fix deprecated needs_proba parameter in make_scorer
+
+## Version 0.4.7:
+
+
+### Bug Fixes
+- fix merge_categorical_columns when there are no cats
+- Handle pandas option setting context in case it doesn't exist
+- Remove is_categorical_dtype as it is getting deprecated
+
+### Improvements
+-
+-
+
+
+
+## Version 0.4.6:
+
+
+### Bug Fixes
+- should now work with the format of shap 0.45 that returns a three dimensional np.array instead of a list of 2-dimensional np.arrays for classifiers
+-
+
+### Improvements
+- Fixed several pandas warning about to be deprecated behaviours
+-
+
+
+
 
 ## Version 0.4.4:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 -
@@ -29,11 +113,11 @@
 
 ## Version 0.4.3:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
-- models that use kernel explainer but output multi-dimensional predictions such as PLSRegression are now supported. 
+- models that use kernel explainer but output multi-dimensional predictions such as PLSRegression are now supported.
 Predictions now get squeezed in the kernel function.
 -
 
@@ -57,7 +141,7 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 
 
 ### Bug Fixes
-- tries to work around wonky index dropdown search bug introduced by latest dash release. 
+- tries to work around wonky index dropdown search bug introduced by latest dash release.
 - Dropdown search now works again, but index propagation is still flaky when number of idxs > max_idxs_in_dropdown(1000 by default)
 - displays warning to downgrade to dash 2.6.2 when this happens
 
@@ -73,7 +157,7 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 ## Version 0.4.2:
 ### Breaking Changes
 - Now needs dtreeviz>2.1, due to the API change with version v2
-- 
+-
 
 ### New Features
 -
@@ -120,7 +204,7 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 - Can now specify absolute path with `explainerfile_absolute_path` when dumping `dashboard.yaml` with `db.to_yaml(...)`
 
 ### Bug Fixes
-- Suppresses warnings when extracting final model from pipeline that was not fitted on a dataframe. 
+- Suppresses warnings when extracting final model from pipeline that was not fitted on a dataframe.
 -
 
 ### Improvements
@@ -128,13 +212,13 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 -
 
 ### Other Changes
-- Some dropdowns now better aligned. 
+- Some dropdowns now better aligned.
 -
 
 ## Version 0.3.8.1:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - Adds support for sklearn Pipelines that add new features (such as those including OneHotEncoder)
@@ -168,8 +252,8 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 
 ## Version 0.3.7
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - Export your ExplainerHub to static html with `hub.to_html()` and `hub.save_html()` methods
@@ -200,17 +284,17 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
     of the current live state of the dashboard.
 - adds a new toggle and parameter to the ConfusionmatrixComponent to either average
     the percentage over the entire matrix, over the rows or over the columns.
-    Set normalize='all', normalize='true', or normalize='pred'. 
+    Set normalize='all', normalize='true', or normalize='pred'.
 - also adds a `save_html(filename)` method to all `ExplainerComponents` and `ExplainerDashboard`
-- `ExplainerHub` adds a new parameter `index_to_base_route`: 
-    Dispatches Hub to `/base_route/index` instead of the default `/` and `/index`. 
+- `ExplainerHub` adds a new parameter `index_to_base_route`:
+    Dispatches Hub to `/base_route/index` instead of the default `/` and `/index`.
     Useful when the host root is not reserved for the ExplainerHub
 
 
 ## Version 0.3.5:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - adds support for `PyTorch` Neural Networks! (as long as they are wrapped by `skorch`)
@@ -228,7 +312,7 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 
 ### Improvements
 - `ExplainerDashboard.to_yaml("dashboards/dashboard.yaml", dump_explainer=True)`
-    will now dump the explainer in the correct subdirectory (and also default 
+    will now dump the explainer in the correct subdirectory (and also default
     to explainer.joblib)
 -
 
@@ -240,7 +324,7 @@ pins dependencies for flask-wtf>1.1, numpy<1.24 and pandas<2 while working to so
 
 ### Bug Fixes
 - Fixes incompatibility bug with dtreeviz >= 1.3
-- 
+-
 
 ### Improvements
 - raises ValueError when passing `shap='deep'` as it is not yet correctly supported
@@ -267,12 +351,12 @@ Highlights:
     then default to the model agnostic `shap='kernel'`.
 - Better support for sklearn `Pipelines`: if not able to extract transformer+model,
     then default to `shap.KernelExplainer` to explain the entire pipeline
-- you can now remove outliers from shap dependence/interaction plots with 
+- you can now remove outliers from shap dependence/interaction plots with
     `remove_outliers=True`: filters all outliers beyond 1.5*IQR
 
 ### Bug Fixes
 -   Sets proper `threading.Locks` before making calls to shap explainer to prevent race
-    conditions with dashboards calling for shap values in multiple threads. 
+    conditions with dashboards calling for shap values in multiple threads.
     (shap is unfortunately not threadsafe)
 -
 
@@ -296,17 +380,17 @@ Highlights:
     besides those listed by `set_index_list_func()`
 
 ### Bug Fixes
-- bug fix to make `shap.KernelExplainer` (used with explainer parameter`shap='kernel'`) 
+- bug fix to make `shap.KernelExplainer` (used with explainer parameter`shap='kernel'`)
     work with `RegressionExplainer`
 - bug fix when no explicit `labels` are based with index selector
 - component only update if `explainer.index_exists()`: no `IndexNotFoundErrors` anymore.
 - fixed title for regression index selector labeled 'Custom' bug
 - `get_y()` now returns `.item()` when necessary
-- removed ticks from confusion matrix plot when no `labels` param passed 
+- removed ticks from confusion matrix plot when no `labels` param passed
     (this bug got reintroduced in recent plotly release)
 
 ### Improvements
-- new helper function `get_shap_row(index)` to calculate or look up a single 
+- new helper function `get_shap_row(index)` to calculate or look up a single
     row of shap values.
 
 ## Version 0.3.2:
@@ -315,7 +399,7 @@ Highlights:
 - Control what metrics to show or use your own custom metrics using `show_metrics`
 - Set the naming for onehot features with all `0`s with `cats_notencoded`
 - Speed up plots by displaying only a random sample of markers in scatter plots with `plot_sample`.
-- make index selection a free text field with `index_dropdown=False` 
+- make index selection a free text field with `index_dropdown=False`
 
 ### New Features
 - new parameter `show_metrics` for both `explainer.metrics()`, `ClassifierModelSummaryComponent`
@@ -327,22 +411,22 @@ Highlights:
             depends on whether the function takes additional parameters `cutoff`
             and `pos_label`. If these are not arguments, then `y_true=self.y_binary(pos_label)`
             and `y_pred=np.where(self.pred_probas(pos_label)>cutoff, 1, 0)`.
-            Else the raw `self.y` and `self.pred_probas` are passed for the 
+            Else the raw `self.y` and `self.pred_probas` are passed for the
             custom metric function to do something with.
-        - custom functions are also stored to `dashboard.yaml` and imported upon 
+        - custom functions are also stored to `dashboard.yaml` and imported upon
             loading `ExplainerDashboard.from_config()`
-- new parameter `cats_notencoded`: a dict to indicate how to name the value 
+- new parameter `cats_notencoded`: a dict to indicate how to name the value
     of a onehotencoded features when all onehot columns equal 0. Defaults
-    to `'NOT_ENCODED'`, but can be adjusted with this parameter. E.g. 
+    to `'NOT_ENCODED'`, but can be adjusted with this parameter. E.g.
     `cats_notencoded=dict(Deck="Deck not known")`.
-- new parameter `plot_sample` to only plot a random sample in the various 
+- new parameter `plot_sample` to only plot a random sample in the various
     scatter plots. When you have a large dataset, this may significantly
     speed up various plots without sacrificing much in expressiveness:
     `ExplainerDashboard(explainer, plot_sample=1000).run`
 - new parameter `index_dropdown=False` will replace the index dropdowns with a
     free text field. This can be useful when you have a lot of potential indexes,
-    and the user is expected to know the index string. 
-    Input will be checked for validity with `explainer.index_exists(index)`, 
+    and the user is expected to know the index string.
+    Input will be checked for validity with `explainer.index_exists(index)`,
     and field indicates when input index does not exist. If index does not exist,
     will not be forwarded to other components, unless you also set `index_check=False`.
 - adds mean absolute percentage error to the regression metrics. If it is too
@@ -354,11 +438,11 @@ Highlights:
 -
 
 ### Improvements
-- accepting single column `pd.Dataframe` for `y`, and automatically converting 
+- accepting single column `pd.Dataframe` for `y`, and automatically converting
     it to a `pd.Series`
 - if WhatIf `FeatureInputComponent` detects the presence of missing onehot features
     (i.e. rows where all columns of the onehotencoded feature equal 0), then
-    adds `'NOT_ENCODED'` or the matching value from `cats_notencoded` to the 
+    adds `'NOT_ENCODED'` or the matching value from `cats_notencoded` to the
     dropdown options.
 - Generating `name` for parameters for `ExplainerComponents` for which no
     name is given is now done with a determinative process instead of a random
@@ -428,28 +512,28 @@ components. Those components should now be much more responsive with large datas
 -
 
 ## version 0.3.0:
-This is a major release and comes with lots of breaking changes to the lower level 
+This is a major release and comes with lots of breaking changes to the lower level
 `ClassifierExplainer` and `RegressionExplainer` API. The higherlevel `ExplainerComponent` and `ExplainerDashboard` API has not been
 changed however, except for the deprecation of the `cats` and `hide_cats` parameters.
 
-Explainers generated with version `explainerdashboard <= 0.2.20.1` will not work 
-with this version, so if you have stored explainers to disk you either have to 
-rebuild them with this new version, or downgrade back to `explainerdashboard==0.2.20.1`! 
+Explainers generated with version `explainerdashboard <= 0.2.20.1` will not work
+with this version, so if you have stored explainers to disk you either have to
+rebuild them with this new version, or downgrade back to `explainerdashboard==0.2.20.1`!
 (hope you pinned your dependencies in production! ;)
 
 Main motivation for these breaking changes was to improve memory usage of the
 dashboards, especially in production. This lead to the deprecation of the
 dual cats grouped/not grouped functionality of the dashboard. Once I had committed
-to that breaking change, I decided to clean up the entire API and do all the 
-needed breaking changes at once. 
+to that breaking change, I decided to clean up the entire API and do all the
+needed breaking changes at once.
 
 
 ### Breaking Changes
 - onehot encoded features are now merged by default. This means that the `cats=True`
-    parameter has been removed from all explainer methods, and the `group cats` 
+    parameter has been removed from all explainer methods, and the `group cats`
     toggle has been removed from all `ExplainerComponents`. This saves both
     on code complexity and memory usage. If you wish to see the see the individual
-    contributions of onehot encoded columns, simply don't pass them to the 
+    contributions of onehot encoded columns, simply don't pass them to the
     `cats` parameter upon construction.
 - Deprecated explainer attributes:
     - `BaseExplainer`:
@@ -459,7 +543,7 @@ needed breaking changes at once.
         - `self.get_dfs()`
         - `formatted_contrib_df()`
         - `self.to_sql()`
-        - `self.check_cats()` 
+        - `self.check_cats()`
         - `equivalent_col`
     - `ClassifierExplainer`:
         - `get_prop_for_label`
@@ -481,7 +565,7 @@ needed breaking changes at once.
         - `plot_shap_interaction_summary()` -> `plot_interactions_detailed()`
         - `plot_interactions()` -> `plot_interactions_importance()`
         - `n_features()` -> `n_features`
-        - `shap_top_interaction()` -> `top_shap_interactions` 
+        - `shap_top_interaction()` -> `top_shap_interactions`
         - `shap_interaction_values_by_col()` -> `shap_interactions_values_for_col()`
     - `ClassifierExplainer`:
         - `self.pred_probas` -> `self.pred_probas()`
@@ -507,7 +591,7 @@ needed breaking changes at once.
 - added `get_index_list()`, `get_X_row(index)`, and `get_y(index)` methods.
     - these can be overridden with `.set_index_list_func()`, `.set_X_row_func()`
         and `.set_y_func()`.
-    - by overriding these functions you can for example sample observations 
+    - by overriding these functions you can for example sample observations
         from a database or other external storage instead of from `X_test`, `y_test`.
 - added `Popout` buttons to all the major graphs that open a large modal
     showing just the graph. This makes it easier to focus on a particular
@@ -547,24 +631,24 @@ needed breaking changes at once.
 
 
 ### Bug Fixes
-- fixes bug allowing single list of logins for ExplainerDashboard when passed 
+- fixes bug allowing single list of logins for ExplainerDashboard when passed
     on to ExplainerHub
-- fixes bug with explainer generated with explainerdashboard < version 0.2.20 
+- fixes bug with explainer generated with explainerdashboard < version 0.2.20
     that did not have a onehot_cols property
 
 
 ## 0.2.20:
 ### Breaking Changes
--  `WhatIfComponent` deprecated. Use `WhatIfComposite` or connect components 
+-  `WhatIfComponent` deprecated. Use `WhatIfComposite` or connect components
     yourself to a `FeatureInputComponent`
 - renaming properties:
     `explainer.cats` -> `explainer.onehot_cols`
     `explainer.cats_dict` -> `explainer.onehot_dict`
 
 ### New Features
-- Adds support for model with categorical features that were not onehot encoded 
+- Adds support for model with categorical features that were not onehot encoded
     (e.g. CatBoost)
-- Adds filter on number of categories to display in violin plots and pdp plot, 
+- Adds filter on number of categories to display in violin plots and pdp plot,
     and how to sort the categories (alphabetical, by frequency or by mean abs shap)
 
 ### Bug Fixes
@@ -572,7 +656,7 @@ needed breaking changes at once.
 -
 
 ### Improvements
-- No longer dependening on PDPbox dependency: built own partial dependence 
+- No longer dependening on PDPbox dependency: built own partial dependence
     functions with categorical feature support
 - autodetect xgboost.core.Booster or lightgbm.Booster and give ValueError to
     use the sklearn compatible wrappers instead.
@@ -595,21 +679,21 @@ needed breaking changes at once.
 
 ### New Features
 - Added NavBar to `ExplainerHub`
-- Made `users.yaml` to default file for storing users and hashed passwords 
+- Made `users.yaml` to default file for storing users and hashed passwords
     for `ExplainerHub` for easier manual editing.
 - Added option `min_height` to `ExplainerHub` to set the size of the iFrame
     containing the dashboard.
 - Added option `fluid=True` to `ExplainerHub` to stretch bootstrap container
-    to width of the browser. 
+    to width of the browser.
 - added parameter `bootstrap` to `ExplainerHub` to override default bootstrap theme.
 - added option `dbs_open_by_default=True` to `ExplainerHub` so that no login
-    is required for dashboards for which there wasn't a specific lists 
+    is required for dashboards for which there wasn't a specific lists
     of users declared through `db_users`. So only dashboards for which users
-    have been defined are password protected. 
+    have been defined are password protected.
 - Added option `no_index` to `ExplainerHub` so that no flask route is created
     for index `"/"`, so that you can add your own custom index. The dashboards
     are still loaded on their respective routes, so you can link to them
-    or embed them in iframes, etc. 
+    or embed them in iframes, etc.
 - Added a "wizard" perfect prediction to the lift curve.
     - hide with `hide_wizard=True` default to not show with `wizard=False`.
 
@@ -620,7 +704,7 @@ needed breaking changes at once.
 
 ### Improvements
 - added a "powered by: explainerdashboard" footer. Hide it with hide_poweredby=True.
-- added option "None" to shap dependence color col. Also removes the point cloud 
+- added option "None" to shap dependence color col. Also removes the point cloud
     from the violin plots for categorical features.
 - added option `mode` to `ExplainerDashboard.run()` that can override `self.mode`.
 
@@ -631,8 +715,8 @@ needed breaking changes at once.
 ## 0.2.18.1:
 
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - `ExplainerHub` now does user managment through `Flask-Login` and a `user.json` file
@@ -652,8 +736,8 @@ needed breaking changes at once.
 
 ## 0.2.17:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - Introducing `ExplainerHub`: combine multiple dashboards together behind a single frontend with convenient url paths.
@@ -664,7 +748,7 @@ needed breaking changes at once.
 
     hub = ExplainerHub([db1, db2])
     hub.run()
-    
+
     # store an recover from config:
     hub.to_yaml("hub.yaml")
     hub2 = ExplainerHub.from_config("hub.yaml")
@@ -675,7 +759,7 @@ needed breaking changes at once.
 - adds parameters to `ExplainerDashboard`:
     - `name`: this will be used to assign a url for `ExplainerHub`
     - `description`: this will be used for the title tooltip in the dashboard
-        and in the `ExplainerHub` frontend. 
+        and in the `ExplainerHub` frontend.
 
 
 ### Bug Fixes
@@ -693,27 +777,27 @@ needed breaking changes at once.
 ## Version 0.2.16.2:
 
 ### Bug fix/Improvement
-- Makes component `name` property for the default composites deterministic instead 
+- Makes component `name` property for the default composites deterministic instead
     of random uuid, now also working when loading a dashboard .from_config()
     - note however that for custom `ExplainerComponents` the user is still responsible
         for making sure that all subcomponents get assigned a deterministic
-        `name` (otherwise random uuid names get assigned at dashboard start, 
+        `name` (otherwise random uuid names get assigned at dashboard start,
         which might differ across nodes in e.g. docker swarm deployments)
-- Calling `self.register_components()` no longer necessary. 
+- Calling `self.register_components()` no longer necessary.
 
 ## Version 0.2.16.1:
 
 ### Bug fix/Improvement
-- Makes component `name` property for the default composites deterministic instead of random uuid. 
+- Makes component `name` property for the default composites deterministic instead of random uuid.
     This should help remedy bugs with deployment using e.g. docker swarm.
     - When you pass a list of `ExplainerComponents` to ExplainerDashboard the tabs will get names `'1'`, `'2'`, `'3'`, etc.
     - If you then make sure that subcomponents get passed a name like `name=self.name+"1"`, then subcomponents will have deterministic names as well.
-    - this has been implemented for the default `Composites` that make up the default `explainerdashboard`   
+    - this has been implemented for the default `Composites` that make up the default `explainerdashboard`
 
 ## Version 0.2.16:
 ### Breaking Changes
 - `hide_whatifcontribution` parameter now called `hide_whatifcontributiongraph`
-- 
+-
 
 ### New Features
 - added parameter `n_input_cols` to FeatureInputComponent to select in how many columns to split the inputs
@@ -740,38 +824,38 @@ needed breaking changes at once.
 
 ## Version 0.2.15:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - can now hide entire components on tabs/composites:
 
     ```
-    ExplainerDashboard(explainer, 
+    ExplainerDashboard(explainer,
         # importances tab:
         hide_importances=True,
         # classification stats tab:
-        hide_globalcutoff=True, hide_modelsummary=True, 
-        hide_confusionmatrix=True, hide_precision=True, 
-        hide_classification=True, hide_rocauc=True, 
+        hide_globalcutoff=True, hide_modelsummary=True,
+        hide_confusionmatrix=True, hide_precision=True,
+        hide_classification=True, hide_rocauc=True,
         hide_prauc=True, hide_liftcurve=True, hide_cumprecision=True,
         # regression stats tab:
-        # hide_modelsummary=True, 
-        hide_predsvsactual=True, hide_residuals=True, 
+        # hide_modelsummary=True,
+        hide_predsvsactual=True, hide_residuals=True,
         hide_regvscol=True,
         # individual predictions:
         hide_predindexselector=True, hide_predictionsummary=True,
-        hide_contributiongraph=True, hide_pdp=True, 
+        hide_contributiongraph=True, hide_pdp=True,
         hide_contributiontable=True,
         # whatif:
-        hide_whatifindexselector=True, hide_inputeditor=True, 
+        hide_whatifindexselector=True, hide_inputeditor=True,
         hide_whatifcontribution=True, hide_whatifpdp=True,
         # shap dependence:
         hide_shapsummary=True, hide_shapdependence=True,
         # shap interactions:
         hide_interactionsummary=True, hide_interactiondependence=True,
         # decisiontrees:
-        hide_treeindexselector=True, hide_treesgraph=True, 
+        hide_treeindexselector=True, hide_treesgraph=True,
         hide_treepathtable=True, hide_treepathgraph=True,
         ).run()
     ```
@@ -797,8 +881,8 @@ needed breaking changes at once.
 
 ## Version 0.2.14:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - added `bootstrap` parameter to dashboard to make theming easier:
@@ -816,7 +900,7 @@ needed breaking changes at once.
 ### Improvements
 - `**kwargs` are now also stored when calling ExplainerDashboard.to_yaml()
 - turned single radioitems into switches
-- RegressionVsColComponent: hide "show point cloud next to violin" switch 
+- RegressionVsColComponent: hide "show point cloud next to violin" switch
     when feature is not in `cats`
 
 ### Other Changes
@@ -841,9 +925,9 @@ needed breaking changes at once.
 
 ## Version 0.2.13:
 ### Breaking Changes
-- Now always have to pass a specific port when terminating a JupyterDash-based 
+- Now always have to pass a specific port when terminating a JupyterDash-based
 (i.e. inline, external or jupyterlab) dashboard: ExplainerDashboard.terminate(port=8050)
-    - but now also works as a classmethod, so don't have to instantiate an 
+    - but now also works as a classmethod, so don't have to instantiate an
         actual dashboard just to terminate one!
 - ExplainerComponent `_register_components` has been renamed to `component_callbacks`
     to avoid the confusing underscore
@@ -867,7 +951,7 @@ needed breaking changes at once.
     dashboard.
 - added `disable_permutations` boolean argument to `ImportancesComponent` (that
     you can also pass to `ExplainerDashboard` `**kwargs`)
-- 
+-
 
 
 ### Other Changes
@@ -885,7 +969,7 @@ needed breaking changes at once.
     these three are now subsumed in `RegressionVsColComponent`.
 
 ### New Features
--   Added tooltips everywhere throughout the dashboard to explainer 
+-   Added tooltips everywhere throughout the dashboard to explainer
     components, plots, dropdowns and toggles of the dashboard itself.
 
 ### Bug Fixes
@@ -898,7 +982,7 @@ needed breaking changes at once.
 - Clarified wording on index selector components
 - hiding `group cats` toggle everywhere when no cats are passed
 - passing `**kwargs` of ExplainerDashbaord down to all all tabs and (sub) components
-    so that you can configure components from an ExplainerDashboard param. 
+    so that you can configure components from an ExplainerDashboard param.
     e.g. `ExplainerDashboard(explainer, higher_is_better=False).run()` will
     pass the higher_is_better param down to all components. In the case of the
     ShapContributionsGraphComponent and the XGBoostDecisionTrees component
@@ -911,8 +995,8 @@ needed breaking changes at once.
 
 ## Version 0.2.11:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 - added (very limited) sklearn.Pipeline support. You can pass a Pipeline as
@@ -922,8 +1006,8 @@ needed breaking changes at once.
         (this is currently beings debated in sklearn SLEP007)
 - added cutoff slider to CumulativePrecisionComponent
 - For RegressionExplainer added ActualVsColComponent and PredsVsColComponent
-    in order to investigate partial correlations between y/preds and 
-    various features. 
+    in order to investigate partial correlations between y/preds and
+    various features.
 - added `index_name` parameter: name of the index column (defaults to `X.index.name`
     or `idxs.name`). So when you pass `index_name="Passenger"`, you get
     a "Random Passenger" button on the index selector instead of "Random Index",
@@ -956,7 +1040,7 @@ needed breaking changes at once.
     your own groups of onehotencoded columns.
         - e.g. instead of passing `cats=['Sex']` to group `['Sex_female', 'Sex_male', 'Sex_nan']`
         you can now do this explicitly: `cats={'Gender'=['Sex_female', 'Sex_male', 'Sex_nan']}`
-        - Or combine the two methods: 
+        - Or combine the two methods:
             `cats=[{'Gender'=['Sex_female', 'Sex_male', 'Sex_nan']}, 'Deck', 'Embarked']`
 
 
@@ -989,7 +1073,7 @@ needed breaking changes at once.
     when an modelfile, datafile or configuration file changes.
 
 ### New Features
--   Load an ExplainerDashboard from a configuration file with the classmethod, 
+-   Load an ExplainerDashboard from a configuration file with the classmethod,
     e.g. : `ExplainerDashboard.from_config("dashboard.yaml")`
 -
 
@@ -1007,19 +1091,19 @@ needed breaking changes at once.
 
 ## Version 0.2.7:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
--   explainer.dump() to store explainer, explainer.from_file() to load 
+-   explainer.dump() to store explainer, explainer.from_file() to load
     explainer from file
--   Explainer.to_yaml() and ExplainerDashboard.to_yaml() can store the 
+-   Explainer.to_yaml() and ExplainerDashboard.to_yaml() can store the
     configuration of your explainer/dashboard to file.
 -   explainerdashboard CLI:
     - Start an explainerdashboard from the command-line!
     - start default dashboard from stored explainer : `explainerdashboard run explainer.joblib`
     - start full configured dashboard from config: `explainerdashboard run explainerdashboard.yaml`
-    - build explainer based on input files defined in .yaml 
+    - build explainer based on input files defined in .yaml
         (model.pkl, data.csv, etc): `explainerdashboard build explainerdashboard.yaml`
     - includes new ascii logo :)
 
@@ -1042,14 +1126,14 @@ Version 0.2.6:
 
 ### Improvements
 -   more straightforward imports: `from explainerdashboard import ClassifierExplainer, RegressionExplainer, ExplainerDashboard, InlineExplainer`
--   all custom imports (such as ExplainerComponents, Composites, Tabs, etc) 
+-   all custom imports (such as ExplainerComponents, Composites, Tabs, etc)
     combined under `explainerdashboard.custom`:
     `from explainerdashboard.custom import *`
 
 ## version 0.2.5:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 -   New dashboard tab: WhatIfComponent/WhatIfComposite/WhatIfTab: allows you
@@ -1060,13 +1144,13 @@ Version 0.2.6:
         a list of `[login, password]` pairs:
         `ExplainerDashboard(explainer, logins=[['login1', 'password1'], ['login2', 'password2']]).run()`
 -   Added 'target' parameter to explainer, to make more descriptive plots.
-        e.g. by setting target='Fare', will show 'Predicted Fare' instead of 
+        e.g. by setting target='Fare', will show 'Predicted Fare' instead of
         simply 'Prediction' in various plots.
--   in detailed shap/interaction summary plots, can now click on single 
+-   in detailed shap/interaction summary plots, can now click on single
     shap value for a particular feature, and have that index highlighted
     for all features.
--   autodetecting Google colab environment and setting mode='external' 
-    (and suggesting so for jupyter notebook environments)     
+-   autodetecting Google colab environment and setting mode='external'
+    (and suggesting so for jupyter notebook environments)
 -   confusion matrix now showing both percentage and counts
 -   Added classifier model performance summary component
 -   Added cumulative precision component
@@ -1090,7 +1174,7 @@ Version 0.2.6:
 ## version 0.2.4
 
 ### New Features
-- added ExplainerDashboard parameter "responsive" (defaults to True) to make 
+- added ExplainerDashboard parameter "responsive" (defaults to True) to make
     the dashboard layout reponsive on mobile devices. Set it to False when e.g.
     running tests on headless browsers.
 
@@ -1104,20 +1188,20 @@ Version 0.2.6:
 ## Version 0.2.3
 
 ### Breaking Changes
-- RandomForestClassifierExplainer and RandomForestRegressionExplainer will be 
+- RandomForestClassifierExplainer and RandomForestRegressionExplainer will be
     deprecated: can now simply use ClassifierExplainer or RegressionExplainer and the
     mixin class will automatically be loaded.
-- 
+-
 
 ### New Features
 - Now also support for visualizing individual trees for XGBoost models!
-    (XGBClassifier and XGBRegressor). The XGBExplainer mixin class will be 
+    (XGBClassifier and XGBRegressor). The XGBExplainer mixin class will be
     automatically loaded and make decisiontree_df(), decision_path() and plot_trees()
     methods available, Decision Trees tab and components now also work for
-    XGBoost models. 
+    XGBoost models.
 - new parameter n_jobs for calculations that can be parallelized (e.g. permutation importances)
-- contrib_df, plot_shap_contributions: can order by global shap feature 
-    importance with sort='importance' (as well as 'abs', 'high-to-low' 
+- contrib_df, plot_shap_contributions: can order by global shap feature
+    importance with sort='importance' (as well as 'abs', 'high-to-low'
      'low-to-high')
 - added actual outcome to plot_trees (for both RandomForest and XGB)
 
@@ -1149,7 +1233,7 @@ Version 0.2.6:
     - so also removed parameter `header_mode` from ExplainerComponent parameters
     - You can now instead syncronize pos labels across components with a PosLabelSelector
         and PosLabelConnector.
-- In regression plots instead of boolean ratio=True/False, 
+- In regression plots instead of boolean ratio=True/False,
         you now pass residuals={'difference', 'ratio', 'log-ratio'}
 - decisiontree_df_summary renamed to decisiontree_summary_df (in line with contrib_summary_df)
 
@@ -1159,7 +1243,7 @@ Version 0.2.6:
         the initial pos label
 - added parameter block_selector_callbacks to ExplainerDashboard to block
     the global pos label selector's callbacks. If you already have PosLabelSelectors
-    in your layout, this prevents clashes. 
+    in your layout, this prevents clashes.
 - plot actual vs predicted now supported only logging x axis or only y axis
 - residuals plots now support option residuals='log-ratio'
 - residuals-vs-col plot now shows violin plot for categorical features
@@ -1177,16 +1261,16 @@ Version 0.2.6:
     also no need to insert dummy_tabs in `ExplainerHeader`.
 - All `ExplainerComponents` now have their own pos label selector, meaning
     that they are now fully self-containted and independent. No global dash
-    elements in component callbacks. 
+    elements in component callbacks.
 - You can define the layout of ExplainerComponents in a layout() method instead
     of _layout(). Should still define component_callbacks() to define callbacks
     so that all subcomponents that have been registered will automatically
-    get their callbacks registered as well. 
-- Added regression `self.units` to prediction summary, shap plots, 
+    get their callbacks registered as well.
+- Added regression `self.units` to prediction summary, shap plots,
         contributions plots/table, pdp plot and trees plot.
 - Clearer title for MEAN_ABS_SHAP importance and summary plots
 - replace na_fill value in contributions table by "MISSING"
-- add string idxs to shap and interactions summary and dependence plots, 
+- add string idxs to shap and interactions summary and dependence plots,
         including the violing plots
 - pdp plot for classification now showing percentages instead of fractions
 
@@ -1212,11 +1296,11 @@ Version 0.2.6:
 - All elements of components can now be switched on or off or be given an
     initial value.
 - Makes it much, much easier to design own custom dashboards.
-- ExplainerDashboard can be passed an arbitrary list of components to 
+- ExplainerDashboard can be passed an arbitrary list of components to
     display as tabs.
 
 ### Better docs:
-- Added sections InlineExplainer, ExplainerTabs, ExplainerComponents, 
+- Added sections InlineExplainer, ExplainerTabs, ExplainerComponents,
     CustomDashboards and Deployment
 - Added screenshots to documentation.
 
@@ -1239,23 +1323,23 @@ Version 0.2.6:
 
 ### Bug Fixes
 - Fixed bug with GradientBoostingClassifier where output format of shap.expected_value
-    was not not properly accounted for. 
-- 
+    was not not properly accounted for.
+-
 
 ### Improvements
 - Cleaned up standalone label selector code
-- Added check for shap base values to be between between 0 and 1 for model_output=='probability' 
+- Added check for shap base values to be between between 0 and 1 for model_output=='probability'
 
 
 ## Version 0.1.12
 
 ### Breaking Changes
 - ExplainerDashboardStandaloneTab is now called ExplainerTab
-- 
+-
 
 ### New Features
 
-added support for the `jupyter-dash` package for inline dashboard in 
+added support for the `jupyter-dash` package for inline dashboard in
 Jupyter notebooks, adding the following dashboard classes:
 
 - `JupyterExplainerDashboard`
@@ -1264,8 +1348,8 @@ Jupyter notebooks, adding the following dashboard classes:
 
 ## Template:
 ### Breaking Changes
-- 
-- 
+-
+-
 
 ### New Features
 -

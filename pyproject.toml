@@ -1,0 +1,172 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "explainerdashboard"
+version = "0.5.4"
+description = "Quickly build Explainable AI dashboards that show the inner workings of so-called \"blackbox\" machine learning models."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE.txt" }
+authors = [
+    { name = "Oege Dijk", email = "oegedijk@gmail.com" },
+]
+keywords = [
+    "machine learning",
+    "explainability",
+    "shap",
+    "feature importances",
+    "dash",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Dash",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "click",
+    "dash-auth",
+    "dash-bootstrap-components>=1.6.0,<3.0",
+    "dash>=3.0.4",
+    "plotly>=5.0",
+    "dtreeviz>=2.1",
+    "flask_simplelogin",
+    "Flask-WTF>=1.1",
+    "graphviz>=0.18.2",
+    "joblib",
+    "jupyter_dash>=0.4.1",
+    "numpy<2.4; python_version >= '3.11'", # Avoid numba/llvmlite downgrade on Py>=3.11
+    "numpy; python_version < '3.11'", # Support NumPy 1.x and 2.x elsewhere
+    "oyaml",
+    "pandas>=1.1",
+    "scikit-learn>=1.1",
+    "shap>=0.42.1",
+    "waitress",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/oegedijk/explainerdashboard"
+"Documentation" = "https://explainerdashboard.readthedocs.io/"
+"Source Code" = "https://github.com/oegedijk/explainerdashboard/"
+"Bug Tracker" = "https://github.com/oegedijk/explainerdashboard/issues"
+"Funding" = "https://github.com/sponsors/oegedijk"
+
+[project.scripts]
+explainerdashboard = "explainerdashboard.cli:explainerdashboard_cli"
+explainerhub = "explainerdashboard.cli:explainerhub_cli"
+
+[project.optional-dependencies]
+test = [
+    "dash[testing]",
+    "catboost",
+    "lightgbm",
+    "xgboost>=2.0.0,<3.1",  # Temporarily pin to <3.1 to test if 3.1+ is causing CI errors
+    "torch ; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "skorch ; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "webdriver-manager",
+    "pytest-console-scripts",
+    "dill",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
+docs = [
+    "sphinx_rtd_theme",
+    "sphinx-autodoc-typehints",
+    "sphinx>=4.0", # Add sphinx itself as a dependency for docs
+    # sphinx.ext.napoleon is a built-in sphinx extension
+]
+
+[tool.ruff.lint]
+# Ignore wildcard imports (F403) and undefined names from wildcard imports (F405)
+# E402 is for module level imports not at top of file (needed for some files)
+ignore = ["F403", "F405", "E402"]
+exclude = ["docs/", "notebooks/", "tests/test_assets/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/"]
+markers = [
+    "cli: marks tests as cli tests (deselect with '-m \"not cli\"')",
+    "selenium: marks tests as selenium tests (deselect with '-m \"not selenium\"')"
+]
+filterwarnings = [
+    # Suppress deprecation warnings from third-party dependencies
+    "ignore::DeprecationWarning:jupyter_dash.comms",
+    "ignore::DeprecationWarning:selenium.webdriver.remote.remote_connection",
+]
+
+# --- Hatchling specific configuration ---
+[tool.hatch.version]
+path = "explainerdashboard/__init__.py" # Source version from __version__
+
+[tool.hatch.build.targets.sdist]
+# Controls what goes into the sdist. Hatch defaults are usually good.
+# Explicitly include files/dirs needed to build from sdist or run tests/docs from sdist.
+include = [
+    "/explainerdashboard", # The package directory
+    "/LICENSE.txt",
+    "/README.md",
+    # Add other relevant root files like RELEASE_NOTES.md, TODO.md if desired
+    # The top-level /assets directory if it's used by docs or examples run from sdist
+]
+
+[tool.hatch.build.targets.wheel]
+# Ensure non-Python assets ship in wheels while avoiding duplicate archive entries.
+exclude = [
+    "/explainerdashboard/assets/**",
+    "/explainerdashboard/datasets/**",
+    "/explainerdashboard/static/**",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"explainerdashboard/assets" = "explainerdashboard/assets"
+"explainerdashboard/datasets" = "explainerdashboard/datasets"
+"explainerdashboard/static" = "explainerdashboard/static"
+
+# --- Hatch environments for development tasks (optional but recommended) ---
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  "explainerdashboard[test,docs]", # Install self with test and docs extras
+]
+[tool.hatch.envs.default.scripts]
+# Usage: hatch run test, hatch run test-cov
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=explainerdashboard --cov-report=xml {args:tests}"
+cov-html = "pytest --cov=explainerdashboard --cov-report=html {args:tests}"
+# For specific test markers like 'selenium' or 'cli'
+# Usage: hatch run test-selenium
+test-selenium = "pytest -m selenium {args:tests}"
+test-cli = "pytest -m cli {args:tests}"
+test-no-selenium = "pytest -m 'not selenium' {args:tests}"
+
+[tool.hatch.envs.lint]
+detached = true # So it doesn't install the project itself
+dependencies = ["flake8"]
+[tool.hatch.envs.lint.scripts]
+style = [
+    "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics",
+    "flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.8",
+    "pre-commit>=3.0.0",
+]
+test = [
+    "xgboost>=2.0.0,<3.1",  # Temporarily pin to <3.1 to test if 3.1+ is causing CI errors
+]

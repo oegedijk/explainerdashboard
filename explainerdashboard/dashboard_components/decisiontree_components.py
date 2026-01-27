@@ -4,15 +4,12 @@ __all__ = [
     "DecisionPathGraphComponent",
 ]
 
-import dash
-from dash import html, dcc, Input, Output, State, dash_table
+from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from ..explainers import RandomForestExplainer, XGBExplainer
 from ..dashboard_methods import *
-from .classifier_components import ClassifierRandomIndexComponent
-from .connectors import IndexConnector, HighlightConnector
 from .. import to_html
 
 
@@ -175,7 +172,7 @@ class DecisionTreesComponent(ExplainerComponent):
                                                 + self.name,
                                             ),
                                             dbc.Tooltip(
-                                                f"Select a specific tree to highlight. You can also "
+                                                "Select a specific tree to highlight. You can also "
                                                 "highlight by clicking on a specifc bar in the bar chart.",
                                                 target="decisiontrees-tree-label-"
                                                 + self.name,
@@ -425,7 +422,7 @@ class DecisionPathTableComponent(ExplainerComponent):
                                                 + self.name,
                                             ),
                                             dbc.Tooltip(
-                                                f"Select decision tree to display decision tree path for",
+                                                "Select decision tree to display decision tree path for",
                                                 target="decisionpath-table-tree-label-"
                                                 + self.name,
                                             ),
@@ -630,7 +627,7 @@ class DecisionPathGraphComponent(ExplainerComponent):
                                                 + self.name,
                                             ),
                                             dbc.Tooltip(
-                                                f"Select decision tree to display decision tree for",
+                                                "Select decision tree to display decision tree for",
                                                 target="decisionpath-tree-label-"
                                                 + self.name,
                                             ),

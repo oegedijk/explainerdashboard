@@ -22,14 +22,13 @@ import sys
 from abc import ABC
 import inspect
 import types
-from typing import Union, List, Tuple
+from typing import Union
 from pathlib import Path
 from importlib import import_module
 import socket
 
 import dash
 from dash import html, dcc, Input, Output, State
-from dash.exceptions import PreventUpdate
 
 import dash_bootstrap_components as dbc
 
@@ -486,10 +485,10 @@ class ExplainerComponent(ABC):
                 attribute = getattr(self.explainer, dep)
                 if callable(attribute):
                     _ = attribute()
-            except:
+            except Exception as e:
                 ValueError(
                     f"Failed to generate dependency '{dep}': "
-                    "Failed to calculate or retrieve explainer property explainer.{dep}..."
+                    f"Failed to calculate or retrieve explainer property explainer.{dep}... Error: {e}"
                 )
 
     def layout(self):
