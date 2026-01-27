@@ -241,8 +241,16 @@ class BaseExplainer(ABC):
             col for col in self.regular_cols if not is_numeric_dtype(self.X[col])
         ]
         self.categorical_dict = {
-            col: sorted(self.X[col].unique().tolist()) for col in self.categorical_cols
+            col: sorted(self.X[col].dropna().unique().tolist())
+            for col in self.categorical_cols
         }
+        # Include an explicit NaN option for categorical columns with missing values.
+        for col in self.categorical_cols:
+            if (
+                self.X[col].isnull().values.any()
+                and "NaN" not in self.categorical_dict[col]
+            ):
+                self.categorical_dict[col].append("NaN")
         self.cat_cols = self.onehot_cols + self.categorical_cols
         self.original_cols = self.X.columns
         self.merged_cols = pd.Index(self.regular_cols + self.onehot_cols)
@@ -768,6 +776,11 @@ class BaseExplainer(ABC):
                 .fillna(self.na_fill)
                 .infer_objects()[self.merged_cols]
             )
+            # Normalize categorical NaN placeholders from frontend/na_fill.
+            for col, values in self.categorical_dict.items():
+                if "NaN" in values and col in df_merged.columns:
+                    df_merged[col] = df_merged[col].replace(self.na_fill, np.nan)
+                    df_merged[col] = df_merged[col].replace("NaN", np.nan)
             if return_merged:
                 return df_merged
             else:
@@ -776,6 +789,11 @@ class BaseExplainer(ABC):
         elif len(inputs) == len(self.columns):
             cols = self.columns
             df = pd.DataFrame(dict(zip(cols, inputs)), index=[0]).fillna(self.na_fill)
+            # Normalize categorical NaN placeholders from frontend/na_fill.
+            for col, values in self.categorical_dict.items():
+                if "NaN" in values and col in df.columns:
+                    df[col] = df[col].replace(self.na_fill, np.nan)
+                    df[col] = df[col].replace("NaN", np.nan)
             if return_merged:
                 return merge_categorical_columns(df, self.onehot_dict, self.merged_cols)
             else:

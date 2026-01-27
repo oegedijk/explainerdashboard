@@ -1,6 +1,12 @@
 # Release Notes
 
 
+## Version 0.5.5:
+
+### Bug Fixes
+- Handle missing values in categorical features by surfacing a "NaN" option in inputs and normalizing NaN selections back to real missing values.
+- Add tests covering categorical NaN handling for both merged and unmerged input paths.
+
 ## Version 0.5.4:
 
 ### Breaking Changes
