@@ -1,6 +1,10 @@
 # Release Notes
 
 
+## Version 0.4.5:
+### New Features
+- Add support for GPU Tree SHAP explainers via `shap='gputree'` (requires CUDA-enabled SHAP).
+
 ## Version 0.4.4:
 ### Breaking Changes
 - 

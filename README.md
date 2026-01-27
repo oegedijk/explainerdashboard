@@ -220,6 +220,8 @@ There are a few tricks to make this less painful:
     the calculation in parallel.
 2. Calculate approximate shap values. You can pass approximate=True as a shap parameter by
    passing `shap_kwargs=dict(approximate=True)` to the explainer initialization. 
+3. Use GPU Tree SHAP by passing `shap='gputree'` when your model supports it.
+   This requires an NVIDIA GPU and a CUDA-enabled SHAP build (see the SHAP docs).
 4. Storing the explainer. The calculated properties are only calculated once
     for each instance, however each time when you instantiate a new explainer
     instance they will have to be recalculated. You can store them with

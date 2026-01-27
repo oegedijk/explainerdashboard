@@ -326,7 +326,7 @@ class BaseExplainer(ABC):
                 "or 'gputree' are supported for now!"
             )
             self.shap = shap
-        if self.shap in {"kernel", "skorch", "linear", "gputree"}:
+        if self.shap in {"kernel", "skorch", "linear"}:
             print(
                 f"WARNING: For shap='{self.shap}', shap interaction values can unfortunately "
                 "not be calculated!"
@@ -1125,11 +1125,22 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "gputree":
                 print(
-                    "Generating self.shap_explainer = shap.explainer.GPUTree(model, X)."
-                    "Make sure you have a cuda enabled GPU and followed installation"
-                    "instructions at https://shap.readthedocs.io/en/latest/example_notebooks/api_examples/explainers/GPUTree.html#"  # noqa: E501
+                    "Generating self.shap_explainer = shap.GPUTreeExplainer(model, X). "
+                    "Make sure you have a CUDA-enabled GPU and a CUDA-built SHAP "
+                    "installed. See https://shap.readthedocs.io/en/latest/example_notebooks/api_examples/explainers/GPUTree.html#"  # noqa: E501
                 )
-                self._shap_explainer = shap.explainers.GPUTree(self.model, self.X)
+                X_data = self.X_background if self.X_background is not None else self.X
+                if hasattr(shap, "explainers") and hasattr(shap.explainers, "GPUTree"):
+                    explainer_cls = shap.explainers.GPUTree
+                elif hasattr(shap, "GPUTreeExplainer"):
+                    explainer_cls = shap.GPUTreeExplainer
+                else:
+                    raise ValueError(
+                        "shap does not expose GPUTreeExplainer. "
+                        "Please install a CUDA-enabled SHAP build that includes "
+                        "GPUTree support."
+                    )
+                self._shap_explainer = explainer_cls(self.model, X_data)
         return self._shap_explainer
 
     @insert_pos_label
