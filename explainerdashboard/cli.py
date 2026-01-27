@@ -23,17 +23,17 @@ explainer_ascii = r"""
  _____ ___ __| |__ _(_)_ _  ___ _ _ __| |__ _ __| |_ | |__  ___  __ _ _ _ __| |
 / -_) \ / '_ \ / _` | | ' \/ -_) '_/ _` / _` (_-< ' \| '_ \/ _ \/ _` | '_/ _` |
 \___/_\_\ .__/_\__,_|_|_||_\___|_| \__,_\__,_/__/_||_|_.__/\___/\__,_|_| \__,_|
-        |_| 
+        |_|
 
 """
 
 hub_ascii = r"""
 
-               _      _              _        _    
-  _____ ___ __| |__ _(_)_ _  ___ _ _| |_ _  _| |__ 
+               _      _              _        _
+  _____ ___ __| |__ _(_)_ _  ___ _ _| |_ _  _| |__
  / -_) \ / '_ \ / _` | | ' \/ -_) '_| ' \ || | '_ \
  \___/_\_\ .__/_\__,_|_|_||_\___|_| |_||_\_,_|_.__/
-         |_|                                      
+         |_|
 
 """
 
@@ -125,7 +125,15 @@ def build_and_dump_explainer(explainer_config, dashboard_config=None):
     return
 
 
-def launch_dashboard_from_pkl(explainer_filepath, no_browser, port, no_dashboard=False):
+def launch_dashboard_from_pkl(
+    explainer_filepath,
+    no_browser,
+    port,
+    sagemaker=False,
+    routes_pathname_prefix=None,
+    requests_pathname_prefix=None,
+    no_dashboard=False,
+):
     explainer = BaseExplainer.from_file(explainer_filepath)
 
     if port is None:
@@ -134,7 +142,13 @@ def launch_dashboard_from_pkl(explainer_filepath, no_browser, port, no_dashboard
         )
         port = 8050
 
-    db = ExplainerDashboard(explainer, port=port)
+    db = ExplainerDashboard(
+        explainer,
+        port=port,
+        sagemaker=sagemaker,
+        routes_pathname_prefix=routes_pathname_prefix,
+        requests_pathname_prefix=requests_pathname_prefix,
+    )
 
     if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
         webbrowser.open_new(f"http://127.0.0.1:{port}/")
@@ -144,7 +158,15 @@ def launch_dashboard_from_pkl(explainer_filepath, no_browser, port, no_dashboard
     return
 
 
-def launch_dashboard_from_yaml(dashboard_config, no_browser, port, no_dashboard=False):
+def launch_dashboard_from_yaml(
+    dashboard_config,
+    no_browser,
+    port,
+    sagemaker=False,
+    routes_pathname_prefix=None,
+    requests_pathname_prefix=None,
+    no_dashboard=False,
+):
     if isinstance(dashboard_config, (Path, str)) and str(dashboard_config).endswith(
         ".yaml"
     ):
@@ -169,8 +191,6 @@ def launch_dashboard_from_yaml(dashboard_config, no_browser, port, no_dashboard=
         f"explainerdashboard ===> Building dashboard from {config['dashboard']['explainerfile']}"
     )
 
-    db = ExplainerDashboard.from_config(config)
-
     if port is None:
         port = config["dashboard"]["params"]["port"]
         if port is None:
@@ -178,6 +198,16 @@ def launch_dashboard_from_yaml(dashboard_config, no_browser, port, no_dashboard=
         click.echo(
             f"explainerdashboard ===> Setting port to {port}, override with e.g. --port 8051"
         )
+
+    update_params = {"port": port}
+    if sagemaker:
+        update_params["sagemaker"] = True
+    if routes_pathname_prefix is not None:
+        update_params["routes_pathname_prefix"] = routes_pathname_prefix
+    if requests_pathname_prefix is not None:
+        update_params["requests_pathname_prefix"] = requests_pathname_prefix
+
+    db = ExplainerDashboard.from_config(config, **update_params)
 
     if not no_browser and not os.environ.get("WERKZEUG_RUN_MAIN"):
         click.echo(
@@ -318,7 +348,30 @@ def explainerdashboard_cli(ctx):
 @click.option(
     "--port", "-p", "port", default=None, help="port to run dashboard on defaults."
 )
-def run(ctx, explainer_filepath, no_browser, port):
+@click.option(
+    "--sagemaker",
+    is_flag=True,
+    help="Apply SageMaker Studio proxy defaults for Dash routing.",
+)
+@click.option(
+    "--routes-pathname-prefix",
+    default=None,
+    help="Dash routes_pathname_prefix override.",
+)
+@click.option(
+    "--requests-pathname-prefix",
+    default=None,
+    help="Dash requests_pathname_prefix override.",
+)
+def run(
+    ctx,
+    explainer_filepath,
+    no_browser,
+    port,
+    sagemaker,
+    routes_pathname_prefix,
+    requests_pathname_prefix,
+):
     click.echo(explainer_ascii)
     if explainer_filepath is None:
         if (Path().cwd() / "dashboard.yaml").exists():
@@ -338,10 +391,24 @@ def run(ctx, explainer_filepath, no_browser, port):
         or str(explainer_filepath).endswith(".pickle")
         or str(explainer_filepath).endswith(".dill")
     ):
-        launch_dashboard_from_pkl(explainer_filepath, no_browser, port)
+        launch_dashboard_from_pkl(
+            explainer_filepath,
+            no_browser,
+            port,
+            sagemaker,
+            routes_pathname_prefix,
+            requests_pathname_prefix,
+        )
         return
     elif str(explainer_filepath).endswith(".yaml"):
-        launch_dashboard_from_yaml(explainer_filepath, no_browser, port)
+        launch_dashboard_from_yaml(
+            explainer_filepath,
+            no_browser,
+            port,
+            sagemaker,
+            routes_pathname_prefix,
+            requests_pathname_prefix,
+        )
     else:
         click.echo(
             "Please pass a proper argument to explainerdashboard run"

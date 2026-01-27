@@ -11,6 +11,7 @@
 
 ### Improvements
 - Add support for GPU Tree SHAP explainers via `shap='gputree'` (requires CUDA-enabled SHAP).
+- Add SageMaker Studio support: auto-detect environment, apply proxy prefixes, and CLI flags for overrides.
 
 ## Version 0.5.4:
 

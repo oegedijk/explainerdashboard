@@ -8,30 +8,30 @@
 by: Oege Dijk
 
 This package makes it convenient to quickly deploy a dashboard web app
-that explains the workings of a (scikit-learn compatible) machine 
-learning model. The dashboard provides interactive plots on model performance, 
-feature importances, feature contributions to individual predictions, 
+that explains the workings of a (scikit-learn compatible) machine
+learning model. The dashboard provides interactive plots on model performance,
+feature importances, feature contributions to individual predictions,
 "what if" analysis,
 partial dependence plots, SHAP (interaction) values, visualization of individual
-decision trees, etc. 
+decision trees, etc.
 
-You can also interactively explore components of the dashboard in a 
-notebook/colab environment (or just launch a dashboard straight from there). 
-Or design a dashboard with your own [custom layout](https://explainerdashboard.readthedocs.io/en/latest/buildcustom.html) 
+You can also interactively explore components of the dashboard in a
+notebook/colab environment (or just launch a dashboard straight from there).
+Or design a dashboard with your own [custom layout](https://explainerdashboard.readthedocs.io/en/latest/buildcustom.html)
 and explanations (thanks to the modular design of the library). And you can combine multiple dashboards into
 a single [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
-Dashboards can be exported to static html directly from a running dashboard, or 
+Dashboards can be exported to static html directly from a running dashboard, or
 programmatically as an artifact as part of an automated CI/CD deployment process.
 
- Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com), 
- detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io), 
+ Examples deployed at: [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com),
+ detailed documentation at [explainerdashboard.readthedocs.io](http://explainerdashboard.readthedocs.io),
  example notebook on how to launch dashboard for different models [here](notebooks/dashboard_examples.ipynb), and an example notebook on how to interact with the explainer object [here](notebooks/explainer_examples.ipynb).
 
- Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm`, and `skorch` 
+ Works with `scikit-learn`, `xgboost`, `catboost`, `lightgbm`, and `skorch`
  (sklearn wrapper for tabular PyTorch models) and others.
 
- ## Installation
+## Installation
 
 You can install the package through pip:
 
@@ -40,6 +40,47 @@ You can install the package through pip:
 or conda-forge:
 
 `conda install -c conda-forge explainerdashboard`
+
+## SageMaker Studio
+
+SageMaker Studio runs notebooks and terminals in separate apps, so a common workflow
+is to export a dashboard config to disk and run it from the JupyterServer terminal.
+When running inside Studio, `explainerdashboard` can auto-detect SageMaker and apply
+the correct proxy prefixes, or you can set them explicitly.
+
+Notebook example (export dashboard to disk):
+
+```python
+db = ExplainerDashboard(
+    explainer,
+    mode="dash",
+    port=8051,
+    sagemaker=True,
+)
+db.to_yaml("dashboard.yaml", explainerfile="dashboard.joblib", dump_explainer=True)
+```
+
+Terminal example (run from the JupyterServer app):
+
+```bash
+explainerdashboard run dashboard.yaml --sagemaker --port 8051 --no-browser
+```
+
+Access the dashboard via the Studio proxy URL:
+
+```text
+<STUDIO_URL>/jupyter/default/proxy/8051/
+```
+
+If your Studio proxy path differs, you can override the prefixes:
+
+```bash
+explainerdashboard run dashboard.yaml \
+  --routes-pathname-prefix="/" \
+  --requests-pathname-prefix="/jupyter/default/proxy/8051/"
+```
+
+Auto-detection uses the presence of `/opt/ml/metadata/resource-metadata.json`.
 
 ## Demonstration:
 
@@ -55,7 +96,7 @@ The goal is manyfold:
 - Make it easy for data scientists to quickly inspect the workings and performance of their model in a few lines of code
 - Make it possible for non data scientist stakeholders such as managers, directors, internal and external watchdogs to interactively inspect the inner workings of the model without having to depend on a data scientist to generate every plot and table
 - Make it easy to build an application that explains individual predictions of your model for customers that ask for an explanation
-- Explain the inner workings of the model to the people working (human-in-the-loop) with it so that they gain understanding what the model does and doesn't do. This is important so that they can gain an intuition for when the model is likely missing information and may have to be overruled. 
+- Explain the inner workings of the model to the people working (human-in-the-loop) with it so that they gain understanding what the model does and doesn't do. This is important so that they can gain an intuition for when the model is likely missing information and may have to be overruled.
 
 
 The library includes:
@@ -65,7 +106,7 @@ The library includes:
 - *Shap interaction values* (decompose the shap value into a direct effect an interaction effects)
 - For Random Forests and xgboost models: visualisation of individual decision trees
 - Plus for classifiers: precision plots, confusion matrix, ROC AUC plot, PR AUC plot, etc
-- For regression models: goodness-of-fit plots, residual plots, etc. 
+- For regression models: goodness-of-fit plots, residual plots, etc.
 
 The library is designed to be modular so that it should be easy to design your own interactive dashboards with plotly dash, with most of the work of calculating and formatting data, and rendering plots and tables handled by `explainerdashboard`, so that you can focus on the layout
 and project specific textual explanations. (i.e. design it so that it will be interpretable for business users in your organization, not just data scientists)
@@ -80,11 +121,11 @@ Fitting a model, building the explainer object, building the dashboard, and then
 ExplainerDashboard(ClassifierExplainer(RandomForestClassifier().fit(X_train, y_train), X_test, y_test)).run()
 ```
 
-Below a multi-line example, adding a few extra parameters. 
-You can group onehot encoded categorical variables together using the `cats` 
+Below a multi-line example, adding a few extra parameters.
+You can group onehot encoded categorical variables together using the `cats`
 parameter. You can either pass a dict specifying a list of onehot cols per
-categorical feature, or if you encode using e.g. 
-`pd.get_dummies(df.Name, prefix=['Name'])` (resulting in column names `'Name_Adam', 'Name_Bob'`) 
+categorical feature, or if you encode using e.g.
+`pd.get_dummies(df.Name, prefix=['Name'])` (resulting in column names `'Name_Adam', 'Name_Bob'`)
 you can simply pass the prefix `'Name'`:
 
 ```python
@@ -97,7 +138,7 @@ feature_descriptions = {
     "Gender": "Gender of passenger",
     "Deck": "The deck the passenger had their cabin on",
     "PassengerClass": "The class of the ticket: 1st, 2nd or 3rd class",
-    "Fare": "The amount of money people paid", 
+    "Fare": "The amount of money people paid",
     "Embarked": "the port where the passenger boarded the Titanic. Either Southampton, Cherbourg or Queenstown",
     "Age": "Age of the passenger",
     "No_of_siblings_plus_spouses_on_board": "The sum of the number of siblings plus the number of spouses on board",
@@ -109,7 +150,7 @@ train_names, test_names = titanic_names()
 model = RandomForestClassifier(n_estimators=50, max_depth=5)
 model.fit(X_train, y_train)
 
-explainer = ClassifierExplainer(model, X_test, y_test, 
+explainer = ClassifierExplainer(model, X_test, y_test,
                                 cats=['Deck', 'Embarked',
                                     {'Gender': ['Sex_male', 'Sex_female', 'Sex_nan']}],
                                 cats_notencoded={'Embarked': 'Stowaway'}, # defaults to 'NOT_ENCODED'
@@ -120,23 +161,23 @@ explainer = ClassifierExplainer(model, X_test, y_test,
                                 target = "Survival", # defaults to y.name
                                 )
 
-db = ExplainerDashboard(explainer, 
+db = ExplainerDashboard(explainer,
                         title="Titanic Explainer", # defaults to "Model Explainer"
                         shap_interaction=False, # you can switch off tabs with bools
                         )
 db.run(port=8050)
 ```
 
-For a regression model you can also pass the units of the target variable (e.g. 
+For a regression model you can also pass the units of the target variable (e.g.
 dollars):
 
 ```python
 X_train, y_train, X_test, y_test = titanic_fare()
 model = RandomForestRegressor().fit(X_train, y_train)
 
-explainer = RegressionExplainer(model, X_test, y_test, 
+explainer = RegressionExplainer(model, X_test, y_test,
                                 cats=['Deck', 'Embarked', 'Sex'],
-                                descriptions=feature_descriptions, 
+                                descriptions=feature_descriptions,
                                 units = "$", # defaults to ""
                                 )
 
@@ -146,7 +187,7 @@ ExplainerDashboard(explainer).run()
 `y_test` is actually optional, although some parts of the dashboard like performance
 metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.
 
-You can export a dashboard to static html with `db.save_html('dashboard.html')`. 
+You can export a dashboard to static html with `db.save_html('dashboard.html')`.
 
 
 <details>
@@ -157,7 +198,7 @@ You can export a dashboard to static html with `db.save_html('dashboard.html')`.
 ExplainerDashboard(explainer, index=0).save_html('dashboard.html')
 ```
 
-or 
+or
 
 
 ```
@@ -180,11 +221,11 @@ For a simplified single page dashboard try `ExplainerDashboard(explainer, simple
 
 ### ExplainerHub
 
-You can combine multiple dashboards and host them in a single place using 
+You can combine multiple dashboards and host them in a single place using
 [ExplainerHub](https://explainerdashboard.readthedocs.io/en/latest/hub.html):
 
 ```python
-db1 = ExplainerDashboard(explainer1, title="Classifier Explainer", 
+db1 = ExplainerDashboard(explainer1, title="Classifier Explainer",
          description="Model predicting survival on H.M.S. Titanic")
 db2 = ExplainerDashboard(explainer2, title="Regression Explainer",
          description="Model predicting ticket price on H.M.S. Titanic")
@@ -192,8 +233,8 @@ hub = ExplainerHub([db1, db2])
 hub.run()
 ```
 
-You can adjust titles and descriptions, manage users and logins, store and load 
-from config, manage the hub through a CLI and more. See the 
+You can adjust titles and descriptions, manage users and logins, store and load
+from config, manage the hub through a CLI and more. See the
 [ExplainerHub documentation](https://explainerdashboard.readthedocs.io/en/latest/hub.html).
 
 <details><summary>Show ExplainerHub screenshot</summary>
@@ -210,7 +251,7 @@ from config, manage the hub through a CLI and more. See the
 ### Dealing with slow calculations
 
 Some of the calculations for the dashboard such as calculating SHAP (interaction) values
-and permutation importances can be slow for large datasets and complicated models. 
+and permutation importances can be slow for large datasets and complicated models.
 There are a few tricks to make this less painful:
 
 1. Switching off the interactions tab (`shap_interaction=False`) and disabling
@@ -219,41 +260,41 @@ There are a few tricks to make this less painful:
     For permutation importances you can set the `n_jobs` parameter to speed up
     the calculation in parallel.
 2. Calculate approximate shap values. You can pass approximate=True as a shap parameter by
-   passing `shap_kwargs=dict(approximate=True)` to the explainer initialization. 
+   passing `shap_kwargs=dict(approximate=True)` to the explainer initialization.
 3. Use GPU Tree SHAP by passing `shap='gputree'` when your model supports it.
    This requires an NVIDIA GPU and a CUDA-enabled SHAP build (see the SHAP docs).
 4. Storing the explainer. The calculated properties are only calculated once
     for each instance, however each time when you instantiate a new explainer
     instance they will have to be recalculated. You can store them with
-    `explainer.dump("explainer.joblib")` and load with e.g. 
+    `explainer.dump("explainer.joblib")` and load with e.g.
     `ClassifierExplainer.from_file("explainer.joblib")`. All calculated properties
     are stored along with the explainer.
-5. Using a smaller (test) dataset, or using smaller decision trees. 
-    TreeShap computational complexity is `O(TLD^2)`, where `T` is the 
-    number of trees, `L` is the maximum number of leaves in any tree and 
+5. Using a smaller (test) dataset, or using smaller decision trees.
+    TreeShap computational complexity is `O(TLD^2)`, where `T` is the
+    number of trees, `L` is the maximum number of leaves in any tree and
     `D` the maximal depth of any tree. So reducing the number of leaves or average
     depth in the decision tree can really speed up SHAP calculations.
 6. Pre-computing shap values. Perhaps you already have calculated the shap values
     somewhere, or you can calculate them off on a giant cluster somewhere, or
-    your model supports [GPU generated shap values](https://github.com/rapidsai/gputreeshap). 
-    You can simply add these pre-calculated shap values to the explainer 
+    your model supports [GPU generated shap values](https://github.com/rapidsai/gputreeshap).
+    You can simply add these pre-calculated shap values to the explainer
     with `explainer.set_shap_values()` and `explainer.set_shap_interaction_values()` methods.
 7. Plotting only a random sample of points. When you have a lots of observations,
     simply rendering the plots may get slow as well. You can pass the `plot_sample`
     parameter to render a (different each time) random sample of observations
-    for the various scatter plots in the dashboard. E.g.: 
+    for the various scatter plots in the dashboard. E.g.:
     `ExplainerDashboard(explainer, plot_sample=1000).run()`
 
 ## Launching from within a notebook
 
-When working inside Jupyter or Google Colab you can use 
+When working inside Jupyter or Google Colab you can use
 `ExplainerDashboard(mode='inline')`, `ExplainerDashboard(mode='external')` or
 `ExplainerDashboard(mode='jupyterlab')`, to run the dashboard inline in the notebook,
-or in a seperate tab but keep the notebook interactive. (`db.run(mode='inline')` 
+or in a seperate tab but keep the notebook interactive. (`db.run(mode='inline')`
 now also works)
 
 There is also a specific interface for quickly displaying interactive components
-inline in your notebook: `InlineExplainer()`. For example you can use 
+inline in your notebook: `InlineExplainer()`. For example you can use
 `InlineExplainer(explainer).shap.dependence()` to display the shap dependence
 component interactively in your notebook output cell.
 
@@ -275,17 +316,17 @@ $ explainerdashboard run dashboard.yaml
 
 You can also build explainers from the commandline with `explainerdashboard build`.
 See [explainerdashboard CLI documentation](https://explainerdashboard.readthedocs.io/en/latest/cli.html)
-for details. 
+for details.
 
 ## Customizing your dashboard
 
 The dashboard is highly modular and customizable so that you can adjust it your
-own needs and project. 
+own needs and project.
 
 ### Changing bootstrap theme
 
 You can change the bootstrap theme by passing a link to the appropriate css
-file. You can use the convenient [themes](https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/) module of 
+file. You can use the convenient [themes](https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/) module of
 [dash_bootstrap_components](https://dash-bootstrap-components.opensource.faculty.ai/docs/) to generate
 the css url for you:
 
@@ -319,32 +360,32 @@ ExplainerDashboard(explainer,
 You can also hide individual components on the various tabs:
 
 ```python
-    ExplainerDashboard(explainer, 
+    ExplainerDashboard(explainer,
         # importances tab:
         hide_importances=True,
         # classification stats tab:
-        hide_globalcutoff=True, hide_modelsummary=True, 
-        hide_confusionmatrix=True, hide_precision=True, 
-        hide_classification=True, hide_rocauc=True, 
+        hide_globalcutoff=True, hide_modelsummary=True,
+        hide_confusionmatrix=True, hide_precision=True,
+        hide_classification=True, hide_rocauc=True,
         hide_prauc=True, hide_liftcurve=True, hide_cumprecision=True,
         # regression stats tab:
-        # hide_modelsummary=True, 
-        hide_predsvsactual=True, hide_residuals=True, 
+        # hide_modelsummary=True,
+        hide_predsvsactual=True, hide_residuals=True,
         hide_regvscol=True,
         # individual predictions tab:
         hide_predindexselector=True, hide_predictionsummary=True,
-        hide_contributiongraph=True, hide_pdp=True, 
+        hide_contributiongraph=True, hide_pdp=True,
         hide_contributiontable=True,
         # whatif tab:
         hide_whatifindexselector=True, hide_whatifprediction=True,
-        hide_inputeditor=True, hide_whatifcontributiongraph=True, 
+        hide_inputeditor=True, hide_whatifcontributiongraph=True,
         hide_whatifcontributiontable=True, hide_whatifpdp=True,
         # shap dependence tab:
         hide_shapsummary=True, hide_shapdependence=True,
         # shap interactions tab:
         hide_interactionsummary=True, hide_interactiondependence=True,
         # decisiontrees tab:
-        hide_treeindexselector=True, hide_treesgraph=True, 
+        hide_treeindexselector=True, hide_treesgraph=True,
         hide_treepathtable=True, hide_treepathgraph=True,
         ).run()
 ```
@@ -356,14 +397,14 @@ are not individually targeted, so if you pass `hide_cats=True` then the group
 cats toggle will be hidden on every component that has one:
 
 ```python
-ExplainerDashboard(explainer, 
+ExplainerDashboard(explainer,
                     no_permutations=True, # do not show or calculate permutation importances
                     hide_poweredby=True, # hide the poweredby:explainerdashboard footer
                     hide_popout=True, # hide the 'popout' button from each graph
                     hide_depth=True, # hide the depth (no of features) dropdown
                     hide_sort=True, # hide sort type dropdown in contributions graph/table
                     hide_orientation=True, # hide orientation dropdown in contributions graph/table
-                    hide_type=True, # hide shap/permutation toggle on ImportancesComponent 
+                    hide_type=True, # hide shap/permutation toggle on ImportancesComponent
                     hide_dropna=True, # hide dropna toggle on pdp component
                     hide_sample=True, # hide sample size input on pdp component
                     hide_gridlines=True, # hide gridlines on pdp component
@@ -384,12 +425,12 @@ ExplainerDashboard(explainer,
 
 ### Setting default values
 
-You can also set default values for the various dropdowns and toggles. 
+You can also set default values for the various dropdowns and toggles.
 All the components with their parameters can be found [in the documentation](https://explainerdashboard.readthedocs.io/en/latest/components.html).
 Some examples of useful parameters to pass:
 
 ```python
-ExplainerDashboard(explainer, 
+ExplainerDashboard(explainer,
                     higher_is_better=False, # flip green and red in contributions graph
                     n_input_cols=3, # divide feature inputs into 3 columns on what if tab
                     col='Fare', # initial feature in shap graphs
@@ -404,7 +445,7 @@ ExplainerDashboard(explainer,
                     pdp_col='Fare', # initial pdp feature
                     cutoff=0.8, # cutoff for classification plots
                     round=2 # rounding to apply to floats
-                    show_metrics=['accuracy', 'f1', custom_metric] # only show certain metrics 
+                    show_metrics=['accuracy', 'f1', custom_metric] # only show certain metrics
                     plot_sample=1000, # only display a 1000 random markers in scatter plots
                     )
 ```
@@ -412,13 +453,13 @@ ExplainerDashboard(explainer,
 
 ### Designing your own layout
 
-All the components in the dashboard are modular and re-usable, which means that 
-you can build your own custom [dash](https://dash.plotly.com/) dashboards 
+All the components in the dashboard are modular and re-usable, which means that
+you can build your own custom [dash](https://dash.plotly.com/) dashboards
 around them.
 
 By using the built-in `ExplainerComponent` class it is easy to build your
 own layouts, with just a bare minimum of knowledge of HTML and [bootstrap](https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/). For
-example if you only wanted to display the `ConfusionMatrixComponent` and 
+example if you only wanted to display the `ConfusionMatrixComponent` and
 `ShapContributionsGraphComponent`, but hide
 a few toggles:
 
@@ -432,10 +473,10 @@ class CustomDashboard(ExplainerComponent):
                             hide_selector=True, hide_percentage=True,
                             cutoff=0.75)
         self.contrib = ShapContributionsGraphComponent(explainer, name=self.name+"contrib",
-                            hide_selector=True, hide_cats=True, 
+                            hide_selector=True, hide_cats=True,
                             hide_depth=True, hide_sort=True,
                             index='Rugg, Miss. Emily')
-        
+
     def layout(self):
         return dbc.Container([
             dbc.Row([
@@ -472,20 +513,20 @@ db = ExplainerDashboard(explainer, CustomDashboard, hide_header=True).run()
 You can use this to define your own layouts, specifically tailored to your
 own model, project and needs. You can use the [ExplainerComposites](https://github.com/oegedijk/explainerdashboard/blob/master/explainerdashboard/dashboard_components/composites.py) that
 are used for the tabs of the default dashboard as a starting point, and edit
-them to reorganize components, add text, etc. 
+them to reorganize components, add text, etc.
 See [custom dashboard documentation](https://explainerdashboard.readthedocs.io/en/latest/custom.html)
 for more details. A deployed custom dashboard can be found [here](http://titanicexplainer.herokuapp.com/custom/)([source code](https://github.com/oegedijk/explainingtitanic/blob/master/buildcustom.py)).
 
 ## Deployment
 
-If you wish to use e.g. `gunicorn` or `waitress` to deploy the dashboard you should add 
-`app = db.flask_server()` to your code to expose the Flask server. You can then 
-start the server with e.g. `gunicorn dashboard:app` 
-(assuming the file you defined the dashboard in was called `dashboard.py`). 
-See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html) 
+If you wish to use e.g. `gunicorn` or `waitress` to deploy the dashboard you should add
+`app = db.flask_server()` to your code to expose the Flask server. You can then
+start the server with e.g. `gunicorn dashboard:app`
+(assuming the file you defined the dashboard in was called `dashboard.py`).
+See also the [ExplainerDashboard section](https://explainerdashboard.readthedocs.io/en/latest/dashboards.html)
 and the [deployment section of the documentation](https://explainerdashboard.readthedocs.io/en/latest/deployment.html).
 
-It can be helpful to store your `explainer` and dashboard layout to disk, and 
+It can be helpful to store your `explainer` and dashboard layout to disk, and
 then reload, e.g.:
 
 **generate_dashboard.py**:
@@ -495,7 +536,7 @@ from explainerdashboard.custom import *
 
 explainer = ClassifierExplainer(model, X_test, y_test)
 
-# building an ExplainerDashboard ensures that all necessary properties 
+# building an ExplainerDashboard ensures that all necessary properties
 # get calculated:
 db = ExplainerDashboard(explainer, [ShapDependenceComposite, WhatIfComposite],
                         title='Awesome Dashboard', hide_whatifpdp=True)
@@ -539,40 +580,40 @@ In order to reduce the memory footprint there are a number of things you can do:
     so can take a subtantial amount of memory.
 2. Setting a lower precision. By default shap values are stored as `'float64'`,
     but you can store them as `'float32'` instead and save half the space:
-    ```ClassifierExplainer(model, X_test, y_test, precision='float32')```. You 
+    ```ClassifierExplainer(model, X_test, y_test, precision='float32')```. You
     can also set a lower precision on your `X_test` dataset yourself of course.
 3. For multi class classifier, by default `ClassifierExplainer` calculates
     shap values for all classes. If you're only interested in a single class
     you can drop the other shap values: `explainer.keep_shap_pos_label_only(pos_label)`
 4. Storing data externally. You can for example only store a subset of 10.000 rows in
     the explainer itself (enough to generate importance and dependence plots),
-    and store the rest of your millions of rows of input data in an external file 
+    and store the rest of your millions of rows of input data in an external file
     or database:
-    - with `explainer.set_X_row_func()` you can set a function that takes 
+    - with `explainer.set_X_row_func()` you can set a function that takes
         an `index` as argument and returns a single row dataframe with model
         compatible input data for that index. This function can include a query
-        to a database or fileread. 
-    - with `explainer.set_y_func()` you can set a function that takes 
+        to a database or fileread.
+    - with `explainer.set_y_func()` you can set a function that takes
         and `index` as argument and returns the observed outcome `y` for
         that index.
-    - with `explainer.set_index_list_func()` you can set a function 
+    - with `explainer.set_index_list_func()` you can set a function
         that returns a list of available indexes that can be queried. Only gets
         called upon start of the dashboard.
 
     If you have a very large number of indexes and the user is able to look
     them up elsewhere, you can also replace the index dropdowns with a simple free
-    text field with `index_dropdown=False`. Only valid indexes (i.e. in the 
+    text field with `index_dropdown=False`. Only valid indexes (i.e. in the
     `get_index_list()` list) get propagated
-    to other components by default, but this can be overriden with `index_check=False`. 
-    Instead of an ``index_list_func`` you can also set an 
+    to other components by default, but this can be overriden with `index_check=False`.
+    Instead of an ``index_list_func`` you can also set an
     ``explainer.set_index_check_func(func)`` which should return a bool whether
-    the ``index`` exists or not. 
+    the ``index`` exists or not.
 
     Important: these function can be called multiple times by multiple independent
     components, so probably best to implement some kind of caching functionality.
     The functions you pass can be also methods, so you have access to all of the
     internals of the explainer.
-    
+
 
 ## Documentation
 
@@ -588,7 +629,7 @@ Example notebook on how to design a custom dashboard: [custom_examples.ipynb](no
 
 ## Deployed example:
 
-You can find an example dashboard at [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com) 
+You can find an example dashboard at [titanicexplainer.herokuapp.com](http://titanicexplainer.herokuapp.com)
 
 (source code at [https://github.com/oegedijk/explainingtitanic](https://github.com/oegedijk/explainingtitanic))
 

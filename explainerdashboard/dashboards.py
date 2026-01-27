@@ -11,12 +11,13 @@ __all__ = [
     "InlineExplainer",
 ]
 
+import os
 import sys
 import re
 import json
 import inspect
 import requests
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 from pathlib import Path
 from copy import deepcopy
 import warnings
@@ -65,6 +66,20 @@ warnings.filterwarnings(
     r"X has feature names, but \w+ was fitted without feature names",
     UserWarning,
 )
+
+
+def _detect_sagemaker():
+    if Path("/opt/ml/metadata/resource-metadata.json").exists():
+        return True
+    return bool(
+        os.environ.get("SAGEMAKER_REGION")
+        or os.environ.get("SM_MODEL_DIR")
+        or os.environ.get("SAGEMAKER_CONTAINER_LOG_LEVEL")
+    )
+
+
+def _sagemaker_default_prefixes(port):
+    return "/", f"/jupyter/default/proxy/{port}/"
 
 
 class ExplainerTabsLayout(ExplainerComponent):
@@ -525,6 +540,8 @@ class ExplainerDashboard:
         url_base_pathname: str = None,
         routes_pathname_prefix: str = None,
         requests_pathname_prefix: str = None,
+        sagemaker: Optional[bool] = None,
+        dash_kwargs: Optional[Dict] = None,
         responsive: bool = True,
         logins: List[List[str]] = None,
         port: int = 8050,
@@ -610,6 +627,14 @@ class ExplainerDashboard:
                 server is created.
             url_base_pathname (str): url_base_pathname for dashboard,
                 e.g. "/dashboard". Defaults to None.
+            routes_pathname_prefix (str): prefix for routing, e.g. "/".
+            requests_pathname_prefix (str): prefix for requests, e.g.
+                f"/jupyter/default/proxy/{port}/" for SageMaker Studio.
+            sagemaker (bool, optional): set SageMaker Studio proxy defaults for
+                routes_pathname_prefix and requests_pathname_prefix when those are None.
+                If None, try to auto-detect SageMaker.
+            dash_kwargs (dict, optional): extra keyword arguments to pass to
+                dash.Dash/JupyterDash.
             responsive (bool):  make layout responsive to viewport size
                 (i.e. reorganize bootstrap columns on small devices). Set to False
                 when e.g. testing with a headless browser. Defaults to True.
@@ -680,6 +705,27 @@ class ExplainerDashboard:
                 "is running...",
                 flush=True,
             )
+
+        if self.sagemaker is None:
+            self.sagemaker = _detect_sagemaker()
+            self._stored_params.pop("sagemaker", None)
+
+        if self.sagemaker:
+            if self.routes_pathname_prefix is None:
+                self.routes_pathname_prefix = "/"
+                self._stored_params["routes_pathname_prefix"] = (
+                    self.routes_pathname_prefix
+                )
+            if self.requests_pathname_prefix is None:
+                _, default_requests = _sagemaker_default_prefixes(self.port)
+                self.requests_pathname_prefix = default_requests
+                self._stored_params["requests_pathname_prefix"] = (
+                    self.requests_pathname_prefix
+                )
+
+        if self.dash_kwargs is None:
+            self.dash_kwargs = {}
+            self._stored_params["dash_kwargs"] = self.dash_kwargs
 
         if self.bootstrap is not None:
             bootstrap_theme = (
@@ -1194,6 +1240,7 @@ class ExplainerDashboard:
                 routes_pathname_prefix=self.routes_pathname_prefix,
                 requests_pathname_prefix=self.requests_pathname_prefix,
                 meta_tags=meta_tags,
+                **self.dash_kwargs,
             )
         elif self.mode in ["inline", "jupyterlab", "external"]:
             app = JupyterDash(
@@ -1201,6 +1248,7 @@ class ExplainerDashboard:
                 external_stylesheets=self.external_stylesheets,
                 assets_ignore=assets_ignore,
                 meta_tags=meta_tags,
+                **self.dash_kwargs,
             )
         else:
             raise ValueError(
@@ -1218,7 +1266,15 @@ class ExplainerDashboard:
             print("Warning: in production you should probably use mode='dash'...")
         return self.app.server
 
-    def run(self, port=None, host="0.0.0.0", use_waitress=False, mode=None, **kwargs):
+    def run(
+        self,
+        port: int = None,
+        host: str = "0.0.0.0",
+        use_waitress: bool = False,
+        mode: str = None,
+        sagemaker: Optional[bool] = None,
+        **kwargs,
+    ):
         """Start ExplainerDashboard on port
 
         Args:
@@ -1234,6 +1290,9 @@ class ExplainerDashboard:
                 Overrides self.mode, in which case the dashboard will get
                 rebuilt before running it with the right type of dash server.
                 (dash.Dash or JupyterDash). Defaults to None (i.e. self.mode)
+            sagemaker (bool, optional): if True, apply SageMaker Studio proxy defaults
+                for routes_pathname_prefix and requests_pathname_prefix. If None,
+                use the value from the dashboard initialization.
             Defaults to None.self.port defaults to 8050.
 
         Raises:
@@ -1246,6 +1305,25 @@ class ExplainerDashboard:
             port = self.port
         if mode is None:
             mode = self.mode
+        if sagemaker is None:
+            sagemaker = getattr(self, "sagemaker", False)
+        if sagemaker and mode != "dash":
+            print(
+                "Warning: sagemaker=True requires mode='dash'. "
+                "Forcing mode='dash' before launch.",
+                flush=True,
+            )
+            mode = "dash"
+        if sagemaker:
+            routes_pathname_prefix, requests_pathname_prefix = (
+                self.routes_pathname_prefix,
+                self.requests_pathname_prefix,
+            )
+            default_routes, default_requests = _sagemaker_default_prefixes(port)
+            if routes_pathname_prefix is None:
+                routes_pathname_prefix = default_routes
+            if requests_pathname_prefix is None:
+                requests_pathname_prefix = default_requests
 
         if use_waitress and mode != "dash":
             print(
@@ -1254,14 +1332,36 @@ class ExplainerDashboard:
                 flush=True,
             )
         if mode == "dash":
-            if self.mode != "dash":
-                print(
-                    "Warning: Original ExplainerDashboard was not initialized "
-                    "with mode='dash'. Rebuilding dashboard before launch:",
-                    flush=True,
+            needs_rebuild = self.mode != "dash"
+            if sagemaker:
+                needs_rebuild = needs_rebuild or (
+                    self.routes_pathname_prefix != routes_pathname_prefix
+                    or self.requests_pathname_prefix != requests_pathname_prefix
                 )
+            if needs_rebuild:
+                if self.mode != "dash":
+                    print(
+                        "Warning: Original ExplainerDashboard was not initialized "
+                        "with mode='dash'. Rebuilding dashboard before launch:",
+                        flush=True,
+                    )
+                elif sagemaker:
+                    print(
+                        "Applying SageMaker proxy settings. Rebuilding dashboard "
+                        "before launch:",
+                        flush=True,
+                    )
+                update_params = {"mode": "dash", "port": port}
+                if sagemaker:
+                    update_params.update(
+                        dict(
+                            sagemaker=True,
+                            routes_pathname_prefix=routes_pathname_prefix,
+                            requests_pathname_prefix=requests_pathname_prefix,
+                        )
+                    )
                 app = ExplainerDashboard.from_config(
-                    self.explainer, self.to_yaml(return_dict=True), mode="dash"
+                    self.explainer, self.to_yaml(return_dict=True), **update_params
                 ).app
             else:
                 app = self.app
