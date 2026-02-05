@@ -323,7 +323,9 @@ class BaseExplainer(ABC):
                         "y should be a pd.Series or np.ndarray not a pd.DataFrame!"
                     )
 
-            self.y = pd.Series(y.squeeze()).astype(precision)
+            self.y = pd.Series(y.squeeze())
+            if is_numeric_dtype(self.y):
+                self.y = self.y.astype(precision)
             self.y_missing = False
         else:
             self.y = pd.Series(np.full(len(X), np.nan))
@@ -2683,8 +2685,18 @@ class ClassifierExplainer(BaseExplainer):
             **dict(labels=labels, pos_label=pos_label),
         }
 
+        class_values = None
+        if hasattr(self.model, "classes_"):
+            class_values = list(self.model.classes_)
+        elif not self.y_missing:
+            class_values = sorted(pd.Series(self.y).dropna().unique().tolist())
+
         if not self.y_missing:
-            self.y = self.y.astype("int16")
+            if class_values is None:
+                self.y = self.y.astype("int16")
+            else:
+                class_to_index = {cls: idx for idx, cls in enumerate(class_values)}
+                self.y = self.y.map(class_to_index).astype("int16")
         if (
             self.categorical_cols
             and model_output == "probability"
@@ -2699,8 +2711,8 @@ class ClassifierExplainer(BaseExplainer):
             self.model_output = "logodds"
         if labels is not None:
             self.labels = labels
-        elif hasattr(self.model, "classes_"):
-            self.labels = [str(cls) for cls in self.model.classes_]
+        elif class_values is not None:
+            self.labels = [str(cls) for cls in class_values]
         else:
             self.labels = [str(i) for i in range(self.y.nunique())]
         self.pos_label = pos_label

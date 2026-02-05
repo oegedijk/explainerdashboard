@@ -6,10 +6,7 @@
 - Rules: link an issue when possible; include size S/M/L; mark blockers.
 
 **Now**
-- [M][Dashboard][#303] save_html does not include custom tabs; fix HTML export and add regression test.
-- [S][Explainers+Dashboard][#302] replace print statements with logging and add configuration docs.
 - [M/L][Explainers][#279] support CalibratedClassifierCV (unwrap estimator for SHAP; update logic and tests).
-- [S][Components][#224] bool columns should not break rounding; handle bool safely.
 
 **Next**
 - [S/M][Components][#277] whatif input range/rounding customization.

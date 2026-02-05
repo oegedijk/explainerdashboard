@@ -7,6 +7,8 @@ from pandas.api.types import is_numeric_dtype
 
 import plotly.graph_objects as go
 
+from sklearn.ensemble import RandomForestClassifier
+
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.explainer_methods import IndexNotFoundError
 
@@ -86,6 +88,26 @@ def test_cats_notencoded(precalculated_rf_classifier_explainer):
         .item()
         == "No Gender"
     )
+
+
+def test_string_labels_supported(classifier_data):
+    X_train, y_train, X_test, y_test = classifier_data
+    labels = ["No", "Yes"]
+    label_map = {
+        value: labels[idx] for idx, value in enumerate(sorted(y_train.unique()))
+    }
+    y_train_str = y_train.map(label_map)
+    y_test_str = y_test.map(label_map)
+
+    model = RandomForestClassifier(n_estimators=50, random_state=0)
+    model.fit(X_train, y_train_str)
+
+    explainer = ClassifierExplainer(model, X_test, y_test_str)
+    lift_df = explainer.get_liftcurve_df()
+
+    assert explainer.labels == list(model.classes_)
+    assert set(explainer.y.unique()).issubset(set(range(len(explainer.labels))))
+    assert {"pred_proba", "y"}.issubset(lift_df.columns)
 
 
 def test_row_from_input(precalculated_rf_classifier_explainer):
