@@ -8,6 +8,7 @@ __all__ = [
 from math import ceil
 
 import numpy as np
+from pandas.api.types import is_bool_dtype
 
 from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
@@ -1212,12 +1213,13 @@ class FeatureInputComponent(ExplainerComponent):
                 ]
             )
         else:
-            min_range = np.round(
-                self.explainer.X[col][lambda x: x != self.explainer.na_fill].min(), 2
-            )
-            max_range = np.round(
-                self.explainer.X[col][lambda x: x != self.explainer.na_fill].max(), 2
-            )
+            col_values = self.explainer.X[col][lambda x: x != self.explainer.na_fill]
+            if is_bool_dtype(col_values):
+                min_range = int(col_values.min())
+                max_range = int(col_values.max())
+            else:
+                min_range = np.round(col_values.min(), 2)
+                max_range = np.round(col_values.max(), 2)
             return html.Div(
                 [
                     dbc.Label(col),

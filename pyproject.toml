@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "explainerdashboard"
-version = "0.5.5"
+version = "0.5.6"
 description = "Quickly build Explainable AI dashboards that show the inner workings of so-called \"blackbox\" machine learning models."
 readme = "README.md"
 requires-python = ">=3.10"

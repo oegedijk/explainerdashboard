@@ -1,6 +1,11 @@
 # Release Notes
 
 
+## Version 0.5.6:
+
+### Bug Fixes
+- Fix FeatureInputComponent range calculation for boolean columns (avoid np.round on bools) and add a regression test.
+
 ## Version 0.5.5:
 
 ### Bug Fixes
