@@ -7,6 +7,7 @@ from pandas.api.types import is_numeric_dtype
 
 import plotly.graph_objects as go
 
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 
 from explainerdashboard import ClassifierExplainer, ExplainerDashboard
@@ -108,6 +109,17 @@ def test_string_labels_supported(classifier_data):
     assert explainer.labels == list(model.classes_)
     assert set(explainer.y.unique()).issubset(set(range(len(explainer.labels))))
     assert {"pred_proba", "y"}.issubset(lift_df.columns)
+
+
+def test_calibrated_classifiercv_uses_tree_shap(classifier_data):
+    X_train, y_train, X_test, y_test = classifier_data
+    base_estimator = RandomForestClassifier(n_estimators=25, random_state=0)
+    model = CalibratedClassifierCV(estimator=base_estimator, cv=2)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(model, X_test, y_test)
+
+    assert explainer.shap == "tree"
 
 
 def test_row_from_input(precalculated_rf_classifier_explainer):

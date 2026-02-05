@@ -6,11 +6,9 @@
 - Rules: link an issue when possible; include size S/M/L; mark blockers.
 
 **Now**
-- [M/L][Explainers][#279] support CalibratedClassifierCV (unwrap estimator for SHAP; update logic and tests).
+- [S/M][Components][#277] whatif input range/rounding customization.
 
 **Next**
-- [S/M][Components][#277] whatif input range/rounding customization.
-- [S/M][Explainers][#274] support string labels without float casts.
 - [M][Explainers][#273] categorical columns with NaNs: sorting and column preservation.
 - [S][Explainers][#270] Autogluon integration (coerce predict_proba to ndarray).
 - [M][Hub][#269] add_dashboard endpoint fails after first request (Flask blueprint lifecycle).

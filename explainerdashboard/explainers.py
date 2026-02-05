@@ -250,6 +250,7 @@ class BaseExplainer(ABC):
                 self.X_background = None
         if not hasattr(self, "model"):
             self.model = model
+        self.model_for_shap = unwrap_calibrated_classifier(self.model)
 
         if safe_isinstance(model, "xgboost.core.Booster"):
             raise ValueError(
@@ -337,7 +338,7 @@ class BaseExplainer(ABC):
         self.shap_kwargs = shap_kwargs or {}
 
         if shap == "guess":
-            shap_guess = guess_shap(self.model)
+            shap_guess = guess_shap(self.model_for_shap)
             model_str = (
                 str(type(self.model))
                 .replace("'", "")
@@ -1230,13 +1231,14 @@ class BaseExplainer(ABC):
         if not hasattr(self, "_shap_explainer"):
             X_str = ", X_background" if self.X_background is not None else "X"
             NoX_str = ", X_background" if self.X_background is not None else ""
+            model_for_shap = self.model_for_shap
             if self.shap == "tree":
                 logger.info(
                     "Generating self.shap_explainer = "
                     f"shap.TreeExplainer(model{NoX_str})"
                 )
                 # Fix XGBoost 3.1+ base_score string format before shap accesses it
-                model_for_shap = self._fix_xgboost_model_for_shap(self.model)
+                model_for_shap = self._fix_xgboost_model_for_shap(model_for_shap)
                 self._shap_explainer = shap.TreeExplainer(model_for_shap)
             elif self.shap == "linear":
                 if self.X_background is None:
@@ -1250,7 +1252,7 @@ class BaseExplainer(ABC):
                     X_str,
                 )
                 self._shap_explainer = shap.LinearExplainer(
-                    self.model,
+                    model_for_shap,
                     self.X_background if self.X_background is not None else self.X,
                 )
             elif self.shap == "deep":
@@ -1263,7 +1265,7 @@ class BaseExplainer(ABC):
                     UserWarning,
                 )
                 self._shap_explainer = shap.DeepExplainer(
-                    self.model,
+                    model_for_shap,
                     self.X_background
                     if self.X_background is not None
                     else shap.sample(self.X, 5),
@@ -1280,7 +1282,7 @@ class BaseExplainer(ABC):
                 import torch
 
                 self._shap_explainer = shap.DeepExplainer(
-                    self.model.module_,
+                    model_for_shap.module_,
                     torch.tensor(self.X_background.values)
                     if self.X_background is not None
                     else torch.tensor(shap.sample(self.X, 5).values),
@@ -1327,7 +1329,7 @@ class BaseExplainer(ABC):
                         "Please install a CUDA-enabled SHAP build that includes "
                         "GPUTree support."
                     )
-                self._shap_explainer = explainer_cls(self.model, X_data)
+                self._shap_explainer = explainer_cls(model_for_shap, X_data)
         return self._shap_explainer
 
     @insert_pos_label
@@ -2861,8 +2863,9 @@ class ClassifierExplainer(BaseExplainer):
         Taking into account model type and model_output
         """
         if not hasattr(self, "_shap_explainer"):
+            model_for_shap = self.model_for_shap
             model_str = (
-                str(type(self.model))
+                str(type(model_for_shap))
                 .replace("'", "")
                 .replace("<", "")
                 .replace(">", "")
@@ -2870,7 +2873,7 @@ class ClassifierExplainer(BaseExplainer):
             )
             if self.shap == "tree":
                 if safe_isinstance(
-                    self.model,
+                    model_for_shap,
                     "XGBClassifier",
                     "LGBMClassifier",
                     "CatBoostClassifier",
@@ -2897,7 +2900,9 @@ class ClassifierExplainer(BaseExplainer):
                             UserWarning,
                         )
                         # Fix XGBoost 3.1+ base_score string format before shap accesses it
-                        model_for_shap = self._fix_xgboost_model_for_shap(self.model)
+                        model_for_shap = self._fix_xgboost_model_for_shap(
+                            model_for_shap
+                        )
                         self._shap_explainer = shap.TreeExplainer(
                             model_for_shap,
                             self.X_background
@@ -2914,7 +2919,9 @@ class ClassifierExplainer(BaseExplainer):
                             ", X_background" if self.X_background is not None else "",
                         )
                         # Fix XGBoost 3.1+ base_score string format before shap accesses it
-                        model_for_shap = self._fix_xgboost_model_for_shap(self.model)
+                        model_for_shap = self._fix_xgboost_model_for_shap(
+                            model_for_shap
+                        )
                         self._shap_explainer = shap.TreeExplainer(
                             model_for_shap, self.X_background
                         )
@@ -2929,7 +2936,7 @@ class ClassifierExplainer(BaseExplainer):
                         ", X_background" if self.X_background is not None else "",
                     )
                     # Fix XGBoost 3.1+ base_score string format before shap accesses it
-                    model_for_shap = self._fix_xgboost_model_for_shap(self.model)
+                    model_for_shap = self._fix_xgboost_model_for_shap(model_for_shap)
                     self._shap_explainer = shap.TreeExplainer(
                         model_for_shap, self.X_background
                     )
@@ -2955,7 +2962,7 @@ class ClassifierExplainer(BaseExplainer):
                 )
 
                 self._shap_explainer = shap.LinearExplainer(
-                    self.model,
+                    model_for_shap,
                     self.X_background if self.X_background is not None else self.X,
                 )
             elif self.shap == "deep":
@@ -2968,7 +2975,7 @@ class ClassifierExplainer(BaseExplainer):
                     UserWarning,
                 )
                 self._shap_explainer = shap.DeepExplainer(
-                    self.model,
+                    model_for_shap,
                     self.X_background
                     if self.X_background is not None
                     else shap.sample(self.X, 5),
@@ -2985,7 +2992,7 @@ class ClassifierExplainer(BaseExplainer):
                     UserWarning,
                 )
                 self._shap_explainer = shap.DeepExplainer(
-                    self.model.module_,
+                    model_for_shap.module_,
                     torch.tensor(
                         self.X_background.values
                         if self.X_background is not None

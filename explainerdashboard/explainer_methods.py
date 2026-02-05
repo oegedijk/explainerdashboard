@@ -2,6 +2,7 @@ __all__ = [
     "IndexNotFoundError",
     "append_dict_to_df",
     "safe_isinstance",
+    "unwrap_calibrated_classifier",
     "align_categorical_dtypes",
     "guess_shap",
     "mape_score",
@@ -296,6 +297,27 @@ def safe_isinstance(obj, *instance_str):
     return False
 
 
+def unwrap_calibrated_classifier(model):
+    """Return the fitted base estimator for a CalibratedClassifierCV model."""
+    if not safe_isinstance(model, "CalibratedClassifierCV"):
+        return model
+
+    calibrated_classifiers = getattr(model, "calibrated_classifiers_", None)
+    if calibrated_classifiers:
+        calibrated = calibrated_classifiers[0]
+        for attr in ("estimator", "base_estimator"):
+            estimator = getattr(calibrated, attr, None)
+            if estimator is not None:
+                return estimator
+
+    for attr in ("estimator", "base_estimator"):
+        estimator = getattr(model, attr, None)
+        if estimator is not None:
+            return estimator
+
+    return model
+
+
 def align_categorical_dtypes(
     df_target: pd.DataFrame,
     df_reference: pd.DataFrame,
@@ -332,6 +354,8 @@ def guess_shap(model):
     Returns:
         str: {'tree', 'linear', None}
     """
+    model = unwrap_calibrated_classifier(model)
+
     tree_models = [
         "RandomForestClassifier",
         "RandomForestRegressor",
