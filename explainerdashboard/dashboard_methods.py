@@ -19,6 +19,8 @@ __all__ = [
 ]
 
 import sys
+import logging
+import warnings
 from abc import ABC
 import inspect
 import types
@@ -33,6 +35,8 @@ from dash import html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
 
 from . import to_html
+
+logger = logging.getLogger(__name__)
 
 
 # Stolen from https://www.fast.ai/2019/08/06/delegation/
@@ -353,12 +357,14 @@ class ExplainerComponent(ABC):
                     ):
                         self._components.append(subcomp)
                     else:
-                        print(
-                            f"{subcomp.__name__} is not an ExplainerComponent so not adding to self.components"
+                        logger.warning(
+                            "%s is not an ExplainerComponent so not adding to self.components",
+                            subcomp.__name__,
                         )
             else:
-                print(
-                    f"{comp.__name__} is not an ExplainerComponent so not adding to self.components"
+                logger.warning(
+                    "%s is not an ExplainerComponent so not adding to self.components",
+                    comp.__name__,
                 )
 
         for k, v in self.__dict__.items():
@@ -391,12 +397,14 @@ class ExplainerComponent(ABC):
                     if isinstance(subdep, str):
                         self._dependencies.append(subdep)
                     else:
-                        print(
-                            f"{subdep.__name__} is not a str so not adding to self.dependencies"
+                        logger.warning(
+                            "%s is not a str so not adding to self.dependencies",
+                            subdep.__name__,
                         )
             else:
-                print(
-                    f"{dep.__name__} is not a str or list of str so not adding to self.dependencies"
+                logger.warning(
+                    "%s is not a str or list of str so not adding to self.dependencies",
+                    dep.__name__,
                 )
 
     @property
@@ -520,9 +528,10 @@ class ExplainerComponent(ABC):
     def component_callbacks(self, app):
         """register callbacks specific to this ExplainerComponent."""
         if hasattr(self, "_register_callbacks"):
-            print(
-                "Warning: the use of _register_callbacks() will be deprecated!"
-                " Use component_callbacks() from now on..."
+            warnings.warn(
+                "The use of _register_callbacks() will be deprecated! "
+                "Use component_callbacks() from now on...",
+                DeprecationWarning,
             )
             self._register_callbacks(app)
 
@@ -888,14 +897,15 @@ def instantiate_component(component, explainer, name=None, **kwargs):
         if "name" in init_argspec.args + init_argspec.kwonlyargs:
             component = component(explainer, name=name, **kwargs)
         else:
-            print(
+            warnings.warn(
                 f"ExplainerComponent {component} does not accept a name parameter, "
                 f"so cannot assign name='{name}': "
                 f"{component.__name__}.__init__{inspect.signature(component.__init__)}. "
                 "Make sure to set super().__init__(name=...) explicitly yourself "
                 "inside the __init__ if you want to deploy across multiple "
                 "workers or a cluster, as otherwise each instance in the "
-                "cluster will generate its own random uuid name!"
+                "cluster will generate its own random uuid name!",
+                UserWarning,
             )
             component = component(explainer, **kwargs)
         return component

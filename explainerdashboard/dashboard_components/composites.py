@@ -11,6 +11,8 @@ __all__ = [
     "SimplifiedRegressionComposite",
 ]
 
+import warnings
+
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -681,8 +683,9 @@ class WhatIfComposite(ExplainerComponent):
         super().__init__(explainer, title, name)
 
         if "hide_whatifcontribution" in kwargs:
-            print(
-                "Warning: hide_whatifcontribution will be deprecated, use hide_whatifcontributiongraph instead!"
+            warnings.warn(
+                "hide_whatifcontribution will be deprecated, use hide_whatifcontributiongraph instead!",
+                DeprecationWarning,
             )
             self.hide_whatifcontributiongraph = kwargs["hide_whatifcontribution"]
 

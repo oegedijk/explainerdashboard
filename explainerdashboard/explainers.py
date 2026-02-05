@@ -10,6 +10,7 @@ __all__ = [
 
 import sys
 import inspect
+import logging
 from abc import ABC
 import base64
 from pathlib import Path
@@ -38,6 +39,8 @@ from sklearn.metrics import (
     roc_curve,
     confusion_matrix,
 )
+
+logger = logging.getLogger(__name__)
 from sklearn.metrics import (
     precision_recall_curve,
     precision_score,
@@ -195,16 +198,17 @@ class BaseExplainer(ABC):
                         self.X_background = get_transformed_X(
                             transformer_pipeline, X_background
                         )
-                    print(
+                    logger.info(
                         "Detected sklearn/imblearn Pipeline and succesfully extracted final "
                         "output dataframe with column names and final model..."
                     )
                 except Exception as e:
-                    print(
+                    warnings.warn(
                         "Warning: Failed to extract a data transformer with column names and final "
                         "model from the Pipeline. So setting shap='kernel' to use "
                         "the (slower and approximate) model-agnostic shap.KernelExplainer "
-                        f"instead! Error: {e}"
+                        f"instead! Error: {e}",
+                        UserWarning,
                     )
                     shap = "kernel"
 
@@ -274,11 +278,10 @@ class BaseExplainer(ABC):
             for col in self.categorical_cols:
                 self.X[col] = self.X[col].astype("category")
             if not isinstance(self.model, Pipeline):
-                print(
-                    f"Warning: Detected the following categorical columns: {self.categorical_cols}. "
-                    "Unfortunately for now shap interaction values do not work with"
-                    "categorical columns.",
-                    flush=True,
+                warnings.warn(
+                    f"Detected the following categorical columns: {self.categorical_cols}. "
+                    "Shap interaction values do not work with categorical columns.",
+                    UserWarning,
                 )
                 self.interactions_should_work = False
 
@@ -315,13 +318,14 @@ class BaseExplainer(ABC):
                 self.shap = shap_guess
             else:
                 self.shap = "kernel"
-                print(
+                warnings.warn(
                     "WARNING: Parameter shap='guess', but failed to guess the "
                     f"type of shap explainer to use for {model_str}. "
                     "Defaulting to the model agnostic shap.KernelExplainer "
                     "(shap='kernel'). However this will be slow, so if your model is "
                     "compatible with e.g. shap.TreeExplainer or shap.LinearExplainer "
-                    "then pass shap='tree' or shap='linear'!"
+                    "then pass shap='tree' or shap='linear'!",
+                    UserWarning,
                 )
         else:
             if shap in {"deep", "torch"}:
@@ -336,16 +340,17 @@ class BaseExplainer(ABC):
             )
             self.shap = shap
         if self.shap in {"kernel", "skorch", "linear"}:
-            print(
-                f"WARNING: For shap='{self.shap}', shap interaction values can unfortunately "
-                "not be calculated!"
+            warnings.warn(
+                f"For shap='{self.shap}', shap interaction values cannot be calculated.",
+                UserWarning,
             )
             self.interactions_should_work = False
         if self.shap == "skorch":
-            print(
-                "WARNING: For shap='skorch' the additivity check tends to fail, "
-                "you set set shap_kwargs=dict(check_additivity=False) to supress "
-                "this error (at your own risk)!"
+            warnings.warn(
+                "For shap='skorch' the additivity check tends to fail. "
+                "You can set shap_kwargs=dict(check_additivity=False) to suppress "
+                "this error (at your own risk).",
+                UserWarning,
             )
 
         self.model_output = model_output
@@ -447,11 +452,10 @@ class BaseExplainer(ABC):
         """
         filepath = Path(filepath)
         if self.shap == "kernel" and not str(filepath).endswith(".dill"):
-            print(
-                "Warning! KernelExplainer does not work with joblib or pickle, "
-                "but only with dill, so specify e.g. filepath='explainer.dill' "
-                "to use dill instead of joblib or pickle.",
-                flush=True,
+            warnings.warn(
+                "KernelExplainer does not work with joblib or pickle, but only with "
+                "dill. Specify e.g. filepath='explainer.dill' to use dill instead.",
+                UserWarning,
             )
         if hasattr(self, "_lock"):
             del self._lock  # Python Locks are not picklable
@@ -1015,7 +1019,7 @@ class BaseExplainer(ABC):
     def preds(self):
         """returns model model predictions"""
         if not hasattr(self, "_preds"):
-            print("Calculating predictions...", flush=True)
+            logger.info("Calculating predictions...")
             if self.shap == "skorch":  # skorch model.predict need np.array
                 pred_raw = self.model.predict(self.X.values)
                 pred_raw = _ensure_numeric_predictions(pred_raw)
@@ -1031,7 +1035,7 @@ class BaseExplainer(ABC):
     def pred_percentiles(self, pos_label=None):
         """returns percentile rank of model predictions"""
         if not hasattr(self, "_pred_percentiles"):
-            print("Calculating prediction percentiles...", flush=True)
+            logger.info("Calculating prediction percentiles...")
             self._pred_percentiles = (
                 pd.Series(self.preds).rank(method="min").divide(len(self.preds)).values
             ).astype(self.precision)
@@ -1041,7 +1045,7 @@ class BaseExplainer(ABC):
     def permutation_importances(self, pos_label=None):
         """Permutation importances"""
         if not hasattr(self, "_perm_imps"):
-            print("Calculating importances...", flush=True)
+            logger.info("Calculating importances...")
             self._perm_imps = cv_permutation_importances(
                 self.model,
                 self.X,
@@ -1196,7 +1200,7 @@ class BaseExplainer(ABC):
             X_str = ", X_background" if self.X_background is not None else "X"
             NoX_str = ", X_background" if self.X_background is not None else ""
             if self.shap == "tree":
-                print(
+                logger.info(
                     "Generating self.shap_explainer = "
                     f"shap.TreeExplainer(model{NoX_str})"
                 )
@@ -1205,27 +1209,27 @@ class BaseExplainer(ABC):
                 self._shap_explainer = shap.TreeExplainer(model_for_shap)
             elif self.shap == "linear":
                 if self.X_background is None:
-                    print(
-                        "Warning: shap values for shap.LinearExplainer get "
-                        "calculated against X_background, but paramater "
-                        "X_background=None, so using X instead"
+                    warnings.warn(
+                        "Shap values for shap.LinearExplainer are calculated against X_background, "
+                        "but X_background=None, so using X instead.",
+                        UserWarning,
                     )
-                print(
-                    f"Generating self.shap_explainer = shap.LinearExplainer(model{X_str})..."
+                logger.info(
+                    "Generating self.shap_explainer = shap.LinearExplainer(model%s)...",
+                    X_str,
                 )
                 self._shap_explainer = shap.LinearExplainer(
                     self.model,
                     self.X_background if self.X_background is not None else self.X,
                 )
             elif self.shap == "deep":
-                print(
-                    "Generating self.shap_explainer = "
-                    "shap.DeepExplainer(model, X_background)"
+                logger.info(
+                    "Generating self.shap_explainer = shap.DeepExplainer(model, X_background)"
                 )
-                print(
-                    "Warning: shap values for shap.DeepExplainer get "
-                    "calculated against X_background, but paramater "
-                    "X_background=None, so using shap.sample(X, 5) instead"
+                warnings.warn(
+                    "Shap values for shap.DeepExplainer are calculated against X_background, "
+                    "but X_background=None, so using shap.sample(X, 5) instead.",
+                    UserWarning,
                 )
                 self._shap_explainer = shap.DeepExplainer(
                     self.model,
@@ -1234,14 +1238,13 @@ class BaseExplainer(ABC):
                     else shap.sample(self.X, 5),
                 )
             elif self.shap == "skorch":
-                print(
-                    "Generating self.shap_explainer = "
-                    "shap.DeepExplainer(model, X_background)"
+                logger.info(
+                    "Generating self.shap_explainer = shap.DeepExplainer(model, X_background)"
                 )
-                print(
-                    "Warning: shap values for shap.DeepExplainer get "
-                    "calculated against X_background, but paramater "
-                    "X_background=None, so using shap.sample(X, 5) instead"
+                warnings.warn(
+                    "Shap values for shap.DeepExplainer are calculated against X_background, "
+                    "but X_background=None, so using shap.sample(X, 5) instead.",
+                    UserWarning,
                 )
                 import torch
 
@@ -1253,14 +1256,14 @@ class BaseExplainer(ABC):
                 )
             elif self.shap == "kernel":
                 if self.X_background is None:
-                    print(
-                        "Warning: shap values for shap.KernelExplainer get "
-                        "calculated against X_background, but paramater "
-                        "X_background=None, so using shap.sample(X, 50) instead"
+                    warnings.warn(
+                        "Shap values for shap.KernelExplainer are calculated against X_background, "
+                        "but X_background=None, so using shap.sample(X, 50) instead.",
+                        UserWarning,
                     )
-                print(
-                    "Generating self.shap_explainer = "
-                    f"shap.KernelExplainer(model, {X_str})..."
+                logger.info(
+                    "Generating self.shap_explainer = shap.KernelExplainer(model, %s)...",
+                    X_str,
                 )
 
                 def model_predict(data_asarray):
@@ -1277,10 +1280,10 @@ class BaseExplainer(ABC):
                     else shap.sample(self.X, 50),
                 )
             elif self.shap == "gputree":
-                print(
+                logger.info(
                     "Generating self.shap_explainer = shap.GPUTreeExplainer(model, X). "
-                    "Make sure you have a CUDA-enabled GPU and a CUDA-built SHAP "
-                    "installed. See https://shap.readthedocs.io/en/latest/example_notebooks/api_examples/explainers/GPUTree.html#"  # noqa: E501
+                    "Make sure you have a CUDA-enabled GPU and a CUDA-built SHAP installed. "
+                    "See https://shap.readthedocs.io/en/latest/example_notebooks/api_examples/explainers/GPUTree.html#",  # noqa: E501
                 )
                 X_data = self.X_background if self.X_background is not None else self.X
                 if hasattr(shap, "explainers") and hasattr(shap.explainers, "GPUTree"):
@@ -1323,7 +1326,7 @@ class BaseExplainer(ABC):
     def get_shap_values_df(self, pos_label=None):
         """SHAP values calculated using the shap library"""
         if not hasattr(self, "_shap_values_df"):
-            print("Calculating shap values...", flush=True)
+            logger.info("Calculating shap values...")
             if self.shap == "skorch":
                 import torch
 
@@ -1425,14 +1428,13 @@ class BaseExplainer(ABC):
             "shap interaction values! So no interactions tab!"
         )
         if not hasattr(self, "_shap_interaction_values"):
-            print("Calculating shap interaction values...", flush=True)
+            logger.info("Calculating shap interaction values...")
             if self.shap == "tree":
-                print(
-                    "Reminder: TreeShap computational complexity is O(TLD^2), "
-                    "where T is the number of trees, L is the maximum number of"
-                    " leaves in any tree and D the maximal depth of any tree. So "
-                    "reducing these will speed up the calculation.",
-                    flush=True,
+                warnings.warn(
+                    "TreeShap computational complexity is O(TLD^2), where T is the number "
+                    "of trees, L is the maximum number of leaves in any tree and D the maximal "
+                    "depth of any tree. Reducing these will speed up the calculation.",
+                    UserWarning,
                 )
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(
                 self.X
@@ -1654,10 +1656,9 @@ class BaseExplainer(ABC):
                 ),
             )
 
-        print(
-            "Explainer total memory usage (approximate): ",
+        logger.info(
+            "Explainer total memory usage (approximate): %s",
             size_to_string(memory_df.bytes.sum()),
-            flush=True,
         )
         return (
             memory_df[memory_df.bytes > cutoff]
@@ -2660,11 +2661,11 @@ class ClassifierExplainer(BaseExplainer):
             and model_output == "probability"
             and not isinstance(self.model, Pipeline)
         ):
-            print(
-                "Warning: Models that deal with categorical features directly "
-                f"such as {self.model.__class__.__name__} are incompatible with model_output='probability'"
-                " for now. So setting model_output='logodds'...",
-                flush=True,
+            warnings.warn(
+                "Models that deal with categorical features directly "
+                f"such as {self.model.__class__.__name__} are incompatible with model_output='probability' "
+                "for now. Setting model_output='logodds'...",
+                UserWarning,
             )
             self.model_output = "logodds"
         if labels is not None:
@@ -2678,23 +2679,22 @@ class ClassifierExplainer(BaseExplainer):
         if safe_isinstance(
             self.model, "RandomForestClassifier", "ExtraTreesClassifier"
         ):
-            print(
+            logger.info(
                 "Detected RandomForestClassifier model: "
-                "Changing class type to RandomForestClassifierExplainer...",
-                flush=True,
+                "Changing class type to RandomForestClassifierExplainer..."
             )
             self.__class__ = RandomForestClassifierExplainer
         if str(type(self.model)).endswith("XGBClassifier'>"):
-            print(
+            logger.info(
                 "Detected XGBClassifier model: "
-                "Changing class type to XGBClassifierExplainer...",
-                flush=True,
+                "Changing class type to XGBClassifierExplainer..."
             )
             self.__class__ = XGBClassifierExplainer
             if len(self.labels) > 2 and self.model_output == "probability":
-                print(
+                warnings.warn(
                     "model_output=='probability' does not work with multiclass "
-                    "XGBClassifier models, so settings model_output='logodds'..."
+                    "XGBClassifier models, so setting model_output='logodds'...",
+                    UserWarning,
                 )
                 self.model_output = "logodds"
 
@@ -2750,7 +2750,7 @@ class ClassifierExplainer(BaseExplainer):
     def pred_probas_raw(self):
         """returns pred_probas with probability for each class"""
         if not hasattr(self, "_pred_probas"):
-            print("Calculating prediction probabilities...", flush=True)
+            logger.info("Calculating prediction probabilities...")
             assert hasattr(
                 self.model, "predict_proba"
             ), "model does not have a predict_proba method!"
@@ -2770,7 +2770,7 @@ class ClassifierExplainer(BaseExplainer):
     def pred_percentiles_raw(self):
         """ """
         if not hasattr(self, "_pred_percentiles_raw"):
-            print("Calculating pred_percentiles...", flush=True)
+            logger.info("Calculating pred_percentiles...")
             self._pred_percentiles_raw = (
                 pd.DataFrame(self.pred_probas_raw)
                 .rank(method="min")
@@ -2793,9 +2793,8 @@ class ClassifierExplainer(BaseExplainer):
     def permutation_importances(self, pos_label=None):
         """Permutation importances"""
         if not hasattr(self, "_perm_imps"):
-            print(
-                "Calculating permutation importances (if slow, try setting n_jobs parameter)...",
-                flush=True,
+            logger.info(
+                "Calculating permutation importances (if slow, try setting n_jobs parameter)..."
             )
             self._perm_imps = [
                 cv_permutation_importances(
@@ -2839,21 +2838,22 @@ class ClassifierExplainer(BaseExplainer):
                 ):
                     if self.model_output == "probability":
                         if self.X_background is None:
-                            print(
-                                f"Note: model_output=='probability'. For {model_str} shap values normally get "
-                                "calculated against X_background, but paramater X_background=None, "
-                                "so using X instead"
+                            warnings.warn(
+                                f"model_output=='probability'. For {model_str} shap values normally get "
+                                "calculated against X_background, but X_background=None, so using X instead.",
+                                UserWarning,
                             )
-                        print(
-                            "Generating self.shap_explainer = shap.TreeExplainer(model, "
-                            f"{'X_background' if self.X_background is not None else 'X'}"
-                            ", model_output='probability', feature_perturbation='interventional')..."
+                        logger.info(
+                            "Generating self.shap_explainer = shap.TreeExplainer(model, %s, "
+                            "model_output='probability', feature_perturbation='interventional')...",
+                            "X_background" if self.X_background is not None else "X",
                         )
-                        print(
-                            "Note: Shap interaction values will not be available. "
+                        warnings.warn(
+                            "Shap interaction values will not be available. "
                             "If shap values in probability space are not necessary you can "
                             "pass model_output='logodds' to get shap values in logodds without the need for "
-                            "a background dataset and also working shap interaction values..."
+                            "a background dataset and also working shap interaction values.",
+                            UserWarning,
                         )
                         # Fix XGBoost 3.1+ base_score string format before shap accesses it
                         model_for_shap = self._fix_xgboost_model_for_shap(self.model)
@@ -2868,8 +2868,9 @@ class ClassifierExplainer(BaseExplainer):
                         self.interactions_should_work = False
                     else:
                         self.model_output = "logodds"
-                        print(
-                            f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})"
+                        logger.info(
+                            "Generating self.shap_explainer = shap.TreeExplainer(model%s)",
+                            ", X_background" if self.X_background is not None else "",
                         )
                         # Fix XGBoost 3.1+ base_score string format before shap accesses it
                         model_for_shap = self._fix_xgboost_model_for_shap(self.model)
@@ -2878,11 +2879,13 @@ class ClassifierExplainer(BaseExplainer):
                         )
                 else:
                     if self.model_output == "probability":
-                        print(
-                            f"Note: model_output=='probability', so assuming that raw shap output of {model_str} is in probability space..."
+                        logger.info(
+                            "model_output=='probability'; assuming raw shap output of %s is in probability space...",
+                            model_str,
                         )
-                    print(
-                        f"Generating self.shap_explainer = shap.TreeExplainer(model{', X_background' if self.X_background is not None else ''})"
+                    logger.info(
+                        "Generating self.shap_explainer = shap.TreeExplainer(model%s)",
+                        ", X_background" if self.X_background is not None else "",
                     )
                     # Fix XGBoost 3.1+ base_score string format before shap accesses it
                     model_for_shap = self._fix_xgboost_model_for_shap(self.model)
@@ -2892,20 +2895,22 @@ class ClassifierExplainer(BaseExplainer):
 
             elif self.shap == "linear":
                 if self.model_output == "probability":
-                    print(
-                        "Note: model_output='probability' is currently not supported for linear classifiers "
-                        "models with shap. So defaulting to model_output='logodds' "
-                        "If you really need probability outputs use shap='kernel' instead."
+                    warnings.warn(
+                        "model_output='probability' is currently not supported for linear classifier models "
+                        "with shap. Defaulting to model_output='logodds'. If you really need probability outputs "
+                        "use shap='kernel' instead.",
+                        UserWarning,
                     )
                     self.model_output = "logodds"
                 if self.X_background is None:
-                    print(
-                        "Note: shap values for shap='linear' get calculated against "
-                        "X_background, but paramater X_background=None, so using X instead..."
+                    warnings.warn(
+                        "Shap values for shap='linear' are calculated against X_background, "
+                        "but X_background=None, so using X instead...",
+                        UserWarning,
                     )
-                print(
-                    "Generating self.shap_explainer = shap.LinearExplainer(model, "
-                    f"{'X_background' if self.X_background is not None else 'X'})..."
+                logger.info(
+                    "Generating self.shap_explainer = shap.LinearExplainer(model, %s)...",
+                    "X_background" if self.X_background is not None else "X",
                 )
 
                 self._shap_explainer = shap.LinearExplainer(
@@ -2913,14 +2918,13 @@ class ClassifierExplainer(BaseExplainer):
                     self.X_background if self.X_background is not None else self.X,
                 )
             elif self.shap == "deep":
-                print(
-                    "Generating self.shap_explainer = "
-                    "shap.DeepExplainer(model, X_background)"
+                logger.info(
+                    "Generating self.shap_explainer = shap.DeepExplainer(model, X_background)"
                 )
-                print(
-                    "Warning: shap values for shap.DeepExplainer get "
-                    "calculated against X_background, but paramater "
-                    "X_background=None, so using shap.sample(X, 5) instead"
+                warnings.warn(
+                    "Shap values for shap.DeepExplainer are calculated against X_background, "
+                    "but X_background=None, so using shap.sample(X, 5) instead.",
+                    UserWarning,
                 )
                 self._shap_explainer = shap.DeepExplainer(
                     self.model,
@@ -2931,14 +2935,13 @@ class ClassifierExplainer(BaseExplainer):
             elif self.shap == "skorch":
                 import torch
 
-                print(
-                    "Generating self.shap_explainer = "
-                    "shap.DeepExplainer(model, X_background)"
+                logger.info(
+                    "Generating self.shap_explainer = shap.DeepExplainer(model, X_background)"
                 )
-                print(
-                    "Warning: shap values for shap.DeepExplainer get "
-                    "calculated against X_background, but paramater "
-                    "X_background=None, so using shap.sample(X, 5) instead"
+                warnings.warn(
+                    "Shap values for shap.DeepExplainer are calculated against X_background, "
+                    "but X_background=None, so using shap.sample(X, 5) instead.",
+                    UserWarning,
                 )
                 self._shap_explainer = shap.DeepExplainer(
                     self.model.module_,
@@ -2950,20 +2953,21 @@ class ClassifierExplainer(BaseExplainer):
                 )
             elif self.shap == "kernel":
                 if self.X_background is None:
-                    print(
-                        "Note: shap values for shap='kernel' normally get calculated against "
-                        "X_background, but paramater X_background=None, so setting "
-                        "X_background=shap.sample(X, 50)..."
+                    warnings.warn(
+                        "Shap values for shap='kernel' normally get calculated against "
+                        "X_background, but X_background=None, so setting "
+                        "X_background=shap.sample(X, 50)...",
+                        UserWarning,
                     )
                 if self.model_output != "probability":
-                    print(
-                        "Note: for ClassifierExplainer shap='kernel' defaults to model_output='probability"
+                    warnings.warn(
+                        "For ClassifierExplainer shap='kernel' defaults to model_output='probability'.",
+                        UserWarning,
                     )
                     self.model_output = "probability"
-                print(
-                    "Generating self.shap_explainer = shap.KernelExplainer(model, "
-                    f"{'X_background' if self.X_background is not None else 'X'}"
-                    ", link='identity')"
+                logger.info(
+                    "Generating self.shap_explainer = shap.KernelExplainer(model, %s, link='identity')",
+                    "X_background" if self.X_background is not None else "X",
                 )
 
                 def model_predict(data_asarray):
@@ -3027,7 +3031,7 @@ class ClassifierExplainer(BaseExplainer):
     def get_shap_values_df(self, pos_label=None):
         """SHAP Values"""
         if not hasattr(self, "_shap_values_df"):
-            print("Calculating shap values...", flush=True)
+            logger.info("Calculating shap values...")
             if self.shap == "skorch":
                 import torch
 
@@ -3250,17 +3254,15 @@ class ClassifierExplainer(BaseExplainer):
         """SHAP interaction values"""
         if not hasattr(self, "_shap_interaction_values"):
             _ = self.get_shap_values_df()  # make sure shap values have been calculated
-            print(
-                "Calculating shap interaction values... (this may take a while)",
-                flush=True,
+            logger.info(
+                "Calculating shap interaction values... (this may take a while)"
             )
             if self.shap == "tree":
-                print(
-                    "Reminder: TreeShap computational complexity is O(TLD^2), "
-                    "where T is the number of trees, L is the maximum number of"
-                    " leaves in any tree and D the maximal depth of any tree. So "
-                    "reducing these will speed up the calculation.",
-                    flush=True,
+                warnings.warn(
+                    "TreeShap computational complexity is O(TLD^2), where T is the number "
+                    "of trees, L is the maximum number of leaves in any tree and D the maximal "
+                    "depth of any tree. Reducing these will speed up the calculation.",
+                    UserWarning,
                 )
             self._shap_interaction_values = self.shap_explainer.shap_interaction_values(
                 self.X
@@ -3543,7 +3545,7 @@ class ClassifierExplainer(BaseExplainer):
 
         if not hasattr(self, "_metrics"):
             _ = self.pred_probas()
-            print("Calculating metrics...", flush=True)
+            logger.info("Calculating metrics...")
             if self.cv is None:
                 self._metrics = dict()
                 for label in range(len(self.labels)):
@@ -3757,7 +3759,7 @@ class ClassifierExplainer(BaseExplainer):
                 y_true = self.pos_label_index(self.get_y(index))
                 preds_df.iloc[y_true, 0] = f"{preds_df.iloc[y_true, 0]}*"
             except Exception as e:
-                print(e)
+                logger.debug("Failed to mark true label in predictions df: %s", e)
 
         return preds_df.round(round)
 
@@ -3815,7 +3817,7 @@ class ClassifierExplainer(BaseExplainer):
 
         """
         if not hasattr(self, "_liftcurve_dfs"):
-            print("Calculating liftcurve_dfs...", flush=True)
+            logger.info("Calculating liftcurve_dfs...")
             self._liftcurve_dfs = [
                 get_liftcurve_df(self.pred_probas(label), self.y, label)
                 for label in range(len(self.labels))
@@ -3851,7 +3853,7 @@ class ClassifierExplainer(BaseExplainer):
 
         if not hasattr(self, "_classification_dfs"):
             _ = self.pred_probas()
-            print("Calculating classification_dfs...", flush=True)
+            logger.info("Calculating classification_dfs...")
             self._classification_dfs = dict()
             for label in range(len(self.labels)):
                 self._classification_dfs[label] = dict()
@@ -3870,7 +3872,7 @@ class ClassifierExplainer(BaseExplainer):
         fpr, tpr, thresholds, score"""
 
         if not hasattr(self, "_roc_auc_curves"):
-            print("Calculating roc auc curves...", flush=True)
+            logger.info("Calculating roc auc curves...")
             self._roc_auc_curves = []
             for i in range(len(self.labels)):
                 fpr, tpr, thresholds = roc_curve(self.y_binary(i), self.pred_probas(i))
@@ -3886,7 +3888,7 @@ class ClassifierExplainer(BaseExplainer):
         fpr, tpr, thresholds, score"""
 
         if not hasattr(self, "_pr_auc_curves"):
-            print("Calculating pr auc curves...", flush=True)
+            logger.info("Calculating pr auc curves...")
             self._pr_auc_curves = []
             for i in range(len(self.labels)):
                 precision, recall, thresholds = precision_recall_curve(
@@ -3912,7 +3914,7 @@ class ClassifierExplainer(BaseExplainer):
             )
 
         if not hasattr(self, "_confusion_matrices"):
-            print("Calculating confusion matrices...", flush=True)
+            logger.info("Calculating confusion matrices...")
             self._confusion_matrices = dict()
             self._confusion_matrices["binary"] = dict()
             for label in range(len(self.labels)):
@@ -4286,12 +4288,10 @@ class RegressionExplainer(BaseExplainer):
         self.is_regression = True
 
         if safe_isinstance(model, "RandomForestRegressor", "ExtraTreesRegressor"):
-            print(
-                "Changing class type to RandomForestRegressionExplainer...", flush=True
-            )
+            logger.info("Changing class type to RandomForestRegressionExplainer...")
             self.__class__ = RandomForestRegressionExplainer
         if safe_isinstance(model, "XGBRegressor"):
-            print("Changing class type to XGBRegressionExplainer...", flush=True)
+            logger.info("Changing class type to XGBRegressionExplainer...")
             self.__class__ = XGBRegressionExplainer
 
         _ = self.shap_explainer
@@ -4300,7 +4300,7 @@ class RegressionExplainer(BaseExplainer):
     def residuals(self):
         """residuals: y-preds"""
         if not hasattr(self, "_residuals"):
-            print("Calculating residuals...")
+            logger.info("Calculating residuals...")
             self._residuals = (self.y - self.preds).astype(self.precision)
         return self._residuals
 
@@ -4308,7 +4308,7 @@ class RegressionExplainer(BaseExplainer):
     def abs_residuals(self):
         """absolute residuals"""
         if not hasattr(self, "_abs_residuals"):
-            print("Calculating absolute residuals...")
+            logger.info("Calculating absolute residuals...")
             self._abs_residuals = np.abs(self.residuals).astype(self.precision)
         return self._abs_residuals
 
@@ -4488,11 +4488,11 @@ class RegressionExplainer(BaseExplainer):
             metrics_dict = {k: np.mean(v) for k, v in metrics_dict.items()}
 
         if metrics_dict["mean-absolute-percentage-error"] > 2:
-            print(
-                "Warning: mean-absolute-percentage-error is very large "
+            warnings.warn(
+                "mean-absolute-percentage-error is very large "
                 f"({metrics_dict['mean-absolute-percentage-error']}), you can hide "
                 "it from the metrics by passing parameter show_metrics...",
-                flush=True,
+                UserWarning,
             )
         if not show_metrics:
             return metrics_dict
@@ -4838,14 +4838,12 @@ class TreeExplainer(BaseExplainer):
                 cmd = ["dot", "-V"]
                 be.run_check(cmd, capture_output=True, check=True, quiet=True)
             except Exception:
-                print(
-                    """
-                WARNING: you don't seem to have graphviz in your path (cannot run 'dot -V'),
-                so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab.
-
-                See https://github.com/parrt/dtreeviz for info on how to properly install graphviz
-                for dtreeviz.
-                """
+                warnings.warn(
+                    "You don't seem to have graphviz in your path (cannot run 'dot -V'), "
+                    "so no dtreeviz visualisation of decision trees will be shown on the shadow trees tab. "
+                    "See https://github.com/parrt/dtreeviz for info on how to properly install graphviz "
+                    "for dtreeviz.",
+                    UserWarning,
                 )
                 self._graphviz_available = False
             else:
@@ -4920,7 +4918,10 @@ class TreeExplainer(BaseExplainer):
 
         """
         if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!")
+            warnings.warn(
+                "No graphviz 'dot' executable available!",
+                UserWarning,
+            )
             return None
 
         viz = DTreeVizAPI(self.shadow_trees[tree_idx])
@@ -4972,7 +4973,10 @@ class TreeExplainer(BaseExplainer):
 
         """
         if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!")
+            warnings.warn(
+                "No graphviz 'dot' executable available!",
+                UserWarning,
+            )
             return None
         svg = open(self.decisiontree_file(tree_idx, index, show_just_path), "rb").read()
         encoded = base64.b64encode(svg)
@@ -5026,9 +5030,8 @@ class RandomForestExplainer(TreeExplainer):
     def shadow_trees(self):
         """a list of ShadowDecTree objects"""
         if not hasattr(self, "_shadow_trees"):
-            print(
-                "Calculating ShadowDecTree for each individual decision tree...",
-                flush=True,
+            logger.info(
+                "Calculating ShadowDecTree for each individual decision tree..."
             )
             assert hasattr(
                 self.model, "estimators_"
@@ -5103,7 +5106,7 @@ class XGBExplainer(TreeExplainer):
     @property
     def model_dump_list(self):
         if not hasattr(self, "_model_dump_list"):
-            print("Generating xgboost model dump...", flush=True)
+            logger.info("Generating xgboost model dump...")
             self._model_dump_list = self.model.get_booster().get_dump()
         return self._model_dump_list
 
@@ -5120,9 +5123,8 @@ class XGBExplainer(TreeExplainer):
     def shadow_trees(self):
         """a list of ShadowDecTree objects"""
         if not hasattr(self, "_shadow_trees"):
-            print(
-                "Calculating ShadowDecTree for each individual decision tree...",
-                flush=True,
+            logger.info(
+                "Calculating ShadowDecTree for each individual decision tree..."
             )
 
             # dtreeviz requires y to be int dtype (int64), not int32
@@ -5197,7 +5199,10 @@ class XGBExplainer(TreeExplainer):
 
         """
         if not self.graphviz_available:
-            print("No graphviz 'dot' executable available!")
+            warnings.warn(
+                "No graphviz 'dot' executable available!",
+                UserWarning,
+            )
             return None
 
         if self.is_classifier:

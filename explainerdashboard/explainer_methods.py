@@ -42,6 +42,7 @@ import re
 from collections import Counter
 from typing import List, Union
 import warnings
+import logging
 
 import numpy as np
 import pandas as pd
@@ -54,6 +55,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from joblib import Parallel, delayed
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_numeric_predictions(pred):
@@ -490,16 +493,16 @@ def split_pipeline(pipeline: Pipeline, verbose: int = 1):
     )
 
     if verbose:
-        print("splitting pipeline...", flush=True)
+        logger.info("Splitting pipeline...")
         skipped_transforms = [
             name
             for name, transform in pipeline.steps[:-1]
             if not hasattr(transform, "transform")
         ]
         if skipped_transforms:
-            print(
-                f"Skipping the following steps that lack a .transform() method: {', '.join(skipped_transforms)}...",
-                flush=True,
+            logger.info(
+                "Skipping steps that lack a .transform() method: %s",
+                ", ".join(skipped_transforms),
             )
 
     transform_steps = [
@@ -548,17 +551,17 @@ def get_transformed_X(
             return pd.DataFrame(X_transformed, columns=columns)
         except Exception as e:
             if verbose:
-                print(
-                    f"Failed to retrieve new column names from transformer_pipeline.get_feature_names_out()! Error: {e}"
+                logger.warning(
+                    "Failed to retrieve new column names from transformer_pipeline.get_feature_names_out(): %s",
+                    e,
                 )
 
     if X_transformed.shape == X.values.shape:
         if verbose:
-            print(
-                "transformer pipeline outputs a DataFrame with the same number of columns"
-                f"so trying to assign column names from X.columns: {X.columns.tolist()}, so"
-                " make sure that your pipeline does not add, remove or reorders columns!",
-                flush=True,
+            logger.info(
+                "Transformer pipeline outputs same number of columns; using X.columns (%s). "
+                "Ensure your pipeline does not add/remove/reorder columns.",
+                X.columns.tolist(),
             )
         try:
             for i, pipe in enumerate(transformer_pipeline):
@@ -566,15 +569,19 @@ def get_transformed_X(
                     assert pipe.n_features_in_ == len(X.columns)
             return pd.DataFrame(X_transformed, columns=X.columns)
         except Exception as e:
-            print(
-                f".n_features_in_ did not match len(X.columns)={len(X.columns)} for pipeline step {i}: {pipe}! Error: {e}"
+            logger.warning(
+                ".n_features_in_ did not match len(X.columns)=%s for pipeline step %s: %s. Error: %s",
+                len(X.columns),
+                i,
+                pipe,
+                e,
             )
 
     if verbose:
-        print(
+        logger.warning(
             "Pipeline does not have a functioning .get_feature_names_out() method, "
             "nor do all pipeline steps return the same number of columns as input, "
-            "so assigning columns names 'col1', 'col2', etc instead!"
+            "so assigning column names 'col1', 'col2', etc."
         )
     columns = [f"col{i + 1}" for i in range(X_transformed.shape[1])]
 
@@ -1495,7 +1502,10 @@ def get_contrib_df(
 
         display_df_neg = display_df[display_df.contribution < 0]
         display_df_pos = display_df[display_df.contribution >= 0]
-        print(contrib_df[~contrib_df.col.isin(display_df.col.tolist())])
+        logger.debug(
+            "Excluded contributions: %s",
+            contrib_df[~contrib_df.col.isin(display_df.col.tolist())],
+        )
 
         rest_df = pd.DataFrame(
             {

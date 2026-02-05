@@ -4,6 +4,9 @@ Command-line tool for starting an explainerdashboard from a particular directory
 
 import os
 import webbrowser
+import logging
+import sys
+import warnings
 from pathlib import Path
 import pickle
 import oyaml as yaml
@@ -16,6 +19,26 @@ import waitress
 from explainerdashboard import *
 from explainerdashboard.explainers import BaseExplainer
 from explainerdashboard.dashboards import ExplainerDashboard
+
+logger = logging.getLogger("explainerdashboard")
+
+
+def _configure_cli_logging():
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+        handler = logging.StreamHandler(stream=sys.stdout)
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    warnings.simplefilter("default")
+    warnings.showwarning = (
+        lambda message,
+        category,
+        filename,
+        lineno,
+        file=None,
+        line=None: logger.warning("%s", message)
+    )
 
 
 explainer_ascii = r"""
@@ -50,10 +73,10 @@ def build_explainer(explainer_config):
     ), "Please pass a proper explainer.yaml config file that starts with `explainer:`!"
     config = explainer_config["explainer"]
 
-    print(f"explainerdashboard ===> Loading model from {config['modelfile']}")
+    logger.info("explainerdashboard ===> Loading model from %s", config["modelfile"])
     model = pickle.load(open(config["modelfile"], "rb"))
 
-    print(f"explainerdashboard ===> Loading data from {config['datafile']}")
+    logger.info("explainerdashboard ===> Loading data from %s", config["datafile"])
     if str(config["datafile"]).endswith(".csv"):
         df = pd.read_csv(config["datafile"])
     elif str(config["datafile"]).endswith(".parquet"):
@@ -61,16 +84,18 @@ def build_explainer(explainer_config):
     else:
         raise ValueError("datafile should either be a .csv or .parquet!")
 
-    print(
-        f"explainerdashboard ===> Using column {config['data_target']} to generate X, y "
+    logger.info(
+        "explainerdashboard ===> Using column %s to generate X, y",
+        config["data_target"],
     )
     target_col = config["data_target"]
     X = df.drop(target_col, axis=1)
     y = df[target_col]
 
     if config["data_index"] is not None:
-        print(
-            f"explainerdashboard ===> Generating index from column {config['data_index']}"
+        logger.info(
+            "explainerdashboard ===> Generating index from column %s",
+            config["data_index"],
         )
         assert config["data_index"] in X.columns, (
             f"Cannot find data_index column ({config['data_index']})"
@@ -82,10 +107,10 @@ def build_explainer(explainer_config):
     params = config["params"]
 
     if config["explainer_type"] == "classifier":
-        print("explainerdashboard ===> Generating ClassifierExplainer...")
+        logger.info("explainerdashboard ===> Generating ClassifierExplainer...")
         explainer = ClassifierExplainer(model, X, y, **params)
     elif config["explainer_type"] == "regression":
-        print("explainerdashboard ===> Generating RegressionExplainer...")
+        logger.info("explainerdashboard ===> Generating RegressionExplainer...")
         explainer = ClassifierExplainer(model, X, y, **params)
     return explainer
 
@@ -333,6 +358,7 @@ def explainerdashboard_cli(ctx):
         explainerdashboard build
 
     """
+    _configure_cli_logging()
 
 
 @explainerdashboard_cli.command(help="run dashboard and open browser")
@@ -452,11 +478,12 @@ def build(ctx, explainer_filepath, dashboard_filepath):
         else:
             dashboard_config = None
 
-        print(
-            f"explainerdashboard ===> Building {explainer_config['explainer']['explainerfile']}"
+        logger.info(
+            "explainerdashboard ===> Building %s",
+            explainer_config["explainer"]["explainerfile"],
         )
         build_and_dump_explainer(explainer_config, dashboard_config)
-        print("explainerdashboard ===> Build finished!")
+        logger.info("explainerdashboard ===> Build finished!")
         return
 
 
