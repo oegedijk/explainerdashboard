@@ -5,6 +5,7 @@
 
 ### Bug Fixes
 - Fix FeatureInputComponent range calculation for boolean columns (avoid np.round on bools) and add a regression test.
+- Ensure save_html includes custom tabs by providing a static-export fallback for tabs without a to_html implementation.
 
 ## Version 0.5.5:
 

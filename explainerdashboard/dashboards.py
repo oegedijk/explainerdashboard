@@ -53,7 +53,12 @@ from jupyter_dash import JupyterDash
 
 import plotly.io as pio
 
-from .dashboard_methods import instantiate_component, encode_callables, decode_callables
+from .dashboard_methods import (
+    instantiate_component,
+    encode_callables,
+    decode_callables,
+    ExplainerComponent,
+)
 from .dashboard_components import *
 from .explainers import BaseExplainer
 from . import to_html
@@ -258,10 +263,20 @@ class ExplainerTabsLayout(ExplainerComponent):
 
     def to_html(self, state_dict=None, add_header=True):
         html = to_html.title(self.title)
-        tabs = {
-            tab.title: tab.to_html(state_dict, add_header=False) for tab in self.tabs
-        }
-        tabs = {tab: html for tab, html in tabs.items() if html != "<div></div>"}
+        tabs = {}
+        for tab in self.tabs:
+            tab_html = tab.to_html(state_dict, add_header=False)
+            if (
+                tab_html == "<div></div>"
+                and tab.__class__.to_html is ExplainerComponent.to_html
+            ):
+                if tab.layout() is not None:
+                    tab_html = to_html.div(
+                        "<p>This tab does not support static HTML export. "
+                        "Run the dashboard to view the full interactive content.</p>"
+                    )
+            if tab_html != "<div></div>":
+                tabs[tab.title] = tab_html
         html += to_html.tabs(tabs)
         if add_header:
             return to_html.add_header(html)
