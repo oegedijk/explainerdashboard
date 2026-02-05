@@ -8,7 +8,7 @@
 - Ensure save_html includes custom tabs by providing a static-export fallback for tabs without a to_html implementation.
 
 ### Improvements
-- Replace print statements with standard logging and warnings; progress messages are now INFO-level and user-actionable guidance uses warnings.
+- Replace print statements with standard logging and warnings; progress messages are now INFO-level and user-actionable guidance uses warnings. A one-time warning is emitted if logging is not configured, with instructions to call `enable_default_logging()`.
 
 ## Version 0.5.5:
 

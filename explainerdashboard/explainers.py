@@ -41,6 +41,34 @@ from sklearn.metrics import (
 )
 
 logger = logging.getLogger(__name__)
+_WARNED_NO_LOGGING = False
+
+
+def _logging_configured():
+    root_logger = logging.getLogger()
+    if root_logger.handlers:
+        return True
+    package_logger = logging.getLogger("explainerdashboard")
+    for handler in package_logger.handlers:
+        if not isinstance(handler, logging.NullHandler):
+            return True
+    return False
+
+
+def _warn_if_no_logging_configured():
+    global _WARNED_NO_LOGGING
+    if _WARNED_NO_LOGGING or _logging_configured():
+        return
+    warnings.warn(
+        "ExplainerDashboard logging is not configured. To see progress messages, "
+        "run: from explainerdashboard import enable_default_logging; "
+        "enable_default_logging()",
+        UserWarning,
+        stacklevel=2,
+    )
+    _WARNED_NO_LOGGING = True
+
+
 from sklearn.metrics import (
     precision_recall_curve,
     precision_score,
@@ -164,6 +192,7 @@ class BaseExplainer(ABC):
             shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
                 most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
         """
+        _warn_if_no_logging_configured()
         self._params_dict = dict(
             shap=shap,
             model_output=model_output,
