@@ -1,7 +1,7 @@
 # TODO
 
 **Meta**
-- Last triage: 2026-02-05
+- Last triage: 2026-02-06
 - Owner: @oegedijk
 - Rules: link an issue when possible; include size S/M/L; mark blockers.
 
@@ -9,7 +9,6 @@
 - [M][Explainers][#273] categorical columns with NaNs: sorting and column preservation.
 
 **Next**
-- [M][Hub][#269] add_dashboard endpoint fails after first request (Flask blueprint lifecycle).
 - [M/L][Components][#262] add filters for random transaction selection in whatif tab.
 - [S][Methods][#220] get_contrib_df accepts list/array input.
 - [M][Components][#176] FeatureInputComponent hide parameters.

@@ -7,6 +7,7 @@
 - Allow FeatureInputComponent (what-if inputs) to customize numeric ranges and rounding, and apply min/max/step to inputs.
 - Improve compatibility with AutoGluon/custom wrappers by coercing pandas `DataFrame` outputs from `predict_proba`/`predict` to numpy arrays before indexing in classifier/regression helper paths.
 - Harden one-vs-all scorer handling so `make_one_vs_all_scorer` also accepts classifiers whose `predict_proba` returns a pandas `DataFrame`.
+- Fix ExplainerHub `add_dashboard_route` after first request by allowing dynamic dashboard registration/setup during route-triggered add, and add a regression test for issue #269.
 
 ## Version 0.5.6:
 

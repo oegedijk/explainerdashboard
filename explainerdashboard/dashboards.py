@@ -18,6 +18,7 @@ import json
 import inspect
 import requests
 import logging
+from contextlib import contextmanager
 from typing import Dict, List, Optional, Union
 from pathlib import Path
 from copy import deepcopy
@@ -1715,6 +1716,18 @@ class ExplainerHub:
             if self.users and not self.dbs_open_by_default:
                 self._protect_dashviews(self.index_page)
 
+    @contextmanager
+    def _allow_dynamic_setup_after_first_request(self):
+        """Temporarily bypass Flask setup lock for dynamic add_dashboard_route updates."""
+        original = getattr(self.app, "_got_first_request", None)
+        if original:
+            self.app._got_first_request = False
+        try:
+            yield
+        finally:
+            if original is not None:
+                self.app._got_first_request = original
+
     def add_dashboard(self, dashboard: ExplainerDashboard, **kwargs):
         """Add a dashboard to the hub
 
@@ -1777,11 +1790,14 @@ class ExplainerHub:
         config = deepcopy(dashboard.to_yaml(return_dict=True))
         config["dashboard"]["params"]["logins"] = None
 
-        self.dashboards.append(
-            ExplainerDashboard.from_config(
-                dashboard.explainer, config, **update_kwargs(kwargs, **update_params)
+        with self._allow_dynamic_setup_after_first_request():
+            self.dashboards.append(
+                ExplainerDashboard.from_config(
+                    dashboard.explainer,
+                    config,
+                    **update_kwargs(kwargs, **update_params),
+                )
             )
-        )
 
         self.dashboard_names.append(dashboard.name)
 
@@ -1804,14 +1820,15 @@ class ExplainerHub:
                 inner.__name__ = "return_dashboard_" + dashboard.name
                 return inner
 
-        if self.users:
-            self.app.route(f"/{self.base_route}/_{dashboard.name}")(
-                login_required(dashboard_route(dashboard))
-            )
-        else:
-            self.app.route(f"/{self.base_route}/_{dashboard.name}")(
-                dashboard_route(dashboard)
-            )
+        with self._allow_dynamic_setup_after_first_request():
+            if self.users:
+                self.app.route(f"/{self.base_route}/_{dashboard.name}")(
+                    login_required(dashboard_route(dashboard))
+                )
+            else:
+                self.app.route(f"/{self.base_route}/_{dashboard.name}")(
+                    dashboard_route(dashboard)
+                )
         return dashboard.name
 
     @classmethod
