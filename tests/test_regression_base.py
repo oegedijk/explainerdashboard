@@ -31,6 +31,25 @@ def test_random_index(precalculated_rf_regression_explainer):
     )
 
 
+def test_random_index_with_numeric_feature_filter(
+    precalculated_rf_regression_explainer,
+):
+    age = precalculated_rf_regression_explainer.get_col("Age").dropna()
+    age_min = age.quantile(0.4)
+    age_max = age.quantile(0.6)
+
+    idx = precalculated_rf_regression_explainer.random_index(
+        feature_filters={"Age": (age_min, age_max)},
+        return_str=True,
+    )
+
+    assert idx is not None
+    sampled_age = precalculated_rf_regression_explainer.get_col("Age").iloc[
+        precalculated_rf_regression_explainer.get_idx(idx)
+    ]
+    assert age_min <= sampled_age <= age_max
+
+
 def test_index_exists(precalculated_rf_regression_explainer):
     assert precalculated_rf_regression_explainer.index_exists(0)
     assert precalculated_rf_regression_explainer.index_exists(

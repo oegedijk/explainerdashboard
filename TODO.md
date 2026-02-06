@@ -6,10 +6,9 @@
 - Rules: link an issue when possible; include size S/M/L; mark blockers.
 
 **Now**
-- [M/L][Components][#262] add filters for random transaction selection in whatif tab.
+- [S][Methods][#220] get_contrib_df accepts list/array input.
 
 **Next**
-- [S][Methods][#220] get_contrib_df accepts list/array input.
 - [M][Components][#176] FeatureInputComponent hide parameters.
 - [M][Explainers][#198] LightGBM string categorical handling across SHAP/plots.
 - [S][Hub] hub.to_yaml integrate_dashboard_yamls should honor pickle_type (currently joblib only).

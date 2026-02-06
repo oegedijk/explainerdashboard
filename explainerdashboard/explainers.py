@@ -860,6 +860,59 @@ class BaseExplainer(ABC):
         else:
             return self.X[col]
 
+    def _feature_filter_mask(self, feature_filters):
+        """Build a boolean index mask from feature filter definitions.
+
+        Args:
+            feature_filters (dict): Mapping of feature name to filter definition.
+                Supported values:
+                - `(min, max)` tuples for numeric range filtering (inclusive).
+                - iterables (list/tuple/set/array/Series/Index) for categorical
+                  inclusion filtering.
+                - scalar values for equality filtering.
+
+        Returns:
+            pd.Series: boolean mask aligned to `self.idxs`.
+        """
+        if feature_filters is None:
+            return pd.Series(True, index=self.idxs)
+        if not isinstance(feature_filters, dict):
+            raise ValueError(
+                "feature_filters should be a dict mapping column names to filters!"
+            )
+
+        mask = pd.Series(True, index=self.idxs)
+        iterable_types = (list, set, np.ndarray, pd.Series, pd.Index)
+
+        for col, filter_value in feature_filters.items():
+            series = pd.Series(self.get_col(col).values, index=self.idxs)
+
+            if isinstance(filter_value, tuple) and len(filter_value) == 2:
+                min_value, max_value = filter_value
+                col_mask = pd.Series(True, index=self.idxs)
+                if min_value is not None:
+                    col_mask &= series >= min_value
+                if max_value is not None:
+                    col_mask &= series <= max_value
+            elif isinstance(filter_value, iterable_types):
+                include_values = list(filter_value)
+                if any(pd.isna(v) for v in include_values):
+                    col_mask = series.isin(
+                        [v for v in include_values if not pd.isna(v)]
+                    )
+                    col_mask |= series.isna()
+                else:
+                    col_mask = series.isin(include_values)
+            else:
+                if pd.isna(filter_value):
+                    col_mask = series.isna()
+                else:
+                    col_mask = series == filter_value
+
+            mask &= col_mask
+
+        return mask
+
     @insert_pos_label
     def get_col_value_plus_prediction(
         self, col, index=None, X_row=None, pos_label=None
@@ -3705,6 +3758,7 @@ class ClassifierExplainer(BaseExplainer):
         pred_proba_max=None,
         pred_percentile_min=None,
         pred_percentile_max=None,
+        feature_filters=None,
         pos_label=None,
     ):
         """random index satisfying various constraint
@@ -3716,58 +3770,45 @@ class ClassifierExplainer(BaseExplainer):
           pred_proba_max: maximum pred_proba (Default value = None)
           pred_percentile_min: minimum pred_proba percentile (Default value = None)
           pred_percentile_max: maximum pred_proba percentile (Default value = None)
+          feature_filters: dict of feature-level filters (Default value = None)
           pos_label: positive class (Default value = None)
 
         Returns:
           index
 
         """
-        # if pos_label is None: pos_label = self.pos_label
-        if (
-            y_values is None
-            and pred_proba_min is None
-            and pred_proba_max is None
-            and pred_percentile_min is None
-            and pred_percentile_max is None
-        ):
-            potential_idxs = self.idxs.values
-        else:
-            pred_probas = self.pred_probas(pos_label)
-            pred_percentiles = self.pred_percentiles(pos_label)
-            if pred_proba_min is None:
-                pred_proba_min = pred_probas.min()
-            if pred_proba_max is None:
-                pred_proba_max = pred_probas.max()
-            if pred_percentile_min is None:
-                pred_percentile_min = 0.0
-            if pred_percentile_max is None:
-                pred_percentile_max = 1.0
+        pred_probas = pd.Series(self.pred_probas(pos_label), index=self.idxs)
+        pred_percentiles = pd.Series(self.pred_percentiles(pos_label), index=self.idxs)
+        if pred_proba_min is None:
+            pred_proba_min = pred_probas.min()
+        if pred_proba_max is None:
+            pred_proba_max = pred_probas.max()
+        if pred_percentile_min is None:
+            pred_percentile_min = 0.0
+        if pred_percentile_max is None:
+            pred_percentile_max = 1.0
 
-            if not self.y_missing:
-                if y_values is None:
-                    y_values = self.y.unique().astype(str).tolist()
-                if not isinstance(y_values, list):
-                    y_values = [y_values]
-                y_values = [
-                    y if isinstance(y, int) else self.labels.index(str(y))
-                    for y in y_values
-                ]
+        potential_idx_mask = (
+            (pred_probas >= pred_proba_min)
+            & (pred_probas <= pred_proba_max)
+            & (pred_percentiles > pred_percentile_min)
+            & (pred_percentiles <= pred_percentile_max)
+        )
 
-                potential_idxs = self.idxs[
-                    (self.y.isin(y_values))
-                    & (pred_probas >= pred_proba_min)
-                    & (pred_probas <= pred_proba_max)
-                    & (pred_percentiles > pred_percentile_min)
-                    & (pred_percentiles <= pred_percentile_max)
-                ].values
+        if not self.y_missing and y_values is not None:
+            if not isinstance(y_values, list):
+                y_values = [y_values]
+            y_values = [
+                y if isinstance(y, int) else self.labels.index(str(y)) for y in y_values
+            ]
+            potential_idx_mask &= pd.Series(self.y.values, index=self.idxs).isin(
+                y_values
+            )
 
-            else:
-                potential_idxs = self.idxs[
-                    (pred_probas >= pred_proba_min)
-                    & (pred_probas <= pred_proba_max)
-                    & (pred_percentiles > pred_percentile_min)
-                    & (pred_percentiles <= pred_percentile_max)
-                ].values
+        if feature_filters is not None:
+            potential_idx_mask &= self._feature_filter_mask(feature_filters)
+
+        potential_idxs = self.idxs[potential_idx_mask].values
 
         if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
@@ -4378,6 +4419,7 @@ class RegressionExplainer(BaseExplainer):
         residuals_max=None,
         abs_residuals_min=None,
         abs_residuals_max=None,
+        feature_filters=None,
         return_str=False,
         **kwargs,
     ):
@@ -4392,6 +4434,7 @@ class RegressionExplainer(BaseExplainer):
           residuals_max:  (Default value = None)
           abs_residuals_min:  (Default value = None)
           abs_residuals_max:  (Default value = None)
+          feature_filters: dict of feature-level filters (Default value = None)
           return_str:  return the str index from self.idxs (Default value = False)
           **kwargs:
 
@@ -4399,42 +4442,50 @@ class RegressionExplainer(BaseExplainer):
           a random index that fits the exclusion criteria
 
         """
+        preds = pd.Series(self.preds, index=self.idxs)
+
         if self.y_missing:
             if pred_min is None:
-                pred_min = self.preds.min()
+                pred_min = preds.min()
             if pred_max is None:
-                pred_max = self.preds.max()
-            potential_idxs = self.idxs[
-                (self.preds >= pred_min) & (self.preds <= pred_max)
-            ].values
+                pred_max = preds.max()
+            potential_idx_mask = (preds >= pred_min) & (preds <= pred_max)
         else:
+            y = pd.Series(self.y.values, index=self.idxs)
+            residuals = pd.Series(self.residuals.values, index=self.idxs)
+            abs_residuals = pd.Series(self.abs_residuals.values, index=self.idxs)
             if y_min is None:
-                y_min = self.y.min()
+                y_min = y.min()
             if y_max is None:
-                y_max = self.y.max()
+                y_max = y.max()
             if pred_min is None:
-                pred_min = self.preds.min()
+                pred_min = preds.min()
             if pred_max is None:
-                pred_max = self.preds.max()
+                pred_max = preds.max()
             if residuals_min is None:
-                residuals_min = self.residuals.min()
+                residuals_min = residuals.min()
             if residuals_max is None:
-                residuals_max = self.residuals.max()
+                residuals_max = residuals.max()
             if abs_residuals_min is None:
-                abs_residuals_min = self.abs_residuals.min()
+                abs_residuals_min = abs_residuals.min()
             if abs_residuals_max is None:
-                abs_residuals_max = self.abs_residuals.max()
+                abs_residuals_max = abs_residuals.max()
 
-            potential_idxs = self.idxs[
-                (self.y >= y_min)
-                & (self.y <= y_max)
-                & (self.preds >= pred_min)
-                & (self.preds <= pred_max)
-                & (self.residuals >= residuals_min)
-                & (self.residuals <= residuals_max)
-                & (self.abs_residuals >= abs_residuals_min)
-                & (self.abs_residuals <= abs_residuals_max)
-            ].values
+            potential_idx_mask = (
+                (y >= y_min)
+                & (y <= y_max)
+                & (preds >= pred_min)
+                & (preds <= pred_max)
+                & (residuals >= residuals_min)
+                & (residuals <= residuals_max)
+                & (abs_residuals >= abs_residuals_min)
+                & (abs_residuals <= abs_residuals_max)
+            )
+
+        if feature_filters is not None:
+            potential_idx_mask &= self._feature_filter_mask(feature_filters)
+
+        potential_idxs = self.idxs[potential_idx_mask].values
 
         if len(potential_idxs) > 0:
             idx = np.random.choice(potential_idxs)
