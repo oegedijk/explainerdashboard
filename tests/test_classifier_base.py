@@ -299,6 +299,25 @@ def test_contrib_df(precalculated_rf_classifier_explainer):
     )
 
 
+def test_contrib_df_accepts_list_or_array_X_row(precalculated_rf_classifier_explainer):
+    merged_row_df = precalculated_rf_classifier_explainer.get_X_row(0, merge=True)
+    merged_row_list = merged_row_df.values[0].tolist()
+    merged_row_array = np.array(merged_row_list, dtype=object)
+
+    contrib_df_from_df = precalculated_rf_classifier_explainer.get_contrib_df(
+        X_row=merged_row_df
+    )
+    contrib_df_from_list = precalculated_rf_classifier_explainer.get_contrib_df(
+        X_row=merged_row_list
+    )
+    contrib_df_from_array = precalculated_rf_classifier_explainer.get_contrib_df(
+        X_row=merged_row_array
+    )
+
+    pd.testing.assert_frame_equal(contrib_df_from_list, contrib_df_from_df)
+    pd.testing.assert_frame_equal(contrib_df_from_array, contrib_df_from_df)
+
+
 def test_contrib_summary_df(precalculated_rf_classifier_explainer):
     assert isinstance(
         precalculated_rf_classifier_explainer.get_contrib_summary_df(0), pd.DataFrame
@@ -384,6 +403,27 @@ def test_prediction_result_df(precalculated_rf_classifier_explainer):
     assert isinstance(df, pd.DataFrame)
 
 
+def test_prediction_result_df_accepts_list_or_array_X_row(
+    precalculated_rf_classifier_explainer,
+):
+    merged_row_df = precalculated_rf_classifier_explainer.get_X_row(0, merge=True)
+    merged_row_list = merged_row_df.values[0].tolist()
+    merged_row_array = np.array(merged_row_list, dtype=object)
+
+    df_from_df = precalculated_rf_classifier_explainer.prediction_result_df(
+        X_row=merged_row_df
+    )
+    df_from_list = precalculated_rf_classifier_explainer.prediction_result_df(
+        X_row=merged_row_list
+    )
+    df_from_array = precalculated_rf_classifier_explainer.prediction_result_df(
+        X_row=merged_row_array
+    )
+
+    pd.testing.assert_frame_equal(df_from_list, df_from_df)
+    pd.testing.assert_frame_equal(df_from_array, df_from_df)
+
+
 def test_prediction_result_df_with_dataframe_predict_proba(
     fitted_rf_classifier_model, classifier_data
 ):
@@ -418,6 +458,56 @@ def test_pdp_df(precalculated_rf_classifier_explainer):
         ),
         pd.DataFrame,
     )
+
+
+def test_pdp_df_accepts_list_or_array_X_row(precalculated_rf_classifier_explainer):
+    merged_row_df = precalculated_rf_classifier_explainer.get_X_row(0, merge=True)
+    merged_row_list = merged_row_df.values[0].tolist()
+    merged_row_array = np.array(merged_row_list, dtype=object)
+
+    pdp_from_df = precalculated_rf_classifier_explainer.pdp_df(
+        "Age", X_row=merged_row_df
+    )
+    pdp_from_list = precalculated_rf_classifier_explainer.pdp_df(
+        "Age", X_row=merged_row_list
+    )
+    pdp_from_array = precalculated_rf_classifier_explainer.pdp_df(
+        "Age", X_row=merged_row_array
+    )
+
+    assert list(pdp_from_list.columns) == list(pdp_from_df.columns)
+    assert list(pdp_from_array.columns) == list(pdp_from_df.columns)
+    pd.testing.assert_series_equal(pdp_from_list.iloc[0], pdp_from_df.iloc[0])
+    pd.testing.assert_series_equal(pdp_from_array.iloc[0], pdp_from_df.iloc[0])
+
+
+def test_get_col_value_plus_prediction_accepts_list_or_array_X_row(
+    precalculated_rf_classifier_explainer,
+):
+    merged_row_df = precalculated_rf_classifier_explainer.get_X_row(0, merge=True)
+    merged_row_list = merged_row_df.values[0].tolist()
+    merged_row_array = np.array(merged_row_list, dtype=object)
+
+    value_from_df, pred_from_df = (
+        precalculated_rf_classifier_explainer.get_col_value_plus_prediction(
+            "Age", X_row=merged_row_df
+        )
+    )
+    value_from_list, pred_from_list = (
+        precalculated_rf_classifier_explainer.get_col_value_plus_prediction(
+            "Age", X_row=merged_row_list
+        )
+    )
+    value_from_array, pred_from_array = (
+        precalculated_rf_classifier_explainer.get_col_value_plus_prediction(
+            "Age", X_row=merged_row_array
+        )
+    )
+
+    assert value_from_list == value_from_df
+    assert value_from_array == value_from_df
+    assert pred_from_list == pytest.approx(pred_from_df)
+    assert pred_from_array == pytest.approx(pred_from_df)
 
 
 def test_memory_usage(precalculated_rf_classifier_explainer):

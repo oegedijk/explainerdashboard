@@ -841,6 +841,24 @@ class BaseExplainer(ABC):
                 f"explainer.columns ({len(self.columns)})!"
             )
 
+    def _normalize_X_row_input(self, X_row):
+        """Normalize X_row input to a single-row pd.DataFrame when needed."""
+        if isinstance(X_row, pd.DataFrame):
+            return X_row
+        if isinstance(X_row, (list, tuple, np.ndarray)):
+            X_row_array = np.asarray(X_row, dtype=object)
+            if X_row_array.ndim == 1:
+                inputs = X_row_array.tolist()
+            elif X_row_array.ndim == 2 and X_row_array.shape[0] == 1:
+                inputs = X_row_array[0].tolist()
+            else:
+                raise ValueError(
+                    "X_row list/array input should represent a single row "
+                    "with shape (n_features,) or (1, n_features)!"
+                )
+            return self.get_row_from_input(inputs)
+        return X_row
+
     def get_col(self, col):
         """return pd.Series with values of col
 
@@ -922,7 +940,8 @@ class BaseExplainer(ABC):
         Args:
           col: feature col
           index (str or int, optional): index row
-          X_row (single row pd.DataFrame, optional): single row of features
+          X_row (single row pd.DataFrame, list, tuple or np.ndarray, optional):
+                single row of features
           pos_label (int): positive label
 
         Returns:
@@ -934,6 +953,8 @@ class BaseExplainer(ABC):
         ), f"{col} not in columns of dataset"
         if index is not None:
             X_row = self.get_X_row(index)
+        if X_row is not None:
+            X_row = self._normalize_X_row_input(X_row)
         if X_row is not None:
             assert X_row.shape[0] == 1, "X_Row should be single row dataframe!"
 
@@ -1849,8 +1870,9 @@ class BaseExplainer(ABC):
 
         Args:
           index(int or str): index for which to calculate contributions
-          X_row (pd.DataFrame, single row): single row of feature for which
-                to calculate contrib_df. Can us this instead of index
+          X_row (pd.DataFrame, list, tuple or np.ndarray, single row):
+                single row of feature for which to calculate contrib_df.
+                Can us this instead of index
           topx(int, optional): Only return topx features, remainder
                     called REST, defaults to None
           cutoff(float, optional): only return features with at least
@@ -1884,6 +1906,7 @@ class BaseExplainer(ABC):
             X_row_merged = self.get_X_row(index, merge=True)
             shap_values = self.get_shap_row(index, pos_label=pos_label)
         elif X_row is not None:
+            X_row = self._normalize_X_row_input(X_row)
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row_merged = X_row
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
@@ -1993,8 +2016,8 @@ class BaseExplainer(ABC):
             col (str): Feature to generate partial dependence for.
             index ({int, str}, optional): Index to include on first row
                 of pdp_df. Defaults to None.
-            X_row (pd.DataFrame, optional): Single row to put on first row of pdp_df.
-                Defaults to None.
+            X_row (pd.DataFrame, list, tuple or np.ndarray, optional):
+                Single row to put on first row of pdp_df. Defaults to None.
             drop_na (bool, optional): Drop self.na_fill values. Defaults to True.
             sample (int, optional): Sample size for pdp_df. Defaults to 500.
             n_grid_points (int, optional): Number of grid points on x axis.
@@ -2044,6 +2067,7 @@ class BaseExplainer(ABC):
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
+            X_row = self._normalize_X_row_input(X_row)
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             else:
@@ -3825,6 +3849,8 @@ class ClassifierExplainer(BaseExplainer):
 
         Args:
             index ({int, str}): index
+            X_row (pd.DataFrame, list, tuple or np.ndarray, optional):
+                single row of feature values
             add_star(bool): add a star to the observed label
             round (int): rounding to apply to pred_proba float
 
@@ -3836,6 +3862,7 @@ class ClassifierExplainer(BaseExplainer):
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
+            X_row = self._normalize_X_row_input(X_row)
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             if self.shap == "skorch":
@@ -4252,8 +4279,8 @@ class ClassifierExplainer(BaseExplainer):
 
         Args:
             index ({int, str}): Index for which to display prediction
-            X_row (pd.DataFrame): single row of an input dataframe, e.g.
-                explainer.X.iloc[[0]]
+            X_row (pd.DataFrame, list, tuple or np.ndarray): single row of
+                input features
             showlegend (bool, optional): Display legend. Defaults to False.
 
         Returns:
@@ -4500,6 +4527,8 @@ class RegressionExplainer(BaseExplainer):
 
         Args:
             index:  row index to be predicted
+            X_row (pd.DataFrame, list, tuple or np.ndarray, optional):
+                single row of feature values
             round (int):  rounding applied to floats (defaults to 3)
 
         Returns:
@@ -4511,6 +4540,7 @@ class RegressionExplainer(BaseExplainer):
         if index is not None:
             X_row = self.get_X_row(index)
         if X_row is not None:
+            X_row = self._normalize_X_row_input(X_row)
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             X_row = align_categorical_dtypes(X_row, self.X, columns=self.X.columns)
