@@ -8,6 +8,7 @@ __all__ = [
 from math import ceil
 
 import numpy as np
+import pandas as pd
 from pandas.api.types import is_bool_dtype
 
 from dash import html, dcc, Input, Output
@@ -1091,6 +1092,8 @@ class FeatureInputComponent(ExplainerComponent):
         n_input_cols=4,
         sort_features="shap",
         fill_row_first=True,
+        feature_input_ranges=None,
+        round=2,
         description=None,
         **kwargs,
     ):
@@ -1116,6 +1119,9 @@ class FeatureInputComponent(ExplainerComponent):
                 is 'shap' to sort by mean absolute shap value.
             fill_row_first (bool, optional): if True most important features will
                 be on top row, if False they will be in most left column.
+            feature_input_ranges (dict, optional): dict mapping feature names to
+                (min, max) numeric ranges for input fields.
+            round (int, optional): number of decimals to round numeric ranges to.
             description (str, optional): Tooltip to display when hover over
                 component title. When None default text is shown.
 
@@ -1131,6 +1137,8 @@ class FeatureInputComponent(ExplainerComponent):
             explainer, name="feature-input-index-" + self.name, **kwargs
         )
         self.index_name = "feature-input-index-" + self.name
+        self.feature_input_ranges = feature_input_ranges or {}
+        self.round = round
 
         self._feature_callback_inputs = [
             Input("feature-input-" + feature + "-input-" + self.name, "value")
@@ -1214,17 +1222,28 @@ class FeatureInputComponent(ExplainerComponent):
             )
         else:
             col_values = self.explainer.X[col][lambda x: x != self.explainer.na_fill]
-            if is_bool_dtype(col_values):
+            if col in self.feature_input_ranges:
+                min_range, max_range = self.feature_input_ranges[col]
+            elif is_bool_dtype(col_values):
                 min_range = int(col_values.min())
                 max_range = int(col_values.max())
             else:
-                min_range = np.round(col_values.min(), 2)
-                max_range = np.round(col_values.max(), 2)
+                min_range = np.round(col_values.min(), self.round)
+                max_range = np.round(col_values.max(), self.round)
+
+            if is_bool_dtype(col_values) or pd.api.types.is_integer_dtype(col_values):
+                step = 1
+            else:
+                step = 10 ** (-self.round)
             return html.Div(
                 [
                     dbc.Label(col),
                     dbc.Input(
-                        id="feature-input-" + col + "-input-" + self.name, type="number"
+                        id="feature-input-" + col + "-input-" + self.name,
+                        type="number",
+                        min=min_range,
+                        max=max_range,
+                        step=step,
                     ),
                     dbc.FormText(f"Range: {min_range}-{max_range}")
                     if not self.hide_range

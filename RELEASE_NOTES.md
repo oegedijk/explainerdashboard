@@ -1,6 +1,11 @@
 # Release Notes
 
 
+## Version 0.5.7:
+
+### Bug Fixes
+- Allow FeatureInputComponent (what-if inputs) to customize numeric ranges and rounding, and apply min/max/step to inputs.
+
 ## Version 0.5.6:
 
 ### Bug Fixes
