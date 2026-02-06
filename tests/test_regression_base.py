@@ -4,6 +4,17 @@ from pandas.api.types import is_numeric_dtype
 
 import plotly.graph_objects as go
 
+from explainerdashboard import RegressionExplainer
+
+
+class DataFramePredictWrapper:
+    def __init__(self, model):
+        self.model = model
+
+    def predict(self, X):
+        preds = self.model.predict(X)
+        return pd.DataFrame({"prediction": preds}, index=getattr(X, "index", None))
+
 
 def test_explainer_len(precalculated_rf_regression_explainer, testlen):
     assert len(precalculated_rf_regression_explainer) == testlen
@@ -53,6 +64,18 @@ def test_row_from_input(precalculated_rf_regression_explainer):
 def test_prediction_result_df(precalculated_rf_regression_explainer):
     df = precalculated_rf_regression_explainer.prediction_result_df(0)
     assert isinstance(df, pd.DataFrame)
+
+
+def test_get_col_value_plus_prediction_with_dataframe_predict(
+    fitted_rf_regression_model, regression_data
+):
+    _, _, X_test, y_test = regression_data
+    wrapped_model = DataFramePredictWrapper(fitted_rf_regression_model)
+    explainer = RegressionExplainer(wrapped_model, X_test.head(50), y_test.head(50))
+
+    _, prediction = explainer.get_col_value_plus_prediction("Age", index=0)
+
+    assert np.isscalar(prediction)
 
 
 def test_preds(precalculated_rf_regression_explainer):

@@ -829,6 +829,8 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
         warnings.filterwarnings("ignore", category=UserWarning)
         y_pred = clf.predict_proba(X)
         warnings.filterwarnings("default", category=UserWarning)
+        y_pred = _ensure_numeric_predictions(y_pred)
+        y_pred = np.asarray(y_pred)
         score = sign * partial_metric(y, y_pred)
         return score
 

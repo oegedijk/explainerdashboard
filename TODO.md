@@ -9,7 +9,6 @@
 - [M][Explainers][#273] categorical columns with NaNs: sorting and column preservation.
 
 **Next**
-- [S][Explainers][#270] Autogluon integration (coerce predict_proba to ndarray).
 - [M][Hub][#269] add_dashboard endpoint fails after first request (Flask blueprint lifecycle).
 - [M/L][Components][#262] add filters for random transaction selection in whatif tab.
 - [S][Methods][#220] get_contrib_df accepts list/array input.

@@ -2,11 +2,13 @@ import numpy as np
 import pandas as pd
 
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
 
 from explainerdashboard.explainer_methods import (
     align_categorical_dtypes,
     get_pdp_df,
+    make_one_vs_all_scorer,
     permutation_importances,
 )
 
@@ -35,6 +37,12 @@ class DtypeCheckingClassifier(ClassifierMixin, BaseEstimator):
         if not X.dtypes.equals(self.expected_dtypes):
             raise ValueError("Dtype mismatch")
         return np.tile(np.array([0.2, 0.8]), (len(X), 1))
+
+
+class DataFrameProbaClassifier(ClassifierMixin, BaseEstimator):
+    def predict_proba(self, X):
+        probs = np.tile(np.array([0.2, 0.8]), (len(X), 1))
+        return pd.DataFrame(probs, index=getattr(X, "index", None), columns=[0, 1])
 
 
 def test_permutation_importances_preserves_categorical_dtypes():
@@ -80,3 +88,14 @@ def test_align_categorical_dtypes_matches_reference():
     aligned = align_categorical_dtypes(target, reference)
 
     assert aligned["cat"].dtype == reference["cat"].dtype
+
+
+def test_make_one_vs_all_scorer_accepts_dataframe_predict_proba():
+    scorer = make_one_vs_all_scorer(roc_auc_score, pos_label=1)
+    clf = DataFrameProbaClassifier()
+    X = pd.DataFrame({"feature": [0, 1, 2, 3]})
+    y = np.array([0, 1, 0, 1])
+
+    score = scorer(clf, X, y)
+
+    assert isinstance(score, float)

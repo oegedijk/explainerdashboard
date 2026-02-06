@@ -14,6 +14,21 @@ from explainerdashboard import ClassifierExplainer, ExplainerDashboard
 from explainerdashboard.explainer_methods import IndexNotFoundError
 
 
+class DataFramePredictProbaWrapper:
+    def __init__(self, model):
+        self.model = model
+        self.classes_ = model.classes_
+
+    def predict(self, X):
+        return self.model.predict(X)
+
+    def predict_proba(self, X):
+        probas = self.model.predict_proba(X)
+        return pd.DataFrame(
+            probas, columns=self.classes_, index=getattr(X, "index", None)
+        )
+
+
 def test_explainer_with_dataframe_y(fitted_rf_classifier_model, classifier_data):
     _, _, X_test, y_test = classifier_data
     explainer = ClassifierExplainer(
@@ -330,6 +345,20 @@ def test_shap_interaction_values_by_col(precalculated_rf_classifier_explainer):
 def test_prediction_result_df(precalculated_rf_classifier_explainer):
     df = precalculated_rf_classifier_explainer.prediction_result_df(0)
     assert isinstance(df, pd.DataFrame)
+
+
+def test_prediction_result_df_with_dataframe_predict_proba(
+    fitted_rf_classifier_model, classifier_data
+):
+    _, _, X_test, y_test = classifier_data
+    wrapped_model = DataFramePredictProbaWrapper(fitted_rf_classifier_model)
+    explainer = ClassifierExplainer(wrapped_model, X_test.head(50), y_test.head(50))
+
+    df = explainer.prediction_result_df(0)
+    _, prediction = explainer.get_col_value_plus_prediction("Age", index=0)
+
+    assert isinstance(df, pd.DataFrame)
+    assert np.isscalar(prediction)
 
 
 def test_pdp_df(precalculated_rf_classifier_explainer):

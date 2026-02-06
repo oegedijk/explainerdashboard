@@ -914,15 +914,19 @@ class BaseExplainer(ABC):
             if self.is_classifier:
                 if pos_label is None:
                     pos_label = self.pos_label
-                pred_probas_raw = self.model.predict_proba(model_input)[0]
+                pred_probas_raw = self.model.predict_proba(model_input)
                 pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-                prediction = np.asarray(pred_probas_raw)[pos_label].squeeze()
+                pred_probas = np.asarray(pred_probas_raw).squeeze()
+                if pred_probas.ndim > 1:
+                    pred_probas = pred_probas[0]
+                prediction = pred_probas[pos_label].squeeze()
                 if self.model_output == "probability":
                     prediction = 100 * prediction
             elif self.is_regression:
-                pred_raw = self.model.predict(model_input)[0]
+                pred_raw = self.model.predict(model_input)
                 pred_raw = _ensure_numeric_predictions(pred_raw)
-                prediction = np.asarray(pred_raw).squeeze()
+                pred_array = np.asarray(pred_raw).squeeze()
+                prediction = pred_array.flat[0]
             return col_value, prediction
         else:
             raise ValueError("You need to pass either index or X_row!")
@@ -3793,9 +3797,11 @@ class ClassifierExplainer(BaseExplainer):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             if self.shap == "skorch":
                 X_row = X_row.values.astype("float32")
-            pred_probas_raw = self.model.predict_proba(X_row)[0, :]
+            pred_probas_raw = self.model.predict_proba(X_row)
             pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
             pred_probas = np.asarray(pred_probas_raw).squeeze()
+            if pred_probas.ndim > 1:
+                pred_probas = pred_probas[0]
 
         preds_df = pd.DataFrame(dict(label=self.labels, probability=pred_probas))
         if logodds and all(preds_df.probability < 1 - np.finfo(np.float64).eps):
