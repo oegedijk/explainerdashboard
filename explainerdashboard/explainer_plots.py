@@ -31,7 +31,11 @@ from pandas.api.types import is_numeric_dtype
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .explainer_methods import matching_cols, safe_isinstance
+from .explainer_methods import (
+    matching_cols,
+    safe_isinstance,
+    sorted_categorical_values,
+)
 
 
 def plotly_prediction_piechart(predictions_df, showlegend=True, size=250):
@@ -1040,7 +1044,7 @@ def plotly_shap_violin_plot(
     ), f"{X_col.name} is not categorical! Can only plot violin plots for categorical features!"
 
     if cats_order is None:
-        cats_order = sorted(X_col.unique().tolist())
+        cats_order = sorted_categorical_values(X_col.unique().tolist())
 
     n_cats = len(cats_order)
 
@@ -1098,7 +1102,11 @@ def plotly_shap_violin_plot(
 
     for i, cat in enumerate(cats_order):
         col = 1 + i * 2 if points or X_color_col is not None else 1 + i
-        if cat.startswith(X_col.name + "_"):
+        if (
+            isinstance(cat, str)
+            and isinstance(X_col.name, str)
+            and cat.startswith(X_col.name + "_")
+        ):
             cat_name = cat[len(X_col.name) + 1 :]
         else:
             cat_name = cat
@@ -2347,7 +2355,7 @@ def plotly_residuals_vs_col(
 
     if not is_numeric_dtype(col):
         if cats_order is None:
-            cats_order = sorted(col.unique().tolist())
+            cats_order = sorted_categorical_values(col.unique().tolist())
         n_cats = len(cats_order)
 
         if points:
@@ -2506,7 +2514,7 @@ def plotly_actual_vs_col(
 
     if not is_numeric_dtype(col):
         if cats_order is None:
-            cats_order = sorted(col.unique().tolist())
+            cats_order = sorted_categorical_values(col.unique().tolist())
         n_cats = len(cats_order)
 
         if points:
@@ -2658,7 +2666,7 @@ def plotly_preds_vs_col(
 
     if not is_numeric_dtype(col):
         if cats_order is None:
-            cats_order = sorted(col.unique().tolist())
+            cats_order = sorted_categorical_values(col.unique().tolist())
         n_cats = len(cats_order)
 
         if points:

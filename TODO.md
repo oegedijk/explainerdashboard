@@ -6,10 +6,9 @@
 - Rules: link an issue when possible; include size S/M/L; mark blockers.
 
 **Now**
-- [M][Explainers][#273] categorical columns with NaNs: sorting and column preservation.
+- [M/L][Components][#262] add filters for random transaction selection in whatif tab.
 
 **Next**
-- [M/L][Components][#262] add filters for random transaction selection in whatif tab.
 - [S][Methods][#220] get_contrib_df accepts list/array input.
 - [M][Components][#176] FeatureInputComponent hide parameters.
 - [M][Explainers][#198] LightGBM string categorical handling across SHAP/plots.

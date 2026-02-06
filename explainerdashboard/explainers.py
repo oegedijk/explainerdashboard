@@ -275,7 +275,7 @@ class BaseExplainer(ABC):
             col for col in self.regular_cols if not is_numeric_dtype(self.X[col])
         ]
         self.categorical_dict = {
-            col: sorted(self.X[col].dropna().unique().tolist())
+            col: sorted_categorical_values(self.X[col].unique().tolist())
             for col in self.categorical_cols
         }
         # Include an explicit NaN option for categorical columns with missing values.
@@ -1010,7 +1010,7 @@ class BaseExplainer(ABC):
                 values = self.categorical_dict[col]
             else:
                 values = [v for v in X[col].unique().tolist() if not pd.isna(v)]
-                values = sorted(values)
+                values = sorted_categorical_values(values)
             if topx is None:
                 return values
             else:
@@ -2695,7 +2695,9 @@ class ClassifierExplainer(BaseExplainer):
         if hasattr(self.model, "classes_"):
             class_values = list(self.model.classes_)
         elif not self.y_missing:
-            class_values = sorted(pd.Series(self.y).dropna().unique().tolist())
+            class_values = sorted_categorical_values(
+                pd.Series(self.y).dropna().unique().tolist()
+            )
 
         if not self.y_missing:
             if class_values is None:

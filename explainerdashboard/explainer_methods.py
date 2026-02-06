@@ -4,6 +4,7 @@ __all__ = [
     "safe_isinstance",
     "unwrap_calibrated_classifier",
     "align_categorical_dtypes",
+    "sorted_categorical_values",
     "guess_shap",
     "mape_score",
     "parse_cats",
@@ -339,6 +340,32 @@ def align_categorical_dtypes(
         elif is_bool_dtype(ref_dtype) and not is_bool_dtype(aligned[col].dtype):
             aligned[col] = aligned[col].astype(ref_dtype)
     return aligned
+
+
+def sorted_categorical_values(values):
+    """Sort categorical values safely when types are mixed.
+
+    Keeps original values but orders deterministically:
+    booleans, then numbers, then other values by type/value string.
+    """
+
+    def _is_na(value):
+        try:
+            return bool(pd.isna(value))
+        except Exception:
+            return False
+
+    def _sort_key(value):
+        if isinstance(value, np.generic):
+            value = value.item()
+        if isinstance(value, bool):
+            return (0, int(value))
+        if isinstance(value, (int, float)) and not _is_na(value):
+            return (1, float(value))
+        return (2, type(value).__name__, str(value))
+
+    clean_values = [value for value in values if not _is_na(value)]
+    return sorted(clean_values, key=_sort_key)
 
 
 def guess_shap(model):
@@ -1171,7 +1198,9 @@ def get_pdp_df(
     if grid_values is None:
         if isinstance(feature, str):
             if not is_numeric_dtype(X_sample[feature]):
-                grid_values = sorted(X_sample[feature].unique().tolist())
+                grid_values = sorted_categorical_values(
+                    X_sample[feature].unique().tolist()
+                )
             else:
                 grid_values = get_grid_points(
                     X_sample[feature],
@@ -1752,7 +1781,7 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=Non
                     return class_counts[pos_label] / total
 
                 # If pos_label not found, try to map it to available class keys
-                available_classes = sorted(class_counts.keys())
+                available_classes = sorted_categorical_values(class_counts.keys())
                 if len(available_classes) == 0:
                     return 0.0
 
