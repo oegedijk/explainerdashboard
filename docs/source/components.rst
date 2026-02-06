@@ -2,20 +2,20 @@ ExplainerComponents
 *******************
 
 The dashboard is constructed out of ``ExplainerComponents``: self-contained reusable
-elements usually consisting of a plot or table and various dropdowns, sliders 
+elements usually consisting of a plot or table and various dropdowns, sliders
 and toggles to manipulate that plot. Components can be connected with connectors,
 so that when you select an index in one component that automatically updates the
 index in another component for example.
 
 When you run ``ExplainerDashboard`` you get the default dashboard with basically
-every component listed below with every toggle and slider visible. 
+every component listed below with every toggle and slider visible.
 
 The ``ExplainerComponents`` make it very easy to construct your own dashboard
 with your own layout, with specific explanations for the workings and results
 of your model. So you can select which components to use, where to put them
 in the layout, which toggles and sliders to display, and what the initial values
-for component should be. This way you can also control which interactive 
-aspects your end users can and cannot control.  
+for component should be. This way you can also control which interactive
+aspects your end users can and cannot control.
 
 You import the components with ``from explainerdashboard.custom import *``
 
@@ -34,8 +34,8 @@ but with no group cats or highlight toggle, and initial feature set to 'Fare'::
       def layout(self):
          return html.Div([
             self.shap_dependence.layout()
-        ])  
-    
+        ])
+
     ExplainerDashboard(explainer, CustomDashboard).run()
 
 
@@ -43,8 +43,8 @@ ExplainerComponent
 ==================
 
 Each component subclasses ``ExplainerComponent`` which provides the basic
-functionality of registering subcomponents, dependencies, registering callbacks 
-of subcomponents, calculating dependencies, and providing a list of pos label 
+functionality of registering subcomponents, dependencies, registering callbacks
+of subcomponents, calculating dependencies, and providing a list of pos label
 selectors of all subcomponents.
 
 ExplainerComponent
@@ -137,7 +137,7 @@ PredictionSummaryComponent
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.PredictionSummaryComponent
    :members:
 
-   
+
 ImportancesComponent
 --------------------
 
@@ -171,10 +171,10 @@ FeatureInputComponent
 
 Using the feature input component you can edit the features for a particular
 observation in order to check what would be the change in prediction if you
-change one or more features. 
+change one or more features.
 
-You can connect the ``FeatureInputComponent`` to the 
-``ShapContributionsGraphComponent`` and the ``PdpComponent`` using 
+You can connect the ``FeatureInputComponent`` to the
+``ShapContributionsGraphComponent`` and the ``PdpComponent`` using
 the``feature_input_component`` parameter::
 
    class WhatIfComposite(ExplainerComponent):
@@ -197,6 +197,17 @@ ClassifierRandomIndexComponent
 ------------------------------
 
 .. image:: screenshots/components/classifier_index.png
+
+The component uses ``ClassifierExplainer.random_index(...)`` under the hood.
+You can additionally constrain candidate rows by feature values with
+``feature_filters`` on the explainer method, for example::
+
+   explainer.random_index(
+      y_values=["Not survived"],
+      pred_proba_min=0.8,
+      feature_filters={"Age": (70, 80), "Gender": ["male"]},
+      return_str=True,
+   )
 
 .. autoclass:: explainerdashboard.dashboard_components.classifier_components.ClassifierRandomIndexComponent
    :members:
@@ -286,6 +297,17 @@ RegressionRandomIndexComponent
 ------------------------------
 
 .. image:: screenshots/components/regression_index.png
+
+The component uses ``RegressionExplainer.random_index(...)``. Feature-based
+constraints can be combined with prediction/residual filters using
+``feature_filters``, for example::
+
+   explainer.random_index(
+      pred_min=20,
+      pred_max=40,
+      feature_filters={"Age": (30, 50), "Deck": ["C", "D"]},
+      return_str=True,
+   )
 
 .. autoclass:: explainerdashboard.dashboard_components.regression_components.RegressionRandomIndexComponent
    :members:
@@ -409,7 +431,3 @@ HighlightConnector
 
 .. autoclass:: explainerdashboard.dashboard_components.connectors.HighlightConnector
    :members:
-
-
-
-   

@@ -11,8 +11,8 @@ There are seven tabs that make up the default``ExplainerDashboard``::
                                           ShapInteractionsComposite,
                                           DecisionTreesComposite)
 
-The definitions can be found `in the github repo <DecisionTreesComposite>`_ 
-and can serve as a nice starting point for designing your own custom tabs. 
+The definitions can be found `in the github repo <DecisionTreesComposite>`_
+and can serve as a nice starting point for designing your own custom tabs.
 
 ImportancesComposite
 ====================
@@ -49,6 +49,11 @@ WhatIfComposite
 ===============
 
 .. image:: screenshots/tab_whatif.png
+
+The what-if tab supports random index selection with constraints. Besides
+observed label and prediction/probability ranges, you can now also constrain
+random selection by feature values through explainer-level ``feature_filters``
+in ``random_index(...)`` (for example an ``Age`` range or specific categories).
 
 .. autoclass:: explainerdashboard.dashboard_components.composites.WhatIfComposite
    :members:
@@ -138,4 +143,3 @@ ExplainerPageLayout
 
 .. autoclass:: explainerdashboard.dashboards.ExplainerPageLayout
    :members:
-

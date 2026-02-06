@@ -4,8 +4,8 @@ Explainers
 Simple example
 ==============
 
-In order to start an ``ExplainerDashboard`` you first need to construct an 
-``Explainer`` instance. They come in two flavours and at its most basic they 
+In order to start an ``ExplainerDashboard`` you first need to construct an
+``Explainer`` instance. They come in two flavours and at its most basic they
 only need a model, and a test set X and y::
 
     from explainerdashboard import ClassifierExplainer, RegressionExplainer
@@ -22,7 +22,7 @@ This is enough to launch an ExplainerDashboard::
 .. image:: screenshots/screenshot.*
 
 
-Or you can use it interactively in a notebook to inspect your model 
+Or you can use it interactively in a notebook to inspect your model
 using the built-in plotting methods, e.g.::
 
     explainer.plot_confusion_matrix()
@@ -34,11 +34,11 @@ using the built-in plotting methods, e.g.::
 For the full lists of plots available see :ref:`Plots<Plots>`.
 
 
-Or you can start an interactive :ref:`ExplainerComponent<ExplainerComponents>` 
+Or you can start an interactive :ref:`ExplainerComponent<ExplainerComponents>`
 in your notebook using :ref:`InlineExplainer<InlineExplainer>`, e.g.::
 
     from explainerdashboard import InlineExplainer
-    
+
     InlineExplainer(explainer).tab.importances()
     InlineExplainer(explainer).classifier.roc_auc()
     InlineExplainer(explainer).regression.residuals_vs_col()
@@ -51,10 +51,10 @@ Parameters
 ==========
 
 There are a number of optional parameters that can either make sure that
-SHAP values get calculated in the appropriate way, or that make the explainer 
+SHAP values get calculated in the appropriate way, or that make the explainer
 give a bit nicer and more convenient output::
 
-    ClassifierExplainer(model, X_test, y_test, 
+    ClassifierExplainer(model, X_test, y_test,
             shap='linear', # manually set shap type, overrides default 'guess'
             X_background=X_train, # set background dataset for shap calculations
             model_output='logodds', # set model_output to logodds (vs probability)
@@ -69,9 +69,9 @@ give a bit nicer and more convenient output::
 cats
 ----
 
-If you have onehot-encoded your categorical variables, they will show up as a 
-lot of independent features. This clutters your feature space, and often makes 
-it hard to interpret the effect of the underlying categorical feature. 
+If you have onehot-encoded your categorical variables, they will show up as a
+lot of independent features. This clutters your feature space, and often makes
+it hard to interpret the effect of the underlying categorical feature.
 
 You can pass a ``dict`` to the parameter ``cats`` specifying which are the
 onehotencoded columns, and what the grouped feature name should be::
@@ -79,7 +79,7 @@ onehotencoded columns, and what the grouped feature name should be::
     ClassifierExplainer(model, X, y, cats={'Gender': ['Sex_male', 'Sex_female']})
 
 However if you encoded your feature with ``pd.get_dummies(df, prefix=['Name'])``,
-then the resulting onehot encoded columns should be named 
+then the resulting onehot encoded columns should be named
 'Name_John', 'Name_Mary', Name_Bob', etc. (or in general
 CategoricalFeature_Category), then you can simply pass a list of the prefixes
 to cats::
@@ -88,25 +88,25 @@ to cats::
 
 And you can also combine the two methods::
 
-    ClassifierExplainer(model, X, y, 
+    ClassifierExplainer(model, X, y,
         cats=[{'Gender': ['Sex_male', 'Sex_female']}, 'Deck', 'Embarked'])
 
 
 
-You can now use these categorical features directly as input for plotting methods, e.g. 
+You can now use these categorical features directly as input for plotting methods, e.g.
 ``explainer.plot_dependence("Deck")``, which will now generate violin plots
-instead of the default scatter plots. 
+instead of the default scatter plots.
 
 cats_notencoded
 ---------------
 
 When you have onehotencoded a categorical feature, you may have dropped some columns
 during feature selection. Or there are new categories in the test set that were not encoded
-as columns in the training set. In that cases all columns in your onehot encoding may be equal 
+as columns in the training set. In that cases all columns in your onehot encoding may be equal
 to ``0`` for some rows. By default the value assigned to the aggregated feature for such cases is ``'NOT_ENCODED'``,
 but this can be overriden with the ``cats_notencoded`` parameter::
 
-    ClassifierExplainer(model, X, y, 
+    ClassifierExplainer(model, X, y,
         cats=[{'Gender': ['Sex_male', 'Sex_female']}, 'Deck', 'Embarked'],
         cats_notencoded={'Gender': 'Gender Other', 'Deck': 'Unknown Deck', 'Embarked':'Stowaway'})
 
@@ -115,10 +115,10 @@ but this can be overriden with the ``cats_notencoded`` parameter::
 idxs
 ----
 
-You may have specific identifiers (names, customer id's, etc) for each row in 
+You may have specific identifiers (names, customer id's, etc) for each row in
 your dataset. By default ``X.index`` will get used
-to identify individual rows/records in the dashboard. And you can index using both the 
-numerical index, e.g. ``explainer.get_contrib_df(0)`` for the first row, or using the 
+to identify individual rows/records in the dashboard. And you can index using both the
+numerical index, e.g. ``explainer.get_contrib_df(0)`` for the first row, or using the
 identifier, e.g. ``explainer.get_contrib_df("Braund, Mr. Owen Harris")``.
 
 You can override using ``X.index`` by passing a list/array/Series ``idxs``
@@ -139,13 +139,13 @@ descriptions
 ------------
 
 ``descriptions`` can be passed as a dictionary of descriptions for each feature.
-In order to be explanatory, you often have to explain the meaning of the features 
+In order to be explanatory, you often have to explain the meaning of the features
 themselves (especially if the naming is not obvious).
-Passing the dict along to descriptions will show hover-over tooltips for the 
+Passing the dict along to descriptions will show hover-over tooltips for the
 various features in the dashboard. If you grouped onehotencoded features with
 the ``cats`` parameter, you can also give descriptions of these groups, e.g::
 
-    ClassifierExplainer(model, X, y, 
+    ClassifierExplainer(model, X, y,
         cats=[{'Gender': ['Sex_male', 'Sex_female']}, 'Deck', 'Embarked'],
         descriptions={
             'Gender': 'Gender of the passenger',
@@ -158,14 +158,14 @@ the ``cats`` parameter, you can also give descriptions of these groups, e.g::
 target
 ------
 
-Name of the target variable. By default the name of the ``y`` (``y.name``) is used 
+Name of the target variable. By default the name of the ``y`` (``y.name``) is used
 if ``y`` is a ``pd.Series``, else it defaults to ``'target'``, bu this can be overriden::
 
     ClassifierExplainer(model, X, y, target="Survival")
 
 labels
 ------
-For ``ClassifierExplainer`` only: The outcome variables for a classification  ``y`` are assumed to 
+For ``ClassifierExplainer`` only: The outcome variables for a classification  ``y`` are assumed to
 be encoded ``0, 1 (, 2, 3, ...)`` You can assign string labels by passing e.g.
 ``labels=['Not survived', 'Survived']``::
 
@@ -185,40 +185,40 @@ the axis of various plots::
 X_background
 ------------
 
-Some models like sklearn ``LogisticRegression`` (as well as certain gradient boosting 
-algorithms such as `xgboost` in probability space) need a background dataset to calculate shap values. 
-These can be passed as ``X_background``. If you don't pass an X_background, Explainer 
+Some models like sklearn ``LogisticRegression`` (as well as certain gradient boosting
+algorithms such as `xgboost` in probability space) need a background dataset to calculate shap values.
+These can be passed as ``X_background``. If you don't pass an X_background, Explainer
 uses X instead but gives off a warning. (You want to limit the size of X_background
-in order to keep the SHAP calculations from getting too slow. Usually a representative 
+in order to keep the SHAP calculations from getting too slow. Usually a representative
 background dataset of a couple of hunderd rows should be enough to get decent shap values.)
 
 model_output
 ------------
 
-By default ``model_output`` for classifiers is set to ``"probability"``, as this 
+By default ``model_output`` for classifiers is set to ``"probability"``, as this
 is more intuitively explainable to non data scientist stakeholders.
-However certain models (e.g. ``XGBClassifier``, ``LGBMCLassifier``, ``CatBoostClassifier``), 
-need a background dataset ``X_background`` to calculate SHAP values in probability 
+However certain models (e.g. ``XGBClassifier``, ``LGBMCLassifier``, ``CatBoostClassifier``),
+need a background dataset ``X_background`` to calculate SHAP values in probability
 space, and are not able to calculate shap interaction values in probability space at all.
-Therefore you can also pass model_output='logodds', in which case shap values 
+Therefore you can also pass model_output='logodds', in which case shap values
 get calculated faster and interaction effects can be studied. Now you just need
 to explain to your stakeholders what logodds are :)
 
 shap
 ----
 
-By default ``shap='guess'``, which means that the Explainer will try to guess 
-based on the model what kind of shap explainer it needs: e.g. 
+By default ``shap='guess'``, which means that the Explainer will try to guess
+based on the model what kind of shap explainer it needs: e.g.
 ``shap.TreeExplainer(...)``, ``shap.LinearExplainer(...)``, etc.
 
 In case the guess fails or you'd like to override it, you can set it manually:
-e.g. ``shap='tree'`` for ``shap.TreeExplainer``, ``shap='linear'`` for ``shap.LinearExplainer``, 
+e.g. ``shap='tree'`` for ``shap.TreeExplainer``, ``shap='linear'`` for ``shap.LinearExplainer``,
 ``shap='kernel'`` for ``shap.KernelExplainer``, ``shap='deep'`` for ``shap.DeepExplainer``, etc.
 
 model_output, X_background example
 ----------------------------------
 
-An example of using setting ``X_background`` and ``model_output`` with a 
+An example of using setting ``X_background`` and ``model_output`` with a
 ``LogisticRegression``::
 
     from sklearn.linear_model import LogisticRegression
@@ -226,9 +226,9 @@ An example of using setting ``X_background`` and ``model_output`` with a
     model = LogisticRegression()
     model.fit(X_train, y_train)
 
-    explainer = ClassifierExplainer(model, X_test, y_test, 
-                                        shap='linear', 
-                                        X_background=X_train, 
+    explainer = ClassifierExplainer(model, X_test, y_test,
+                                        shap='linear',
+                                        X_background=X_train,
                                         model_output='logodds')
     ExplainerDashboard(explainer).run()
 
@@ -236,10 +236,10 @@ An example of using setting ``X_background`` and ``model_output`` with a
 cv
 --
 
-Normally metrics and permutation importances get calculated over a single fold 
-(assuming the data ``X`` is the test set). However if you pass the training set 
-to the explainer, you may wish to cross-validate calculate the permutation 
-importances and metrics. In that case pass the number of folds to ``cv``. 
+Normally metrics and permutation importances get calculated over a single fold
+(assuming the data ``X`` is the test set). However if you pass the training set
+to the explainer, you may wish to cross-validate calculate the permutation
+importances and metrics. In that case pass the number of folds to ``cv``.
 Note that custom metrics do not work with cross validation for now.
 
 
@@ -247,8 +247,8 @@ na_fill
 -------
 
 If you fill missing values with some extreme value such as ``-999`` (typical for
-tree based methods), these can mess with the horizontal axis of your plots. 
-In order to filter these out, you need to tell the explainer what the extreme value 
+tree based methods), these can mess with the horizontal axis of your plots.
+In order to filter these out, you need to tell the explainer what the extreme value
 is that you used to fill. Defaults to ``-999``.
 
 precision
@@ -261,10 +261,10 @@ fine, maybe even ``'float16'`` for your application.
 Pre-calculated shap values
 ==========================
 
-Perhaps you already have calculated the shap values somewhere, or you can calculate 
-them off on a giant cluster somewhere, or your model supports `GPU generated shap values <https://github.com/rapidsai/gputreeshap>`_. 
-    
-You can simply add these pre-calculated shap values to the explainer with 
+Perhaps you already have calculated the shap values somewhere, or you can calculate
+them off on a giant cluster somewhere, or your model supports `GPU generated shap values <https://github.com/rapidsai/gputreeshap>`_.
+
+You can simply add these pre-calculated shap values to the explainer with
 ``explainer.set_shap_values()`` and ``explainer.set_shap_interaction_values()`` methods.
 
 
@@ -274,10 +274,10 @@ Plots
 Shared Plots
 ------------
 
-The abstract base class ``BaseExplainer`` defines most of the functionality 
+The abstract base class ``BaseExplainer`` defines most of the functionality
 such as feature importances (both SHAP and permutation based), SHAP values, SHAP interaction values
 partial dependences, individual contributions, etc. Along with a number of convenient
-plotting methods. In practice you will use ``ClassifierExplainer`` 
+plotting methods. In practice you will use ``ClassifierExplainer``
 or ``RegressionExplainer``, however they both inherit all of these basic methods::
 
 
@@ -291,7 +291,7 @@ or ``RegressionExplainer``, however they both inherit all of these basic methods
 
 example code::
 
-    explainer = ClassifierExplainer(model, X, y, cats=['Sex', 'Deck', 'Embarked']) 
+    explainer = ClassifierExplainer(model, X, y, cats=['Sex', 'Deck', 'Embarked'])
     explainer.plot_importances()
     explainer.plot_contributions(index=0, topx=5)
     explainer.plot_dependence("Fare")
@@ -400,7 +400,7 @@ plot_pr_auc
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.plot_pr_auc
 
-Regression Plots 
+Regression Plots
 ----------------
 
 For the derived RegressionExplainer class again some additional plots::
@@ -429,13 +429,13 @@ DecisionTree Plots
 ------------------
 
 There are additional mixin classes specifically for ``sklearn`` ``RandomForests``
-and for xgboost models that define additional methods and plots to investigate and visualize 
+and for xgboost models that define additional methods and plots to investigate and visualize
 individual decision trees within the ensemblke. These
 uses the ``dtreeviz`` library to visualize individual decision trees.
 
-You can get a pd.DataFrame summary of the path that a specific index row took 
+You can get a pd.DataFrame summary of the path that a specific index row took
 through a specific decision tree.
-You can also plot the individual predictions of each individual tree for 
+You can also plot the individual predictions of each individual tree for
 specific row in your data indentified by ``index``::
 
     explainer.get_decisionpath_df(tree_idx, index)
@@ -539,7 +539,8 @@ Classifier outputs
 For ``ClassifierExplainer`` in addition::
 
     random_index(y_values=None, return_str=False,pred_proba_min=None, pred_proba_max=None,
-                    pred_percentile_min=None, pred_percentile_max=None, pos_label=None)
+                    pred_percentile_min=None, pred_percentile_max=None,
+                    feature_filters=None, pos_label=None)
     prediction_result_df(index, pos_label=None)
     cutoff_from_percentile(percentile, pos_label=None)
     get_precision_df(bin_size=None, quantiles=None, multiclass=False, round=3, pos_label=None)
@@ -548,6 +549,17 @@ For ``ClassifierExplainer`` in addition::
 
 random_index
 ^^^^^^^^^^^^
+
+You can pass ``feature_filters`` to constrain random sampling by feature values.
+For numeric features pass ``(min, max)`` tuples (inclusive); for categorical
+features pass a list of allowed values::
+
+    explainer.random_index(
+        y_values=["Not survived"],
+        pred_percentile_min=0.9,
+        feature_filters={"Age": (70, 80), "Gender": ["male"]},
+        return_str=True,
+    )
 
 .. automethod:: explainerdashboard.explainers.ClassifierExplainer.random_index
 
@@ -599,14 +611,24 @@ Regression outputs
 
 For ``RegressionExplainer``::
 
-    random_index(y_min=None, y_max=None, pred_min=None, pred_max=None, 
+    random_index(y_min=None, y_max=None, pred_min=None, pred_max=None,
                     residuals_min=None, residuals_max=None,
                     abs_residuals_min=None, abs_residuals_max=None,
-                    return_str=False)
+                    feature_filters=None, return_str=False)
 
 
 random_index
 ^^^^^^^^^^^^
+
+``RegressionExplainer.random_index(...)`` also accepts ``feature_filters`` to
+restrict candidate rows by feature values before selecting a random index::
+
+    explainer.random_index(
+        pred_min=20,
+        pred_max=40,
+        feature_filters={"Age": (30, 50), "Deck": ["C", "D"]},
+        return_str=True,
+    )
 
 .. automethod:: explainerdashboard.explainers.RegressionExplainer.random_index
 
@@ -614,7 +636,7 @@ random_index
 RandomForest and XGBoost outputs
 --------------------------------
 
-For RandomForest and XGBoost models mixin classes that visualize individual 
+For RandomForest and XGBoost models mixin classes that visualize individual
 decision trees will be loaded: ``RandomForestExplainer`` and ``XGBExplainer``
 with the following additional methods::
 
@@ -654,21 +676,21 @@ decisiontree
 Calculated Properties
 =====================
 
-In general ``Explainers`` don't calculate any properties of the model or the 
+In general ``Explainers`` don't calculate any properties of the model or the
 data until they are needed for an output, so-called lazy calculation. When the
-property is calculated once, it is stored for next time. So the first time 
+property is calculated once, it is stored for next time. So the first time
 you invoke a plot involving shap values may take a while to calculate. The next
-time will be basically instant. 
+time will be basically instant.
 
-You can access these properties directly from the explainer, e.g. ``explainer.get_shap_values_df()``. 
+You can access these properties directly from the explainer, e.g. ``explainer.get_shap_values_df()``.
 For classifier models if you want values for a particular ``pos_label`` you can
-pass this label ``explainer.get_shap_values_df(0)`` would get the shap values for 
+pass this label ``explainer.get_shap_values_df(0)`` would get the shap values for
 the 0'th class label.
 
 In order to calculate all properties of the explainer at once, you can call
 ``explainer.calculate_properties()``. (``ExplainerComponents`` have a similar method
 ``component.calculate_dependencies()`` to calculate all properties that that specific
-component will need). 
+component will need).
 
 The various properties are::
 
@@ -679,7 +701,7 @@ The various properties are::
     explainer.shap_base_value(pos_label)
     explainer.get_shap_values_df(pos_label)
     explainer.shap_interaction_values
-    
+
 
 For ``ClassifierExplainer``::
 
@@ -710,28 +732,28 @@ For multiclass classification you may want to investigate shap dependences for
 the various classes.
 
 You can pass a parameter ``pos_label`` to almost every property or method, to get
-the output for that specific positive label. If you don't pass a ``pos_label`` 
+the output for that specific positive label. If you don't pass a ``pos_label``
 manually to a specific method, the global ``self.pos_label`` will be used. You can set
 this directly on the explainer (even us str labels if you have set these)::
 
     explainer.pos_label = 0
     explainer.plot_dependence("Fare") # will show plot for pos_label=0
-    explainer.pos_label = 'Survived' 
+    explainer.pos_label = 'Survived'
     explainer.plot_dependence("Fare") # will now show plot for pos_label=1
     explainer.plot_dependence("Fare", pos_label=0) # show plot for label 0, without changing explainer.pos_label
 
 The ``ExplainerDashboard`` will show a dropdown menu in the header to choose
 a particular ``pos_label``. Changing this will basically update every single
-plot in the dashboard. 
+plot in the dashboard.
 
 
 BaseExplainer
 =============
 
 .. autoclass:: explainerdashboard.explainers.BaseExplainer
-   :members: get_shap_values_df, get_mean_abs_shap_df, get_permutation_importances_df, 
-            get_importances_df, contrib_df, set_shap_values, set_shap_interaction_values, plot_importances, plot_contributions, 
-            plot_importances_detailed, plot_interactions_detailed, plot_interactions_importances, 
+   :members: get_shap_values_df, get_mean_abs_shap_df, get_permutation_importances_df,
+            get_importances_df, contrib_df, set_shap_values, set_shap_interaction_values, plot_importances, plot_contributions,
+            plot_importances_detailed, plot_interactions_detailed, plot_interactions_importances,
             plot_dependence, plot_interaction, plot_pdp
    :member-order: bysource
 
@@ -743,7 +765,7 @@ For classification (e.g. ``RandomForestClassifier``) models you use ``Classifier
 You can pass an additional parameter to ``__init__()`` with a list of label names. For
 multilabel classifier you can set the positive class with e.g. ``explainer.pos_label=1``.
 This will make sure that for example ``explainer.pred_probas`` will return the probability
-of that label. 
+of that label.
 
 More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
@@ -751,7 +773,7 @@ More examples in the `notebook on the github repo. <https://github.com/oegedijk/
 .. autoclass:: explainerdashboard.explainers.ClassifierExplainer
    :members: random_index, get_precision_df, get_classification_df, get_liftcurve_df,
         set_shap_values, set_shap_interaction_values,
-        plot_precision, plot_cumulative_precision, plot_classification, 
+        plot_precision, plot_cumulative_precision, plot_classification,
         plot_lift_curve, plot_confusion_matrix, plot_roc_auc, plot_pr_auc
    :member-order: bysource
    :noindex:
@@ -762,18 +784,12 @@ RegressionExplainer
 
 For regression models (e.g. ``RandomForestRegressor``) models you use ``RegressionExplainer``.
 
-You can pass ``units`` as an additional parameter for the units of the target variable (e.g. ``units="$"``). 
+You can pass ``units`` as an additional parameter for the units of the target variable (e.g. ``units="$"``).
 
 More examples in the `notebook on the github repo. <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/explainer_examples.ipynb>`_
 
 .. autoclass:: explainerdashboard.explainers.RegressionExplainer
-   :members: random_index, residuals, metrics, plot_predicted_vs_actual, 
+   :members: random_index, residuals, metrics, plot_predicted_vs_actual,
                 plot_residuals,  plot_residuals_vs_feature
    :member-order: bysource
    :noindex:
-
-
-
-
-
-
