@@ -144,6 +144,9 @@ class BaseExplainer(ABC):
         na_fill: float = -999,
         precision: str = "float64",
         shap_kwargs: Dict = None,
+        strip_pipeline_prefix: bool = False,
+        feature_name_fn: Callable = None,
+        auto_detect_pipeline_cats: bool = False,
     ):
         """Defines the basic functionality that is shared by both
         ClassifierExplainer and RegressionExplainer.
@@ -191,6 +194,12 @@ class BaseExplainer(ABC):
             precision: precision with which to store values. Defaults to "float64".
             shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
                 most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
+            strip_pipeline_prefix (bool): when extracting feature names from sklearn/imblearn
+                pipelines, remove leading step prefixes like ``num__`` and ``cat__``.
+            feature_name_fn (Callable): optional function to rename transformed pipeline
+                feature names (e.g. to strip/normalize prefixes).
+            auto_detect_pipeline_cats (bool): if True and cats is not provided, infer
+                one-hot groups from transformed pipeline columns.
         """
         _warn_if_no_logging_configured()
         self._params_dict = dict(
@@ -205,6 +214,8 @@ class BaseExplainer(ABC):
             na_fill=na_fill,
             precision=precision,
             shap_kwargs=shap_kwargs,
+            strip_pipeline_prefix=strip_pipeline_prefix,
+            auto_detect_pipeline_cats=auto_detect_pipeline_cats,
         )
 
         if permutation_cv is not None:
@@ -221,22 +232,38 @@ class BaseExplainer(ABC):
         ):
             if shap != "kernel":
                 try:
+                    original_columns = list(X.columns)
                     transformer_pipeline, self.model = split_pipeline(model)
-                    self.X = get_transformed_X(transformer_pipeline, X)
+                    self.X = get_transformed_X(
+                        transformer_pipeline,
+                        X,
+                        strip_pipeline_prefix=strip_pipeline_prefix,
+                        feature_name_fn=feature_name_fn,
+                    )
                     if X_background is not None:
                         self.X_background = get_transformed_X(
-                            transformer_pipeline, X_background
+                            transformer_pipeline,
+                            X_background,
+                            strip_pipeline_prefix=strip_pipeline_prefix,
+                            feature_name_fn=feature_name_fn,
                         )
+                    if cats is None and auto_detect_pipeline_cats:
+                        inferred_cats = infer_cats_from_transformed_X(
+                            self.X, original_columns
+                        )
+                        if inferred_cats:
+                            cats = inferred_cats
+                            logger.info(
+                                "Auto-detected one-hot categorical groups from pipeline output: %s",
+                                list(inferred_cats.keys()),
+                            )
                     logger.info(
                         "Detected sklearn/imblearn Pipeline and succesfully extracted final "
                         "output dataframe with column names and final model..."
                     )
                 except Exception as e:
                     warnings.warn(
-                        "Warning: Failed to extract a data transformer with column names and final "
-                        "model from the Pipeline. So setting shap='kernel' to use "
-                        "the (slower and approximate) model-agnostic shap.KernelExplainer "
-                        f"instead! Error: {e}",
+                        build_pipeline_extraction_warning(e),
                         UserWarning,
                     )
                     shap = "kernel"
@@ -2721,6 +2748,9 @@ class ClassifierExplainer(BaseExplainer):
         shap_kwargs: Dict = None,
         labels: List = None,
         pos_label: int = 1,
+        strip_pipeline_prefix: bool = False,
+        feature_name_fn: Callable = None,
+        auto_detect_pipeline_cats: bool = False,
     ):
         """
         Explainer for classification models. Defines the shap values for
@@ -2780,6 +2810,13 @@ class ClassifierExplainer(BaseExplainer):
                         defaults to e.g. ['0', '1'] for a binary classification
             pos_label: class that should be used as the positive class,
                         defaults to 1
+            strip_pipeline_prefix (bool): when extracting feature names from
+                        sklearn/imblearn pipelines, remove leading step prefixes
+                        like ``num__`` and ``cat__``.
+            feature_name_fn (Callable): optional function to rename transformed
+                        pipeline feature names.
+            auto_detect_pipeline_cats (bool): if True and cats is None, infer
+                        one-hot groups from transformed pipeline output.
         """
         super().__init__(
             model,
@@ -2801,6 +2838,9 @@ class ClassifierExplainer(BaseExplainer):
             na_fill,
             precision,
             shap_kwargs,
+            strip_pipeline_prefix,
+            feature_name_fn,
+            auto_detect_pipeline_cats,
         )
 
         assert hasattr(model, "predict_proba"), (
@@ -4421,6 +4461,9 @@ class RegressionExplainer(BaseExplainer):
         precision: str = "float64",
         shap_kwargs: Dict = None,
         units: str = "",
+        strip_pipeline_prefix: bool = False,
+        feature_name_fn: Callable = None,
+        auto_detect_pipeline_cats: bool = False,
     ):
         """Explainer for regression models.
 
@@ -4473,6 +4516,13 @@ class RegressionExplainer(BaseExplainer):
             shap_kwargs(dict): dictionary of keyword arguments to be passed to the shap explainer.
                 most typically used to supress an additivity check e.g. `shap_kwargs=dict(check_additivity=False)`
             units(str): units to display for regression quantity
+            strip_pipeline_prefix (bool): when extracting feature names from
+                sklearn/imblearn pipelines, remove leading step prefixes
+                like ``num__`` and ``cat__``.
+            feature_name_fn (Callable): optional function to rename transformed
+                pipeline feature names.
+            auto_detect_pipeline_cats (bool): if True and cats is None, infer
+                one-hot groups from transformed pipeline output.
         """
         super().__init__(
             model,
@@ -4494,6 +4544,9 @@ class RegressionExplainer(BaseExplainer):
             na_fill,
             precision,
             shap_kwargs,
+            strip_pipeline_prefix,
+            feature_name_fn,
+            auto_detect_pipeline_cats,
         )
 
         self._params_dict = {**self._params_dict, **dict(units=units)}

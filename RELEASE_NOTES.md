@@ -16,6 +16,15 @@
 - Add CatBoost regression tests for classifier/regression `pdp_df(...)` with `X_row` containing missing categorical values.
 - Add hub regression test for integrated hub yaml serialization to verify `pickle_type` is preserved and explainer artifacts are written.
 - Add regression tests for issue #294 covering multiclass logodds consistency across prediction table, contributions, PDP highlight predictions, and XGBoost decision-path summaries.
+- Add pipeline tests for transformed feature-name cleanup (`strip_pipeline_prefix`, `feature_name_fn`) and pipeline categorical grouping autodetection.
+- Add explainer-method unit tests for binary-like onehot detection, transformed feature-name deduping, inferred pipeline cats, and pipeline extraction warning text.
+
+### Improvements
+- Add pipeline feature-name cleanup options: `strip_pipeline_prefix=True` and `feature_name_fn=...` for sklearn/imblearn pipeline transformed output columns.
+- Add optional `auto_detect_pipeline_cats=True` to infer onehot groups from transformed pipeline columns when `cats` is not provided.
+- Preserve input index in transformed pipeline dataframes produced during pipeline extraction.
+- Improve pipeline extraction warning guidance and include concrete checks (`get_feature_names_out`, transform compatibility on `X`/`X_background`).
+- Relax onehot grouping validation to also accept binary-like scaled onehot columns (not only strict `0/1`) when parsing `cats`.
 
 ### CI
 - Update `explainerdashboard` GitHub Actions workflow to run a weekly scheduled full test suite (`pytest`) to detect dependency breakages earlier.

@@ -9,9 +9,13 @@ __all__ = [
     "guess_shap",
     "mape_score",
     "parse_cats",
+    "is_binary_like_onehot_column",
+    "infer_cats_from_transformed_X",
     "get_encoded_and_regular_cols",
     "split_pipeline",
+    "rename_pipeline_columns",
     "get_transformed_X",
+    "build_pipeline_extraction_warning",
     "retrieve_onehot_value",
     "merge_categorical_columns",
     "matching_cols",
@@ -45,7 +49,7 @@ __all__ = [
 from functools import partial
 import re
 from collections import Counter
-from typing import List, Union
+from typing import Callable, List, Optional, Union
 import warnings
 import logging
 
@@ -605,8 +609,8 @@ def parse_cats(X, cats, sep: str = "_"):
         "Please select a different name for your new cats columns!"
     )
     for col, count in col_counter.most_common():
-        assert set(X[col].astype(int).unique()).issubset(
-            {0, 1}
+        assert is_binary_like_onehot_column(
+            X[col]
         ), f"{col} is not a onehot encoded column (i.e. has values other than 0, 1)!"
     onehot_cols = list(onehot_dict.keys())
     for col in [col for col in all_cols if col not in col_counter.keys()]:
@@ -677,8 +681,93 @@ def split_pipeline(pipeline: Pipeline, verbose: int = 1):
     return transformer_pipeline, estimator
 
 
+def is_binary_like_onehot_column(series: pd.Series) -> bool:
+    """Return whether a series behaves like one-hot encoded values.
+
+    Accepts strict {0, 1} columns and binary-like variants with two unique numeric
+    values (e.g. after a scaler was applied to one-hot features in a pipeline).
+    """
+    numeric_unique = np.unique(pd.Series(series).dropna().astype(float))
+    return set(numeric_unique).issubset({0.0, 1.0}) or len(numeric_unique) <= 2
+
+
+def infer_cats_from_transformed_X(
+    X_transformed: pd.DataFrame, original_columns: List[str], sep: str = "_"
+) -> dict:
+    """Infer one-hot groupings from transformed pipeline column names.
+
+    Uses original pre-transform feature names to detect expanded one-hot columns.
+    Only groups columns when:
+    1) more than one transformed column matches an original feature, and
+    2) all matched columns are binary-like.
+    """
+    inferred = {}
+    transformed_columns = list(X_transformed.columns)
+
+    for original_col in original_columns:
+        matched_cols = []
+        for transformed_col in transformed_columns:
+            tail = transformed_col.split("__")[-1]
+            if tail == original_col or tail.startswith(f"{original_col}{sep}"):
+                matched_cols.append(transformed_col)
+
+        if len(matched_cols) <= 1:
+            continue
+        if not all(
+            is_binary_like_onehot_column(X_transformed[col]) for col in matched_cols
+        ):
+            continue
+
+        first_col = matched_cols[0]
+        marker = f"{original_col}{sep}"
+        if marker in first_col:
+            group_name = first_col[: first_col.index(marker) + len(original_col)]
+        else:
+            group_name = original_col
+        inferred[group_name] = matched_cols
+
+    return inferred
+
+
+def rename_pipeline_columns(
+    columns: List[str],
+    strip_pipeline_prefix: bool = False,
+    feature_name_fn: Optional[Callable[[str], str]] = None,
+    verbose: int = 1,
+) -> List[str]:
+    """Optionally transform pipeline output feature names."""
+    if feature_name_fn is not None:
+        renamed = [feature_name_fn(col) for col in columns]
+    elif strip_pipeline_prefix:
+        renamed = [col.split("__", 1)[1] if "__" in col else col for col in columns]
+    else:
+        return columns
+
+    if len(set(renamed)) == len(renamed):
+        return renamed
+
+    deduped = []
+    counts = Counter()
+    for col in renamed:
+        counts[col] += 1
+        if counts[col] == 1:
+            deduped.append(col)
+        else:
+            deduped.append(f"{col}__{counts[col]}")
+
+    if verbose:
+        logger.warning(
+            "Feature name transformation produced duplicate columns; appended numeric suffixes to keep names unique."
+        )
+    return deduped
+
+
 def get_transformed_X(
-    transformer_pipeline: Pipeline, X: pd.DataFrame, verbose: int = 1
+    transformer_pipeline: Pipeline,
+    X: pd.DataFrame,
+    verbose: int = 1,
+    strip_pipeline_prefix: bool = False,
+    feature_name_fn: Optional[Callable[[str], str]] = None,
 ):
     """takes a transformer_pipeline (all the steps except the final Estimator of an sklearn or imblearn Pipeline)
     and uses it to transform input DataFrame X and returns a transformed DataFrame.
@@ -704,7 +793,13 @@ def get_transformed_X(
                     f"len(pipeline[:-1].get_feature_names_out())={len(columns)} does"
                     f" not equal X_transformed.shape[1]={X_transformed.shape[1]}!"
                 )
-            return pd.DataFrame(X_transformed, columns=columns)
+            columns = rename_pipeline_columns(
+                columns,
+                strip_pipeline_prefix=strip_pipeline_prefix,
+                feature_name_fn=feature_name_fn,
+                verbose=verbose,
+            )
+            return pd.DataFrame(X_transformed, columns=columns, index=X.index)
         except Exception as e:
             if verbose:
                 logger.warning(
@@ -723,7 +818,7 @@ def get_transformed_X(
             for i, pipe in enumerate(transformer_pipeline):
                 if hasattr(pipe, "n_features_in_"):
                     assert pipe.n_features_in_ == len(X.columns)
-            return pd.DataFrame(X_transformed, columns=X.columns)
+            return pd.DataFrame(X_transformed, columns=X.columns, index=X.index)
         except Exception as e:
             logger.warning(
                 ".n_features_in_ did not match len(X.columns)=%s for pipeline step %s: %s. Error: %s",
@@ -741,7 +836,19 @@ def get_transformed_X(
         )
     columns = [f"col{i + 1}" for i in range(X_transformed.shape[1])]
 
-    return pd.DataFrame(X_transformed, columns=columns)
+    return pd.DataFrame(X_transformed, columns=columns, index=X.index)
+
+
+def build_pipeline_extraction_warning(error: Exception) -> str:
+    """Build a user-facing warning when pipeline extraction fails."""
+    return (
+        "Warning: Failed to extract a data transformer with column names and final "
+        "model from the Pipeline. So set shap='kernel' to use the (slower and "
+        "approximate) model-agnostic shap.KernelExplainer instead. "
+        "If possible, ensure pipeline transformers implement get_feature_names_out(), "
+        "and verify pipeline transform() can run on the provided X/X_background. "
+        f"Error: {error}"
+    )
 
 
 def retrieve_onehot_value(

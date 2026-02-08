@@ -168,6 +168,18 @@ db = ExplainerDashboard(explainer,
 db.run(port=8050)
 ```
 
+If you are passing an sklearn/imblearn `Pipeline`, you can also clean up transformed
+feature names and let the explainer infer onehot groups automatically:
+
+```python
+explainer = ClassifierExplainer(
+    pipeline_model, X_test, y_test,
+    strip_pipeline_prefix=True,      # e.g. "num__Age" -> "Age"
+    feature_name_fn=None,            # optional custom rename function
+    auto_detect_pipeline_cats=True,  # infer cats from transformed pipeline output
+)
+```
+
 For a regression model you can also pass the units of the target variable (e.g.
 dollars):
 
@@ -183,6 +195,10 @@ explainer = RegressionExplainer(model, X_test, y_test,
 
 ExplainerDashboard(explainer).run()
 ```
+
+For pipeline-based models with post-processing/scaling, grouped categorical
+features passed through `cats` are now accepted as long as encoded columns are
+binary-like (not strictly only `0/1`).
 
 `y_test` is actually optional, although some parts of the dashboard like performance
 metrics will obviously not be available: `ExplainerDashboard(ClassifierExplainer(model, X_test)).run()`.

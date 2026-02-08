@@ -59,6 +59,9 @@ give a bit nicer and more convenient output::
             X_background=X_train, # set background dataset for shap calculations
             model_output='logodds', # set model_output to logodds (vs probability)
             cats=['Sex', 'Deck', 'Embarked'], # makes it easy to group onehotencoded vars
+            strip_pipeline_prefix=True, # optional: remove prefixes like "num__"
+            feature_name_fn=None, # optional: custom feature renaming function
+            auto_detect_pipeline_cats=True, # optional: infer onehot groups from pipeline output
             idxs=test_names, # index with str identifier
             index_name="Passenger", # description of index
             descriptions=feature_descriptions, # show long feature descriptions in hovers
@@ -96,6 +99,27 @@ And you can also combine the two methods::
 You can now use these categorical features directly as input for plotting methods, e.g.
 ``explainer.plot_dependence("Deck")``, which will now generate violin plots
 instead of the default scatter plots.
+
+Using sklearn/imblearn Pipelines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When passing a fitted sklearn/imblearn ``Pipeline`` (with the final estimator as
+the last step), you can optionally clean transformed feature names and infer
+categorical groups directly from the transformed output::
+
+    ClassifierExplainer(
+        pipeline_model, X, y,
+        strip_pipeline_prefix=True,
+        auto_detect_pipeline_cats=True
+    )
+
+- ``strip_pipeline_prefix=True`` turns names like ``num__Age`` into ``Age``.
+- ``feature_name_fn=...`` can be used for custom feature naming logic.
+- ``auto_detect_pipeline_cats=True`` infers ``cats`` only when a source feature
+  expands to multiple binary-like columns (so single-column outputs such as
+  ``OneHotEncoder(drop='if_binary')`` are not grouped).
+- If you pass ``cats`` manually, binary-like (scaled) onehot outputs are accepted
+  in addition to strict ``0/1`` outputs.
 
 cats_notencoded
 ---------------
@@ -214,6 +238,10 @@ based on the model what kind of shap explainer it needs: e.g.
 In case the guess fails or you'd like to override it, you can set it manually:
 e.g. ``shap='tree'`` for ``shap.TreeExplainer``, ``shap='linear'`` for ``shap.LinearExplainer``,
 ``shap='kernel'`` for ``shap.KernelExplainer``, ``shap='deep'`` for ``shap.DeepExplainer``, etc.
+
+If pipeline extraction fails, explainerdashboard falls back to
+``shap='kernel'`` and emits guidance to check ``get_feature_names_out()`` and
+pipeline transform compatibility for the provided ``X``/``X_background``.
 
 model_output, X_background example
 ----------------------------------

@@ -5,16 +5,16 @@ Summary
 =======
 
 ``explainerdashboard`` is a library for quickly building interactive dashboards
-for analyzing and explaining the predictions and workings of 
+for analyzing and explaining the predictions and workings of
 (scikit-learn compatible) machine learning models, including
 xgboost, catboost and lightgbm. This makes your model transparant and explainable
-with just two lines of code. 
+with just two lines of code.
 
-It allows you to investigate SHAP values, permutation importances, 
+It allows you to investigate SHAP values, permutation importances,
 interaction effects, partial dependence plots, all kinds of performance plots,
-and even individual decision trees inside a random forest. With ``explainerdashboard`` any data 
-scientist can create an interactive explainable AI web app in minutes, 
-without having to know anything about web development or deployment. 
+and even individual decision trees inside a random forest. With ``explainerdashboard`` any data
+scientist can create an interactive explainable AI web app in minutes,
+without having to know anything about web development or deployment.
 
 You first construct an ``explainer`` object out of your model and the test data::
 
@@ -27,7 +27,7 @@ You then pass this ``explainer`` object to an ``ExplainerDashboard`` and run it:
 
 .. image:: screenshots/screenshot.*
 
-You can host multiple ExplainerDashboard in an ``ExplainerHub`` by passing in a 
+You can host multiple ExplainerDashboard in an ``ExplainerHub`` by passing in a
 list of dashboards::
 
     db1 = ExplainerDashboard(explainer1)
@@ -46,11 +46,11 @@ See :ref:`ExplainerHub documentation<ExplainerHub>`
 InlineExplainer
 ===============
 
-For viewing and customizing individual components or tabs directly inside your 
+For viewing and customizing individual components or tabs directly inside your
 notebook you use the ``InlineExplainer``::
 
     from explainerdashboard import InlineExplainer
-    
+
     InlineExplainer(explainer).shap.dependence()
     InlineExplainer(explainer).shap.dependence(hide_cats=True, hide_index=True, col="Fare")
     InlineExplainer(explainer).shap.overview()
@@ -68,7 +68,7 @@ to directly make plots inline in your notebook:
 A more extended example
 =======================
 
-Some example code, where we load some data, fit a model, construct an explainer, 
+Some example code, where we load some data, fit a model, construct an explainer,
 pass it on to an ``ExplainerDashboard`` and run the dashboard::
 
     from sklearn.ensemble import RandomForestClassifier
@@ -82,7 +82,7 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
     model.fit(X_train, y_train)
 
     explainer = ClassifierExplainer(
-                    model, X_test, y_test, 
+                    model, X_test, y_test,
                     # optional:
                     cats=['Sex', 'Deck', 'Embarked'],
                     labels=['Not survived', 'Survived'])
@@ -93,11 +93,19 @@ pass it on to an ``ExplainerDashboard`` and run the dashboard::
                         decision_trees=False)
     db.run(port=8051)
 
+For sklearn/imblearn pipeline models, you can also enable pipeline-aware feature
+name cleanup and automatic categorical grouping::
+
+    explainer = ClassifierExplainer(
+        pipeline_model, X_test, y_test,
+        strip_pipeline_prefix=True,
+        auto_detect_pipeline_cats=True)
+
 Or, as a one-liner::
 
     ExplainerDashboard(
         ClassifierExplainer(
-            RandomForestClassifier().fit(X_train, y_train), 
+            RandomForestClassifier().fit(X_train, y_train),
             X_test, y_test
         )
     ).run()
@@ -114,7 +122,7 @@ Custom dashboards
 =================
 You can easily :ref:`remix and customize<CustomModelTab>` ``ExplainerComponent`` primitives into
 your own custom layouts for a dashboard that is specifically tailored to
-your own model and project. For example a dashboard with a single SHAP dependence 
+your own model and project. For example a dashboard with a single SHAP dependence
 component::
 
     from explainerdashboard.custom import *
@@ -131,14 +139,14 @@ component::
     ExplainerDashboard(explainer, CustomDashboard).run()
 
 
-A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>` 
+A more elaborate example of  :ref:`a custom dashboard<CustomModelTab>`
 (example deployed `here <http://titanicexplainer.herokuapp.com/custom/>`_):
 
 .. image:: screenshots/custom_dashboard.*
 
 
-More examples of how to start dashboards for different types of models and with 
-different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/dashboard_examples.ipynb>`_ 
+More examples of how to start dashboards for different types of models and with
+different parameters can be found in the `dashboard_examples notebook <https://github.com/oegedijk/explainerdashboard/blob/master/notebooks/dashboard_examples.ipynb>`_
 in the github repo.
 
 For examples on how to interact with and get plots and dataframes out of the explainer
