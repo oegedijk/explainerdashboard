@@ -1091,6 +1091,8 @@ class FeatureInputComponent(ExplainerComponent):
         index=None,
         n_input_cols=4,
         sort_features="shap",
+        input_features=None,
+        hide_features=None,
         fill_row_first=True,
         feature_input_ranges=None,
         round=2,
@@ -1117,6 +1119,9 @@ class FeatureInputComponent(ExplainerComponent):
                 Defaults to 4.
             sort_features(str, optional): how to sort the features. For now only options
                 is 'shap' to sort by mean absolute shap value.
+            input_features (list[str], optional): explicit list of input features to show,
+                in display order.
+            hide_features (list[str], optional): list of features to hide from display.
             fill_row_first (bool, optional): if True most important features will
                 be on top row, if False they will be in most left column.
             feature_input_ranges (dict, optional): dict mapping feature names to
@@ -1139,34 +1144,34 @@ class FeatureInputComponent(ExplainerComponent):
         self.index_name = "feature-input-index-" + self.name
         self.feature_input_ranges = feature_input_ranges or {}
         self.round = round
-
+        self._all_features = self.explainer.columns_ranked_by_shap()
         self._feature_callback_inputs = [
             Input("feature-input-" + feature + "-input-" + self.name, "value")
-            for feature in self.explainer.columns_ranked_by_shap()
+            for feature in self._all_features
         ]
         self._feature_callback_outputs = [
             Output("feature-input-" + feature + "-input-" + self.name, "value")
-            for feature in self.explainer.columns_ranked_by_shap()
+            for feature in self._all_features
         ]
 
-        if self.sort_features == "shap":
-            self._input_features = self.explainer.columns_ranked_by_shap()
-        elif self.sort_features == "alphabet":
-            self._input_features = sorted(self.explainer.merged_cols.tolist())
-        else:
-            raise ValueError(
-                "parameter sort_features should be either 'shap', "
-                "or 'alphabet', but you passed sort_features='{self.sort_features}'"
-            )
+        self._input_features = self._get_visible_input_features()
 
-        self._feature_inputs = [
-            self._generate_dash_input(
+        self._feature_inputs_map = {
+            feature: self._generate_dash_input(
                 feature,
                 self.explainer.onehot_cols,
                 self.explainer.onehot_dict,
                 self.explainer.categorical_dict,
             )
-            for feature in self._input_features
+            for feature in self._all_features
+        }
+        self._feature_inputs = [
+            self._feature_inputs_map[feature] for feature in self._input_features
+        ]
+        self._hidden_feature_inputs = [
+            self._feature_inputs_map[feature]
+            for feature in self._all_features
+            if feature not in self._input_features
         ]
 
         self._state_props = {
@@ -1178,6 +1183,58 @@ class FeatureInputComponent(ExplainerComponent):
         if self.description is None:
             self.description = """
         Adjust the input values to see predictions for what if scenarios."""
+
+    def _validate_feature_subset(self, feature_list, parameter_name):
+        if feature_list is None:
+            return None
+        if not isinstance(feature_list, (list, tuple)):
+            raise ValueError(
+                f"parameter {parameter_name} should be a list or tuple of feature names!"
+            )
+        feature_list = list(feature_list)
+        if len(feature_list) != len(set(feature_list)):
+            raise ValueError(
+                f"parameter {parameter_name} contains duplicate feature names!"
+            )
+        unknown = [
+            feature
+            for feature in feature_list
+            if feature not in self.explainer.merged_cols
+        ]
+        if unknown:
+            raise ValueError(
+                f"parameter {parameter_name} contains unknown feature names: {unknown}!"
+            )
+        return feature_list
+
+    def _get_visible_input_features(self):
+        input_features = self._validate_feature_subset(
+            self.input_features, "input_features"
+        )
+        hide_features = (
+            self._validate_feature_subset(self.hide_features, "hide_features") or []
+        )
+
+        if input_features is not None:
+            visible_features = input_features
+        elif self.sort_features == "shap":
+            visible_features = self.explainer.columns_ranked_by_shap()
+        elif self.sort_features == "alphabet":
+            visible_features = sorted(self.explainer.merged_cols.tolist())
+        else:
+            raise ValueError(
+                "parameter sort_features should be either 'shap', "
+                "or 'alphabet', but you passed sort_features='{self.sort_features}'"
+            )
+
+        visible_features = [
+            feature for feature in visible_features if feature not in hide_features
+        ]
+        if not visible_features:
+            raise ValueError(
+                "No input features left to display after applying input_features/hide_features!"
+            )
+        return visible_features
 
     def _generate_dash_input(self, col, onehot_cols, onehot_dict, cat_dict):
         if col in cat_dict:
@@ -1343,6 +1400,9 @@ class FeatureInputComponent(ExplainerComponent):
                             ]
                         ),
                         input_row,
+                        html.Div(
+                            self._hidden_feature_inputs, style={"display": "none"}
+                        ),
                     ]
                 ),
             ],

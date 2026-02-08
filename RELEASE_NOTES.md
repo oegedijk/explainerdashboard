@@ -5,6 +5,7 @@
 
 ### Bug Fixes
 - Allow FeatureInputComponent (what-if inputs) to customize numeric ranges and rounding, and apply min/max/step to inputs.
+- Add `input_features` and `hide_features` to `FeatureInputComponent` so what-if fields can be explicitly ordered and selectively hidden, while preserving the full callback input contract.
 - Fix issue #220: accept single-row list/array `X_row` inputs in `get_contrib_df`, and harden related row-input paths (`get_col_value_plus_prediction`, `pdp_df`, and classifier/regression `prediction_result_df`) with regression tests.
 - Fix issue #262: add feature-based filters to classifier/regression `random_index(...)` (numeric ranges and categorical inclusion), enabling what-if random selection constrained by input feature values.
 - Improve compatibility with AutoGluon/custom wrappers by coercing pandas `DataFrame` outputs from `predict_proba`/`predict` to numpy arrays before indexing in classifier/regression helper paths.

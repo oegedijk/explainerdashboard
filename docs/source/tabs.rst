@@ -54,6 +54,9 @@ The what-if tab supports random index selection with constraints. Besides
 observed label and prediction/probability ranges, you can now also constrain
 random selection by feature values through explainer-level ``feature_filters``
 in ``random_index(...)`` (for example an ``Age`` range or specific categories).
+You can additionally pass ``input_features`` and ``hide_features`` (for example
+through ``ExplainerDashboard(..., input_features=[...], hide_features=[...])``)
+to control which Feature Input fields are shown and in what order.
 
 .. autoclass:: explainerdashboard.dashboard_components.composites.WhatIfComposite
    :members:

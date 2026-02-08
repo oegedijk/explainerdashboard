@@ -1,3 +1,4 @@
+import pytest
 from sklearn.ensemble import RandomForestClassifier
 
 from explainerdashboard import ClassifierExplainer
@@ -51,3 +52,84 @@ def test_feature_input_component_respects_custom_range_and_rounding(classifier_d
     assert props.get("max") == 50
     assert props.get("step") == 0.1
     assert range_text == "Range: 0-50"
+
+
+def test_feature_input_component_input_features_sets_order(classifier_data):
+    X_train, y_train, X_test, y_test = classifier_data
+
+    model = RandomForestClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(model, X_test, y_test)
+    custom_features = ["Fare", "Age"]
+    component = FeatureInputComponent(explainer, input_features=custom_features)
+
+    labels = [div.children[0].children for div in component._feature_inputs]
+    assert labels == custom_features
+
+
+def test_feature_input_component_hide_features_hides_from_visible_inputs(
+    classifier_data,
+):
+    X_train, y_train, X_test, y_test = classifier_data
+
+    model = RandomForestClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(model, X_test, y_test)
+    component = FeatureInputComponent(explainer, hide_features=["Age"])
+
+    labels = [div.children[0].children for div in component._feature_inputs]
+    assert "Age" not in labels
+    assert len(component._hidden_feature_inputs) >= 1
+
+
+def test_feature_input_component_hide_features_keeps_full_callback_contract(
+    classifier_data,
+):
+    X_train, y_train, X_test, y_test = classifier_data
+
+    model = RandomForestClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(model, X_test, y_test)
+    component = FeatureInputComponent(explainer, hide_features=["Age"])
+
+    expected_len = len(explainer.columns_ranked_by_shap())
+    assert len(component._feature_callback_inputs) == expected_len
+    assert len(component._feature_callback_outputs) == expected_len
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"input_features": ["feature_does_not_exist"]},
+        {"hide_features": ["feature_does_not_exist"]},
+        {"input_features": ["Age", "Age"]},
+        {"hide_features": ["Age", "Age"]},
+    ],
+)
+def test_feature_input_component_invalid_feature_configuration_raises(
+    classifier_data, kwargs
+):
+    X_train, y_train, X_test, y_test = classifier_data
+
+    model = RandomForestClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(model, X_test, y_test)
+    with pytest.raises(ValueError):
+        FeatureInputComponent(explainer, **kwargs)
+
+
+def test_feature_input_component_empty_visible_set_raises(classifier_data):
+    X_train, y_train, X_test, y_test = classifier_data
+
+    model = RandomForestClassifier(n_estimators=5, max_depth=2)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(model, X_test, y_test)
+    with pytest.raises(ValueError):
+        FeatureInputComponent(
+            explainer, hide_features=list(explainer.merged_cols.tolist())
+        )
