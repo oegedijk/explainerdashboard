@@ -126,7 +126,7 @@ And you need to tell heroku how to start your server in ``Procfile``::
 Graphviz buildpack
 ------------------
 
-If you want to visualize individual trees inside your ``RandomForest`` or ``xgboost``
+If you want to visualize individual trees inside your ``RandomForest``, ``xgboost`` or ``lightgbm``
 model using the ``dtreeviz`` package you will
 need to make sure that ``graphviz`` is installed on your ``heroku`` dyno by
 adding the following buildstack (as well as the ``python`` buildpack):

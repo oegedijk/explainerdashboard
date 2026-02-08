@@ -12,7 +12,8 @@ with just two lines of code.
 
 It allows you to investigate SHAP values, permutation importances,
 interaction effects, partial dependence plots, all kinds of performance plots,
-and even individual decision trees inside a random forest. With ``explainerdashboard`` any data
+and even individual decision trees inside random forest, XGBoost, and LightGBM models.
+With ``explainerdashboard`` any data
 scientist can create an interactive explainable AI web app in minutes,
 without having to know anything about web development or deployment.
 

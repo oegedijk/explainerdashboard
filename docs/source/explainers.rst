@@ -456,10 +456,10 @@ plot_residuals_vs_feature
 DecisionTree Plots
 ------------------
 
-There are additional mixin classes specifically for ``sklearn`` ``RandomForests``
-and for xgboost models that define additional methods and plots to investigate and visualize
-individual decision trees within the ensemblke. These
-uses the ``dtreeviz`` library to visualize individual decision trees.
+There are additional mixin classes specifically for ``sklearn`` ``RandomForests``,
+``xgboost``, and ``lightgbm`` models that define additional methods and plots to
+investigate and visualize individual decision trees within the ensemble. These
+use the ``dtreeviz`` library to visualize individual decision trees.
 
 You can get a pd.DataFrame summary of the path that a specific index row took
 through a specific decision tree.
@@ -476,9 +476,9 @@ And for dtreeviz visualization of individual decision trees (svg format)::
     explainer.decisiontree_file(tree_idx, index)
     explainer.decisiontree_encoded(tree_idx, index)
 
-These methods are part of the ``RandomForestExplainer`` and XGBExplainer`` mixin
-classes that get automatically loaded when you pass either a RandomForest
-or XGBoost model.
+These methods are part of the ``RandomForestExplainer``, ``XGBExplainer``, and
+``LGBMExplainer`` mixin classes that get automatically loaded when you pass a
+RandomForest, XGBoost, or LightGBM model.
 
 
 plot_trees
@@ -661,12 +661,12 @@ restrict candidate rows by feature values before selecting a random index::
 .. automethod:: explainerdashboard.explainers.RegressionExplainer.random_index
 
 
-RandomForest and XGBoost outputs
---------------------------------
+RandomForest, XGBoost, and LightGBM outputs
+-------------------------------------------
 
-For RandomForest and XGBoost models mixin classes that visualize individual
-decision trees will be loaded: ``RandomForestExplainer`` and ``XGBExplainer``
-with the following additional methods::
+For RandomForest, XGBoost, and LightGBM models mixin classes that visualize
+individual decision trees will be loaded: ``RandomForestExplainer``,
+``XGBExplainer``, and ``LGBMExplainer`` with the following additional methods::
 
     decisiontree_df(tree_idx, index, pos_label=None)
     decisiontree_summary_df(tree_idx, index, round=2, pos_label=None)

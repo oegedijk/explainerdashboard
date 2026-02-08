@@ -104,7 +104,7 @@ The library includes:
 - *Permutation importances* (how much does the model metric deteriorate when you shuffle a feature?)
 - *Partial dependence plots* (how does the model prediction change when you vary a single feature?
 - *Shap interaction values* (decompose the shap value into a direct effect an interaction effects)
-- For Random Forests and xgboost models: visualisation of individual decision trees
+- For Random Forest, XGBoost, and LightGBM models: visualisation of individual decision trees
 - Plus for classifiers: precision plots, confusion matrix, ROC AUC plot, PR AUC plot, etc
 - For regression models: goodness-of-fit plots, residual plots, etc.
 
