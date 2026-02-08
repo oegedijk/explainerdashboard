@@ -7,12 +7,12 @@
 
 **Done**
 - [S][Methods][#220] get_contrib_df accepts list/array input (and hardened related X_row APIs).
-
-**Now**
 - [M][Components][#176] FeatureInputComponent hide parameters.
 
-**Next**
+**Now**
 - [M][Explainers][#198] LightGBM string categorical handling across SHAP/plots.
+
+**Next**
 - [S][Hub] hub.to_yaml integrate_dashboard_yamls should honor pickle_type (currently joblib only).
 
 **Backlog: Explainers**

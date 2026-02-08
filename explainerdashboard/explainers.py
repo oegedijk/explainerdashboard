@@ -859,6 +859,40 @@ class BaseExplainer(ABC):
             return self.get_row_from_input(inputs)
         return X_row
 
+    def _get_tree_shap_eval_input(self, X):
+        """Prepare SHAP evaluation input for tree models.
+
+        For LightGBM models with native categorical features, SHAP may pass
+        object arrays with string values into LightGBM's predict path, which
+        can fail with float-conversion errors. Convert categorical columns to
+        numeric category codes for SHAP evaluation only.
+        """
+        if self.shap != "tree":
+            return X
+        if not self.categorical_cols:
+            return X
+        if not safe_isinstance(
+            self.model_for_shap,
+            "lightgbm.sklearn.LGBMClassifier",
+            "lightgbm.sklearn.LGBMRegressor",
+        ):
+            return X
+
+        if isinstance(X, pd.DataFrame):
+            X_eval = X.copy()
+        else:
+            X_eval = pd.DataFrame(np.asarray(X), columns=self.columns)
+
+        for col in self.categorical_cols:
+            ref_categories = self.X[col].cat.categories
+            if isinstance(X_eval[col].dtype, pd.CategoricalDtype):
+                X_eval[col] = X_eval[col].cat.set_categories(ref_categories)
+            else:
+                X_eval[col] = pd.Categorical(X_eval[col], categories=ref_categories)
+            codes = X_eval[col].cat.codes.astype("float64")
+            X_eval[col] = codes.where(codes >= 0, np.nan)
+        return X_eval.to_numpy(dtype="float64")
+
     def get_col(self, col):
         """return pd.Series with values of col
 
@@ -1449,7 +1483,7 @@ class BaseExplainer(ABC):
                 )
             else:
                 shap_values_raw = self.shap_explainer.shap_values(
-                    self.X, **self.shap_kwargs
+                    self._get_tree_shap_eval_input(self.X), **self.shap_kwargs
                 )
                 # Handle XGBoost 3.0+ string predictions
                 shap_values_raw = _ensure_numeric_predictions(shap_values_raw)
@@ -1501,7 +1535,9 @@ class BaseExplainer(ABC):
                         else self.shap_kwargs
                     )
                     shap_row = pd.DataFrame(
-                        self.shap_explainer.shap_values(X_row, **self.shap_kwargs),
+                        self.shap_explainer.shap_values(
+                            self._get_tree_shap_eval_input(X_row), **self.shap_kwargs
+                        ),
                         columns=self.columns,
                     )
                 shap_row = merge_categorical_shap_values(
@@ -1521,7 +1557,9 @@ class BaseExplainer(ABC):
                     else self.shap_kwargs
                 )
                 shap_row = pd.DataFrame(
-                    self.shap_explainer.shap_values(X_row, **shap_kwargs),
+                    self.shap_explainer.shap_values(
+                        self._get_tree_shap_eval_input(X_row), **shap_kwargs
+                    ),
                     columns=self.columns,
                 )
             shap_row = merge_categorical_shap_values(
@@ -3170,8 +3208,24 @@ class ClassifierExplainer(BaseExplainer):
                     torch.tensor(self.X.values.astype("float32")), **self.shap_kwargs
                 )
             else:
+                # Keep DataFrame dtypes for models that handle categorical features
+                # natively (e.g. LightGBM/CatBoost). Converting to .values would
+                # coerce mixed/string categoricals to object/float and can crash.
+                use_dataframe_input = bool(self.categorical_cols) and (
+                    safe_isinstance(
+                        self.model_for_shap,
+                        "lightgbm.sklearn.LGBMClassifier",
+                        "lightgbm.sklearn.LGBMRegressor",
+                    )
+                    or safe_isinstance(self.model_for_shap, "catboost.core.CatBoost")
+                )
+                X_shap_input = (
+                    self._get_tree_shap_eval_input(self.X)
+                    if use_dataframe_input
+                    else self.X.values
+                )
                 _shap_values_raw = self.shap_explainer.shap_values(
-                    self.X.values, **self.shap_kwargs
+                    X_shap_input, **self.shap_kwargs
                 )
             # Handle XGBoost 3.0+ string predictions
             _shap_values = _ensure_numeric_predictions(_shap_values_raw)
@@ -3336,7 +3390,9 @@ class ClassifierExplainer(BaseExplainer):
                     if self.shap == "kernel"
                     else self.shap_kwargs
                 )
-                sv = self.shap_explainer.shap_values(X_row, **shap_kwargs)
+                sv = self.shap_explainer.shap_values(
+                    self._get_tree_shap_eval_input(X_row), **shap_kwargs
+                )
             if isinstance(sv, np.ndarray) and len(sv.shape) > 2:
                 shap_row = pd.DataFrame(sv[:, :, pos_label], columns=self.columns)
             elif isinstance(sv, list) and len(sv) > 1:

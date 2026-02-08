@@ -1,5 +1,13 @@
 # Release Notes
 
+## Version 0.5.8:
+
+### Bug Fixes
+- Fix issue #198: handle LightGBM models with string categorical features in SHAP/dashboard paths by normalizing tree-SHAP evaluation input for categorical columns.
+- Prevent crashes in LightGBM what-if/SHAP flows caused by object/string categorical values during SHAP value computation.
+
+### Tests
+- Add regression tests for LightGBM with string categorical features covering dashboard initialization, `get_shap_row(...)`, unseen categorical values in `X_row`, and regression dashboard initialization.
 
 ## Version 0.5.7:
 
