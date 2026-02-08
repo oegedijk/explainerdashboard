@@ -1,5 +1,12 @@
 import pandas as pd
 import numpy as np
+import types
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+
+from explainerdashboard import ClassifierExplainer
 
 
 def test_linreg_explainer_len(precalculated_linear_regression_explainer, testlen):
@@ -277,3 +284,151 @@ def test_linear_regression_kernel_shap_values(linear_regression_kernel_explainer
     assert isinstance(
         linear_regression_kernel_explainer.get_shap_values_df(), pd.DataFrame
     )
+
+
+def test_multiclass_linearsvc_monkey_patch_guidance_supports_kernel_shap():
+    """Regression test for GH #256.
+
+    The current ClassifierExplainer error message suggests a monkey patch for
+    classifiers without predict_proba(). For multiclass LinearSVC, that guidance
+    should not lead to a class-count mismatch in SHAP outputs.
+    """
+
+    X, y = load_iris(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=0, stratify=y
+    )
+
+    model = LinearSVC(C=1.0, dual=False, max_iter=5000, multi_class="ovr")
+    model.fit(X_train, y_train)
+
+    # Monkey patch currently suggested by the ClassifierExplainer assertion text.
+    def predict_proba(self, X):
+        pred = self.predict(X)
+        return np.array([1 - pred, pred]).T
+
+    model.predict_proba = types.MethodType(predict_proba, model)
+
+    explainer = ClassifierExplainer(
+        model,
+        X_test.iloc[:6].reset_index(drop=True),
+        y_test.iloc[:6].reset_index(drop=True),
+        shap="kernel",
+        X_background=X_train.iloc[:10].reset_index(drop=True),
+    )
+
+    shap_df = explainer.get_shap_values_df()
+    assert isinstance(shap_df, pd.DataFrame)
+
+
+def test_multiclass_linearsvc_decision_function_fallback_supports_kernel_shap():
+    X, y = load_iris(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=1, stratify=y
+    )
+
+    model = LinearSVC(C=1.0, dual=False, max_iter=5000, multi_class="ovr")
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(
+        model,
+        X_test.iloc[:6].reset_index(drop=True),
+        y_test.iloc[:6].reset_index(drop=True),
+        shap="kernel",
+        X_background=X_train.iloc[:10].reset_index(drop=True),
+    )
+
+    shap_df = explainer.get_shap_values_df()
+    assert isinstance(shap_df, pd.DataFrame)
+
+
+def test_multiclass_linearsvc_pdp_df_supports_decision_function_fallback():
+    """Regression test for PDP fallback via decision_function."""
+    X, y = load_iris(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=11, stratify=y
+    )
+
+    model = LinearSVC(C=1.0, dual=False, max_iter=5000, multi_class="ovr")
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(
+        model,
+        X_test.iloc[:20].reset_index(drop=True),
+        y_test.iloc[:20].reset_index(drop=True),
+        shap="kernel",
+        X_background=X_train.iloc[:15].reset_index(drop=True),
+    )
+
+    pdp = explainer.pdp_df(X.columns[0])
+    assert isinstance(pdp, pd.DataFrame)
+    assert len(pdp) > 0
+
+
+def test_multiclass_linearsvc_permutation_importances_supports_decision_function_fallback():
+    """Regression test for permutation scorer fallback via decision_function."""
+    X, y = load_iris(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=12, stratify=y
+    )
+
+    model = LinearSVC(C=1.0, dual=False, max_iter=5000, multi_class="ovr")
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(
+        model,
+        X_test.iloc[:20].reset_index(drop=True),
+        y_test.iloc[:20].reset_index(drop=True),
+        shap="kernel",
+        X_background=X_train.iloc[:15].reset_index(drop=True),
+    )
+
+    perm_df = explainer.get_permutation_importances_df()
+    assert isinstance(perm_df, pd.DataFrame)
+    assert not perm_df.empty
+
+
+def test_multiclass_logreg_pdp_df_still_works_with_predict_proba():
+    """Guard test to ensure existing predict_proba path remains stable."""
+    X, y = load_iris(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=21, stratify=y
+    )
+
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(
+        model,
+        X_test.iloc[:20].reset_index(drop=True),
+        y_test.iloc[:20].reset_index(drop=True),
+        shap="kernel",
+        X_background=X_train.iloc[:15].reset_index(drop=True),
+    )
+
+    pdp = explainer.pdp_df(X.columns[0])
+    assert isinstance(pdp, pd.DataFrame)
+    assert len(pdp) > 0
+
+
+def test_multiclass_logreg_permutation_importances_still_works_with_predict_proba():
+    """Guard test to ensure existing predict_proba permutation flow stays intact."""
+    X, y = load_iris(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=22, stratify=y
+    )
+
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+
+    explainer = ClassifierExplainer(
+        model,
+        X_test.iloc[:20].reset_index(drop=True),
+        y_test.iloc[:20].reset_index(drop=True),
+        shap="kernel",
+        X_background=X_train.iloc[:15].reset_index(drop=True),
+    )
+
+    perm_df = explainer.get_permutation_importances_df()
+    assert isinstance(perm_df, pd.DataFrame)
+    assert not perm_df.empty

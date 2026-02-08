@@ -200,6 +200,87 @@ def _ensure_numeric_predictions(pred):
     return pred_array
 
 
+def _decision_scores_to_probas(decision_scores, n_labels=None):
+    """Map decision_function outputs to probability-like class scores."""
+    scores = np.asarray(decision_scores)
+    if scores.ndim == 0:
+        scores = scores.reshape(1)
+    if scores.ndim == 1 and n_labels and n_labels > 2 and scores.shape[0] == n_labels:
+        scores = scores.reshape(1, -1)
+
+    if scores.ndim == 1:
+        clipped = np.clip(scores.astype("float64"), -709, 709)
+        pos_probs = 1.0 / (1.0 + np.exp(-clipped))
+        return np.column_stack([1.0 - pos_probs, pos_probs])
+
+    if scores.ndim == 2:
+        if scores.shape[1] == 1:
+            clipped = np.clip(scores[:, 0].astype("float64"), -709, 709)
+            pos_probs = 1.0 / (1.0 + np.exp(-clipped))
+            return np.column_stack([1.0 - pos_probs, pos_probs])
+
+        shifted = scores - np.max(scores, axis=1, keepdims=True)
+        exp_scores = np.exp(shifted)
+        denom = np.sum(exp_scores, axis=1, keepdims=True)
+        return exp_scores / np.clip(denom, np.finfo("float64").tiny, None)
+
+    raise ValueError(
+        f"Unexpected decision_function output shape {scores.shape}. "
+        "Expected 1D or 2D scores."
+    )
+
+
+def _predict_proba_with_fallback(model, model_input, n_labels=None):
+    """Return per-class probabilities, with decision_function fallback."""
+    pred_probas = None
+    predict_error = None
+
+    if hasattr(model, "predict_proba"):
+        try:
+            pred_raw = model.predict_proba(model_input)
+            pred_raw = _ensure_numeric_predictions(pred_raw)
+            pred_probas = np.asarray(pred_raw, dtype="float64")
+        except Exception as e:
+            predict_error = e
+
+    if pred_probas is not None:
+        if pred_probas.ndim == 1:
+            if n_labels == 2:
+                pred_probas = np.column_stack([1.0 - pred_probas, pred_probas])
+            else:
+                pred_probas = None
+        elif pred_probas.ndim != 2:
+            pred_probas = None
+
+        if (
+            pred_probas is not None
+            and n_labels is not None
+            and pred_probas.shape[1] != n_labels
+        ):
+            pred_probas = None
+
+    if pred_probas is None and hasattr(model, "decision_function"):
+        decision_scores_raw = model.decision_function(model_input)
+        decision_scores_raw = _ensure_numeric_predictions(decision_scores_raw)
+        pred_probas = _decision_scores_to_probas(decision_scores_raw, n_labels=n_labels)
+
+    if pred_probas is None:
+        if predict_error is not None:
+            raise ValueError(
+                "Could not compute class probabilities from model.predict_proba(...)."
+            ) from predict_error
+        raise ValueError(
+            "Could not compute class probabilities: model has neither a working "
+            "predict_proba(...) nor decision_function(...)."
+        )
+
+    if n_labels is not None and pred_probas.shape[1] != n_labels:
+        raise ValueError(
+            f"Expected {n_labels} class probabilities, got shape {pred_probas.shape}."
+        )
+    return pred_probas
+
+
 def get_multiclass_logodds_scores(model, model_input, n_labels):
     """Return per-class raw scores used as multiclass logodds/margins.
 
@@ -288,7 +369,16 @@ def _safe_make_scorer(
             if "__sklearn_tags__" in str(e):
                 # Model doesn't have __sklearn_tags__, call predict/predict_proba directly
                 if response_method == "predict_proba":
-                    y_pred = estimator.predict_proba(X)
+                    n_labels = (
+                        len(estimator.classes_)
+                        if hasattr(estimator, "classes_")
+                        else None
+                    )
+                    y_pred = _predict_proba_with_fallback(
+                        estimator,
+                        X,
+                        n_labels=n_labels,
+                    )
                 else:
                     y_pred = estimator.predict(X)
                     y_pred = _ensure_numeric_predictions(y_pred)
@@ -307,7 +397,14 @@ def _safe_make_scorer(
         # If scorer creation failed, use direct prediction
         if scorer is None:
             if response_method == "predict_proba":
-                y_pred = estimator.predict_proba(X)
+                n_labels = (
+                    len(estimator.classes_) if hasattr(estimator, "classes_") else None
+                )
+                y_pred = _predict_proba_with_fallback(
+                    estimator,
+                    X,
+                    n_labels=n_labels,
+                )
             else:
                 y_pred = estimator.predict(X)
                 y_pred = _ensure_numeric_predictions(y_pred)
@@ -1066,7 +1163,8 @@ def make_one_vs_all_scorer(metric, pos_label=1, greater_is_better=True):
 
     def _scorer(clf, X, y):
         warnings.filterwarnings("ignore", category=UserWarning)
-        y_pred = clf.predict_proba(X)
+        n_labels = len(clf.classes_) if hasattr(clf, "classes_") else None
+        y_pred = _predict_proba_with_fallback(clf, X, n_labels=n_labels)
         warnings.filterwarnings("default", category=UserWarning)
         y_pred = _ensure_numeric_predictions(y_pred)
         y_pred = np.asarray(y_pred)
@@ -1440,7 +1538,10 @@ def get_pdp_df(
     if is_classifier:
         first_row = _model_input(X_sample.iloc[[0]])
         warnings.filterwarnings("ignore", category=UserWarning)
-        n_labels = model.predict_proba(first_row).shape[1]
+        class_count = len(model.classes_) if hasattr(model, "classes_") else None
+        n_labels = _predict_proba_with_fallback(
+            model, first_row, n_labels=class_count
+        ).shape[1]
         warnings.filterwarnings("default", category=UserWarning)
         if multiclass:
             pdp_dfs = [pd.DataFrame() for i in range(n_labels)]
@@ -1474,9 +1575,11 @@ def get_pdp_df(
         )
         if is_classifier:
             dtemp_model = _model_input(dtemp)
-            pred_probas_raw = model.predict_proba(dtemp_model)
-            pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-            pred_probas = np.asarray(pred_probas_raw).squeeze()
+            pred_probas = _predict_proba_with_fallback(
+                model,
+                dtemp_model,
+                n_labels=n_labels,
+            ).squeeze()
             if multiclass:
                 for i in range(n_labels):
                     pdp_dfs[i][grid_value] = pred_probas[:, i]

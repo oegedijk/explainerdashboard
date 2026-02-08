@@ -1058,9 +1058,11 @@ class BaseExplainer(ABC):
             if self.is_classifier:
                 if pos_label is None:
                     pos_label = self.pos_label
-                pred_probas_raw = self.model.predict_proba(model_input)
-                pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-                pred_probas = np.asarray(pred_probas_raw).squeeze()
+                pred_probas = self._predict_proba_from_model(
+                    self.model,
+                    model_input,
+                    n_labels=len(self.labels),
+                ).squeeze()
                 if pred_probas.ndim > 1:
                     pred_probas = pred_probas[0]
                 prediction = pred_probas[pos_label].squeeze()
@@ -2843,17 +2845,10 @@ class ClassifierExplainer(BaseExplainer):
             auto_detect_pipeline_cats,
         )
 
-        assert hasattr(model, "predict_proba"), (
+        assert hasattr(model, "predict_proba") or hasattr(model, "decision_function"), (
             "for ClassifierExplainer, model should be a scikit-learn "
-            "compatible *classifier* model that has a predict_proba(...) "
-            f"method, so not a {type(model)}! If you are using e.g an SVM "
-            "with hinge loss (which does not support predict_proba), you "
-            "can try the following monkey patch:\n\n"
-            "import types\n"
-            "def predict_proba(self, X):\n"
-            "    pred = self.predict(X)\n"
-            "    return np.array([1-pred, pred]).T\n"
-            "model.predict_proba = types.MethodType(predict_proba, model)\n"
+            "compatible *classifier* model that has either predict_proba(...) "
+            f"or decision_function(...), so not a {type(model)}!"
         )
 
         self._params_dict = {
@@ -2965,23 +2960,112 @@ class ClassifierExplainer(BaseExplainer):
                 self._y_binaries = [self.y.values for i in range(len(self.labels))]
         return self._y_binaries[pos_label]
 
+    def _decision_scores_to_probas(self, decision_scores, n_labels=None):
+        """Map decision_function outputs to probability-like class scores."""
+        scores = np.asarray(decision_scores)
+        if scores.ndim == 0:
+            scores = scores.reshape(1)
+        if (
+            scores.ndim == 1
+            and n_labels
+            and n_labels > 2
+            and scores.shape[0] == n_labels
+        ):
+            scores = scores.reshape(1, -1)
+
+        if scores.ndim == 1:
+            clipped = np.clip(scores.astype("float64"), -709, 709)
+            pos_probs = 1.0 / (1.0 + np.exp(-clipped))
+            return np.column_stack([1.0 - pos_probs, pos_probs])
+
+        if scores.ndim == 2:
+            if scores.shape[1] == 1:
+                clipped = np.clip(scores[:, 0].astype("float64"), -709, 709)
+                pos_probs = 1.0 / (1.0 + np.exp(-clipped))
+                return np.column_stack([1.0 - pos_probs, pos_probs])
+
+            shifted = scores - np.max(scores, axis=1, keepdims=True)
+            exp_scores = np.exp(shifted)
+            denom = np.sum(exp_scores, axis=1, keepdims=True)
+            return exp_scores / np.clip(denom, np.finfo("float64").tiny, None)
+
+        raise ValueError(
+            f"Unexpected decision_function output shape {scores.shape}. "
+            "Expected 1D or 2D scores."
+        )
+
+    def _predict_proba_from_model(self, model, model_input, n_labels=None):
+        """Return per-class probabilities, with decision_function fallback."""
+        predict_probas = None
+        predict_error = None
+
+        if hasattr(model, "predict_proba"):
+            try:
+                predict_raw = model.predict_proba(model_input)
+                predict_raw = _ensure_numeric_predictions(predict_raw)
+                predict_probas = np.asarray(predict_raw, dtype="float64")
+            except Exception as e:
+                predict_error = e
+
+        if predict_probas is not None:
+            if predict_probas.ndim == 1:
+                if n_labels == 2:
+                    predict_probas = np.column_stack(
+                        [1.0 - predict_probas, predict_probas]
+                    )
+                else:
+                    predict_probas = None
+            elif predict_probas.ndim != 2:
+                predict_probas = None
+
+            if (
+                predict_probas is not None
+                and n_labels is not None
+                and predict_probas.shape[1] != n_labels
+            ):
+                predict_probas = None
+
+        if predict_probas is None and hasattr(model, "decision_function"):
+            scores_raw = model.decision_function(model_input)
+            scores_raw = _ensure_numeric_predictions(scores_raw)
+            predict_probas = self._decision_scores_to_probas(
+                scores_raw, n_labels=n_labels
+            )
+
+        if predict_probas is None:
+            if predict_error is not None:
+                raise ValueError(
+                    "Could not compute class probabilities from model.predict_proba(...)."
+                ) from predict_error
+            raise ValueError(
+                "Could not compute class probabilities: model has neither a working "
+                "predict_proba(...) nor decision_function(...)."
+            )
+
+        if n_labels is not None and predict_probas.shape[1] != n_labels:
+            raise ValueError(
+                f"Expected {n_labels} class probabilities, got shape {predict_probas.shape}."
+            )
+        return predict_probas
+
     @property
     def pred_probas_raw(self):
         """returns pred_probas with probability for each class"""
         if not hasattr(self, "_pred_probas"):
             logger.info("Calculating prediction probabilities...")
-            assert hasattr(
-                self.model, "predict_proba"
-            ), "model does not have a predict_proba method!"
             if self.shap == "skorch":
-                pred_probas_raw = self.model.predict_proba(self.X.values)
-                pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-                self._pred_probas = np.asarray(pred_probas_raw).astype(self.precision)
+                self._pred_probas = self._predict_proba_from_model(
+                    self.model,
+                    self.X.values,
+                    n_labels=len(self.labels),
+                ).astype(self.precision)
             else:
                 warnings.filterwarnings("ignore", category=UserWarning)
-                pred_probas_raw = self.model.predict_proba(self.X)
-                pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-                self._pred_probas = np.asarray(pred_probas_raw).astype(self.precision)
+                self._pred_probas = self._predict_proba_from_model(
+                    self.model,
+                    self.X,
+                    n_labels=len(self.labels),
+                ).astype(self.precision)
                 warnings.filterwarnings("default", category=UserWarning)
         return self._pred_probas
 
@@ -3196,10 +3280,11 @@ class ClassifierExplainer(BaseExplainer):
 
                 def model_predict(data_asarray):
                     data_asframe = pd.DataFrame(data_asarray, columns=self.columns)
-                    pred_probas_raw = self.model.predict_proba(data_asframe)
-                    # Handle XGBoost 3.0+ string predictions (though predict_proba usually returns numeric)
-                    pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-                    return np.asarray(pred_probas_raw)
+                    return self._predict_proba_from_model(
+                        self.model,
+                        data_asframe,
+                        n_labels=len(self.labels),
+                    )
 
                 self._shap_explainer = shap.KernelExplainer(
                     model_predict,
@@ -3750,11 +3835,12 @@ class ClassifierExplainer(BaseExplainer):
             ):
                 X_train, X_test = self.X.iloc[train_index], self.X.iloc[test_index]
                 y_train, y_test = self.y.iloc[train_index], self.y.iloc[test_index]
-                preds_raw = (
-                    clone(self.model).fit(X_train, y_train).predict_proba(X_test)
+                fitted_model = clone(self.model).fit(X_train, y_train)
+                preds = self._predict_proba_from_model(
+                    fitted_model,
+                    X_test,
+                    n_labels=len(self.labels),
                 )
-                preds_raw = _ensure_numeric_predictions(preds_raw)
-                preds = np.asarray(preds_raw)
                 for label in range(len(self.labels)):
                     for cut in np.linspace(1, 99, 99, dtype=int):
                         y_true = np.where(y_test == label, 1, 0)
@@ -3981,9 +4067,11 @@ class ClassifierExplainer(BaseExplainer):
             else:
                 model_input = sanitize_categorical_predict_input(X_row, self.model)
 
-            pred_probas_raw = self.model.predict_proba(model_input)
-            pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
-            pred_probas = np.asarray(pred_probas_raw).squeeze()
+            pred_probas = self._predict_proba_from_model(
+                self.model,
+                model_input,
+                n_labels=len(self.labels),
+            ).squeeze()
             if pred_probas.ndim > 1:
                 pred_probas = pred_probas[0]
 

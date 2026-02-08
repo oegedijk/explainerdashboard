@@ -10,6 +10,8 @@
 - Fix issue #294: align multiclass `model_output='logodds'` semantics across Prediction Box and Contributions Plot by using per-class raw margins for multiclass logodds displays.
 - Fix multiclass PDP highlight predictions in logodds mode to use the same raw-margin scale as SHAP contributions.
 - Fix XGBoost multiclass decision-path summary wording to display `prediction (logodds)` when explainer `model_output='logodds'`.
+- Fix issue #256: add robust multiclass probability fallback for classifiers that expose `decision_function` but not `predict_proba` (e.g. `LinearSVC`), and use it consistently across kernel SHAP, prediction helpers, PDP, and permutation scorer paths.
+- Prevent multiclass class-count mismatches when user-provided/broken `predict_proba` outputs do not match model class count by falling back to `decision_function`-based probabilities.
 
 ### Tests
 - Add regression tests for LightGBM with string categorical features covering dashboard initialization, `get_shap_row(...)`, unseen categorical values in `X_row`, and regression dashboard initialization.
@@ -18,6 +20,8 @@
 - Add regression tests for issue #294 covering multiclass logodds consistency across prediction table, contributions, PDP highlight predictions, and XGBoost decision-path summaries.
 - Add pipeline tests for transformed feature-name cleanup (`strip_pipeline_prefix`, `feature_name_fn`) and pipeline categorical grouping autodetection.
 - Add explainer-method unit tests for binary-like onehot detection, transformed feature-name deduping, inferred pipeline cats, and pipeline extraction warning text.
+- Add regression tests for issue #256 covering multiclass `LinearSVC` with kernel SHAP, PDP, and permutation-importances flows using `decision_function` fallback.
+- Add guard tests to confirm multiclass `predict_proba` models (logistic regression) keep working for PDP and permutation-importances paths.
 
 ### Improvements
 - Add pipeline feature-name cleanup options: `strip_pipeline_prefix=True` and `feature_name_fn=...` for sklearn/imblearn pipeline transformed output columns.
