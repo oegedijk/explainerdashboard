@@ -1005,12 +1005,21 @@ class BaseExplainer(ABC):
                     ).item()
                 else:
                     col_value = X_row[col].item()
+            X_row = align_categorical_dtypes(X_row, self.X, columns=self.X.columns)
             if self.shap == "skorch":
                 model_input = X_row.values.astype("float32")
             else:
-                model_input = X_row
+                model_input = sanitize_categorical_predict_input(X_row, self.model)
                 if (
                     isinstance(X_row, pd.DataFrame)
+                    and not safe_isinstance(
+                        self.model,
+                        "lightgbm.sklearn.LGBMClassifier",
+                        "lightgbm.sklearn.LGBMRegressor",
+                        "catboost.core.CatBoost",
+                        "CatBoostClassifier",
+                        "CatBoostRegressor",
+                    )
                     and not safe_isinstance(
                         self.model,
                         "sklearn.pipeline.Pipeline",

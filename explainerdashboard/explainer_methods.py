@@ -4,6 +4,7 @@ __all__ = [
     "safe_isinstance",
     "unwrap_calibrated_classifier",
     "align_categorical_dtypes",
+    "sanitize_categorical_predict_input",
     "sorted_categorical_values",
     "guess_shap",
     "mape_score",
@@ -340,6 +341,49 @@ def align_categorical_dtypes(
         elif is_bool_dtype(ref_dtype) and not is_bool_dtype(aligned[col].dtype):
             aligned[col] = aligned[col].astype(ref_dtype)
     return aligned
+
+
+def sanitize_categorical_predict_input(
+    df: pd.DataFrame, model, missing_category="NaN"
+) -> pd.DataFrame:
+    """Sanitize categorical prediction input for models with explicit cat feature indices.
+
+    Currently normalizes CatBoost categorical columns so missing values do not crash
+    prediction callbacks.
+    """
+    if not isinstance(df, pd.DataFrame):
+        return df
+
+    if not safe_isinstance(
+        model, "catboost.core.CatBoost", "CatBoostClassifier", "CatBoostRegressor"
+    ):
+        return df
+
+    get_cat_feature_indices = getattr(model, "get_cat_feature_indices", None)
+    if not callable(get_cat_feature_indices):
+        return df
+
+    cat_feature_indices = list(get_cat_feature_indices() or [])
+    if not cat_feature_indices:
+        return df
+
+    cat_cols = [df.columns[i] for i in cat_feature_indices if 0 <= i < len(df.columns)]
+    if not cat_cols:
+        return df
+
+    sanitized = df.copy()
+
+    def _normalize_cat_value(value):
+        if pd.isna(value):
+            return missing_category
+        if isinstance(value, (float, np.floating)):
+            return str(value)
+        return value
+
+    for col in cat_cols:
+        sanitized[col] = sanitized[col].astype("object").map(_normalize_cat_value)
+
+    return sanitized
 
 
 def sorted_categorical_values(values):
@@ -1181,12 +1225,21 @@ def get_pdp_df(
     """
 
     def _model_input(data):
+        if isinstance(data, pd.DataFrame):
+            data = sanitize_categorical_predict_input(data, model)
+
         if cast_to_float32:
             if isinstance(data, pd.DataFrame):
                 return data.values.astype("float32")
             return np.asarray(data, dtype="float32")
         if (
             isinstance(data, pd.DataFrame)
+            and not safe_isinstance(
+                model,
+                "catboost.core.CatBoost",
+                "CatBoostClassifier",
+                "CatBoostRegressor",
+            )
             and not safe_isinstance(
                 model, "sklearn.pipeline.Pipeline", "imblearn.pipeline.Pipeline"
             )

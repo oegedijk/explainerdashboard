@@ -191,6 +191,19 @@ def test_pdp_df(precalculated_catboost_classifier_explainer):
     )
 
 
+def test_pdp_df_handles_nan_in_categorical_xrow(
+    precalculated_catboost_classifier_explainer,
+):
+    explainer = precalculated_catboost_classifier_explainer
+    X_row = explainer.X.iloc[[0]].copy()
+
+    for col in explainer.categorical_cols:
+        X_row[col] = np.nan
+
+    pdp_df = explainer.pdp_df("Age", X_row=X_row)
+    assert isinstance(pdp_df, pd.DataFrame)
+
+
 def test_plot_importances(precalculated_catboost_classifier_explainer):
     fig = precalculated_catboost_classifier_explainer.plot_importances()
     assert isinstance(fig, go.Figure)

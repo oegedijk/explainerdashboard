@@ -5,9 +5,14 @@
 ### Bug Fixes
 - Fix issue #198: handle LightGBM models with string categorical features in SHAP/dashboard paths by normalizing tree-SHAP evaluation input for categorical columns.
 - Prevent crashes in LightGBM what-if/SHAP flows caused by object/string categorical values during SHAP value computation.
+- Fix CatBoost PDP/dashboard callback crashes when categorical values in `X_row` are missing (`NaN`) by preserving dataframe categorical handling and sanitizing CatBoost categorical prediction inputs.
 
 ### Tests
 - Add regression tests for LightGBM with string categorical features covering dashboard initialization, `get_shap_row(...)`, unseen categorical values in `X_row`, and regression dashboard initialization.
+- Add CatBoost regression tests for classifier/regression `pdp_df(...)` with `X_row` containing missing categorical values.
+
+### CI
+- Update `explainerdashboard` GitHub Actions workflow to run a weekly scheduled full test suite (`pytest`) to detect dependency breakages earlier.
 
 ## Version 0.5.7:
 
