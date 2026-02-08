@@ -1039,6 +1039,12 @@ class BaseExplainer(ABC):
                 prediction = pred_probas[pos_label].squeeze()
                 if self.model_output == "probability":
                     prediction = 100 * prediction
+                elif self.model_output == "logodds" and len(self.labels) > 2:
+                    raw_scores = get_multiclass_logodds_scores(
+                        self.model, model_input, len(self.labels)
+                    )
+                    if raw_scores is not None:
+                        prediction = raw_scores[pos_label].squeeze()
             elif self.is_regression:
                 pred_raw = self.model.predict(model_input)
                 pred_raw = _ensure_numeric_predictions(pred_raw)
@@ -3931,18 +3937,36 @@ class ClassifierExplainer(BaseExplainer):
             if matching_cols(X_row.columns, self.merged_cols):
                 X_row = X_cats_to_X(X_row, self.onehot_dict, self.X.columns)
             if self.shap == "skorch":
-                X_row = X_row.values.astype("float32")
-            pred_probas_raw = self.model.predict_proba(X_row)
+                model_input = X_row.values.astype("float32")
+            else:
+                model_input = sanitize_categorical_predict_input(X_row, self.model)
+
+            pred_probas_raw = self.model.predict_proba(model_input)
             pred_probas_raw = _ensure_numeric_predictions(pred_probas_raw)
             pred_probas = np.asarray(pred_probas_raw).squeeze()
             if pred_probas.ndim > 1:
                 pred_probas = pred_probas[0]
 
         preds_df = pd.DataFrame(dict(label=self.labels, probability=pred_probas))
-        if logodds and all(preds_df.probability < 1 - np.finfo(np.float64).eps):
-            preds_df.loc[:, "logodds"] = preds_df.probability.apply(
-                lambda p: np.log(p / (1 - p))
-            )
+        if logodds:
+            logodds_values = None
+
+            # For multiclass model_output='logodds', align with SHAP contributions
+            # by reporting raw model margins when available.
+            if len(self.labels) > 2 and self.model_output == "logodds":
+                logodds_values = get_multiclass_logodds_scores(
+                    self.model, model_input, len(self.labels)
+                )
+
+            if logodds_values is None and all(
+                preds_df.probability < 1 - np.finfo(np.float64).eps
+            ):
+                logodds_values = preds_df.probability.apply(
+                    lambda p: np.log(p / (1 - p))
+                ).values
+
+            if logodds_values is not None:
+                preds_df.loc[:, "logodds"] = logodds_values
         if index is not None:
             try:
                 y_true = self.pos_label_index(self.get_y(index))
@@ -5382,7 +5406,8 @@ class XGBExplainer(TreeExplainer):
           dataframe with summary of the decision tree path
         """
         return get_xgboost_path_summary_df(
-            self.get_decisionpath_df(tree_idx, index, pos_label=pos_label)
+            self.get_decisionpath_df(tree_idx, index, pos_label=pos_label),
+            output=get_xgboost_output_label(self.model_output),
         )
 
     @insert_pos_label

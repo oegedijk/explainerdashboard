@@ -7,11 +7,15 @@
 - Prevent crashes in LightGBM what-if/SHAP flows caused by object/string categorical values during SHAP value computation.
 - Fix CatBoost PDP/dashboard callback crashes when categorical values in `X_row` are missing (`NaN`) by preserving dataframe categorical handling and sanitizing CatBoost categorical prediction inputs.
 - Fix issue #146: `ExplainerHub.to_yaml(..., integrate_dashboard_yamls=True)` now honors `pickle_type` instead of hardcoding `.joblib`, and correctly dumps explainer files when `dump_explainers=True`.
+- Fix issue #294: align multiclass `model_output='logodds'` semantics across Prediction Box and Contributions Plot by using per-class raw margins for multiclass logodds displays.
+- Fix multiclass PDP highlight predictions in logodds mode to use the same raw-margin scale as SHAP contributions.
+- Fix XGBoost multiclass decision-path summary wording to display `prediction (logodds)` when explainer `model_output='logodds'`.
 
 ### Tests
 - Add regression tests for LightGBM with string categorical features covering dashboard initialization, `get_shap_row(...)`, unseen categorical values in `X_row`, and regression dashboard initialization.
 - Add CatBoost regression tests for classifier/regression `pdp_df(...)` with `X_row` containing missing categorical values.
 - Add hub regression test for integrated hub yaml serialization to verify `pickle_type` is preserved and explainer artifacts are written.
+- Add regression tests for issue #294 covering multiclass logodds consistency across prediction table, contributions, PDP highlight predictions, and XGBoost decision-path summaries.
 
 ### CI
 - Update `explainerdashboard` GitHub Actions workflow to run a weekly scheduled full test suite (`pytest`) to detect dependency breakages earlier.

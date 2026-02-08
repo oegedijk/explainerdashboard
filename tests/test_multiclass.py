@@ -395,3 +395,41 @@ def test_multiclass_plot_pr_auc(precalculated_rf_multiclass_explainer):
 
     fig = precalculated_rf_multiclass_explainer.plot_pr_auc(1.0)
     assert isinstance(fig, go.Figure)
+
+
+def test_multiclass_logodds_consistent_between_prediction_and_contributions(
+    precalculated_xgb_multiclass_explainer,
+):
+    index = 0
+    pred_df = precalculated_xgb_multiclass_explainer.prediction_result_df(
+        index=index, logodds=True, round=12
+    )
+
+    for pos_label in range(len(precalculated_xgb_multiclass_explainer.labels)):
+        contrib_df = precalculated_xgb_multiclass_explainer.get_contrib_df(
+            index=index, pos_label=pos_label
+        )
+        predicted_from_contrib = float(
+            contrib_df.loc[contrib_df.col == "_PREDICTION", "contribution"].iloc[0]
+        )
+        predicted_logodds = float(pred_df.loc[pos_label, "logodds"])
+        assert np.isclose(predicted_from_contrib, predicted_logodds)
+
+
+def test_multiclass_logodds_pdp_highlight_matches_contributions(
+    precalculated_xgb_multiclass_explainer,
+):
+    index = 0
+    for pos_label in range(len(precalculated_xgb_multiclass_explainer.labels)):
+        _, pdp_prediction = (
+            precalculated_xgb_multiclass_explainer.get_col_value_plus_prediction(
+                "Age", index=index, pos_label=pos_label
+            )
+        )
+        contrib_df = precalculated_xgb_multiclass_explainer.get_contrib_df(
+            index=index, pos_label=pos_label
+        )
+        predicted_from_contrib = float(
+            contrib_df.loc[contrib_df.col == "_PREDICTION", "contribution"].iloc[0]
+        )
+        assert np.isclose(float(pdp_prediction), predicted_from_contrib)

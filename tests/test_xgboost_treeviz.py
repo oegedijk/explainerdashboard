@@ -126,3 +126,20 @@ def test_plot_trees(precalculated_xgb_multiclass_explainer, test_names):
 
 def test_calculate_properties(precalculated_xgb_multiclass_explainer):
     precalculated_xgb_multiclass_explainer.calculate_properties()
+
+
+def test_decisionpath_summary_uses_logodds_label_for_multiclass_logodds(
+    precalculated_xgb_multiclass_explainer,
+):
+    assert precalculated_xgb_multiclass_explainer.model_output == "logodds"
+
+    summary_df = precalculated_xgb_multiclass_explainer.get_decisionpath_summary_df(
+        tree_idx=0, index=0, pos_label=0
+    )
+    prediction_rows = summary_df[
+        summary_df["split_condition"].str.contains("prediction", regex=False)
+    ]
+    assert not prediction_rows.empty
+    assert prediction_rows.iloc[-1]["split_condition"].startswith(
+        "prediction (logodds) = "
+    )

@@ -36,6 +36,8 @@ __all__ = [
     "get_xgboost_path_df",
     "get_xgboost_path_summary_df",
     "get_xgboost_preds_df",
+    "get_multiclass_logodds_scores",
+    "get_xgboost_output_label",
     "_ensure_numeric_predictions",  # Internal helper for XGBoost 3.0+ compatibility
     "_safe_make_scorer",  # Internal helper for CatBoost compatibility
 ]
@@ -192,6 +194,65 @@ def _ensure_numeric_predictions(pred):
     if pred_array.ndim == 0:
         return pred_array.item()
     return pred_array
+
+
+def get_multiclass_logodds_scores(model, model_input, n_labels):
+    """Return per-class raw scores used as multiclass logodds/margins.
+
+    Tries common model APIs in order and returns None when unavailable.
+
+    Args:
+        model: Fitted classifier model.
+        model_input: Single-row model input (already sanitized for model type).
+        n_labels (int): Expected number of classes.
+
+    Returns:
+        np.ndarray or None: 1d array of raw scores of length n_labels.
+    """
+    raw_scores = None
+
+    for kwargs in (
+        {"output_margin": True},
+        {"raw_score": True},
+        {"prediction_type": "RawFormulaVal"},
+    ):
+        try:
+            raw_scores_raw = model.predict(model_input, **kwargs)
+            raw_scores_raw = _ensure_numeric_predictions(raw_scores_raw)
+            raw_scores = np.asarray(raw_scores_raw).squeeze()
+            break
+        except TypeError:
+            pass
+        except Exception:
+            logger.debug(
+                "Could not get multiclass raw margins with predict kwargs=%s",
+                kwargs,
+                exc_info=True,
+            )
+
+    if raw_scores is None and hasattr(model, "decision_function"):
+        try:
+            raw_scores_raw = model.decision_function(model_input)
+            raw_scores_raw = _ensure_numeric_predictions(raw_scores_raw)
+            raw_scores = np.asarray(raw_scores_raw).squeeze()
+        except Exception:
+            logger.debug(
+                "Could not get multiclass raw margins with decision_function",
+                exc_info=True,
+            )
+
+    if raw_scores is not None and raw_scores.ndim > 1:
+        raw_scores = raw_scores[0]
+    if raw_scores is not None and raw_scores.ndim == 1 and len(raw_scores) == n_labels:
+        return raw_scores
+    return None
+
+
+def get_xgboost_output_label(model_output=None):
+    """Map explainer model_output to xgboost path summary output label."""
+    if model_output == "logodds":
+        return "logodds"
+    return "margin"
 
 
 def _safe_make_scorer(

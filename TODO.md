@@ -10,12 +10,13 @@
 - [M][Components][#176] FeatureInputComponent hide parameters.
 - [M][Explainers][#198/#340] LightGBM string categorical handling across SHAP/plots.
 - [S][Hub][#146/#342] hub.to_yaml integrate_dashboard_yamls honors pickle_type and dumps integrated explainer artifacts.
+- [M][Explainers][#294] align/explain multiclass logodds between Contributions Plot and Prediction Box (+ PDP highlight and XGBoost decision path wording alignment).
 
 **Now**
-- [M][Explainers][#294] align/explain multiclass logodds between Contributions Plot and Prediction Box.
+- [M][Explainers][#118] add LightGBM tree visualization support (dtreeviz).
 
 **Next**
-- [M][Explainers][#118] add LightGBM tree visualization support (dtreeviz).
+- [M][Dashboard][#263/#161] more flexible instantiate_component (no explainer needed for non-ExplainerComponents).
 
 **Backlog: Explainers**
 - [M] add plain language explanations for plots (in_words + UI toggle).
@@ -78,7 +79,6 @@
 - [S] test model_output='probability' vs 'raw' vs 'logodds' explicitly.
 - [M] expand explainer_methods tests.
 - [M] add explainer_plots tests.
-- [S][#294] regression test for multiclass logodds consistency across prediction box and contributions.
 
 **Backlog: Docs**
 - [S] retake screenshots of components as cards.
