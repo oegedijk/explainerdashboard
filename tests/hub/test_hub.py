@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import oyaml as yaml
+
 from explainerdashboard import ExplainerDashboard, ExplainerHub
 
 
@@ -20,6 +22,30 @@ def test_load_from_config(explainer_hub, tmp_path_factory):
     explainer_hub.to_yaml(tmp_path / "hub.yaml")
     explainer_hub2 = ExplainerHub.from_config(tmp_path / "hub.yaml")
     assert isinstance(explainer_hub2, ExplainerHub)
+
+
+def test_hub_to_yaml_integrated_honors_pickle_type_and_dumps_explainers(
+    explainer_hub, tmp_path
+):
+    hub_yaml = tmp_path / "hub.yaml"
+    explainer_hub.to_yaml(
+        hub_yaml,
+        integrate_dashboard_yamls=True,
+        pickle_type="dill",
+        dump_explainers=True,
+    )
+
+    hub_config = yaml.safe_load(open(hub_yaml, "r"))
+    dashboards = hub_config["explainerhub"]["dashboards"]
+    assert len(dashboards) > 0
+    assert all(
+        str(dashboard_config["dashboard"]["explainerfile"]).endswith(".dill")
+        for dashboard_config in dashboards
+    )
+    assert all(
+        (tmp_path / f"{dashboard.name}_explainer.dill").exists()
+        for dashboard in explainer_hub.dashboards
+    )
 
 
 def test_hub_to_html(explainer_hub):

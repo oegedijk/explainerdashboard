@@ -1915,13 +1915,20 @@ class ExplainerHub:
                     dashboards=[
                         dashboard.to_yaml(
                             return_dict=True,
-                            explainerfile=dashboard.name + "_explainer.joblib",
-                            dump_explainer=dump_explainers,
+                            explainerfile=dashboard.name + f"_explainer.{pickle_type}",
+                            dump_explainer=False,
                         )
                         for dashboard in self.dashboards
                     ],
                 )
             )
+            if filepath is not None and dump_explainers:
+                for dashboard in self.dashboards:
+                    explainer_path = filepath.parent / (
+                        dashboard.name + f"_explainer.{pickle_type}"
+                    )
+                    logger.info("Dumping explainer to %s...", explainer_path)
+                    dashboard.explainer.dump(explainer_path)
         else:
             for dashboard in self.dashboards:
                 logger.info("Storing %s_dashboard.yaml...", dashboard.name)
