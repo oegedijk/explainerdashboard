@@ -433,6 +433,8 @@ Some examples of useful parameters to pass:
 ExplainerDashboard(explainer,
                     higher_is_better=False, # flip green and red in contributions graph
                     n_input_cols=3, # divide feature inputs into 3 columns on what if tab
+                    input_features=['Sex', 'Deck', 'PassengerClass', 'Fare', 'Age'], # show these what-if inputs in this order
+                    hide_features=['Fare'], # hide specific what-if inputs
                     col='Fare', # initial feature in shap graphs
                     color_col='Age', # color feature in shap dependence graph
                     interact_col='Age', # interaction feature in shap interaction

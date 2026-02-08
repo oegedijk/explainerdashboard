@@ -185,6 +185,14 @@ the``feature_input_component`` parameter::
          self.contrib = ShapContributionsGraphComponent(explainer, feature_input_component=self.input)
          self.pdp = PdpComponent(explainer, feature_input_component=self.input)
 
+You can also control which what-if inputs are shown and in which order::
+
+   FeatureInputComponent(
+      explainer,
+      input_features=["Sex", "Deck", "PassengerClass", "Fare", "Age"],
+      hide_features=["Fare"],
+   )
+
 .. autoclass:: explainerdashboard.dashboard_components.overview_components.FeatureInputComponent
    :members:
 

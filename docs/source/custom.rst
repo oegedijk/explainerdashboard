@@ -13,7 +13,7 @@ Changing bootstrap theme
 
 
 You can change the bootstrap theme by passing a link to the appropriate css
-file. You can use the convenient `themes <https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/>`_ module of 
+file. You can use the convenient `themes <https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/>`_ module of
 `dash_bootstrap_components <https://dash-bootstrap-components.opensource.faculty.ai/docs/>`_ to generate
 the css url for you::
 
@@ -44,31 +44,31 @@ Hiding components
 
 You can also hide individual components on the various tabs::
 
-    ExplainerDashboard(explainer, 
+    ExplainerDashboard(explainer,
         # importances tab:
         hide_importances=True,
         # classification stats tab:
-        hide_globalcutoff=True, hide_modelsummary=True, 
-        hide_confusionmatrix=True, hide_precision=True, 
-        hide_classification=True, hide_rocauc=True, 
+        hide_globalcutoff=True, hide_modelsummary=True,
+        hide_confusionmatrix=True, hide_precision=True,
+        hide_classification=True, hide_rocauc=True,
         hide_prauc=True, hide_liftcurve=True, hide_cumprecision=True,
         # regression stats tab:
-        # hide_modelsummary=True, 
-        hide_predsvsactual=True, hide_residuals=True, 
+        # hide_modelsummary=True,
+        hide_predsvsactual=True, hide_residuals=True,
         hide_regvscol=True,
         # individual predictions tab:
         hide_predindexselector=True, hide_predictionsummary=True,
-        hide_contributiongraph=True, hide_pdp=True, 
+        hide_contributiongraph=True, hide_pdp=True,
         hide_contributiontable=True,
         # whatif tab:
-        hide_whatifindexselector=True, hide_inputeditor=True, 
+        hide_whatifindexselector=True, hide_inputeditor=True,
         hide_whatifcontribution=True, hide_whatifpdp=True,
         # shap dependence tab:
         hide_shapsummary=True, hide_shapdependence=True,
         # shap interactions tab:
         hide_interactionsummary=True, hide_interactiondependence=True,
         # decisiontrees tab:
-        hide_treeindexselector=True, hide_treesgraph=True, 
+        hide_treeindexselector=True, hide_treesgraph=True,
         hide_treepathtable=True, hide_treepathgraph=True,
         ).run()
 
@@ -82,7 +82,7 @@ are not individually targeted, so if you pass `hide_cats=True` then the group
 cats toggle will be hidden on every component that has one::
 
 
-    ExplainerDashboard(explainer, 
+    ExplainerDashboard(explainer,
         no_permutations=True, # do not show or calculate permutation importances
         hide_popout=True, # hide the 'popout' button for each graph
         hide_poweredby=True, # hide the 'powerered by: explainerdashboard' footer
@@ -90,7 +90,7 @@ cats toggle will be hidden on every component that has one::
         hide_depth=True, # hide the depth (no of features) dropdown
         hide_sort=True, # hide sort type dropdown in contributions graph/table
         hide_orientation=True, # hide orientation dropdown in contributions graph/table
-        hide_type=True, # hide shap/permutation toggle on ImportancesComponent 
+        hide_type=True, # hide shap/permutation toggle on ImportancesComponent
         hide_dropna=True, # hide dropna toggle on pdp component
         hide_sample=True, # hide sample size input on pdp component
         hide_gridlines=True, # hide gridlines on pdp component
@@ -108,26 +108,29 @@ cats toggle will be hidden on every component that has one::
 Setting default values
 ======================
 
-You can also set default values for the various dropdowns and toggles. 
+You can also set default values for the various dropdowns and toggles.
 All the components with their parameters can be found :ref:`in the componentsdocumentation <ExplainerComponents>`.
 Some examples of useful parameters to pass::
 
 
-    ExplainerDashboard(explainer, 
+    ExplainerDashboard(explainer,
         index='Rugg, Miss. Emily', # initial index to display
         col='Fare', # initial feature in shap graphs
         color_col='Age', # color feature in shap dependence graph
         interact_col='Age', # interaction feature in shap interaction
         higher_is_better=False, # flip green and red in contributions graph
+        n_input_cols=3, # divide feature inputs into 3 columns on what-if tab
+        input_features=['Sex', 'Deck', 'PassengerClass', 'Fare', 'Age'], # show these what-if inputs in this order
+        hide_features=['Fare'], # hide specific what-if inputs
         depth=5, # only show top 5 features
         sort = 'low-to-high', # sort features from lowest shap to highest in contributions graph/table
         orientation='horizontal', # horizontal bars in contributions graph
-        cats_topx = 3, # show only the top 3 categories 
+        cats_topx = 3, # show only the top 3 categories
         cats_sort = 'shap', # sort categories by mean abs shap instead of 'freq' or 'alphabet'
         pdp_col='Fare', # initial pdp feature
         cutoff=0.8, # cutoff for classification plots
         round=2 # round floats to 2 digits
-        show_metrics=['accuracy', 'f1', custom_metric] # only show certain metrics 
+        show_metrics=['accuracy', 'f1', custom_metric] # only show certain metrics
         plot_sample=1000, # only display a 1000 random markers in scatter plots
         )
 
@@ -150,10 +153,10 @@ take ``y_true`` and ``y_pred`` as parameters::
 
 For ``ClassifierExplainer``, ``y_true`` and ``y_pred`` will have already been
 calculated as an array of ``1`` and ``0`` depending on the ``pos_label`` and
-``cutoff`` that was passed to ``explainer.metrics()``. However, if you take 
+``cutoff`` that was passed to ``explainer.metrics()``. However, if you take
 ``pos_label`` and ``cutoff`` as parameters to the custom metric function, then you will get the
-unprocessed raw labels and `pred_probas`. So for example you could calculate 
-a sum of cost function over the confusion matrix as a custom metric. Then the following 
+unprocessed raw labels and `pred_probas`. So for example you could calculate
+a sum of cost function over the confusion matrix as a custom metric. Then the following
 metrics would all work and have the equivalent result::
 
     from sklearn.metrics import confusion_matrix
@@ -170,22 +173,14 @@ metrics would all work and have the equivalent result::
         return cost_metric(np.where(y_true==pos_label, 1, 0), y_pred[:, pos_label])
 
     def cost_metric4(y_true, y_pred, cutoff, pos_label):
-        return cost_metric(np.where(y_true==pos_label, 1, 0), 
+        return cost_metric(np.where(y_true==pos_label, 1, 0),
                             np.where(y_pred[:, pos_label] > cutoff, 1, 0))
 
     explainer.metrics(show_metrics=[cost_metric, cost_metric2, cost_metric3, cost_metric4]).run()
 
 .. note::
-    When storing an ``ExplainerDashboard.to_yaml()`` the custom metric functions will 
-    be stored to the ``.yaml`` file with a reference to their name and module. 
-    So when loading the dashboard ``from_config()`` you have to make sure the 
-    metric function can be found by the same name in the same module (which 
+    When storing an ``ExplainerDashboard.to_yaml()`` the custom metric functions will
+    be stored to the ``.yaml`` file with a reference to their name and module.
+    So when loading the dashboard ``from_config()`` you have to make sure the
+    metric function can be found by the same name in the same module (which
     could be ``__main__``), otherwise the dashboard will fail to load.
-                        
-
-
-
-
-
-
-
