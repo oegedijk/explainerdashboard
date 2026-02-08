@@ -11,6 +11,7 @@
 - [M][Explainers][#198/#340] LightGBM string categorical handling across SHAP/plots.
 - [S][Hub][#146/#342] hub.to_yaml integrate_dashboard_yamls honors pickle_type and dumps integrated explainer artifacts.
 - [M][Explainers][#294] align/explain multiclass logodds between Contributions Plot and Prediction Box (+ PDP highlight and XGBoost decision path wording alignment).
+- [M][Explainers/Methods/Docs][#213] improve sklearn/imblearn pipeline support: feature-name cleanup (`strip_pipeline_prefix`, `feature_name_fn`), auto-detect onehot groups (`auto_detect_pipeline_cats`), accept binary-like scaled onehot columns in `cats`, preserve transformed index, add warnings/docs/tests.
 
 **Now**
 - [M][Explainers][#118] add LightGBM tree visualization support (dtreeviz).
