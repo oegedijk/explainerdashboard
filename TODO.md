@@ -12,22 +12,23 @@
 - [S][Hub][#146/#342] hub.to_yaml integrate_dashboard_yamls honors pickle_type and dumps integrated explainer artifacts.
 - [M][Explainers][#294] align/explain multiclass logodds between Contributions Plot and Prediction Box (+ PDP highlight and XGBoost decision path wording alignment).
 - [M][Explainers/Methods/Docs][#213] improve sklearn/imblearn pipeline support: feature-name cleanup (`strip_pipeline_prefix`, `feature_name_fn`), auto-detect onehot groups (`auto_detect_pipeline_cats`), accept binary-like scaled onehot columns in `cats`, preserve transformed index, add warnings/docs/tests.
+- [M][Explainers/Methods/Tests/Docs][#256] improve multiclass LinearSVC support/docs with decision_function probability fallback and regression coverage for SHAP/PDP/permutation flows.
+- [M][Explainers/Methods/Components/Tests][#118] add LightGBM tree visualization support (dtreeviz), including tree explainer wiring, dashboard tree tabs, and regression coverage.
 
 **Now**
-- [M][Explainers][#118] add LightGBM tree visualization support (dtreeviz).
+- [M][Dashboard][#161] more flexible instantiate_component (no explainer needed for non-ExplainerComponents).
 
 **Next**
-- [M][Dashboard][#263/#161] more flexible instantiate_component (no explainer needed for non-ExplainerComponents).
+- [M] add ExtraTrees and GradientBoostingClassifier to tree visualizers.
 
 **Backlog: Explainers**
 - [M] add plain language explanations for plots (in_words + UI toggle).
 - [S] pass n_jobs to pdp_isolate.
 - [M] add ExtraTrees and GradientBoostingClassifier to tree visualizers.
-- [M][#118] add LightGBM tree visualization support (dtreeviz).
 
 **Backlog: Dashboard**
 - [S] make poweredby right-aligned.
-- [M][#263/#161] more flexible instantiate_component (no explainer needed for non-ExplainerComponents).
+- [M][#161] more flexible instantiate_component (no explainer needed for non-ExplainerComponents).
 - [M] add TablePopout.
 - [M][#247] add EDA-style feature histograms/bar charts/correlation graphs.
 - [M/L] add cost calculator/optimizer for classifier models (confusion matrix weights, Youden J).
@@ -54,7 +55,6 @@
 - [M] support SamplingExplainer, PartitionExplainer, PermutationExplainer, AdditiveExplainer.
 - [M] support LimeTabularExplainer.
 - [M] investigate method from https://arxiv.org/abs/2006.04750.
-- [M][#256] improve multiclass LinearSVC support/docs (class-count mismatch with SHAP output).
 - [M][#229] clarify/add support path for Poisson and Gamma regression explainers.
 
 **Backlog: Plots**

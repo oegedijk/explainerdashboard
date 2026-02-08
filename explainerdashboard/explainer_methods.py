@@ -40,6 +40,7 @@ __all__ = [
     "get_xgboost_path_df",
     "get_xgboost_path_summary_df",
     "get_xgboost_preds_df",
+    "get_lgbm_preds_df",
     "get_multiclass_logodds_scores",
     "get_xgboost_output_label",
     "_ensure_numeric_predictions",  # Internal helper for XGBoost 3.0+ compatibility
@@ -2165,7 +2166,14 @@ def get_decisionpath_df(decision_tree, observation, pos_label=1, class_names=Non
     else:
 
         def node_mean(node):
-            return decision_tree.tree_model.tree_.value[node.id].item()
+            try:
+                return decision_tree.tree_model.tree_.value[node.id].item()
+            except Exception:
+                node_samples = decision_tree.get_node_samples()
+                sample_idxs = node_samples.get(node.id, [])
+                if len(sample_idxs) == 0:
+                    return np.nan
+                return float(np.asarray(decision_tree.y_train)[sample_idxs].mean())
 
         for node in nodes:
             if not node.isleaf():
@@ -2549,3 +2557,93 @@ def get_xgboost_preds_df(xgbmodel, X_row, pos_label=1):
             0, "pred_proba"
         ]
     return xgboost_preds_df
+
+
+def get_lgbm_preds_df(lgbmodel, X_row, pos_label=1):
+    """Returns cumulative per-tree predictions for a LightGBM model.
+
+    Args:
+        lgbmodel: fitted LightGBM sklearn-compatible model
+            (i.e. LGBMClassifier or LGBMRegressor)
+        X_row: a single row of data, e.g X_train.iloc[0]
+        pos_label: for classifier the label to be used as positive label
+            Defaults to 1.
+
+    Returns:
+        pd.DataFrame
+    """
+    if safe_isinstance(lgbmodel, "lightgbm.sklearn.LGBMClassifier"):
+        is_classifier = True
+        n_classes = len(lgbmodel.classes_)
+        n_trees = lgbmodel.booster_.num_trees()
+        if n_classes > 2:
+            n_trees = int(n_trees / n_classes)
+    elif safe_isinstance(lgbmodel, "lightgbm.sklearn.LGBMRegressor"):
+        is_classifier = False
+        n_trees = lgbmodel.booster_.num_trees()
+    else:
+        raise ValueError("Pass either an LGBMClassifier or LGBMRegressor!")
+
+    if is_classifier:
+        if n_classes == 2:
+            if pos_label not in (0, 1):
+                raise ValueError("pos_label should be either 0 or 1!")
+
+            margins = []
+            for i in range(1, n_trees + 1):
+                margin_raw = lgbmodel.predict(X_row, raw_score=True, num_iteration=i)[0]
+                margin_raw = _ensure_numeric_predictions(margin_raw)
+                if isinstance(margin_raw, np.ndarray):
+                    margin_raw = (
+                        margin_raw.item()
+                        if margin_raw.ndim == 0
+                        else float(margin_raw[0])
+                    )
+                margin = float(margin_raw)
+                margins.append(margin if pos_label == 1 else -margin)
+
+            pred_probas = (np.exp(margins) / (1 + np.exp(margins))).tolist()
+            base_score = 0.0
+            base_proba = 0.5
+            preds = margins
+        else:
+            if pos_label < 0 or pos_label >= n_classes:
+                raise ValueError(
+                    f"pos_label={pos_label}, but should be >= 0 and <= {n_classes - 1}!"
+                )
+            margins = []
+            for i in range(1, n_trees + 1):
+                margin_raw = lgbmodel.predict(X_row, raw_score=True, num_iteration=i)[0]
+                margin_raw = _ensure_numeric_predictions(margin_raw)
+                margin = np.asarray(margin_raw, dtype=float)
+                margins.append(margin)
+
+            preds = [float(margin[pos_label]) for margin in margins]
+            pred_probas = [
+                float((np.exp(margin) / np.exp(margin).sum())[pos_label])
+                for margin in margins
+            ]
+            base_score = 0.0
+            base_proba = 1.0 / n_classes
+    else:
+        preds = []
+        for i in range(1, n_trees + 1):
+            pred_raw = lgbmodel.predict(X_row, raw_score=True, num_iteration=i)[0]
+            pred_raw = _ensure_numeric_predictions(pred_raw)
+            if isinstance(pred_raw, np.ndarray):
+                pred_raw = pred_raw.item() if pred_raw.ndim == 0 else float(pred_raw[0])
+            preds.append(float(pred_raw))
+        base_score = 0.0
+
+    lgbm_preds_df = pd.DataFrame(
+        dict(tree=range(-1, n_trees), pred=[base_score] + preds)
+    )
+    lgbm_preds_df["pred_diff"] = lgbm_preds_df.pred.diff()
+    lgbm_preds_df.loc[0, "pred_diff"] = lgbm_preds_df.loc[0, "pred"]
+
+    if is_classifier:
+        lgbm_preds_df["pred_proba"] = [base_proba] + pred_probas
+        lgbm_preds_df["pred_proba_diff"] = lgbm_preds_df.pred_proba.diff()
+        lgbm_preds_df.loc[0, "pred_proba_diff"] = lgbm_preds_df.loc[0, "pred_proba"]
+
+    return lgbm_preds_df

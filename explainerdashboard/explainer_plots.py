@@ -2930,6 +2930,7 @@ def plotly_xgboost_trees(
     target="",
     units="",
     higher_is_better=True,
+    model_name="xgboost",
 ):
     """Generate a plot showing the prediction of every single tree inside an XGBoost model
 
@@ -2944,6 +2945,8 @@ def plotly_xgboost_trees(
         units (str, optional): Units of target variable. Defaults to "".
         higher_is_better (bool, optional): up is green, down is red. If False then
             flip the colors.
+        model_name (str, optional): model family label used in chart titles.
+            Defaults to "xgboost".
 
     Returns:
         Plotly fig
@@ -3041,10 +3044,10 @@ def plotly_xgboost_trees(
     )
 
     if target:
-        title = f"Individual xgboost decision trees predicting {target}"
+        title = f"Individual {model_name} decision trees predicting {target}"
         yaxis_title = f"Predicted {target} {f'({units})' if units else ''}"
     else:
-        title = "Individual xgboost decision trees"
+        title = f"Individual {model_name} decision trees"
         yaxis_title = f"Predicted outcome ({units})" if units else "Predicted outcome"
 
     layout = go.Layout(

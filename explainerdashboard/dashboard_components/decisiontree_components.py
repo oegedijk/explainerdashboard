@@ -8,7 +8,7 @@ from dash import html, dcc, Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from ..explainers import RandomForestExplainer, XGBExplainer
+from ..explainers import RandomForestExplainer, XGBExplainer, LGBMExplainer
 from ..dashboard_methods import *
 from .. import to_html
 
@@ -94,12 +94,20 @@ class DecisionTreesComponent(ExplainerComponent):
         elif isinstance(self.explainer, XGBExplainer):
             if self.description is None:
                 self.description = """
-            Shows the marginal contributions of each decision tree in an 
+            Shows the marginal contributions of each decision tree in an
             xgboost ensemble to the final prediction. This demonstrates that
             an xgboost model is simply a sum of individual decision trees.
             """
             if self.subtitle == "Displaying individual decision trees":
                 self.subtitle += " inside xgboost model"
+        elif isinstance(self.explainer, LGBMExplainer):
+            if self.description is None:
+                self.description = """
+            Shows the marginal contributions of each decision tree in a
+            LightGBM ensemble to the final prediction.
+            """
+            if self.subtitle == "Displaying individual decision trees":
+                self.subtitle += " inside LightGBM model"
         else:
             if self.description is None:
                 self.description = ""

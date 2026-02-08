@@ -6,6 +6,8 @@ __all__ = [
     "RandomForestRegressionExplainer",
     "XGBClassifierExplainer",
     "XGBRegressionExplainer",
+    "LGBMClassifierExplainer",
+    "LGBMRegressionExplainer",
 ]
 
 import sys
@@ -19,6 +21,7 @@ from types import MethodType
 from functools import wraps
 from threading import Lock
 import warnings
+import threading
 
 import numpy as np
 import pandas as pd
@@ -67,6 +70,26 @@ def _warn_if_no_logging_configured():
         stacklevel=2,
     )
     _WARNED_NO_LOGGING = True
+
+
+def _ensure_safe_matplotlib_backend_for_threaded_treeviz():
+    """Use a non-interactive matplotlib backend when rendering off main thread.
+
+    DTreeViz may create matplotlib figures during Dash callbacks. On macOS,
+    GUI backends (e.g. MacOSX) can raise RuntimeError in non-main threads.
+    """
+    if threading.current_thread() is threading.main_thread():
+        return
+    try:
+        import matplotlib
+
+        backend = str(matplotlib.get_backend()).lower()
+        if "agg" not in backend:
+            matplotlib.use("Agg", force=True)
+    except Exception:
+        # If matplotlib is unavailable or backend cannot be switched, let dtreeviz
+        # raise a concrete error downstream.
+        return
 
 
 from sklearn.metrics import (
@@ -2911,6 +2934,12 @@ class ClassifierExplainer(BaseExplainer):
                     UserWarning,
                 )
                 self.model_output = "logodds"
+        if safe_isinstance(self.model, "lightgbm.sklearn.LGBMClassifier"):
+            logger.info(
+                "Detected LGBMClassifier model: "
+                "Changing class type to LGBMClassifierExplainer..."
+            )
+            self.__class__ = LGBMClassifierExplainer
 
         _ = self.shap_explainer
 
@@ -4647,6 +4676,9 @@ class RegressionExplainer(BaseExplainer):
         if safe_isinstance(model, "XGBRegressor"):
             logger.info("Changing class type to XGBRegressionExplainer...")
             self.__class__ = XGBRegressionExplainer
+        if safe_isinstance(model, "lightgbm.sklearn.LGBMRegressor"):
+            logger.info("Changing class type to LGBMRegressionExplainer...")
+            self.__class__ = LGBMRegressionExplainer
 
         _ = self.shap_explainer
 
@@ -5291,6 +5323,7 @@ class TreeExplainer(BaseExplainer):
             )
             return None
 
+        _ensure_safe_matplotlib_backend_for_threaded_treeviz()
         viz = DTreeVizAPI(self.shadow_trees[tree_idx])
 
         x_row = self.get_X_row(index).squeeze()
@@ -5573,6 +5606,7 @@ class XGBExplainer(TreeExplainer):
             )
             return None
 
+        _ensure_safe_matplotlib_backend_for_threaded_treeviz()
         if self.is_classifier:
             if len(self.labels) > 2:
                 tree_idx = tree_idx * len(self.labels) + pos_label
@@ -5648,6 +5682,128 @@ class XGBExplainer(TreeExplainer):
         super().calculate_properties(include_interactions=include_interactions)
 
 
+class LGBMExplainer(TreeExplainer):
+    """LGBMExplainer allows for the analysis of individual DecisionTrees that
+    make up a LightGBM model.
+    """
+
+    @property
+    def no_of_trees(self):
+        """The number of trees shown in the selector."""
+        n_trees = self.model.booster_.num_trees()
+        if self.is_classifier and len(self.labels) > 2:
+            # one boosting round contains one tree per class
+            return int(n_trees / len(self.labels))
+        return n_trees
+
+    @property
+    def shadow_trees(self):
+        """a list of ShadowDecTree objects"""
+        if not hasattr(self, "_shadow_trees"):
+            logger.info(
+                "Calculating ShadowDecTree for each individual decision tree..."
+            )
+            # dtreeviz requires y to be int dtype (int64), not int16
+            y = self.y if self.y_missing else self.y.astype(int)
+            self._shadow_trees = [
+                ShadowDecTree.get_shadow_tree(
+                    self.model.booster_,
+                    self.X,
+                    y,
+                    feature_names=self.X.columns.tolist(),
+                    target_name="target",
+                    class_names=self.labels if self.is_classifier else None,
+                    tree_index=i,
+                )
+                for i in range(self.model.booster_.num_trees())
+            ]
+        return self._shadow_trees
+
+    @insert_pos_label
+    def get_decisionpath_df(self, tree_idx, index, pos_label=None):
+        assert (
+            tree_idx >= 0 and tree_idx < self.no_of_trees
+        ), f"tree index {tree_idx} outside 0 and number of trees ({len(self.decision_trees)}) range"
+        tree_idx_internal = tree_idx
+        if self.is_classifier and len(self.labels) > 2:
+            tree_idx_internal = tree_idx * len(self.labels) + pos_label
+        X_row = self.get_X_row(index)
+        if self.is_classifier:
+            return get_decisionpath_df(
+                self.shadow_trees[tree_idx_internal],
+                X_row.squeeze(),
+                pos_label=pos_label,
+                class_names=self.labels,
+            )
+        return get_decisionpath_df(
+            self.shadow_trees[tree_idx_internal], X_row.squeeze()
+        )
+
+    @insert_pos_label
+    def decisiontree_view(self, tree_idx, index, show_just_path=False, pos_label=None):
+        if not self.graphviz_available:
+            warnings.warn(
+                "No graphviz 'dot' executable available!",
+                UserWarning,
+            )
+            return None
+
+        _ensure_safe_matplotlib_backend_for_threaded_treeviz()
+        tree_idx_internal = tree_idx
+        if self.is_classifier and len(self.labels) > 2:
+            tree_idx_internal = tree_idx * len(self.labels) + pos_label
+
+        viz = DTreeVizAPI(self.shadow_trees[tree_idx_internal])
+
+        x_row = self.get_X_row(index).squeeze()
+        if isinstance(x_row, pd.Series):
+            x = x_row.to_numpy()
+        else:
+            x = np.atleast_1d(np.asarray(x_row))
+        return viz.view(
+            x=x,
+            fancy=False,
+            show_node_labels=False,
+            show_just_path=show_just_path,
+        )
+
+    @insert_pos_label
+    def plot_trees(
+        self, index, highlight_tree=None, round=2, higher_is_better=True, pos_label=None
+    ):
+        if self.is_classifier:
+            pos_label = self.pos_label_index(pos_label)
+            y = self.get_y(index)
+            y = int(y == pos_label) if y is not None else y
+            lgbm_preds_df = get_lgbm_preds_df(
+                self.model, self.get_X_row(index), pos_label=pos_label
+            )
+            return plotly_xgboost_trees(
+                lgbm_preds_df,
+                y=y,
+                highlight_tree=highlight_tree,
+                target=self.target,
+                higher_is_better=higher_is_better,
+                model_name="lightgbm",
+            )
+        X_row = self.get_X_row(index)
+        y = self.get_y(index)
+        lgbm_preds_df = get_lgbm_preds_df(self.model, X_row)
+        return plotly_xgboost_trees(
+            lgbm_preds_df,
+            y=y,
+            highlight_tree=highlight_tree,
+            target=self.target,
+            units=self.units,
+            higher_is_better=higher_is_better,
+            model_name="lightgbm",
+        )
+
+    def calculate_properties(self, include_interactions=True):
+        _ = self.shadow_trees
+        super().calculate_properties(include_interactions=include_interactions)
+
+
 class RandomForestClassifierExplainer(RandomForestExplainer, ClassifierExplainer):
     """RandomForestClassifierExplainer inherits from both RandomForestExplainer and
     ClassifierExplainer.
@@ -5674,6 +5830,22 @@ class XGBClassifierExplainer(XGBExplainer, ClassifierExplainer):
 
 class XGBRegressionExplainer(XGBExplainer, RegressionExplainer):
     """XGBRegressionExplainer inherits from both XGBExplainer and
+    RegressionExplainer.
+    """
+
+    pass
+
+
+class LGBMClassifierExplainer(LGBMExplainer, ClassifierExplainer):
+    """LGBMClassifierExplainer inherits from both LGBMExplainer and
+    ClassifierExplainer.
+    """
+
+    pass
+
+
+class LGBMRegressionExplainer(LGBMExplainer, RegressionExplainer):
+    """LGBMRegressionExplainer inherits from both LGBMExplainer and
     RegressionExplainer.
     """
 

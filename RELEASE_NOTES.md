@@ -12,6 +12,8 @@
 - Fix XGBoost multiclass decision-path summary wording to display `prediction (logodds)` when explainer `model_output='logodds'`.
 - Fix issue #256: add robust multiclass probability fallback for classifiers that expose `decision_function` but not `predict_proba` (e.g. `LinearSVC`), and use it consistently across kernel SHAP, prediction helpers, PDP, and permutation scorer paths.
 - Prevent multiclass class-count mismatches when user-provided/broken `predict_proba` outputs do not match model class count by falling back to `decision_function`-based probabilities.
+- Fix issue #118: add LightGBM decision-tree visualization support (dtreeviz) across explainer auto-detection, tree plotting, and decision-path rendering in dashboard tree tabs.
+- Fix dtreeviz callback rendering on macOS by switching matplotlib to a non-interactive backend for off-main-thread tree rendering to prevent dashboard 500 errors.
 
 ### Tests
 - Add regression tests for LightGBM with string categorical features covering dashboard initialization, `get_shap_row(...)`, unseen categorical values in `X_row`, and regression dashboard initialization.
@@ -22,6 +24,7 @@
 - Add explainer-method unit tests for binary-like onehot detection, transformed feature-name deduping, inferred pipeline cats, and pipeline extraction warning text.
 - Add regression tests for issue #256 covering multiclass `LinearSVC` with kernel SHAP, PDP, and permutation-importances flows using `decision_function` fallback.
 - Add guard tests to confirm multiclass `predict_proba` models (logistic regression) keep working for PDP and permutation-importances paths.
+- Add LightGBM tree-visualization regression tests (shadow trees, decision paths, plot_trees, and dtreeviz render contracts) in the boosting-model test suite.
 
 ### Improvements
 - Add pipeline feature-name cleanup options: `strip_pipeline_prefix=True` and `feature_name_fn=...` for sklearn/imblearn pipeline transformed output columns.

@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
+import dtreeviz
 
 
 def test_xgbreg_preds(precalculated_xgb_regression_explainer):
@@ -232,6 +234,76 @@ def test_lgbmclas_prediction_result_df(precalculated_lgbm_classifier_explainer):
     assert isinstance(
         precalculated_lgbm_classifier_explainer.prediction_result_df(0), pd.DataFrame
     )
+
+
+def test_lgbmclas_treeviz_graphviz_available(precalculated_lgbm_classifier_explainer):
+    assert isinstance(precalculated_lgbm_classifier_explainer.graphviz_available, bool)
+
+
+def test_lgbmclas_treeviz_shadow_trees(precalculated_lgbm_classifier_explainer):
+    dt = precalculated_lgbm_classifier_explainer.shadow_trees
+    assert isinstance(dt, list)
+    assert isinstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
+
+
+def test_lgbmclas_treeviz_decisionpath_df(precalculated_lgbm_classifier_explainer):
+    df = precalculated_lgbm_classifier_explainer.get_decisionpath_df(
+        tree_idx=0, index=0
+    )
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_lgbmclas_treeviz_decisiontree_view_contract(
+    precalculated_lgbm_classifier_explainer,
+):
+    precalculated_lgbm_classifier_explainer._graphviz_available = True
+    render = precalculated_lgbm_classifier_explainer.decisiontree_view(
+        tree_idx=0, index=0
+    )
+    assert isinstance(render, dtreeviz.utils.DTreeVizRender)
+
+
+def test_lgbmclas_treeviz_plot_trees(precalculated_lgbm_classifier_explainer):
+    fig = precalculated_lgbm_classifier_explainer.plot_trees(index=0)
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_lgbm_classifier_explainer.plot_trees(index=0, highlight_tree=0)
+    assert isinstance(fig, go.Figure)
+
+
+def test_lgbmreg_treeviz_shadow_trees(precalculated_lgbm_regression_explainer):
+    dt = precalculated_lgbm_regression_explainer.shadow_trees
+    assert isinstance(dt, list)
+    assert isinstance(dt[0], dtreeviz.models.shadow_decision_tree.ShadowDecTree)
+
+
+def test_lgbmreg_treeviz_decisionpath_df(
+    precalculated_lgbm_regression_explainer, test_names
+):
+    df = precalculated_lgbm_regression_explainer.get_decisionpath_df(
+        tree_idx=0, index=0
+    )
+    assert isinstance(df, pd.DataFrame)
+
+    df = precalculated_lgbm_regression_explainer.get_decisionpath_df(
+        tree_idx=0, index=test_names[0]
+    )
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_lgbmreg_treeviz_plot_trees(
+    precalculated_lgbm_regression_explainer, test_names
+):
+    fig = precalculated_lgbm_regression_explainer.plot_trees(index=0)
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_lgbm_regression_explainer.plot_trees(index=test_names[0])
+    assert isinstance(fig, go.Figure)
+
+    fig = precalculated_lgbm_regression_explainer.plot_trees(
+        index=test_names[0], highlight_tree=0
+    )
+    assert isinstance(fig, go.Figure)
 
 
 def test_xgbclas_preds(precalculated_xgb_classifier_explainer):
